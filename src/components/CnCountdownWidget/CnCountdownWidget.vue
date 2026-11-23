@@ -4,8 +4,10 @@
 -->
 
 <template>
-	<div class="cn-kpi-card cn-countdown-widget" :class="`cn-countdown-widget--${variant}`">
-		<div class="cn-kpi-card__icon cn-countdown-widget__icon" :style="iconCircleStyle">
+	<div
+		class="cn-kpi-card cn-countdown-widget"
+		:class="[`cn-countdown-widget--${variant}`, { 'cn-kpi-card--board cn-countdown-widget--board': isBoardLook }]">
+		<div v-if="!isBoardLook" class="cn-kpi-card__icon cn-countdown-widget__icon" :style="iconCircleStyle">
 			<CnWidgetIcon :name="resolvedIcon" :size="24" />
 		</div>
 
@@ -16,8 +18,46 @@
 			<div class="cn-kpi-card__value cn-countdown-widget__value" :style="{ color: valueColor }">
 				{{ headline }}
 			</div>
-			<div v-if="subLabel" class="cn-countdown-widget__sub">
+			<div v-if="subLabel" class="cn-countdown-widget__sub" data-testid="cn-countdown-sub">
 				{{ subLabel }}
+			</div>
+			<dl v-if="facts.length" class="cn-countdown-widget__facts" data-testid="cn-countdown-facts">
+				<template v-for="fact in facts" :key="fact.label">
+					<dt>{{ fact.label }}</dt>
+					<dd>{{ fact.value }}</dd>
+				</template>
+			</dl>
+			<span
+				v-if="progress !== null"
+				class="cn-countdown-widget__progress"
+				role="meter"
+				:aria-label="progressLabel"
+				:aria-valuenow="Math.round(progress)"
+				aria-valuemin="0"
+				aria-valuemax="100"
+				data-testid="cn-countdown-progress">
+				<span class="cn-countdown-widget__progress-fill" :style="{ width: `${progress}%` }" />
+			</span>
+			<CnNoteCard
+				v-if="stateNotice"
+				class="cn-countdown-widget__notice"
+				:type="stateNotice.type"
+				:heading="stateNotice.lead || undefined"
+				:text="stateNotice.text"
+				data-testid="cn-countdown-notice" />
+			<div v-if="actionButtons.length" class="cn-countdown-widget__actions">
+				<button
+					v-for="button in actionButtons"
+					:key="button.index"
+					type="button"
+					class="cn-countdown-widget__action"
+					:class="{ 'cn-countdown-widget__action--primary': button.primary }"
+					:disabled="button.disabled"
+					:aria-disabled="button.disabled ? 'true' : null"
+					data-testid="cn-countdown-action"
+					@click="runAction(button.action)">
+					{{ button.label }}
+				</button>
 			</div>
 		</div>
 	</div>
@@ -26,11 +66,28 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { inject } from 'vue'
+import CnNoteCard from '../CnNoteCard/CnNoteCard.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath } from '../../composables/useEndpointSource.js'
+import { normalizeLook } from '../../composables/useLook.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+/** The note-card types a state notice may take. */
+const NOTICE_TYPES = ['success', 'info', 'warning', 'error']
+
+/** The note-card type of each state's notice when the notice names none. */
+const DEFAULT_NOTICE_TYPES = Object.freeze({
+	onTrack: 'info',
+	warning: 'warning',
+	danger: 'error',
+	overdue: 'error',
+	extended: 'info',
+})
 
 const VARIANT_COLORS = Object.freeze({
 	default: 'var(--color-primary-element)',
@@ -69,6 +126,45 @@ const VARIANT_COLORS = Object.freeze({
  * negative number: "-3 days left" is a puzzle, and an overdue case is the one
  * state a handler must not have to decode.
  *
+ * ## A settled record
+ *
+ * `settledField` names a property on the record that is truthy once the work
+ * the date belongs to is done, such as a case in its final status. A settled
+ * record reads `settledLabel` (default "Closed") in no threshold colour, never
+ * "overdue": a closed case missed nothing that can still be acted on, and a red
+ * count of days on it sends a handler after a case that needs nobody.
+ *
+ * ```js
+ * content: { field: 'deadline', settledField: 'isFinalStatus', settledLabel: 'Handled' }
+ * ```
+ *
+ * ## The states of a term
+ *
+ * A term card reads differently as its date nears. `states` gives each state
+ * its own headline, caption and notice, and `actions` puts several buttons
+ * under the card, each greyed out in the states its `disabledIn` names:
+ *
+ * ```js
+ * content: {
+ *   field: 'deadline',
+ *   thresholds: { warn: 14, danger: 7 },
+ *   extendedField: 'extendedOn',
+ *   states: {
+ *     warning: { notice: { lead: 'Watch the term', text: 'Two weeks left.' } },
+ *     overdue: { headline: 'Term passed', caption: 'Was due {date}, {count} days ago' },
+ *   },
+ *   actions: [
+ *     { label: 'Extend', type: 'handler', handler: 'extendTerm', disabledIn: ['overdue', 'extended'] },
+ *     { label: 'Suspend', type: 'handler', handler: 'suspendTerm' },
+ *   ],
+ * }
+ * ```
+ *
+ * The state is `overdue` past the date, else `danger` or `warning` by the
+ * thresholds, else `extended` when `extendedField` is truthy, else `onTrack`.
+ * `extended` also counts for `disabledIn` while a threshold applies, so a
+ * term extended once cannot be extended again a week before its end.
+ *
  * ## An unset date
  *
  * Renders a dash and no threshold colour. A case with no deadline is not urgent
@@ -79,6 +175,7 @@ export default {
 	name: 'CnCountdownWidget',
 
 	components: {
+		CnNoteCard,
 		CnWidgetIcon,
 	},
 
@@ -91,8 +188,20 @@ export default {
 		 * - `icon` — MDI icon name.
 		 * - `thresholds` — `{ warn, danger }` in days remaining.
 		 * - `showDate` — render the absolute date underneath (default true).
+		 * - `settledField` — property on the record that is truthy once the work is done; the tile then reads `settledLabel` and never counts overdue.
+		 * - `settledLabel` — the headline of a settled record, run through the host's translate function (default "Closed").
+		 * - `daysLabel` — `{ one, other }` with `{count}`, the headline while days remain ("27 dagen").
+		 * - `caption` — the line under the headline instead of the date, with `{date}` (the long date) and `{count}` (days left).
+		 * - `startField` — property holding the start of the term; a bar then shows how much of it has passed.
+		 * - `action` — one manifest action under the card (`{ label, type, variant?, ... }`, the headerActions shape; `variant: "primary"` draws it in the primary tint).
+		 * - `emptyLabel` — the headline while the date is unset (default a dash).
+		 * - `emptyCaption` — the line under it while the date is unset, with `{date}` read from `emptyDateField`.
+		 * - `facts` — `[{ label, field }]` rows under the caption.
+		 * - `extendedField` — property on the record that is truthy once the term has been extended.
+		 * - `states` — per state (`onTrack`, `warning`, `danger`, `overdue`, `extended`) a `{ headline?, caption?, notice?: { lead?, text?, type? } }`; texts take `{date}` and `{count}` and run through the host's translate.
+		 * - `actions` — several manifest actions under the card, each with an optional `disabledIn` list of states.
 		 *
-		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean }}
+		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object, emptyLabel?: string, emptyCaption?: string, emptyDateField?: string, facts?: Array<{label: string, field: string}>, extendedField?: string, states?: object, actions?: Array<object> }}
 		 */
 		content: {
 			type: Object,
@@ -115,6 +224,9 @@ export default {
 		return {
 			cnObjectContextInjected: inject('cnObjectContext', null),
 			cnDetailObjectContextInjected: inject('cnDetailObjectContext', null),
+			cnTranslate: inject('cnTranslate', null),
+			cnLook: inject('cnLook', 'nextcloud'),
+			cnDispatchAction: inject('cnDispatchAction', null),
 		}
 	},
 
@@ -166,20 +278,50 @@ export default {
 			return Math.round((startOfDay(this.targetDate) - startOfDay(new Date())) / MS_PER_DAY)
 		},
 
-		/** @return {boolean} true once the date has passed. */
+		/**
+		 * Whether the record says its work is done (`settledField` is truthy).
+		 *
+		 * @return {boolean} True for a settled record.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
+		 */
+		isSettled() {
+			const field = this.content?.settledField
+			if (!this.record || !field) {
+				return false
+			}
+			return Boolean(getByPath(this.record, field))
+		},
+
+		/**
+		 * Whether the date has passed on a record still open.
+		 *
+		 * @return {boolean} True when overdue.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
+		 */
 		isOverdue() {
-			return this.daysRemaining !== null && this.daysRemaining < 0
+			return !this.isSettled && this.daysRemaining !== null && this.daysRemaining < 0
 		},
 
 		/**
 		 * The headline: the remaining time in words.
 		 *
 		 * @return {string} The headline text.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
 		 */
 		headline() {
+			if (this.isSettled) {
+				const label = this.content?.settledLabel
+				if (label) {
+					return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
+				}
+				return t('nextcloud-vue', 'Closed')
+			}
 			const days = this.daysRemaining
+			if (this.stateConfig.headline) {
+				return this.fillStateText(this.stateConfig.headline)
+			}
 			if (days === null) {
-				return '—'
+				return this.content?.emptyLabel ? this.translate(this.content.emptyLabel) : '—'
 			}
 			if (days < 0) {
 				const overdue = Math.abs(days)
@@ -190,10 +332,174 @@ export default {
 			if (days === 0) {
 				return t('nextcloud-vue', 'Due today')
 			}
+			const labels = this.content?.daysLabel
+			if (labels && typeof labels === 'object' && (labels.one || labels.other)) {
+				const template = this.translate((days === 1 ? labels.one : labels.other) || labels.other || labels.one)
+				return template.replace(/\{count\}/g, String(days))
+			}
 			if (days === 1) {
 				return t('nextcloud-vue', '1 day left')
 			}
 			return t('nextcloud-vue', '{count} days left', { count: days })
+		},
+
+		/**
+		 * Whether the app takes the board look: no icon circle.
+		 *
+		 * @return {boolean} True in the board look.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * How much of the term has passed, from `startField` to the date, in
+		 * whole days and as a percentage (0 to 100), or null without a usable
+		 * start.
+		 *
+		 * @return {number|null} The share passed.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		progress() {
+			const field = this.content?.startField
+			if (!field || !this.record || !this.targetDate || this.isSettled) {
+				return null
+			}
+			const raw = getByPath(this.record, field)
+			const start = raw === null || raw === undefined || raw === '' ? null : new Date(raw)
+			if (!start || Number.isNaN(start.getTime())) {
+				return null
+			}
+			const startOfDay = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
+			const span = startOfDay(this.targetDate) - startOfDay(start)
+			if (span <= 0) {
+				return null
+			}
+			return Math.min(100, Math.max(0, ((startOfDay(new Date()) - startOfDay(start)) / span) * 100))
+		},
+
+		/**
+		 * The `facts` rows under the caption (`[{ label, field }]`), with
+		 * their values read off the record; a row without a value is left out.
+		 *
+		 * @return {Array<{label: string, value: string}>} The rows.
+		 * @spec openspec/changes/countdown-board-look/specs/countdown-board-look/spec.md#requirement-the-countdown-draws-the-boards-term-card
+		 */
+		facts() {
+			const rows = Array.isArray(this.content?.facts) ? this.content.facts : []
+			return rows
+				.filter((row) => row && typeof row.label === 'string' && typeof row.field === 'string')
+				.map((row) => {
+					const value = this.record ? getByPath(this.record, row.field) : null
+					return { label: this.translate(row.label), value: value === null || value === undefined ? '' : this.translate(String(value)) }
+				})
+				.filter((row) => row.value !== '')
+		},
+
+		/**
+		 * Whether the record says its term has been extended (`extendedField`).
+		 *
+		 * @return {boolean} True for an extended term.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		isExtended() {
+			const field = this.content?.extendedField
+			return Boolean(field && this.record && getByPath(this.record, field))
+		},
+
+		/**
+		 * The state of the term: `overdue`, `danger`, `warning`, `extended` or
+		 * `onTrack`; null while the date is unset or the record is settled.
+		 *
+		 * @return {string|null} The state.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		termState() {
+			if (this.daysRemaining === null || this.isSettled) {
+				return null
+			}
+			if (this.daysRemaining < 0) {
+				return 'overdue'
+			}
+			if (this.variant === 'error') {
+				return 'danger'
+			}
+			if (this.variant === 'warning') {
+				return 'warning'
+			}
+			return this.isExtended ? 'extended' : 'onTrack'
+		},
+
+		/**
+		 * Every state that holds now: the term state, plus `extended` while a
+		 * threshold or the date outranks it.
+		 *
+		 * @return {string[]} The states.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
+		 */
+		activeStates() {
+			if (this.termState === null) {
+				return []
+			}
+			return this.isExtended && this.termState !== 'extended' ? [this.termState, 'extended'] : [this.termState]
+		},
+
+		/**
+		 * The `states` entry of the current state, or an empty object.
+		 *
+		 * @return {{headline?: string, caption?: string, notice?: object}} The entry.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		stateConfig() {
+			const states = this.content?.states
+			const entry = this.termState && states && typeof states === 'object' ? states[this.termState] : null
+			return entry && typeof entry === 'object' ? entry : {}
+		},
+
+		/**
+		 * The notice of the current state, its texts filled in, or null.
+		 *
+		 * @return {{lead: string, text: string, type: string}|null} The notice.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		stateNotice() {
+			const notice = this.stateConfig.notice
+			if (!notice || typeof notice !== 'object' || (!notice.lead && !notice.text)) {
+				return null
+			}
+			const type = NOTICE_TYPES.includes(notice.type) ? notice.type : DEFAULT_NOTICE_TYPES[this.termState]
+			return {
+				lead: notice.lead ? this.fillStateText(notice.lead) : '',
+				text: notice.text ? this.fillStateText(notice.text) : '',
+				type,
+			}
+		},
+
+		/**
+		 * The buttons under the card: `content.actions`, or `content.action`
+		 * alone, each greyed out while a state its `disabledIn` names holds.
+		 *
+		 * @return {Array<{index: number, label: string, primary: boolean, disabled: boolean, action: object}>} The buttons.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
+		 */
+		actionButtons() {
+			const list = Array.isArray(this.content?.actions) ? this.content.actions : [this.content?.action]
+			return list
+				.map((action, index) => ({ action, index }))
+				.filter(({ action }) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				.map(({ action, index }) => ({
+					index,
+					label: this.translate(action.label),
+					primary: action.variant === 'primary',
+					disabled: Array.isArray(action.disabledIn) && action.disabledIn.some((state) => this.activeStates.includes(state)),
+					action,
+				}))
+		},
+
+		/** @return {string} The accessible name of the progress bar. */
+		progressLabel() {
+			return t('nextcloud-vue', 'Time passed')
 		},
 
 		/**
@@ -203,20 +509,35 @@ export default {
 		 * @return {string} The formatted date, or ''.
 		 */
 		subLabel() {
+			if (!this.targetDate && typeof this.content?.emptyCaption === 'string' && this.content.emptyCaption !== '') {
+				const raw = this.content.emptyDateField && this.record ? getByPath(this.record, this.content.emptyDateField) : null
+				const when = raw ? new Date(raw) : null
+				const date = when && !Number.isNaN(when.getTime()) ? when.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+				return this.translate(this.content.emptyCaption).replace(/\{date\}/g, date)
+			}
 			if (!this.targetDate || this.content?.showDate === false) {
 				return ''
 			}
-			return this.targetDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+			if (this.stateConfig.caption) {
+				return this.fillStateText(this.stateConfig.caption)
+			}
+			const date = this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' })
+			const caption = this.content?.caption
+			if (typeof caption === 'string' && caption !== '') {
+				return this.translate(caption).replace(/\{date\}/g, date).replace(/\{count\}/g, String(this.daysRemaining ?? ''))
+			}
+			return date
 		},
 
 		/**
 		 * The threshold band this date falls in.
 		 *
 		 * @return {string} One of default / success / warning / error.
+		 * @spec openspec/changes/countdown-settled-record/specs/countdown-settled-record/spec.md#requirement-a-settled-record-never-reads-as-overdue
 		 */
 		variant() {
 			const days = this.daysRemaining
-			if (days === null) {
+			if (days === null || this.isSettled) {
 				return 'default'
 			}
 			if (days < 0) {
@@ -234,6 +555,9 @@ export default {
 
 		/** @return {string} The value colour for the current band. */
 		valueColor() {
+			if (this.isBoardLook && this.variant === 'default') {
+				return 'var(--color-main-text)'
+			}
 			return VARIANT_COLORS[this.variant] || VARIANT_COLORS.default
 		},
 
@@ -252,12 +576,166 @@ export default {
 			return { color: this.valueColor }
 		},
 	},
+
+	methods: {
+		/**
+		 * The host's translate, or the text unchanged.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The translation.
+		 */
+		translate(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A state text through the host's translate, with `{date}` the long
+		 * date and `{count}` the days left, or the days past once overdue.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The filled text.
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-a-term-card-reads-per-state
+		 */
+		fillStateText(text) {
+			const date = this.targetDate ? this.targetDate.toLocaleDateString(userLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+			const count = this.daysRemaining === null ? '' : String(Math.abs(this.daysRemaining))
+			return this.translate(text).replace(/\{date\}/g, date).replace(/\{count\}/g, count)
+		},
+
+		/**
+		 * Dispatch a manifest action with the record's tokens resolved, through
+		 * the page's dispatcher when there is one. A greyed-out action does nothing.
+		 *
+		 * @param {object} [action] The action; `content.action` when left out.
+		 * @return {unknown}
+		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
+		 */
+		runAction(action = this.content?.action) {
+			if (!action || typeof action !== 'object') {
+				return undefined
+			}
+			const ctx = resolveObjectTokenContext(this.cnObjectContextInjected, this.cnDetailObjectContextInjected) || {}
+			const tokenCtx = { ...ctx, object: this.record || ctx.object || null, objectId: this.record?.id ?? ctx.objectId ?? null }
+			const { disabledIn, ...declared } = action
+			if (Array.isArray(disabledIn) && disabledIn.some((state) => this.activeStates.includes(state))) {
+				return undefined
+			}
+			const resolved = resolveDeepTokens(declared, tokenCtx)
+			if (typeof this.cnDispatchAction === 'function') {
+				return this.cnDispatchAction(resolved)
+			}
+			return dispatchAction(resolved, { router: this.$router || null, tokenCtx })
+		},
+	},
 }
 </script>
 
 <style scoped>
 .cn-countdown-widget__value {
 	white-space: nowrap;
+}
+
+/* The bar spans the card: the KPI body aligns its items to the start, which
+   left the empty track 0px wide. */
+.cn-countdown-widget__progress {
+	align-self: stretch;
+	background: var(--color-border);
+	border-radius: 3px;
+	display: block;
+	height: 6px;
+	margin-block-start: 10px;
+	overflow: hidden;
+}
+
+.cn-countdown-widget__progress-fill {
+	background: var(--color-primary-element);
+	display: block;
+	height: 100%;
+}
+
+.cn-countdown-widget__action {
+	align-self: flex-start;
+	background: var(--color-background-dark);
+	border: 0;
+	border-radius: var(--border-radius-pill, 17px);
+	color: var(--color-main-text);
+	font-weight: 600;
+	margin-block-start: 10px;
+	min-height: 34px;
+	padding: 0 12px;
+}
+
+/* The board draws the term card's action as a 34px chip with 13px text and
+   a 17px radius (DqZaak "Termijn opschorten"); Nextcloud's pill radius is
+   100px and its text 15px. */
+.cn-countdown-widget--board .cn-countdown-widget__action {
+	border-radius: 17px;
+	font-size: 13px;
+}
+
+/* The board stacks the term card 10px apart: the days, the date line, the
+   bar and the action (DqZaak "Termijn": r33 live 2 / 11.9 / 5 against 10,
+   card 182.7 against 188). */
+.cn-countdown-widget--board .cn-kpi-card__body {
+	gap: 10px;
+}
+
+.cn-countdown-widget--board .cn-countdown-widget__progress.cn-countdown-widget__progress,
+.cn-countdown-widget--board .cn-countdown-widget__action.cn-countdown-widget__action {
+	margin: 0;
+}
+
+.cn-countdown-widget__actions {
+	align-self: stretch;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-block-start: 10px;
+}
+
+.cn-countdown-widget__actions .cn-countdown-widget__action {
+	margin: 0;
+}
+
+.cn-countdown-widget__action:disabled {
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	cursor: not-allowed;
+}
+
+.cn-countdown-widget__notice {
+	align-self: stretch;
+	margin: 10px 0 0;
+}
+
+.cn-countdown-widget--board .cn-countdown-widget__actions,
+.cn-countdown-widget--board .cn-countdown-widget__notice {
+	margin: 0;
+}
+
+.cn-countdown-widget__action--primary {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-countdown-widget__facts {
+	display: grid;
+	gap: 8px 16px;
+	grid-template-columns: max-content 1fr;
+	margin: 10px 0 0;
+}
+
+.cn-countdown-widget__facts dt {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-countdown-widget__facts dd {
+	margin: 0;
+}
+
+.cn-countdown-widget__action:not(:disabled):hover,
+.cn-countdown-widget__action:focus-visible {
+	background: var(--color-background-hover);
 }
 
 .cn-countdown-widget__sub {

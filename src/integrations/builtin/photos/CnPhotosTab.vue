@@ -69,7 +69,10 @@
 		<div v-else-if="albums.length === 0" class="cn-sidebar-tab__empty cn-photos-tab__empty">
 			<ImageIcon :size="32" class="cn-photos-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openPhotosApp">
+			<NcButton
+				variant="primary"
+				:href="photosAppUrl"
+				target="_blank">
 				<template #icon>
 					<ImageIcon :size="20" />
 				</template>
@@ -150,7 +153,9 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnPhotoAlbumCreate from '../../../components/CnPhotoAlbumCreate/CnPhotoAlbumCreate.vue'
 import CnPhotoAlbumPicker from '../../../components/CnPhotoAlbumPicker/CnPhotoAlbumPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
+import { stripMarker } from '../../utils/marker.js'
 
 /**
  * CnPhotosTab — bespoke album grid for the `photos` integration.
@@ -254,11 +259,11 @@ export default {
 		 */
 		albumName(album) {
 			const raw = (album && (album.albumName || album.title || album.name || album.data?.name)) || ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled album')
+			return stripMarker(raw) || t('nextcloud-vue', 'Untitled album')
 		},
 
 		albumUrl(album) {
-			if (album && album.url) {
+			if (album && album.url && safeHref(album.url) !== '#') {
 				return album.url
 			}
 			const id = this.albumKey(album)
@@ -314,7 +319,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return String(value)
 				}
-				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+				return d.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 			} catch {
 				return String(value)
 			}
@@ -389,12 +394,6 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnPhotosTab] unlink failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink album.')
-			}
-		},
-
-		openPhotosApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.photosAppUrl, '_blank', 'noopener')
 			}
 		},
 

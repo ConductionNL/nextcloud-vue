@@ -156,7 +156,7 @@ import Briefcase from 'vue-material-design-icons/Briefcase.vue'
 import CheckCircleOutline from 'vue-material-design-icons/CheckCircleOutline.vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -338,7 +338,8 @@ export default {
 		},
 
 		wpUrl(wp) {
-			return wp.url ?? wp._links?.self?.href ?? this.openprojectAppUrl
+			const url = wp.url ?? wp._links?.self?.href
+			return url && safeHref(url) !== '#' ? url : this.openprojectAppUrl
 		},
 
 		wpStatus(wp) {

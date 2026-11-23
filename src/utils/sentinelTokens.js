@@ -26,7 +26,7 @@
  * A token is valid only in the context whose resolver runs on it:
  *
  *  - **filter**       — `resolveFilterTokens`, resolved at fetch time:
- *                       `@me`, `@now`, `@today`, `@today±Nd`, `@monthStart`,
+ *                       `@me`, `@myGroups`, `@myTeam`, `@now`, `@today`, `@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`,
  *                       `@quarterStart`, `@yearStart`.
  *  - **config**       — `IAppConfig`-sourced: `@resolve:<key>`, `@config.<key>`
  *                       (trailing `?` marks optional).
@@ -67,12 +67,14 @@
  * @type {Readonly<Record<string, string>>}
  */
 export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
-	filter: '^@(?:me|now|today|monthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
+	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|myTeam|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-](?:[0-9]+|\\{@config\\.[A-Za-z][A-Za-z0-9_.]*\\})d$',
 	config: '^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$',
 	object: '^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$',
+	// party-actions: a record field made a link (`@object.phone|tel`, `|mailto`, `|geo`).
+	link: '^@object\\.[A-Za-z][A-Za-z0-9_]*\\|(?:tel|mailto|geo)$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
 	route: '^@route\\.[A-Za-z][A-Za-z0-9_-]*$',
-	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
+	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_-]*)*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
 	// manifest-form-logic: the shared visibleWhen predicate's source-mode
 	// collection-total marker (`field: "@total"`), resolved client-side by
 	// evaluateVisibleWhen — not one of the four IAppConfig/OpenRegister
@@ -81,6 +83,23 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	// sentinelGuardedValue-guarded pages[].config subtree for the first time
 	// via config.fields[].visibleWhen.
 	visibleWhen: '^@total$',
+	// form-live-values: another answer in the same form, read by a field's `assign` rule.
+	answer: '^@answer\\.[A-Za-z][A-Za-z0-9_]*$',
+	// A field of the row a row action is run on (`@row.<field>`, dot path), read by the
+	// field-list widget's `rowActions` request URL and payload.
+	row: '^@row\\.[A-Za-z][A-Za-z0-9_.@]*$',
+	// A field of the record a start-here attention card names (`@subject.<field>`, dot path),
+	// read by the banner widget's action routes.
+	subject: '^@subject\\.[A-Za-z][A-Za-z0-9_.]*$',
+	// A record a detail page reads beside the loaded one (`visibilityContext`), read by a
+	// grid widget's or a tab's `visibleWhen` as `@context.<name>.<field>` (dot path).
+	context: '^@context\\.[A-Za-z][A-Za-z0-9_.]*$',
+	// A field of the object a facts widget shows (`@source.<field>`, dot path), read by a
+	// fact row's `route` params.
+	source: '^@source\\.[A-Za-z][A-Za-z0-9_.@]*$',
+	// What was typed into a facts widget's `input` field (`@input.<key>`), read by
+	// its actions' url and payload.
+	input: '^@input\\.[A-Za-z][A-Za-z0-9_]*$',
 	// Deprecated-but-not-yet-removed tokens. Kept in the schema union so
 	// deployed manifests still validate during the migration window; the gate
 	// downgrades them to a WARN (see SENTINEL_DEPRECATIONS).
@@ -88,7 +107,7 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 })
 
 /**
- * The eight canonical context names (excludes `deprecated`, which is a
+ * The nine canonical context names (excludes `deprecated`, which is a
  * transitional overlay, not a resolution context).
  *
  * @type {string[]}
@@ -101,6 +120,12 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 	'route',
 	'declarative',
 	'visibleWhen',
+	'answer',
+	'row',
+	'subject',
+	'context',
+	'source',
+	'input',
 ])
 
 /**
@@ -113,8 +138,8 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 export const SENTINEL_VOCABULARY = Object.freeze({
 	filter: {
 		resolver: 'resolveFilterTokens',
-		description: 'Relative fetch-time tokens (current user / relative dates).',
-		members: ['@me', '@now', '@today', '@today±Nd', '@monthStart', '@quarterStart', '@yearStart'],
+		description: 'Relative fetch-time tokens (current user, the current user\'s groups as an IN list, relative dates).',
+		members: ['@me', '@me.displayName', '@me.email', '@myGroups', '@myTeam', '@now', '@today', '@today±Nd', '@monthStart', '@monthEnd', '@nextMonthStart', '@quarterStart', '@yearStart'],
 	},
 	config: {
 		resolver: 'resolveManifestSentinels / resolveFilterTokens',
@@ -125,6 +150,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'resolveFilterTokens',
 		description: 'Detail-page object context. Resolve only when a `{ objectId, object }` ctx is supplied.',
 		members: ['@objectId', '@object.<field>'],
+	},
+	link: {
+		resolver: 'CnPartyActionsWidget',
+		description: 'A record field made a tel:, mailto: or geo: link, for an action target; the action is left out when the value makes no link.',
+		members: ['@object.<field>|tel', '@object.<field>|mailto', '@object.<field>|geo'],
 	},
 	workspace: {
 		resolver: 'resolveFilterTokens',
@@ -145,6 +175,36 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'evaluateVisibleWhen (utils/visibleWhen.js)',
 		description: 'The shared visibleWhen predicate\'s source-mode collection-total marker. `field: "@total"` (or an omitted `field`) compares the collection total instead of the first result.',
 		members: ['@total'],
+	},
+	answer: {
+		resolver: 'resolveAssignValue (utils/formAssign.js)',
+		description: 'Another answer in the same form, read by a field\'s `assign` rule.',
+		members: ['@answer.<field>'],
+	},
+	row: {
+		resolver: 'CnFieldListWidget (rowActions request url and payload)',
+		description: 'A field of the row a row action runs on, read by the field-list widget when it sends the action\'s request. Dot paths are allowed (`@row.owner.id`).',
+		members: ['@row.<field>'],
+	},
+	subject: {
+		resolver: 'CnBannerWidget (action route params and query)',
+		description: 'A field of the record an attention card names (the first row of its ordered `visibleWhen` source query), read when the card builds an action\'s route. Dot paths are allowed (`@subject.owner.id`).',
+		members: ['@subject.<field>'],
+	},
+	context: {
+		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen, and by a widget\'s props (CnDetailWidgetHost)',
+		description: 'A record the detail page reads beside the loaded one, named in `config.visibilityContext` (a case\'s case type). A `visibleWhen` field reads it as `@context.<name>.<field>`, dot paths allowed (`@context.caseType.category`).',
+		members: ['@context.<name>.<field>'],
+	},
+	source: {
+		resolver: 'CnFactsWidget (a fact row\'s route params)',
+		description: 'A field of the object a facts widget shows, read when a fact row builds its link. Dot paths are allowed (`@source.caseType.parentCaseType`).',
+		members: ['@source.<field>'],
+	},
+	input: {
+		resolver: 'CnFactsWidget (action url and payload)',
+		description: 'What the user typed into a facts widget\'s `input` field, read when one of its actions runs; \'\' when nothing was typed.',
+		members: ['@input.<key>'],
 	},
 })
 

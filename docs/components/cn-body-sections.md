@@ -19,6 +19,21 @@ sidebar tab is required.**
 dashboard / index page can adopt the same primitive later by passing its own
 `context`.
 
+## A library widget as a section
+
+A section can name a library widget `type` instead of a host `component`. It renders that widget with its `content` and the page's record (`objectId`, `objectData`), with the section's title, placement and card. A `component` wins when both are set; an unknown type shows the inline error. Any section may carry `visibleWhen` (a condition on the record, as on a widget); it is left out, title and card included, while the condition does not hold.
+
+```json
+{
+  "id": "case",
+  "type": "handoff",
+  "title": "Case",
+  "placement": "after-data",
+  "card": true,
+  "content": { "availability": { "url": "/apps/pipelinq/api/handoff/request/@objectId/availability" }, "canPath": "canConvert" }
+}
+```
+
 ## Registering a host component for in-body use
 
 Register the component in the app's v2 registry under any kind that exposes a
@@ -103,7 +118,7 @@ the child receives `undefined` rather than a literal token string.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `sections` | `Array` | `[]` | Section descriptors: `{ id?, component, title?, props?, placement?, colSpan? }`. `component` is a registry name resolved from `cnRegistry` then `cnCustomComponents`. |
+| `sections` | `Array` | `[]` | Section descriptors: `{ id?, component, title?, props?, placement?, colSpan?, card? }`. `component` is a registry name resolved from `cnRegistry` then `cnCustomComponents`. `card: true` draws the section in the same bordered card as the grid's widgets, with the title as its header; leave it off for a component that draws its own card. |
 | `context` | `Object` | `{}` | Page/object context (`{ objectId?, object?, workspace?, register?, schema? }`) used to resolve `props` tokens and `provide`d on `cnSectionContext` for inject-based host components. |
 | `placement` | `String \| null` | `null` | When set, only sections whose `placement` matches render (CnDetailPage mounts one instance per placement). `null` renders all passed sections. |
 | `grid` | `Boolean` | `true` | Lay sections out on a 12-column responsive grid honouring each section's `colSpan`. Falls back to a vertical stack when no section sets a `colSpan`. |

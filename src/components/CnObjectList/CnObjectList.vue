@@ -9,11 +9,11 @@
 		<div v-else-if="objects.length === 0" class="cn-object-list__empty">
 			<!-- @slot empty Custom empty state shown when there are no objects. -->
 			<slot name="empty">
-				<NcEmptyContent :name="resolvedEmptyText">
+				<CnEmptyContent :name="resolvedEmptyText">
 					<template #icon>
 						<FormatListBulletedSquare :size="64" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
@@ -65,8 +65,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcLoadingIcon } from '@nextcloud/vue'
 import FormatListBulletedSquare from 'vue-material-design-icons/FormatListBulletedSquare.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import { CnObjectRow } from '../CnObjectRow/index.js'
 
 /**
@@ -94,7 +95,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		FormatListBulletedSquare,
 		CnObjectRow,
 	},
@@ -163,7 +164,7 @@ export default {
 		},
 	},
 
-	emits: ['click', 'select'],
+	emits: ['click', 'select', 'aux-click'],
 
 	computed: {
 		/**
@@ -193,7 +194,8 @@ export default {
 		rowListeners(object) {
 			const listeners = { select: () => this.toggleSelect(object) }
 			if (!this.selectable) {
-				listeners.click = () => this.emitClick(object)
+				listeners.click = (_row, event) => this.emitClick(object, event)
+				listeners['aux-click'] = (_row, event) => this.emitAuxClick(object, event)
 			}
 			return listeners
 		},
@@ -202,13 +204,29 @@ export default {
 		 * Emit `click` for a non-selectable row (navigation).
 		 *
 		 * @param {object} object The clicked row's object.
+		 * @param {MouseEvent} [event] The native click event.
 		 */
-		emitClick(object) {
+		emitClick(object, event) {
 			/**
-			 * @event click Emitted when a non-selectable row is clicked (navigation).
+			 * @event click Emitted when a non-selectable row is clicked (navigation). Payload: `(object, event)` — the row's object and the native click event, for opening it in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead.
 			 * @type {object} The clicked row's object.
 			 */
-			this.$emit('click', object)
+			this.$emit('click', object, event)
+		},
+
+		/**
+		 * Emit `aux-click` for a middle click on a non-selectable row, kept off
+		 * `click` so a navigating listener never moves the current tab away.
+		 *
+		 * @param {object} object The clicked row's object.
+		 * @param {MouseEvent} event The native auxclick event.
+		 */
+		emitAuxClick(object, event) {
+			/**
+			 * @event aux-click Emitted when a non-selectable row is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the row's object and the native auxclick event.
+			 * @type {object} The clicked row's object.
+			 */
+			this.$emit('aux-click', object, event)
 		},
 
 		toggleSelect(object) {

@@ -6,7 +6,7 @@
  *
  * Each test was watched failing against the code before the fix:
  *  - the GitHub help read "read-only access", so a token made from it could
- *    not publish and the publish failed with a 403 nobody could explain;
+ *    not publish (main now defers to the app's own listed permissions);
  *  - PROVIDER_META was read directly, so `providerMeta` changed nothing;
  *  - the vault link was a hardcoded /apps/doriath, a 404 on every instance
  *    running the app under its new id;
@@ -42,13 +42,12 @@ describe('CnCredentials', () => {
 		delete global.window.OC
 	})
 
-	it('tells the reader a publishing token needs write access', () => {
+	it('does not tell the reader a GitHub token only needs read access', () => {
 		const wrapper = mountPane()
 		wrapper.vm.form.provider = 'github'
 
 		const help = wrapper.vm.activeMeta.setupHelp
-		expect(help).toContain('Administration')
-		expect(help).toContain('read and write')
+		expect(help).toContain('permissions listed above')
 		expect(help).not.toContain('read-only access to the repositories')
 	})
 

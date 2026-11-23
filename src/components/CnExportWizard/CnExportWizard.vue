@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		:noClose="loading"
@@ -115,12 +120,14 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import ExportIcon from 'vue-material-design-icons/Export.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnExportWizard — Configurable export trigger dialog.
@@ -167,7 +174,9 @@ import ExportIcon from 'vue-material-design-icons/Export.vue'
  */
 export default {
 	name: 'CnExportWizard',
-	components: { NcDialog, NcButton, NcSelect, NcNoteCard, NcLoadingIcon, ExportIcon },
+	components: { CnDialog, NcButton, NcSelect, NcNoteCard, NcLoadingIcon, ExportIcon },
+
+	mixins: [dialogBoardMixin],
 	props: {
 		/**
 		 * Dialog title shown in the NcDialog header.

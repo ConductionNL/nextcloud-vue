@@ -1,0 +1,4 @@
+- [x] 1. CnConversationThread: `status`, `actions`, `message-action`, slot `reply-tools`.
+- [x] 2. CnConversationWidget: `fields`, `templates`, `replyOptions`, `statusField`/`statusMap`, `messageActions`.
+- [x] 3. `tests/components/CnConversationReplyTools.spec.js`.
+- [x] 4. Docs: cn-conversation-thread.md, cn-conversation-widget.md.

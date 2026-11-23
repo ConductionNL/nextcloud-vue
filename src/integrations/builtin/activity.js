@@ -33,8 +33,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnActivityCard from './activity/CnActivityCard.vue'
-import CnActivityTab from './activity/CnActivityTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnActivityCard = lazyComponent(() => import('./activity/CnActivityCard.vue'), 'CnActivityCard')
+const CnActivityTab = lazyComponent(() => import('./activity/CnActivityTab.vue'), 'CnActivityTab')
 
 /**
  * `activity` integration descriptor.
@@ -51,6 +53,8 @@ export const activityIntegration = {
 	referenceType: 'activity',
 	tab: CnActivityTab,
 	widget: CnActivityCard,
+	// The detail page and a manifest grid get the full merged feed (kind chips, reads toggle, range, export) as a widget, so the page can drop its separate audit and version tabs.
+	widgetExpanded: CnActivityTab,
 	defaultSize: { w: 3, h: 3 },
 }
 

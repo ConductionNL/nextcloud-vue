@@ -9,7 +9,7 @@
  */
 
 import { mount } from '@vue/test-utils'
-import { h, inject } from 'vue'
+import { h, inject, reactive } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 
 // A host-app section component that echoes its received props so the test can
@@ -123,6 +123,58 @@ describe('CnDetailPage — bodyWidgets (in-body sections)', () => {
 			{ registry, object: { id: 'o1', name: 'Acme' } },
 		)
 		expect(wrapper.find('.context-echo').text()).toBe('o1|Acme')
+		wrapper.unmount()
+	})
+
+	it('lets an injecting section show the object it saved through cnSectionContext.setObject', async () => {
+		let ctx = null
+		const Saver = {
+			name: 'Saver',
+			setup() {
+				ctx = inject('cnSectionContext', null)
+				return () => h('div', { class: 'saver' })
+			},
+		}
+		const store = reactive(makeFakeStore({ id: 'o1', name: 'Acme' }))
+		const wrapper = mount(CnDetailPage, {
+			propsData: { register: 'r', schema: 's', objectId: 'o1', objectStore: store, bodyWidgets: [{ id: 's1', component: 'Saver' }] },
+			provide: { cnRegistry: { Saver: { kind: 'section', component: Saver } }, cnCustomComponents: {} },
+		})
+		await wrapper.vm.$nextTick()
+		store.fetchObject.mockClear()
+
+		ctx.value.setObject({ id: 'o1', name: 'Renamed' })
+		await wrapper.vm.$nextTick()
+
+		expect(store.objects['r-s'].o1).toEqual({ id: 'o1', name: 'Renamed' })
+		expect(wrapper.vm.currentObject).toEqual({ id: 'o1', name: 'Renamed' })
+		expect(ctx.value.object).toEqual({ id: 'o1', name: 'Renamed' })
+		expect(store.fetchObject).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('ignores a cnSectionContext.setObject call with another object', async () => {
+		let ctx = null
+		const Saver = {
+			name: 'Saver',
+			setup() {
+				ctx = inject('cnSectionContext', null)
+				return () => h('div', { class: 'saver' })
+			},
+		}
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const store = makeFakeStore({ id: 'o1', name: 'Acme' })
+		const wrapper = mount(CnDetailPage, {
+			propsData: { register: 'r', schema: 's', objectId: 'o1', objectStore: store, bodyWidgets: [{ id: 's1', component: 'Saver' }] },
+			provide: { cnRegistry: { Saver: { kind: 'section', component: Saver } }, cnCustomComponents: {} },
+		})
+		await wrapper.vm.$nextTick()
+
+		ctx.value.setObject({ id: 'other', name: 'Other' })
+
+		expect(store.objects['r-s'].o1).toEqual({ id: 'o1', name: 'Acme' })
+		expect(warn).toHaveBeenCalled()
+		warn.mockRestore()
 		wrapper.unmount()
 	})
 

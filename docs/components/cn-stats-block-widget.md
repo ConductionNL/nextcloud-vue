@@ -53,12 +53,86 @@ per-entry presentation (`title`, `variant`, `countLabel`), an optional
 `route` deep link, and `hideWhenZero` (the entry is omitted from the
 card when its resolved count is `0`).
 
+## Money in its own currency (`format`, `currencyField`, `currency`)
+
+An entry shows its value formatted when it declares `format`, the same shape
+as a [`type: "stat"`](./cn-stat-widget.md) widget's `content.format`: a style
+name (`"number"`, `"currency"`, `"percent"`, `"decimal"`, `"duration-hours"`)
+or `{ style, currency, currencyField, decimals, prefix, suffix }`. Without
+one, the plain count shows, as before.
+
+A money value takes its currency, in order, from:
+
+1. `currencyField`: the field of the detail page's object that holds it, for
+   example a contract's own `currency` (dot-paths work).
+2. `currency`: a code such as `"USD"`, or a token such as `"@config.currency"`
+   or `"@object.currency"`.
+3. The app's reporting currency: `currency` in the page's app config.
+4. `EUR`.
+
+A step without a three-letter code is skipped. `currencyField` and `currency`
+may sit on the entry itself and then imply `format: "currency"`. The amount is
+formatted with Intl in the user's Nextcloud locale.
+
+```json
+{
+  "id": "contract-value",
+  "type": "stats-block",
+  "title": "Contract value",
+  "content": {
+    "entries": [
+      { "title": "Contract value", "register": "pipelinq", "schema": "salesContract",
+        "metric": "sum", "field": "value", "filter": { "id": "@objectId" },
+        "currencyField": "currency", "format": { "style": "currency", "decimals": 2 } }
+    ]
+  }
+}
+```
+
+Drop a `countLabel` that spelled the currency (`"EUR"`): the formatted value
+carries the symbol. The single-KPI mode takes the same shape as its `format`
+prop.
+
+## Stat tiles in a grid (`layout: "grid"`, `stats`, `columns`)
+
+One card with several figures of any kind a `stat` widget computes: each entry of `stats` is a stat tile's
+`content` (`label`, `caption`, `format`, `source` with `ratio`, `elapsed`, `computed`, `weighted` or `endpoint`), drawn
+in `columns` columns (default 2, 1 to 4), in one card. The card's title is the widget wrapper's: set `showTitle: true`
+on the widget. The board's "Je week tot nu toe" card:
+
+```json
+{
+  "id": "my-week",
+  "type": "stats-block",
+  "title": "Your week so far",
+  "showTitle": true,
+  "content": {
+    "layout": "grid",
+    "columns": 2,
+    "stats": [
+      { "label": "Answered", "caption": "this week", "source": { "register": "pipelinq", "schema": "ticket", "metric": "count", "filter": { "assignee": "@me", "status": "resolved", "resolvedAt[gte]": "@today-7d" } } },
+      { "label": "Average answer time", "format": { "style": "decimal", "decimals": 1, "suffix": " days" }, "source": { "kind": "elapsed", "register": "pipelinq", "schema": "ticket", "from": "occurredAt", "to": "resolvedAt" } }
+    ]
+  }
+}
+```
+
+By default the tiles are parts of the card, without a box of their own. Set `"tiles": "box"` to draw each tile on a
+grey ground with a 10px radius and 14px 16px padding, 12px apart, as board DcRapportages draws "Vergaderingen en
+efficiëntie":
+
+```json
+{ "id": "efficiency", "type": "stats-block", "title": "Meetings and efficiency", "showTitle": true,
+  "content": { "layout": "grid", "columns": 4, "tiles": "box", "stats": [ ... ] } }
+```
+
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `dataSource` | `object` | `null` | Manifest dataSource block (single-KPI mode). See [`useDataSource`](../utilities/composables/use-data-source.md). Exactly one of `dataSource` / `entries` must be provided. |
-| `entries` | `array` | `[]` | Multi-entry declarative sources — one KPI per entry: `{ title, register, schema, metric, field, filter, route, variant, countLabel, hideWhenZero }`. Mutually exclusive with `dataSource`. |
+| `entries` | `array` | `[]` | Multi-entry declarative sources — one KPI per entry: `{ title, register, schema, metric, field, filter, route, variant, countLabel, hideWhenZero, format, currency, currencyField }`. Mutually exclusive with `dataSource`. |
+| `format` | `string\|object\|null` | `null` | How the single-KPI value is shown: a style name or `{ style, currency, currencyField, decimals, prefix, suffix }`. See [Money in its own currency](#money-in-its-own-currency-format-currencyfield-currency). |
 | `title` | `string` | `''` | Block title (single-KPI mode). |
 | `countLabel` | `string` | `''` | Label next to the count (single-KPI mode). |
 | `variant` | `'default'\|'primary'\|'success'\|'warning'\|'error'` | `'default'` | Color variant (single-KPI mode). |
@@ -68,6 +142,9 @@ card when its resolved count is `0`).
 | `filled` | `boolean` | `false` | Draw each tile's own grey box. Off by default — the widget renders inside a `CnWidgetWrapper` that already draws a card. |
 | `route` | `object\|null` | `null` | Vue-router location; when set, the inner card becomes a `<router-link>` (single-KPI mode). |
 | `iconClass` | `string` | `''` | Optional NC core icon class (`icon-link`, `icon-mail`, …) applied to the wrapping `<div>`. |
+| `stats` | `array` | `[]` | The tiles of `layout: "grid"`: each a stat tile's `content`, any source kind. See [Stat tiles in a grid](#stat-tiles-in-a-grid-layout-grid-stats-columns). |
+| `columns` | `number` | `2` | Columns of `layout: "grid"` (1 to 4). |
+| `tiles` | `string` | `null` | `"box"`: each tile of `layout: "grid"` on a surface of its own (grey ground, 10px radius, 14px 16px padding). Empty: the tiles are parts of the card, without a box. |
 
 ## Refresh wiring
 
@@ -76,6 +153,10 @@ The tile subscribes to `cn:page:refresh` — the channel the page-level Refresh 
 This is the tile's only refresh affordance. `CnDashboardPage` renders it *without* `CnWidgetWrapper` (`CnStatsBlock` brings its own card chrome), so unlike the other data widgets it has no per-widget Refresh item in an overflow menu.
 
 A ref-callable `refresh()` is also exposed, for parity with `CnChartWidget`.
+
+## Telling the host what it shows (`data`)
+
+The widget emits `data` with `{ count }` for one source, or `{ counts }` (one per entry) in multi-entry mode, once the count is known and on every change. Nothing is emitted before then.
 
 ## Notes
 

@@ -40,6 +40,10 @@
  * claiming purity is worth nothing; the check is in CI.
  */
 
+// The brand stripe imports nothing at all, so it is public-safe as it is: a
+// portal draws the organisation's motif under its header with the same
+// component, and the same tokens, as a Nextcloud page (brand-motif-token).
+import CnBrandStripe from '../components/CnBrandStripe/CnBrandStripe.vue'
 import CnSiteCard from './components/CnSiteCard.vue'
 import CnSiteCardGrid from './components/CnSiteCardGrid.vue'
 import CnSiteEmptyState from './components/CnSiteEmptyState.vue'
@@ -50,6 +54,7 @@ import CnSiteSearch from './components/CnSiteSearch.vue'
 import CnSiteSection from './components/CnSiteSection.vue'
 
 export {
+	CnBrandStripe,
 	CnSiteCard,
 	CnSiteCardGrid,
 	CnSiteEmptyState,

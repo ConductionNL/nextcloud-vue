@@ -142,6 +142,8 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `inlineActionCount` | `Number` | `2` | How many custom `#action-items` buttons to show inline before moving them to the overflow dropdown |
 | `refreshDisabled` | `Boolean` | `false` | Disable the Refresh action (e.g. while a required selection is missing) |
 | `addDisabled` | `Boolean` | `false` | Disable the Add button (e.g. while a required selection is missing) |
+| `addHref` | `String` | `null` | URL the Add button links to. The button becomes a real link (middle-click, open in new tab) and still emits `add`. Wins over `addTo` |
+| `addTo` | `String \| Object` | `null` | vue-router location the Add button links to. Resolved through the router; a plain click routes in place and still emits `add`, so the host must not navigate on `add` itself. Ignored when the router cannot resolve it |
 | `showAdd` | `Boolean` | `true` | Whether to render the Add button at all |
 | `cardsLabel` | `String` | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
 | `tableLabel` | `String` | `''` | Label for the table/list view-toggle option (defaults to "Table") |
@@ -150,10 +152,12 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `showMap` | `Boolean` | `false` | Whether to render the third "Map" view-toggle segment. Off by default so existing two-segment consumers are unchanged |
 | `mapLabel` | `String` | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
 | `mapIcon` | `String` | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon). Resolved via `CnIcon` |
-| `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar |
+| `showSearch` | `Boolean` | `false` | Whether to show the inline search field on the left of the bar. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
+| `searchPlacement` | `String` | `''` | Board look only: `'toolbar'` draws the search field on row 1, before Filter and the view switch, instead of at the start of row 2 |
 | `searchValue` | `String` | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | `String` | `''` | Placeholder / accessible label for the inline search field |
-| `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. |
+| `showCountWithSearch` | `Boolean` | `false` | Keep the "Showing X of Y" counter visible beside the inline search field, after the search and any `#after-search` controls. No effect without `showSearch` |
+| `headerActions` | `Array` | `[]` | Manifest-declared page-level actions rendered inside the overflow dropdown between the built-in Refresh and the `#action-items` slot. Each entry is `{ id, label, icon?, disabled? }` — the bar emits `@header-action({ action: id, id })` on click and the parent (e.g. `CnIndexPage`) dispatches the resolved handler. The `icon` field accepts EITHER an MDI Vue component name (e.g. `'History'`) — rendered via `CnIcon` — OR a Nextcloud core CSS icon class (e.g. `'icon-history'`) — rendered as a `<span>` carrying that class. An entry with `href` (URL) or `to` (vue-router location) renders as a real link, `linkTarget` as its `target`; it still emits `@header-action`, so the parent must not navigate for it again. |
 
 ## Manifest header actions example
 
@@ -201,3 +205,28 @@ Controlling the inline action button count — `inlineActionCount` sets how many
 | `sortOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortValue` | String | `''` | Selected sort option value (controlled). |
 | `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |
+
+`showCount` (Boolean, default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (Boolean, default `true`): `false` drops the overflow Actions menu, for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).
+
+## Board layout props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `layout` | String | `''` | `board` draws the two-row board toolbar; empty follows the `cnLook` the app provides |
+| `activeFilterChips` | Array | `[]` | Active filters as `{ key, label }` chips on row 2; removing one emits `remove-filter` |
+| `activeFilterCount` | Number | `null` | The number on the Filter button; empty counts `activeFilterChips` |
+| `showBuildiqButton` | Boolean | `true` | Whether the buildiq square renders in the bar (the index page takes it into its header under the board look) |
+| `bulkNoun` | String | `''` | The plural in the bulk band lead, "With the selected <noun>" (default "items") |
+| `bulkHint` | String | `''` | The 13px hint after the bulk band's buttons |
+| `bulkBandAlways` | Boolean | `false` | Board look: draw the bulk band before anything is selected too, its buttons disabled until there is a selection (DqZaken, DqWerkbord). Only when the band has an action to offer. |
+| `bulkLead` | String | `''` | Board look: the band's lead instead of "With the selected …" ("1 zaak geselecteerd"). |
+| `bulkCancel` | Boolean | `false` | Board look: a Cancel button at the end of the band that clears the selection. |
+
+
+`showBuildiqButton` is documented in the prop table of the component reference (board look, screens-chrome-parity).
+
+Slot `actions-end`: custom buttons after the primary Add button (CnIndexPage's saved views). Under the board look it renders in row 1, after the quick-filter chips.
+
+### Disabled view segments
+
+Under the board look `disabledViewModes` (an array of modes) draws view switch segments the page cannot open, in the fixed order table, cards, board, map, disabled and titled "<mode>: not available on this list". A mode that is also offered renders once, enabled. `CnIndexPage` fills it from `config.viewSwitch`. `viewModeLinks` (`{ board: { href, to? } }`) draws a mode that opens another page as a link in its place in the switch: a plain click pushes `to` on the router when given, and `href` serves a new tab; a mode the page offers in place stays a button.

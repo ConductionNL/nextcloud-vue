@@ -28,7 +28,11 @@ This replaces the hand-written transition strip an app used to ship as its own c
 
 The lifecycle says what is reachable **now**. It does not say what the whole process looks like, and a timeline that only showed the next step would not be a timeline. So the list of stages is configured, and it is display only: it grants nothing.
 
-Configure exactly one of two sources.
+Configure exactly one of three sources.
+
+`stages` declares a fixed list in the manifest: `[{ id, label, hint?, final? }]`, the ids being the values `currentField` holds. Labels and hints go through the host translate. Nothing is read. A quote's Concept, Verzonden, Geaccepteerd, Afgewezen and Verlopen (board PqOfferte) are a fixed process, so they need no endpoint.
+
+`variant: "list"` draws the stages as a list of rows (board PqOfferte "Status"): a round marker filled on the current stage, "you are here" beside it and a stage's `hint` beside the others ("after 30 days").
 
 `stagesEndpoint` reads an app endpoint: `{ url, method?, path, params?, idField?, labelField?, descriptionField?, orderField?, finalField? }`. The url and the params take the shared token grammar (`@objectId`, `@object.<field>`), so `/apps/myapp/api/types/@object.type/stages` names the record's own type. `path` points at the array in the response, and `method` is `GET` unless the endpoint wants otherwise.
 
@@ -118,7 +122,7 @@ A `kind` the widget does not know reads as read only, so a typo cannot silently 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config: `currentField`, `stagesEndpoint` or `stagesSource`, `transition`, `unreachableReason`, `orientation`, `size` and `ariaLabel`. `ariaLabel` falls back to `label`, then to "Stages", so a titled placement names its own strip without repeating the title. |
+| `content` | `object` | `{}` | The widget config: `currentField`, `stagesEndpoint` or `stagesSource`, `transition`, `unreachableReason`, `orientation`, `size`, `ariaLabel` and `variant`. `variant: "bars"` draws a thin bar per step coloured by state (done: primary, current: accent, to do: border), the label under it (ellipsized, with a title), an optional date line from the source's `dateField`, and no description; the current step carries a visually hidden "(current step)". Theme hooks: `--cn-stages-bar-height`, `--cn-stages-bar-radius`, `--cn-stages-bar-done`, `--cn-stages-bar-current`, `--cn-stages-bar-todo`. `ariaLabel` falls back to `label`, then to "Stages", so a titled placement names its own strip without repeating the title. |
 | `objectData` | `object\|null` | `null` | The bound record, when the surface passes it. Falls back to the detail page's injected object context. |
 | `objectId` | `string\|number` | `''` | The bound record's id, when the surface passes it. Falls back to the injected object context. |
 | `objectType` | `string` | `''` | The object-store type slug of the bound record, used by the `field` transition. Falls back to the context, then to the register and schema of the page. |

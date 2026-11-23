@@ -80,6 +80,7 @@ setup() {
 | `onPageChange(page)` | Function | Calls `refresh(page)` |
 | `onPageSizeChange(size)` | Function | Updates page size and calls `refresh(1)` |
 | `refresh(page?)` | Function | Builds params and calls `objectStore.fetchCollection` |
+| `loadMore()` | Function | Adds the next page after the loaded rows (`fetchCollection` with `append`) |
 
 ### Lifecycle behaviour
 
@@ -183,7 +184,7 @@ const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = use
 | `open({ item, event })` | Function | Open menu at cursor; sets CSS vars + data attribute |
 | `close()` | Function | Close menu and clean up DOM |
 | `isActionDisabled(action)` | Function | Resolve `action.disabled` (boolean or function) |
-| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row }` |
+| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row, id?, builtin? }` |
 
 ## useSubResource
 

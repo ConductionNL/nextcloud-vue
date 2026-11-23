@@ -47,6 +47,23 @@ export function confirmPassword() {
 }
 export const PwdConfirmationMode = { Lax: 'lax', Strict: 'strict' }
 
+// `@nextcloud/sharing/public` — CnFilesWidget and friends ask whether the page
+// is a public share link. The styleguide is never one, so the answer is no and
+// there is no token to hand back.
+export function isPublicShare() {
+	return false
+}
+export function getSharingToken() {
+	return null
+}
+
+// `@nextcloud/dialogs` — the conflict picker opens on an upload collision,
+// which cannot happen without a server. Resolving to nothing kept means the
+// caller treats it as a cancelled pick.
+export function openConflictPicker() {
+	return Promise.resolve({ selected: [], renamed: [] })
+}
+
 export default {
 	Marked,
 	marked,
@@ -58,4 +75,7 @@ export default {
 	addPasswordConfirmationInterceptors,
 	confirmPassword,
 	PwdConfirmationMode,
+	isPublicShare,
+	getSharingToken,
+	openConflictPicker,
 }

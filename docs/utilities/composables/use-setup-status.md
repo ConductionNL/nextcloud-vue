@@ -15,7 +15,7 @@ const { requiredUnmet, optionalUnmet, completed, loading, refresh } = useSetupSt
 | Argument | Type | Description |
 |----------|------|-------------|
 | `appId` | `string` | Nextcloud app id (e.g. `'procest'`). |
-| `manifest` | `object` | The app manifest; reads `manifest.setup.steps[].required`. |
+| `manifest` | `object` | The app manifest; reads `manifest.setup.steps[].required` and `.requires`. |
 
 It fetches `GET /apps/{appId}/api/setup/status` →
 `{ version, completed, steps: { <id>: { done, detail } } }`, caches the result
@@ -30,14 +30,23 @@ user of an app with a `setup` block met a wizard they had no permission to
 complete instead of the app itself. Any other error (network, 500) stays unknown
 and still falls back to "nothing done", so an admin can always reach the wizard.
 
+A step that declares `requires: [appId, ...]` is **not applicable** while any of
+those apps is not installed and enabled. `CnSetupWizard` skips such a step, so it
+is neither done nor unmet here: it never appears in `requiredUnmet` or
+`optionalUnmet`, and it is listed in `notApplicable` instead. The app check is
+the wizard's own: the `dependency_statuses` initial state first, then
+[`useAppStatus`](./use-app-status.md).
+
 ## Return value
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `steps` | `ComputedRef<object[]>` | The manifest steps merged with their server `done`/`detail`. |
+| `steps` | `ComputedRef<object[]>` | The manifest steps merged with their server `done`/`detail`, plus `applicable` and `missingApps` (the absent app ids from `requires`). |
 | `status` | `Ref<object>` | The raw server status payload. |
 | `requiredUnmet` | `ComputedRef<object[]>` | Required steps that are not yet done — non-empty ⇒ gate the app. |
 | `optionalUnmet` | `ComputedRef<object[]>` | Optional steps not yet done — auto-open the wizard once (dismissible). |
+| `optionalUnmetReported` | `ComputedRef<object[]>` | The optional unmet steps the server reported as not done. |
+| `notApplicable` | `ComputedRef<object[]>` | Steps the wizard skips because an app in their `requires` is absent. |
 | `completed` | `ComputedRef<boolean>` | Server completion flag, never true while a required step is unmet — but always true when `forbidden`. |
 | `enabled` | `boolean` | Whether the manifest declares an active `setup` block. |
 | `loading` | `Ref<boolean>` | `true` while the status fetch is in flight. |

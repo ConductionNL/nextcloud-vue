@@ -61,6 +61,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import PhoneOutline from 'vue-material-design-icons/PhoneOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 export default {
 	name: 'CnContactmomentCard',
@@ -182,7 +183,7 @@ export default {
 		 */
 		formatWhen(value) {
 			const d = new Date(value)
-			return isNaN(d.getTime()) ? value : d.toLocaleString()
+			return isNaN(d.getTime()) ? value : d.toLocaleString(userLocale())
 		},
 	},
 }

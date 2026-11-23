@@ -24,11 +24,104 @@
 		<div v-else-if="stagesPending && stages.length === 0" class="cn-stages-widget__loading">
 			<NcLoadingIcon :size="24" :name="tr('Loading stages')" />
 		</div>
+		<!-- Not the same as a case type with no stages, and must not say so. -->
+		<NcNoteCard
+			v-else-if="stagesUnaddressable"
+			type="warning"
+			data-testid="cn-stages-widget-unaddressable">
+			{{ tr('The stages cannot be read for this record yet') }}
+		</NcNoteCard>
 		<p v-else-if="stages.length === 0" class="cn-stages-widget__notice" data-testid="cn-stages-widget-empty">
 			{{ tr('No stages to show') }}
 		</p>
 		<template v-else>
+			<!-- The bars variant (`variant: "bars"`): equal columns, a thin bar
+			     per step coloured by state, the label under it and an optional
+			     date line. No description: eight Woo steps with their
+			     descriptions crowded into five lines and clipped the first
+			     label. The current step says so for a screen reader. -->
+			<ol
+				v-if="isBars"
+				class="cn-stages-widget__bars"
+				:aria-label="ariaLabel"
+				data-testid="cn-stages-widget-bars">
+				<li
+					v-for="stage in barStages"
+					:key="stage.id"
+					class="cn-stages-widget__bar-step"
+					:class="`cn-stages-widget__bar-step--${stage.state}`"
+					:aria-current="stage.state === 'current' ? 'step' : null"
+					:data-testid="`cn-stages-widget-bar-${stage.id}`">
+					<span class="cn-stages-widget__bar" aria-hidden="true" />
+					<component
+						:is="stage.clickable ? 'button' : 'span'"
+						:type="stage.clickable ? 'button' : null"
+						class="cn-stages-widget__bar-label"
+						:title="stage.hint || stage.label"
+						:aria-disabled="stage.disabled && stage.clickable ? 'true' : null"
+						:aria-busy="movingTo === stage.id ? 'true' : null"
+						:data-testid="`cn-stages-widget-stage-${stage.id}`"
+						@click="onBarClick(stage)">
+						<NcLoadingIcon
+							v-if="movingTo === stage.id"
+							class="cn-stages-widget__moving"
+							:size="16"
+							:name="movingMessage"
+							data-testid="cn-stages-widget-moving" />
+						{{ stage.label }}<span v-if="stage.state === 'current'" class="cn-stages-widget__sr-only"> ({{ tr('current step') }})</span>
+					</component>
+					<span v-if="stage.date" class="cn-stages-widget__bar-date">{{ stage.date }}</span>
+					<span
+						v-if="stage.reason"
+						:class="stage.reasonVisible ? 'cn-stages-widget__reason' : 'cn-stages-widget__sr-only'"
+						:data-testid="`cn-stages-widget-reason-${stage.id}`">
+						{{ stage.reason }}
+					</span>
+				</li>
+			</ol>
+			<!-- The list variant (`variant: "list"`, board PqOfferte "Status"):
+			     one row per stage, a round marker filled on the current one,
+			     "you are here" beside it and a stage's hint beside the others. -->
+			<ol
+				v-else-if="isList"
+				class="cn-stages-widget__list"
+				:aria-label="ariaLabel"
+				data-testid="cn-stages-widget-list">
+				<li
+					v-for="stage in barStages"
+					:key="stage.id"
+					class="cn-stages-widget__list-step"
+					:class="`cn-stages-widget__list-step--${stage.state}`"
+					:aria-current="stage.state === 'current' ? 'step' : null"
+					:data-testid="`cn-stages-widget-list-${stage.id}`">
+					<span class="cn-stages-widget__list-marker" aria-hidden="true" />
+					<component
+						:is="stage.clickable ? 'button' : 'span'"
+						:type="stage.clickable ? 'button' : null"
+						class="cn-stages-widget__list-label"
+						:title="stage.hint || null"
+						:aria-disabled="stage.disabled && stage.clickable ? 'true' : null"
+						:aria-busy="movingTo === stage.id ? 'true' : null"
+						:data-testid="`cn-stages-widget-stage-${stage.id}`"
+						@click="onBarClick(stage)">
+						<NcLoadingIcon
+							v-if="movingTo === stage.id"
+							class="cn-stages-widget__moving"
+							:size="16"
+							:name="movingMessage" />
+						{{ stage.label }}
+					</component>
+					<span v-if="stage.state === 'current'" class="cn-stages-widget__list-note">{{ tr('you are here') }}</span>
+					<span v-else-if="stage.subtitle" class="cn-stages-widget__list-note">{{ stage.subtitle }}</span>
+					<span
+						v-if="stage.reason"
+						:class="stage.reasonVisible ? 'cn-stages-widget__reason' : 'cn-stages-widget__sr-only'">
+						{{ stage.reason }}
+					</span>
+				</li>
+			</ol>
 			<CnTimelineStages
+				v-else
 				:stages="timelineStages"
 				:currentStage="currentStageId"
 				:orientation="orientation"
@@ -38,7 +131,19 @@
 				@stageClick="onStageClick"
 				@stageBlocked="onStageBlocked">
 				<template #label="{ stage }">
-					<span class="cn-timeline-stages__label" :data-testid="`cn-stages-widget-stage-${stage.id}`">
+					<span
+						class="cn-timeline-stages__label"
+						:aria-busy="movingTo === stage.id ? 'true' : null"
+						:data-testid="`cn-stages-widget-stage-${stage.id}`">
+						<!-- The move in flight. A transition can take seconds, and
+						     a strip that shows nothing until it returns reads as
+						     one that never moved. -->
+						<NcLoadingIcon
+							v-if="movingTo === stage.id"
+							class="cn-stages-widget__moving"
+							:size="16"
+							:name="movingMessage"
+							data-testid="cn-stages-widget-moving" />
 						{{ stage.label }}
 					</span>
 					<span v-if="stage.subtitle" class="cn-timeline-stages__subtitle">
@@ -111,8 +216,11 @@
 			v-if="pendingAction"
 			:transition="pendingAction"
 			:schema="schema"
+			:error="inputError"
+			:fieldErrors="inputFieldErrors"
+			:busy="busy"
 			@confirm="onInputConfirm"
-			@close="pendingAction = null" />
+			@close="closeInputDialog" />
 	</div>
 </template>
 
@@ -132,9 +240,12 @@ import {
 	performTransition,
 	readAvailableActions,
 	transitionError,
+	transitionFieldErrors,
 } from '../../composables/useLifecycleTransitions.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import {
 	dropOptionalUnresolved,
@@ -208,8 +319,11 @@ function userError(message) {
  * be a timeline. So the list of stages is configured, and it is display only:
  * it grants nothing.
  *
- * One of two sources:
+ * One of three sources:
  *
+ * - `stages`: `[{ id, label, hint?, final? }]`, a fixed list declared in the
+ *   manifest (labels and hints through the host translate). It wins over the
+ *   other two and reads nothing.
  * - `stagesEndpoint`: `{ url, method?, path, params?, idField?, labelField?,
  *   descriptionField?, orderField?, finalField? }`. The url and params take
  *   the shared token grammar (`@objectId`, `@object.<field>`), so
@@ -218,6 +332,17 @@ function userError(message) {
  * - `stagesSource`: `{ register, schema, filter?, orderBy?, idField?,
  *   labelField?, descriptionField?, finalField?, limit? }`, an OpenRegister
  *   query whose filter takes the same tokens.
+ *
+ * Both take `offPathField`: a stage whose row holds true there is a side
+ * status, left off the strip unless the record is in it.
+ *
+ * `datesSource`: `{ url, method?, params?, path?, idField?, dateField? }`, an
+ * endpoint (same token grammar) answering the date the record reached each
+ * stage, when the stage list does not carry it: the case type's statuses list
+ * the steps, `/blueprint?case=@objectId` says when this case reached them.
+ * Read once, merged into the steps by `idField` (default `id`) with the value
+ * at `dateField` (default `reachedAt`); a date it does not give falls back to
+ * the stage list's own `dateField`. The bars variant draws it.
  *
  * `finalField` marks the stages that close the record, which the timeline
  * draws differently. It grants nothing either.
@@ -303,13 +428,15 @@ export default {
 		 * `currentField`, `stagesEndpoint` or `stagesSource`, `transition`
 		 * (`{ kind: 'lifecycle' }` by default, or `{ kind: 'field' }`, or
 		 * absent for a read-only strip), `unreachableReason`, `orientation`,
-		 * `size`, `ariaLabel` and `label`.
+		 * `size`, `ariaLabel`, `label` and `variant` (`"bars"` draws a thin
+		 * coloured bar per step with the label under it and no description;
+		 * the source's `dateField` adds a date line).
 		 *
 		 * `ariaLabel` names the strip for a screen reader. It falls back to
 		 * `label`, the placement's own title, so a titled card does not have to
 		 * repeat itself, and then to "Stages".
 		 *
-		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string}}
+		 * @type {{currentField?: string, stagesEndpoint?: object, stagesSource?: object, transition?: object, unreachableReason?: string, orientation?: ('horizontal'|'vertical'), size?: ('medium'|'small'), ariaLabel?: string, label?: string, variant?: ('dots'|'bars'|'list'), stages?: Array<{id: string, label: string, hint?: string, final?: boolean}>, datesSource?: {url: string, method?: string, params?: object, path?: string, idField?: string, dateField?: string}}}
 		 */
 		content: {
 			type: Object,
@@ -390,6 +517,8 @@ export default {
 		const workspaceRaw = inject('cnWorkspaceContext', ref({}))
 		const appConfigRaw = inject('cnAppConfig', ref({}))
 		const cnTranslate = inject('cnTranslate', (key) => key)
+		// The app's look (`nextcloud` or `board`), provided by CnAppRoot or CnPageRenderer.
+		const cnLook = inject('cnLook', 'nextcloud')
 
 		/**
 		 * The token context: the bound record, its id, and the page context.
@@ -415,14 +544,24 @@ export default {
 			return (cfg && cfg.url) ? { url: cfg.url, method: cfg.method, params: cfg.params } : null
 		}, { ctx: tokenCtx })
 
+		// The dates the record reached each stage, when they live apart from
+		// the stage list (`datesSource`): one read, merged into the steps by id.
+		const datesRead = useEndpointSource(() => {
+			const cfg = props.content?.datesSource
+			return (cfg && cfg.url) ? { url: cfg.url, method: cfg.method, params: cfg.params } : null
+		}, { ctx: tokenCtx })
+
 		return {
 			detailCtxRaw,
 			objectCtxRaw,
 			cnTranslate,
+			cnLook,
 			tokenCtx,
 			stagesBody: stagesRead.data,
 			stagesBodyLoading: stagesRead.loading,
 			stagesBodyError: stagesRead.error,
+			stagesBodyBlocked: stagesRead.blocked,
+			datesBody: datesRead.data,
 		}
 	},
 
@@ -465,6 +604,17 @@ export default {
 			pendingAction: null,
 			/** @type {boolean} Whether a move is running. */
 			busy: false,
+			/**
+			 * @type {string} The stage a running move leads to, or ''. Drives
+			 * the loading indicator on that one stage.
+			 */
+			movingTo: '',
+			/** @type {string} A refusal shown inside the open input dialog. */
+			inputError: '',
+			/** @type {string[]} The input keys that refusal named. */
+			inputFieldErrors: [],
+			/** @type {string[]} The input keys the last refused move named. */
+			lastFieldErrors: [],
 			/** @type {string} Why the last move failed, or ''. */
 			moveError: '',
 			/**
@@ -537,6 +687,30 @@ export default {
 		},
 
 		/**
+		 * The stages the manifest declares (`content.stages`: `[{ id, label,
+		 * hint? }]`), labels and hints through the host translate; null when
+		 * the stages are read from an endpoint or a source. They win over both:
+		 * a fixed process needs no read.
+		 *
+		 * @return {Array<{id: string, label: string, subtitle: string, date: string, final: boolean}>|null} The stages.
+		 * @spec openspec/changes/stages-declared-list/specs/stages-widget/spec.md#requirement-stages-can-be-declared-in-the-manifest
+		 */
+		declaredStages() {
+			if (!Array.isArray(this.content.stages)) {
+				return null
+			}
+			return this.content.stages
+				.filter((stage) => stage && stage.id !== undefined && stage.id !== null && stage.id !== '')
+				.map((stage) => ({
+					id: String(stage.id),
+					label: this.effectiveTranslate(String(stage.label || stage.id)),
+					subtitle: stage.hint ? this.effectiveTranslate(String(stage.hint)) : '',
+					date: '',
+					final: Boolean(stage.final),
+				}))
+		},
+
+		/**
 		 * Whether the stages come from an endpoint (it wins over a source).
 		 *
 		 * @return {boolean} True for `stagesEndpoint`.
@@ -560,10 +734,49 @@ export default {
 		 * @return {Array<{id: string, label: string, subtitle: string, final: boolean}>} The stages.
 		 */
 		stages() {
+			if (this.declaredStages) {
+				return this.declaredStages
+			}
 			const cfg = this.stageConfig
 			const rows = this.endpointStages ? getByPath(this.stagesBody, cfg.path) : this.sourceRows
 			const orderField = cfg.orderField || (this.endpointStages ? '' : cfg.orderBy)
-			return normalizeStages(rows, { ...cfg, orderField })
+			return normalizeStages(rows, { ...cfg, orderField, currentId: this.currentStageId })
+		},
+
+		/**
+		 * The reached dates by stage id, from `datesSource`: the rows at its
+		 * `path` (or the response itself when it is a list), keyed by
+		 * `idField` (default `id`), the value at `dateField` (default
+		 * `reachedAt`). Empty without the option, while it loads, or when it
+		 * failed: the steps then show the stage list's own dates.
+		 *
+		 * @return {{[id: string]: string}} Date by stage id.
+		 * @spec openspec/changes/screens-stage-dates-source/specs/stage-dates-source/spec.md#requirement-the-reached-dates-can-come-from-their-own-endpoint
+		 */
+		stageDates() {
+			const cfg = this.content.datesSource
+			const body = this.datesBody
+			if (!cfg || !cfg.url || body === null || body === undefined) {
+				return {}
+			}
+			const rows = Array.isArray(body) ? body : getByPath(body, cfg.path || '')
+			if (!Array.isArray(rows)) {
+				return {}
+			}
+			const idField = cfg.idField || 'id'
+			const dateField = cfg.dateField || 'reachedAt'
+			const out = {}
+			for (const row of rows) {
+				if (!row || typeof row !== 'object') {
+					continue
+				}
+				const id = getByPath(row, idField)
+				const date = getByPath(row, dateField)
+				if (id !== null && id !== undefined && id !== '' && typeof date === 'string' && date !== '') {
+					out[String(id)] = date
+				}
+			}
+			return out
 		},
 
 		/**
@@ -572,10 +785,33 @@ export default {
 		 * @return {boolean} True while loading.
 		 */
 		stagesPending() {
-			if (this.endpointStages) {
-				return this.stagesBodyLoading || (this.stagesBody === null && !this.stagesBodyError)
+			if (this.declaredStages) {
+				return false
 			}
-			return this.sourceLoading
+			if (!this.endpointStages) {
+				return this.sourceLoading
+			}
+			if (this.stagesBodyLoading) {
+				return true
+			}
+			// Blocked means the url has an unset token, so nothing was asked.
+			// Wait only while the record that token reads from is still coming;
+			// once it is here the endpoint will never resolve.
+			if (this.stagesBodyBlocked) {
+				return this.record === null
+			}
+			return this.stagesBody === null
+		},
+
+		/**
+		 * Whether the endpoint names a token the record does not carry, so the
+		 * stages can never be read. Kept apart from the empty state: they need
+		 * different fixes.
+		 *
+		 * @return {boolean}
+		 */
+		stagesUnaddressable() {
+			return Boolean(this.endpointStages && this.stagesBodyBlocked && this.record !== null)
 		},
 
 		/**
@@ -584,6 +820,9 @@ export default {
 		 * @return {boolean} True on a failed read.
 		 */
 		stagesError() {
+			if (this.declaredStages) {
+				return false
+			}
 			return Boolean(this.endpointStages ? this.stagesBodyError : this.sourceError)
 		},
 
@@ -642,6 +881,20 @@ export default {
 		},
 
 		/**
+		 * What the stage a move is running to says while it runs: the
+		 * loading indicator's name and the live region's sentence.
+		 *
+		 * @return {string} The sentence, or '' when nothing is moving.
+		 */
+		movingMessage() {
+			if (!this.movingTo) {
+				return ''
+			}
+			const stage = this.stages.find((s) => s.id === this.movingTo)
+			return this.tr('Moving to {stage}', { stage: stage ? stage.label : this.movingTo })
+		},
+
+		/**
 		 * The allowed moves by the stage they lead to, or null while they are
 		 * unknown.
 		 *
@@ -693,6 +946,55 @@ export default {
 		ariaLabel() {
 			const label = this.content.ariaLabel || this.content.label
 			return label ? this.effectiveTranslate(label) : this.tr('Stages')
+		},
+
+		/**
+		 * Whether the bars variant is on (`content.variant: "bars"`). Off by
+		 * default: the dot strip renders as it always has.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+		 * @return {boolean}
+		 */
+		isBars() {
+			return this.content.variant === 'bars'
+		},
+
+		/**
+		 * Whether the list variant is on (`content.variant: "list"`).
+		 *
+		 * @spec openspec/changes/stages-declared-list/specs/stages-widget/spec.md#requirement-stages-can-be-drawn-as-a-list
+		 * @return {boolean}
+		 */
+		isList() {
+			return this.content.variant === 'list'
+		},
+
+		/**
+		 * The stages for the bars variant: each with its `state` (`done`
+		 * before the current stage, `current`, `todo` after it, every stage
+		 * `todo` when none is current), its `date`, and whether it is a
+		 * button (the strip is interactive and the stage is not the current
+		 * one).
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+		 * @return {Array<object>}
+		 */
+		barStages() {
+			const current = this.stages.findIndex((s) => s.id === this.currentStageId)
+			return this.timelineStages.map((stage, index) => {
+				let state = 'todo'
+				if (current >= 0 && index < current) {
+					state = 'done'
+				} else if (index === current) {
+					state = 'current'
+				}
+				return {
+					...stage,
+					date: this.barDate(this.stageDates[stage.id] || this.stages[index]?.date || '', state),
+					state,
+					clickable: this.interactive && state !== 'current',
+				}
+			})
 		},
 
 		/** @return {'horizontal'|'vertical'} The layout direction. */
@@ -784,6 +1086,28 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A bar's date line. Under the board look a date value reads in the
+		 * board's short form ("3 okt"), and the current step's reads "sinds
+		 * 4 okt", as DqZaak draws it. Any other value, and every value outside
+		 * the board look, shows as written.
+		 *
+		 * @param {string} value The `dateField` value of the stage row.
+		 * @param {string} state The bar state (`done`, `current`, `todo`).
+		 * @return {string} The date line, or ''.
+		 * @spec openspec/changes/screens-stage-bar-dates-parity/specs/stage-bar-dates/spec.md#requirement-a-bar-date-reads-as-the-board-draws-it
+		 */
+		barDate(value, state) {
+			if (!value || normalizeLook(this.cnLook) !== 'board') {
+				return value
+			}
+			const short = formatBoardDate(value)
+			if (short === '') {
+				return value
+			}
+			return state === 'current' ? t('nextcloud-vue', 'since {date}', { date: short }) : short
+		},
+
 		/**
 		 * Translate a library string.
 		 *
@@ -941,6 +1265,26 @@ export default {
 		 * @param {{stage: {id: string}}} payload The CnTimelineStages event.
 		 * @return {void}
 		 */
+		/**
+		 * A click on a bar-variant step: a disabled step reports why (as
+		 * CnTimelineStages does through `stage-blocked`), any other goes
+		 * through the shared move path.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
+		 * @param {object} stage The bar step.
+		 * @return {void}
+		 */
+		onBarClick(stage) {
+			if (!stage.clickable) {
+				return
+			}
+			if (stage.disabled) {
+				this.onStageBlocked({ stage })
+				return
+			}
+			this.onStageClick({ stage })
+		},
+
 		onStageClick({ stage }) {
 			if (!this.canMove || !stage) {
 				return
@@ -1019,13 +1363,44 @@ export default {
 		 * @param {object} data The collected input values.
 		 * @return {void}
 		 */
-		onInputConfirm(data) {
+		async onInputConfirm(data) {
 			const pending = this.pendingAction
-			this.pendingAction = null
 			if (!pending || !pending.__request) {
+				this.closeInputDialog()
 				return
 			}
-			this.performMove(pending.__request, data)
+			this.inputError = ''
+			this.inputFieldErrors = []
+			// THE DIALOG STAYS OPEN WHILE THE MOVE RUNS, with its confirm
+			// button busy. Closing it first left the person looking at an
+			// unchanged strip for as long as the transition took, which on a
+			// live case was long enough to reload the page thinking it had
+			// not been sent.
+			const moved = await this.performMove(pending.__request, data)
+			if (this.pendingAction !== pending) {
+				// Closed while the move ran; nothing left to update.
+				return
+			}
+			if (moved) {
+				this.closeInputDialog()
+				return
+			}
+			// Refused. The sentence goes into the dialog the person is looking
+			// at, with what they typed still in it.
+			this.inputError = this.moveError
+			this.inputFieldErrors = this.lastFieldErrors
+			this.moveError = ''
+		},
+
+		/**
+		 * Close the input dialog and forget the refusal it was showing.
+		 *
+		 * @return {void}
+		 */
+		closeInputDialog() {
+			this.pendingAction = null
+			this.inputError = ''
+			this.inputFieldErrors = []
 		},
 
 		/**
@@ -1033,11 +1408,17 @@ export default {
 		 *
 		 * @param {{stage: {id: string, label: string}, action: string}} request The move.
 		 * @param {object} [data] The collected transition inputs, when any.
-		 * @return {Promise<void>}
+		 * @return {Promise<boolean>} Whether the move was made.
 		 */
 		async performMove(request, data) {
 			this.busy = true
+			this.movingTo = request.stage.id
 			this.moveError = ''
+			this.lastFieldErrors = []
+			// Said as the move starts, not only when it lands: a screen reader
+			// user otherwise hears nothing for as long as the server takes.
+			this.statusMessage = this.movingMessage
+			let moved = false
 			try {
 				if (this.lifecycleMode) {
 					await performTransition(this.recordId, request.action, data)
@@ -1064,11 +1445,16 @@ export default {
 				if (this.lifecycleMode) {
 					await this.loadActions()
 				}
+				moved = true
 			} catch (error) {
 				this.moveError = transitionError(error, this.tr('The move could not be made'))
+				this.lastFieldErrors = transitionFieldErrors(error)
+				this.statusMessage = this.moveError
 			} finally {
 				this.busy = false
+				this.movingTo = ''
 			}
+			return moved
 		},
 
 		/**
@@ -1284,12 +1670,22 @@ export default {
 	gap: 8px;
 	min-width: 0;
 	width: 100%;
+	/* On top of the surface's own content padding, which is sized for a KPI
+	   tile rather than a strip of 32px circles. */
+	padding: 4px;
 }
 
 .cn-stages-widget__loading {
 	display: flex;
 	justify-content: center;
 	padding: 8px 0;
+}
+
+/* The stage a running move leads to: a small spinner before its label. */
+.cn-stages-widget__moving {
+	display: inline-flex;
+	vertical-align: middle;
+	margin-inline-end: 4px;
 }
 
 .cn-stages-widget__notice {
@@ -1306,6 +1702,171 @@ export default {
 	margin-top: 2px;
 	font-size: 0.8em;
 	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The list variant (board PqOfferte "Status"): one row per stage, 10px
+   apart; a 14px round marker, filled with a light ring on the current stage
+   and outlined on the others; the current label bold, a 13px muted note. */
+.cn-stages-widget__list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-stages-widget__list-step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 15px;
+}
+
+.cn-stages-widget__list-marker {
+	flex: none;
+	box-sizing: border-box;
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: 50%;
+	background: var(--color-main-background);
+}
+
+.cn-stages-widget__list-step--current .cn-stages-widget__list-marker {
+	border: 0;
+	background: var(--color-primary-element);
+	box-shadow: 0 0 0 3px var(--color-primary-element-light);
+}
+
+.cn-stages-widget__list-label {
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: color-mix(in srgb, var(--color-main-text) 80%, var(--color-text-maxcontrast));
+	text-align: start;
+}
+
+button.cn-stages-widget__list-label {
+	cursor: pointer;
+}
+
+.cn-stages-widget__list-step--current .cn-stages-widget__list-label {
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-stages-widget__list-note {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The bars variant: equal columns, a thin bar per step. Theme hooks:
+   --cn-stages-bar-height, --cn-stages-bar-radius, --cn-stages-bar-done,
+   --cn-stages-bar-current, --cn-stages-bar-todo. */
+.cn-stages-widget__bars {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+	grid-auto-flow: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-stages-widget__bar-step {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.cn-stages-widget__bar {
+	display: block;
+	height: var(--cn-stages-bar-height, 6px);
+	border-radius: var(--cn-stages-bar-radius, 3px);
+	background: var(--cn-stages-bar-todo, var(--color-border));
+}
+
+.cn-stages-widget__bar-step--done .cn-stages-widget__bar {
+	background: var(--cn-stages-bar-done, var(--color-primary-element));
+}
+
+.cn-stages-widget__bar-step--current .cn-stages-widget__bar {
+	background: var(--cn-stages-bar-current, var(--color-error));
+}
+
+.cn-stages-widget__bar-label {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	font-size: 14px;
+	text-align: start;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* A clickable label is a <button>, and Nextcloud's core stylesheet gives
+   every `button:not(.button-vue)` a min-height of the clickable area (34 to
+   44px) with the text centred in it. That pushed each reachable stage's label
+   about 12px below the current one, which is a <span>. Zeroed here so all
+   labels sit 8px under their bar, as the board draws them. The visually
+   hidden "(current step)" is absolutely positioned and takes no space. */
+button.cn-stages-widget__bar-label {
+	min-height: 0;
+	height: auto;
+	line-height: inherit;
+	cursor: pointer;
+}
+
+/* The same label under a theme that restyles every button with !important
+   (thematiq's nldesign sheet: `button:not(.action-button)` gets 8px 16px
+   padding, `min-width: max-content` and `overflow: visible`), and under core's
+   `margin: 3px 3px 3px 0`, which outranks the scoped base rule. Together they
+   put each clickable label about 10px below the current step's <span> and let
+   a long label run over its neighbours, so eight Woo steps overlapped instead
+   of ending in an ellipsis. Only !important beats !important; this selector is
+   the more specific of the two. Without such a theme nothing changes: these
+   are the values the base rule already sets. */
+button.cn-stages-widget__bar-label.cn-stages-widget__bar-label {
+	min-width: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-width: 0 !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	white-space: nowrap !important;
+}
+
+button.cn-stages-widget__bar-label[aria-disabled="true"] {
+	cursor: not-allowed;
+}
+
+button.cn-stages-widget__bar-label:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
+}
+
+.cn-stages-widget__bar-step--done .cn-stages-widget__bar-label {
+	color: var(--color-main-text);
+	font-weight: 600;
+}
+
+.cn-stages-widget__bar-step--current .cn-stages-widget__bar-label {
+	color: var(--color-main-text);
+	font-weight: 700;
+}
+
+.cn-stages-widget__bar-date {
+	font-size: 12px;
 	color: var(--color-text-maxcontrast);
 }
 

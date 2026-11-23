@@ -89,7 +89,7 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 		expect(trend.text()).toContain('+20.0%')
 		expect(wrapper.vm.trendIcon).toBe('TrendingUp')
 		// Rising + goodDirection up (default) tints green.
-		expect(wrapper.vm.trendColor).toBe('var(--color-success)')
+		expect(wrapper.vm.trendColor).toBe('var(--color-text-success, var(--color-success-text))')
 	})
 
 	it('tints a falling trend red on goodDirection up, green on goodDirection down', async () => {
@@ -102,7 +102,7 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 		await flush()
 		expect(up.vm.trendPct).toBeCloseTo(-20)
 		expect(up.vm.trendIcon).toBe('TrendingDown')
-		expect(up.vm.trendColor).toBe('var(--color-error)')
+		expect(up.vm.trendColor).toBe('var(--color-text-error, var(--color-error-text))')
 
 		const down = mountWidget({
 			endpointSource: { url: '/api/down' },
@@ -111,7 +111,7 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 			goodDirection: 'down',
 		})
 		await flush()
-		expect(down.vm.trendColor).toBe('var(--color-success)')
+		expect(down.vm.trendColor).toBe('var(--color-text-success, var(--color-success-text))')
 	})
 
 	it('uses a server-computed deltaField directly (wins over previousField)', async () => {
@@ -156,9 +156,9 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 		await wrapper.vm.$nextTick()
 
 		expect(wrapper.vm.activeVariantRule.variant).toBe('warning')
-		expect(wrapper.vm.variantColor).toBe('var(--color-warning-text, var(--color-warning))')
+		expect(wrapper.vm.variantColor).toBe('var(--color-element-warning, var(--color-warning-text))')
 		expect(wrapper.vm.resolvedIcon).toBe('AlertOutline')
-		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-warning-text, var(--color-warning))' })
+		expect(wrapper.vm.valueStyle).toEqual({ color: 'var(--color-element-warning, var(--color-warning-text))' })
 	})
 
 	it('accepts the doriath "danger" variant as an alias of error and keeps colours on default', async () => {
@@ -170,7 +170,7 @@ describe('CnStatWidget — endpointSource (Wave 2)', () => {
 			variantWhen: [{ op: 'gt', value: 50, variant: 'danger' }],
 		})
 		await flush()
-		expect(wrapper.vm.variantColor).toBe('var(--color-error-text, var(--color-error))')
+		expect(wrapper.vm.variantColor).toBe('var(--color-text-error, var(--color-error-text))')
 
 		const noMatch = mountWidget({
 			valueColor: '#123456',

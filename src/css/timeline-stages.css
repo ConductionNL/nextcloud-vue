@@ -229,7 +229,11 @@
 }
 
 /* ---------- Clickable mode ---------- */
-.cn-timeline-stages--clickable .cn-timeline-stages__stage {
+/* Every cursor rule below names the stage's descendants too: the indicator and
+   label carry cursors of their own, so the stage's rule only reached its
+   padding. Same fix as the date-picker cells in patches.css. */
+.cn-timeline-stages--clickable .cn-timeline-stages__stage,
+.cn-timeline-stages--clickable .cn-timeline-stages__stage * {
 	cursor: pointer;
 }
 
@@ -243,8 +247,12 @@
    difference a sighted person could perceive was the cursor, which nobody
    notices, so a blocked stage and an upcoming one were the same picture. */
 .cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:not(.cn-timeline-stages__stage--blocked) {
-	cursor: not-allowed;
 	opacity: 0.55;
+}
+
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:not(.cn-timeline-stages__stage--blocked),
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--disabled:not(.cn-timeline-stages__stage--blocked) * {
+	cursor: not-allowed;
 }
 
 /* The dimming must not take the reason with it: an explanation nobody can read
@@ -257,7 +265,8 @@
 /* The stage the record is ON is not a move, and it is not blocked either. It
    carries no `aria-disabled` and no not-allowed cursor: both said "you may not
    go here" about the place the record already is. It simply offers nothing. */
-.cn-timeline-stages--clickable .cn-timeline-stages__stage--current {
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--current,
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--current * {
 	cursor: default;
 }
 
@@ -288,7 +297,8 @@
    There is no error-coloured variant, because `available-actions` answers one
    boolean, `blocked: true`, and no severity beside it. Splitting the colour
    into "refused" and "refused harder" would encode a distinction nobody sent. */
-.cn-timeline-stages--clickable .cn-timeline-stages__stage--blocked {
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--blocked,
+.cn-timeline-stages--clickable .cn-timeline-stages__stage--blocked * {
 	cursor: not-allowed;
 }
 

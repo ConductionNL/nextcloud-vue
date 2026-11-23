@@ -12,8 +12,8 @@
   - `config.userLayout: true` loads the user record before the first grid render
   - A page without the key makes no layout request
   - Manifest removals and additions merge per the design rule
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Save on leaving edit mode, reset to manifest
 - **spec_ref**: `openspec/changes/dashboard-layout-per-user/specs/dashboard-page/spec.md#requirement-user-layout-saved-and-reset`
@@ -22,8 +22,8 @@
   - One PUT on leaving edit mode, none during drag
   - "Reset layout" deletes the record and re-renders the manifest layout
   - Component reference doc and JSDoc updated
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: User-addable widget picker with presets
 - **spec_ref**: `openspec/changes/dashboard-layout-per-user/specs/dashboard-page/spec.md#requirement-user-picks-from-the-catalog-and-presets`
@@ -32,5 +32,5 @@
   - Picker lists registry kinds with `userAddable: true` and `config.userWidgets[]` presets
   - A saved-view preset lists the user's views and binds one
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

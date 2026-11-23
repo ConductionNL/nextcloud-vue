@@ -40,11 +40,16 @@ export default {
 	name: 'CnKpiGrid',
 
 	props: {
-		/** Number of columns at max width: 2, 3, or 4 */
+		/**
+		 * Number of columns at max width: 2, 3, or 4. `"auto"` lays the
+		 * tiles out as `repeat(auto-fit, minmax(200px, 1fr))` (the board KPI row).
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-a-kpi-row-above-the-grid
+		 */
 		columns: {
-			type: Number,
+			type: [Number, String],
 			default: 4,
-			validator: (v) => [2, 3, 4].includes(v),
+			validator: (v) => v === 'auto' || [2, 3, 4].includes(v),
 		},
 
 		/** Additional CSS class(es) applied to the KPI grid element */
@@ -98,6 +103,11 @@ export default {
 
 .cn-kpi-grid--cols-4 {
 	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Auto: as many 200px columns as fit (screens-dashboard-parity). */
+.cn-kpi-grid--cols-auto {
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 /* Responsive breakpoints */

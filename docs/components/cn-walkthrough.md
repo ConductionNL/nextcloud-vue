@@ -15,6 +15,22 @@ params / object ids into a context bag interpolated into later steps via `{{var}
 [`CnAppRoot`](./cn-app-root.md) auto-mounts it over the live shell (non-gating) when
 the manifest declares an enabled `walkthrough`; you can also mount it standalone.
 
+### When CnAppRoot starts the tour
+
+A first-time user can qualify for several first-open surfaces at once. CnAppRoot
+shows them one at a time and holds the tour back while any of these is true:
+
+- the per-user completion preference is still loading (see below);
+- the support note is on screen;
+- the setup status is still loading, or the non-gating
+  [`CnSetupWizard`](./cn-setup-wizard.md) is open. While a required setup step is
+  unmet the wizard replaces the whole shell, tour included.
+
+Held back means not mounted, so nothing is recorded as seen in the meantime. In
+particular an ESC that closes the setup wizard no longer also dismisses the tour.
+When the last surface closes (the wizard is cancelled or finished, the note is
+dismissed) the tour mounts and a qualifying tour starts, or resumes where it was.
+
 ## Usage
 
 ```vue
@@ -49,6 +65,18 @@ the manifest declares an enabled `walkthrough`; you can also mount it standalone
 }
 ```
 
+## Where a tour starts
+
+An auto-start tour whose first step spotlights a page or nav item opens only on that route. A tour whose first step is centered spotlights nothing, so it opens wherever the user lands.
+
+`startOn` names the routes a tour may auto-start on, whatever its first step looks like:
+
+```jsonc
+{ "id": "getting-started", "trigger": "first-visit", "startOn": ["Dashboard"], "steps": [ ... ] }
+```
+
+A user whose first visit is a link to a detail page does not get the tour there. It waits until they reach a named route. A tour started by hand (`tourId`, or the restart menu) ignores `startOn`.
+
 ## Completion persistence
 
 `walkthrough.completionConfigKey` names a **per-user preference** holding the last
@@ -57,10 +85,24 @@ app version whose tour the user has seen. `CnAppRoot` owns the round trip:
 - on mount it `GET`s `/apps/{appId}/api/preferences/{completionConfigKey}` and holds
   the overlay back until the answer arrives, so a returning user never sees the tour
   flash open;
-- on completion **or dismissal** (✕, Skip, backdrop, ESC) it `PUT`s
+- on completion (✕ / Skip, or Finish on the last step) it `PUT`s
   `{ "value": "<manifest.version>" }` to that same URL, and mirrors it into
   `localStorage` (`cn-walkthrough-seen:{appId}`) so the next boot resolves
   synchronously.
+
+ESC and a click on the dim **pause** the tour: it hides and keeps its step. ESC while
+an app dialog is open belongs to that dialog and leaves the tour alone. While an app
+dialog is open the overlay drops its dim and docks the coachmark in a corner, so the
+dialog can be filled in, and an `object-created` step advances when it is saved.
+
+Progress is remembered too. On every step change `CnAppRoot` writes
+`{ tourId, stepId, index, version }` to the preference `<completionConfigKey>-progress`
+(and `localStorage` `cn-walkthrough-progress:{appId}`). The next visit resumes at that
+step, and the user settings offer "Continue where you left off" and "Start over".
+Finishing or skipping the tour clears it.
+
+A step whose target is an element (`index-add`, say) belongs to the page it was first
+found on. On another page the same element is not spotlighted.
 
 Only `null` / missing / `""` count as "never seen" — a recorded value that happens to
 be JS-falsy (`0`, `false`, `"0"`) still means the user has seen the tour.
@@ -85,6 +127,7 @@ The helpers are exported for hosts that mount `CnWalkthrough` standalone:
 | `zIndex` | `number` | `10000` | Stacking order of the overlay. |
 | `nextLabel` / `backLabel` / `skipLabel` / `finishLabel` | `string` | localized | Control labels. |
 | `closeLabel` | `string` | `"Close tour"` | Accessible label for the corner ✕ button that ends the tour for good (marks it complete). |
+| `look` | `string` | - | `board` draws the board coachmark (step counter in words, dots, a wide first card). Unset, the look comes from `cnLook`. |
 | `translate` | `function` | `null` | Optional translator applied to step title/body/task i18n keys. |
 
 ## Events
@@ -92,7 +135,9 @@ The helpers are exported for hosts that mount `CnWalkthrough` standalone:
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `complete` | — | The last step was passed. |
-| `dismiss` | — | The user dismissed the tour (backdrop / ESC). |
+| `dismiss` | — | The user skipped (ended) the tour. Always followed by `complete`. |
+| `pause` | — | The user hid the tour (backdrop / ESC). It can continue later. |
+| `progress` | `{ tourId, stepId, index }` | The active step changed; the host remembers it. |
 | `step-change` | `{ stepId, index }` | The active step changed. |
 | `advance` | `{ stepId }` | The user advanced the tour. |
 | `handoff` | `{ app, url }` | A cross-app hand-off step (`handoff.url`) navigated to another app with a `cn_resume_tour`/`cn_resume_step` token. |
@@ -105,7 +150,7 @@ The helpers are exported for hosts that mount `CnWalkthrough` standalone:
 
 ## Accessibility
 
-Moves focus to the coachmark controls, dismisses on ESC, and announces each step via
+Moves focus to the coachmark controls (never out of an open app dialog), pauses on ESC, and announces each step via
 an `aria-live` region. Targets are scrolled into view before spotlighting.
 
 ## Target kinds

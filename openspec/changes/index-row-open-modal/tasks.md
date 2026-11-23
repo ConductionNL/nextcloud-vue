@@ -1,0 +1,4 @@
+- [x] Row action `open-modal` through `cnOpenModal` in manifestActionDispatch
+- [x] CnIndexPage passes `cnOpenModal` to the row action context
+- [x] useNamedSource reloads on `cn:page:refresh`
+- [x] Spec CnIndexPageRowModal.spec.js and docs

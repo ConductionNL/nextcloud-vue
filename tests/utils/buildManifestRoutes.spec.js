@@ -45,6 +45,15 @@ describe('buildManifestRoutes', () => {
 		expect(routes.every((r) => r.component === Renderer)).toBe(true)
 	})
 
+	// A saved view is applied onto the page's own address, so it gets no record
+	// of its own. A leftover `<route>/views/:viewId` would resolve, render an
+	// unfiltered list and look like the feature still working.
+	it('emits no record for a saved view', () => {
+		const declaring = { id: 'queue', route: '/queue', type: 'index', title: 'Queue', savedViewPlaces: { enabled: true, routeBase: 'views' } }
+		expect(buildManifestRoutes({ pages: [declaring] }, { component: Renderer }).map((r) => r.path))
+			.toEqual(['/queue'])
+	})
+
 	it('emits a second record for a page declaring splitView, directly after it', () => {
 		const routes = buildManifestRoutes({ pages: [CASES, CASE_DETAIL] }, { component: Renderer })
 

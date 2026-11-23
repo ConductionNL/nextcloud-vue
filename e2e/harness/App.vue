@@ -81,7 +81,11 @@
 			<h2>Flow editor</h2>
 			<div class="flow-editor">
 				<div class="canvas-box" data-testid="flow-box">
-					<CnFlowDetail id="new" app="openregister" />
+					<CnFlowDetail id="new" app="openregister" :view="flowView">
+						<template v-if="flowList" #toolbar-start>
+							<CnFlowViewSwitch v-model="flowView" />
+						</template>
+					</CnFlowDetail>
 				</div>
 				<!-- The palette half, in its `embedded` form: there is no
 				     Nextcloud app layout here to hold an NcAppSidebar. It is
@@ -158,9 +162,182 @@
 			The stages widget and the status badge tile on a case detail surface
 			(?stageswidget=1, ?statbadge=1). See StagesHarness.vue.
 		-->
+		<!-- The sections widget (?sectionswidget=1 / =cards). See SectionsHarness.vue. -->
+		<template v-else-if="showSections">
+			<h2>Sections widget</h2>
+			<SectionsHarness />
+		</template>
+
+		<!-- The facts widget as a side card (?factswidget=1). See FactsHarness.vue. -->
+		<template v-else-if="showFacts">
+			<h2>Facts widget</h2>
+			<FactsHarness />
+		</template>
+
+		<!-- Progress cells (?progresscell=1). See ProgressCellHarness.vue. -->
+		<template v-else-if="showProgressCell">
+			<h2>Progress cells</h2>
+			<ProgressCellHarness />
+		</template>
+
+		<!-- The Mijn werk dashboard pieces (?l4=<name>): a file in l4/ per scenario. See L4Harness.vue. -->
+		<template v-else-if="showL4">
+			<L4Harness />
+		</template>
+
+		<!-- The board-gap pieces (?l6=<name>): a file in l6/ per scenario. See L6Harness.vue. -->
+		<template v-else-if="showL6">
+			<L6Harness />
+		</template>
+
+		<!-- A start-here attention card naming one record (?starthere=1). See StartHereHarness.vue. -->
+		<template v-else-if="showStartHere">
+			<h2>Start here</h2>
+			<StartHereHarness />
+		</template>
+
+		<!-- Page controls: a bar with chips, a switch and a select, and a list that listens (?pagecontrols=1). -->
+		<template v-else-if="showPageControls">
+			<h2>Page controls</h2>
+			<PageControlsHarness />
+		</template>
+
+		<!-- Page lenses: workspace-filter chips (?lenses=1). See PageLensesHarness.vue. -->
+		<template v-else-if="showPageLenses">
+			<h2>Page lenses</h2>
+			<PageLensesHarness />
+		</template>
+
+		<!-- The device-frames widget (?deviceframes=1). See DeviceFramesHarness.vue. -->
+		<template v-else-if="showDeviceFrames">
+			<DeviceFramesHarness />
+		</template>
+		<!-- The workspace-filter start card (?startcard=1). See StartCardHarness.vue. -->
+		<template v-else-if="showStartCard">
+			<h2>Start card</h2>
+			<StartCardHarness />
+		</template>
+
+		<!-- Library lane L7 pieces (?l7=<name>): a file in l7/ per scenario. See L7Harness.vue. -->
+		<template v-else-if="showL7">
+			<L7Harness />
+		</template>
+
+		<!-- Library lane L8 pieces, the decidiq gaps (?l8=<name>): a file in l8/ per scenario. See L8Harness.vue. -->
+		<template v-else-if="showL8">
+			<L8Harness />
+		</template>
+
+		<!-- The settings widgets (?settingswidgets=<name>). See SettingsWidgetsHarness.vue. -->
+		<template v-else-if="showSettingsWidgets">
+			<h2>Settings widgets</h2>
+			<SettingsWidgetsHarness />
+		</template>
+
+		<!-- The field-list widget (?fieldlist=1). See FieldListHarness.vue. -->
+		<template v-else-if="showFieldList">
+			<h2>Field list</h2>
+			<FieldListHarness />
+		</template>
+
 		<template v-else-if="showStages">
 			<h2>Stages widget</h2>
 			<StagesHarness />
+		</template>
+
+		<!--
+			Table cells in a real browser (?celllabels=1). See CellLabelsHarness.vue.
+		-->
+		<template v-else-if="showCellLabels">
+			<CellLabelsHarness />
+		</template>
+
+		<!--
+			Help text under form fields (?fieldhint=1). See FieldHintHarness.vue.
+		-->
+		<template v-else-if="showFieldHint">
+			<FieldHintHarness />
+		</template>
+
+		<!--
+			The files tab on an OpenRegister object (?filestabor=1). See FilesTabOrHarness.vue.
+		-->
+		<template v-else-if="showFilesTabOr">
+			<FilesTabOrHarness />
+		</template>
+
+		<!--
+			Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs). See
+			PixelGapsHarness.vue.
+		-->
+		<!-- The accounts table with an avatar name column (?ptaccounts=1). See PtAccountsHarness.vue. -->
+		<template v-else-if="showPtAccounts">
+			<PtAccountsHarness />
+		</template>
+
+		<!-- A dashboard with a record-list card (?ptlistcard=1). See PtDashboardHarness.vue. -->
+		<template v-else-if="showPtDashboard">
+			<PtDashboardHarness />
+		</template>
+
+		<!-- screens-relation-pages (?relation=person). See RelationPagesHarness.vue. -->
+		<template v-else-if="showRelationPages">
+			<RelationPagesHarness />
+		</template>
+
+		<!-- screens-detail-page-parity (?screensdetail=tabs). See ScreensDetailHarness.vue. -->
+		<template v-else-if="showScreensDetail">
+			<ScreensDetailHarness />
+		</template>
+
+		<template v-else-if="showPixelGaps2">
+			<PixelGapsHarness />
+		</template>
+
+		<!-- A narrow object-table tile (?narrowtable=1). See NarrowTableHarness.vue. -->
+		<template v-else-if="showNarrowTable">
+			<NarrowTableHarness />
+		</template>
+
+		<!--
+			Zuiddrecht pixel gaps, round 3 (?pixgaps3=greeting|bar|header|kicker|nav).
+			See PixelGaps3Harness.vue.
+		-->
+		<template v-else-if="showPixelGaps3">
+			<PixelGaps3Harness />
+		</template>
+
+		<!-- The navigation against board AppZijbalk (?screensnav=1). See ScreensNavHarness.vue; main.js gives it a router. -->
+		<template v-else-if="showScreensNav">
+			<ScreensNavHarness />
+		</template>
+
+		<!--
+			screens-dashboard-parity and screens-kanban-parity
+			(?screens=segmented|kpi|tile|header|board). See ScreensParityHarness.vue.
+		-->
+		<template v-else-if="showScreensParity">
+			<ScreensParityHarness />
+		</template>
+
+		<!-- Tabs widget in the board look (?tabswidget=board). See TabsBoardHarness.vue. -->
+		<template v-else-if="showTabsBoard">
+			<TabsBoardHarness />
+		</template>
+
+		<!-- screens-index-list/card/chrome-parity (?screensindex=table|cards). See ScreensIndexHarness.vue. -->
+		<template v-else-if="showScreensIndex">
+			<ScreensIndexHarness />
+		</template>
+
+		<!-- screens-form/dialog/wizard-parity (?screensform=form|steps|dialog|wizard). See ScreensFormHarness.vue. -->
+		<template v-else-if="showScreensForm">
+			<ScreensFormHarness />
+		</template>
+
+		<!-- screens-chrome-parity, the navigation inset and the headers (?screenschrome=index|detail|dashboard|settings). See ScreensChromeHarness.vue. -->
+		<template v-else-if="showScreensChrome">
+			<ScreensChromeHarness />
 		</template>
 
 		<template v-else-if="showTabsWidget">
@@ -207,6 +384,25 @@
 					:schemaObject="bdSchema"
 					register="dossiq"
 					schema="case" />
+			</div>
+		</template>
+
+		<!--
+			Data table header affordances (?dtheader=1): a sort chevron on every
+			sortable header and a filter button on every filterable one. Colour
+			and position are layout facts, so they are measured in a browser.
+		-->
+		<template v-else-if="showDtHeader">
+			<h2>Data table header</h2>
+			<div class="dt-header-box" data-testid="dt-header">
+				<CnDataTable
+					:rows="dtHeaderRows"
+					:columns="dtHeaderColumns"
+					:schema="dtHeaderSchema"
+					sortKey="due"
+					sortOrder="desc"
+					:filterable="true"
+					:activeFilters="{ status: ['open'] }" />
 			</div>
 		</template>
 
@@ -341,6 +537,21 @@
 				Start
 			</button>
 			<CnNavCardGrid title="Explore" :entries="navCardEntries" />
+		</template>
+
+		<!--
+			CnLinkCardsPage under a hostile theme (gated behind ?linkcards=1).
+			The spec injects the rule a Nextcloud theme ships
+			(`a { text-decoration: underline !important }`) and reads the
+			COMPUTED style, which jsdom cannot give: it applies no scoped SFC
+			styles and resolves no cascade between two `!important` rules.
+		-->
+		<template v-else-if="showLinkCards">
+			<CnLinkCardsPage
+				title="Modules and more"
+				description="Every page that is not in the daily menu."
+				:categories="{ sales: 'Sales' }"
+				:cards="linkCards" />
 		</template>
 
 		<!--
@@ -521,6 +732,7 @@ import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPag
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
 import CnFlowSidebar from '../../src/components/CnFlowDetail/CnFlowSidebar.vue'
+import CnFlowViewSwitch from '../../src/components/CnFlowDetail/CnFlowViewSwitch.vue'
 import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
@@ -529,6 +741,7 @@ import CnIconBrowser from '../../src/components/CnIconBrowser/CnIconBrowser.vue'
 import CnIconPicker from '../../src/components/CnIconPicker/CnIconPicker.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
 import CnInteractionFormWidget from '../../src/components/CnInteractionFormWidget/CnInteractionFormWidget.vue'
+import CnLinkCardsPage from '../../src/components/CnLinkCardsPage/CnLinkCardsPage.vue'
 import CnMarkdownEditor from '../../src/components/CnMarkdownEditor/CnMarkdownEditor.vue'
 import CnNavCardGrid from '../../src/components/CnNavCardGrid/CnNavCardGrid.vue'
 import CnNcWidgetWidget from '../../src/components/CnNcWidgetWidget/CnNcWidgetWidget.vue'
@@ -537,7 +750,37 @@ import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
+import CellLabelsHarness from './CellLabelsHarness.vue'
+import DeviceFramesHarness from './DeviceFramesHarness.vue'
+import FactsHarness from './FactsHarness.vue'
+import FieldHintHarness from './FieldHintHarness.vue'
+import FieldListHarness from './FieldListHarness.vue'
+import FilesTabOrHarness from './FilesTabOrHarness.vue'
+import L4Harness from './L4Harness.vue'
+import L6Harness from './L6Harness.vue'
+import L7Harness from './L7Harness.vue'
+import L8Harness from './L8Harness.vue'
+import NarrowTableHarness from './NarrowTableHarness.vue'
+import PageControlsHarness from './PageControlsHarness.vue'
+import PageLensesHarness from './PageLensesHarness.vue'
+import PixelGaps3Harness from './PixelGaps3Harness.vue'
+import PixelGapsHarness from './PixelGapsHarness.vue'
+import ProgressCellHarness from './ProgressCellHarness.vue'
+import PtAccountsHarness from './PtAccountsHarness.vue'
+import PtDashboardHarness from './PtDashboardHarness.vue'
+import RelationPagesHarness from './RelationPagesHarness.vue'
+import ScreensChromeHarness from './ScreensChromeHarness.vue'
+import ScreensDetailHarness from './ScreensDetailHarness.vue'
+import ScreensFormHarness from './ScreensFormHarness.vue'
+import ScreensIndexHarness from './ScreensIndexHarness.vue'
+import ScreensNavHarness from './ScreensNavHarness.vue'
+import ScreensParityHarness from './ScreensParityHarness.vue'
+import SectionsHarness from './SectionsHarness.vue'
+import SettingsWidgetsHarness from './SettingsWidgetsHarness.vue'
 import StagesHarness from './StagesHarness.vue'
+import StartCardHarness from './StartCardHarness.vue'
+import StartHereHarness from './StartHereHarness.vue'
+import TabsBoardHarness from './TabsBoardHarness.vue'
 import { fromFontAwesome, fromOpenGemeenten } from '../../src/components/CnIconPicker/iconCatalogues.js'
 import { useFlowStore } from '../../src/composables/useFlowStore.js'
 import { installModalStack } from '../../src/utils/modalStack.js'
@@ -561,7 +804,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, StagesHarness, NcDialog, NcSelect },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnFlowViewSwitch, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, DeviceFramesHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness, L6Harness, L7Harness, L8Harness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -594,13 +837,73 @@ export default {
 			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).
 			showFlow: (typeof window !== 'undefined' && window.location.search.includes('flow=1')),
+			flowList: (typeof window !== 'undefined' && window.location.search.includes('view=list')),
+			flowView: (typeof window !== 'undefined' && window.location.search.includes('view=list')) ? 'list' : 'canvas',
 			showRunSidebar: (typeof window !== 'undefined' && window.location.search.includes('runsidebar')),
 			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
 			cronValue: '0 9 * * 1',
+			showDtHeader: (typeof window !== 'undefined' && window.location.search.includes('dtheader')),
+			dtHeaderSchema: {
+				properties: {
+					title: { type: 'string', title: 'Case' },
+					status: { type: 'string', enum: ['open', 'closed'] },
+					due: { type: 'string', format: 'date' },
+				},
+			},
+
+			dtHeaderColumns: [
+				{ key: 'title', label: 'Case' },
+				{ key: 'status', label: 'Status' },
+				{ key: 'due', label: 'Statutory term' },
+				{ key: 'note', label: 'Note', sortable: false, filterable: false },
+			],
+
+			dtHeaderRows: [
+				{ id: 'a', title: 'Lindelaan', status: 'open', due: '2026-10-20', note: 'x' },
+				{ id: 'b', title: 'Parkeren', status: 'open', due: '2026-10-12', note: 'y' },
+			],
+
 			showDtScroll: (typeof window !== 'undefined' && window.location.search.includes('dtscroll')),
 			// Stages widget and status badge tile harness (?stageswidget=1 / ?statbadge=1).
+			showSections: (typeof window !== 'undefined' && /[?&]sectionswidget=/.test(window.location.search)),
+			showFacts: (typeof window !== 'undefined' && /[?&]factswidget=/.test(window.location.search)),
+			showProgressCell: (typeof window !== 'undefined' && /[?&]progresscell=/.test(window.location.search)),
+			showL7: (typeof window !== 'undefined' && /[?&]l7=/.test(window.location.search)),
+			showL8: (typeof window !== 'undefined' && /[?&]l8=/.test(window.location.search)),
+			showL4: (typeof window !== 'undefined' && /[?&]l4=/.test(window.location.search)),
+			showL6: (typeof window !== 'undefined' && /[?&]l6=/.test(window.location.search)),
+			showStartHere: (typeof window !== 'undefined' && /[?&]starthere=/.test(window.location.search)),
+			showPageControls: (typeof window !== 'undefined' && /[?&]pagecontrols=/.test(window.location.search)),
+			showPageLenses: (typeof window !== 'undefined' && /[?&]lenses=/.test(window.location.search)),
+			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
+			showDeviceFrames: (typeof window !== 'undefined' && /[?&]deviceframes=/.test(window.location.search)),
+			showSettingsWidgets: (typeof window !== 'undefined' && /[?&]settingswidgets=/.test(window.location.search)),
+			showFieldList: (typeof window !== 'undefined' && /[?&]fieldlist=/.test(window.location.search)),
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),
+			// Table cells in a real browser (?celllabels=1).
+			showCellLabels: (typeof window !== 'undefined' && /[?&]celllabels=/.test(window.location.search)),
+			// Help text under form fields (?fieldhint=1).
+			showFieldHint: (typeof window !== 'undefined' && /[?&]fieldhint=/.test(window.location.search)),
+			showFilesTabOr: (typeof window !== 'undefined' && /[?&]filestabor=/.test(window.location.search)),
+			// Zuiddrecht pixel gaps, round 2 (?pixgaps2=nav|crumbs).
+			showPixelGaps2: (typeof window !== 'undefined' && /[?&]pixgaps2=/.test(window.location.search)),
+			// Zuiddrecht pixel gaps, round 3 (?pixgaps3=…).
+			showNarrowTable: (typeof window !== 'undefined' && /[?&]narrowtable=/.test(window.location.search)),
+			showPixelGaps3: (typeof window !== 'undefined' && /[?&]pixgaps3=/.test(window.location.search)),
+			// The navigation against board AppZijbalk (?screensnav=1).
+			showScreensNav: (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.search)),
+			// screens-detail-page-parity (?screensdetail=tabs).
+			showScreensDetail: (typeof window !== 'undefined' && /[?&]screensdetail=/.test(window.location.search)),
+			showPtAccounts: (typeof window !== 'undefined' && /[?&]ptaccounts=/.test(window.location.search)),
+			showPtDashboard: (typeof window !== 'undefined' && /[?&]ptlistcard=/.test(window.location.search)),
+			showRelationPages: (typeof window !== 'undefined' && /[?&]relation=/.test(window.location.search)),
+			// screens-dashboard-parity / screens-kanban-parity (?screens=…).
+			showScreensParity: (typeof window !== 'undefined' && /[?&]screens=/.test(window.location.search)),
+			showScreensIndex: (typeof window !== 'undefined' && /[?&]screensindex=/.test(window.location.search)),
+			showScreensForm: (typeof window !== 'undefined' && /[?&]screensform=/.test(window.location.search)),
+			showScreensChrome: (typeof window !== 'undefined' && /[?&]screenschrome=/.test(window.location.search)),
 			// Tabs widget chrome harness (?tabswidget=1).
+			showTabsBoard: (typeof window !== 'undefined' && window.location.search.includes('tabswidget=board')),
 			showTabsWidget: (typeof window !== 'undefined' && window.location.search.includes('tabswidget')),
 			showBareData: (typeof window !== 'undefined' && window.location.search.includes('baredata')),
 			// Run deep link harness (?runlink=1).
@@ -747,6 +1050,13 @@ export default {
 					description: 'Opens an external resource in a new tab',
 					href: 'https://example.org/explore',
 				},
+			],
+
+			// CnLinkCardsPage under a theme that underlines links (?linkcards=1).
+			showLinkCards: (typeof window !== 'undefined' && window.location.search.includes('linkcards')),
+			linkCards: [
+				{ id: 'leads', label: 'Leads', description: 'Every deal you are working on.', category: 'sales', href: 'https://example.org/leads' },
+				{ id: 'quotes', label: 'Quotes', description: 'Offers that are out with a customer.', category: 'sales', href: 'https://example.org/quotes' },
 			],
 
 			// CnTasksWidget / tasks entity source harness (?tasksWidget=1 / ?tasksIndex=1).

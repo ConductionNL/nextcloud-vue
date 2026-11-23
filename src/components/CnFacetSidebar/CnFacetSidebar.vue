@@ -62,7 +62,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
-import { facetOptionLabel } from '../../utils/facets.js'
+import { facetOptions } from '../../utils/facets.js'
 import { filtersFromSchema } from '../../utils/schema.js'
 
 /**
@@ -175,12 +175,12 @@ export default {
 
 		getFilterOptions(filter) {
 			// Use facet data if available (live values with counts)
-			const facet = this.facetData[filter.key]
-			if (facet?.values?.length > 0) {
-				return facet.values.map((v) => ({
-					id: v.value,
-					label: facetOptionLabel(v),
-				}))
+			const live = facetOptions(
+				this.facetData[filter.key],
+				(count) => t('nextcloud-vue', 'No value ({count})', { count }),
+			)
+			if (live !== null) {
+				return live
 			}
 			// Fall back to static enum options from schema
 			return filter.options || []

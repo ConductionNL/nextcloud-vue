@@ -17,10 +17,7 @@
 		     the panel keeps half a card.
 
 		     Chromeless does NOT mean no wrapper element. The wrapper's content
-		     node is what `CnObjectDataWidget` measures its overflow against and
-		     what the library's table and detail-page CSS key on; removing it
-		     would take the whole-row clip out silently, because a `closest()`
-		     that finds nothing reads as "nothing overflows".
+		     node is what the library's table and detail-page CSS key on.
 
 		     It used to keep the whole card here, because its Save button lives
 		     in CnWidgetWrapper's header and hiding the header hid Save with it.
@@ -69,26 +66,30 @@
 		     rather than printing a heading the tab already carries. -->
 		<CnWidgetWrapper
 			v-if="missingApp"
+			:headerWrap="widget.headerWrap === true"
 			:title="widgetTitle"
+			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			:showRefresh="false"
 			:showRequestFeature="false">
 			<template v-if="widget && widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
-			<NcEmptyContent :name="missingAppName" :description="missingAppDescription">
+			<CnEmptyContent class="cn-requires-app" :name="missingAppName" :description="missingAppDescription">
 				<template #icon>
-					<CnIcon :name="(widget && widget.icon) || 'PuzzleOutline'" :size="44" />
+					<CnIcon :name="(widget && widget.icon) || 'PuzzleOutline'" :size="32" />
 				</template>
-			</NcEmptyContent>
+			</CnEmptyContent>
 		</CnWidgetWrapper>
 
 		<CnObjectDataWidget
 			v-else-if="isData && schemaObject"
 			:title="resolvedTitle"
+			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
-			:showActions="!isBare"
+			:showActions="!isBare && actionsShown"
 			:icon="widget.icon || null"
 			:schema="schemaObject"
 			:objectData="object"
@@ -99,7 +100,11 @@
 			:exclude="content.exclude || []"
 			:hideEmpty="content.hideEmpty === true || hideEmpty"
 			:columns="content.columns || 3"
-			:editable="content.editable !== false" />
+			:fixedColumns="content.fixedColumns === true"
+			:collapsedFields="content.collapsedFields ?? null"
+			:footnote="content.footnote || ''"
+			:fieldLook="content.fieldLook || ''"
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
 		     integrations. Honours bare mode via its own `bare` prop. -->
@@ -114,9 +119,25 @@
 			:schema="schema"
 			:store="store"
 			:includeGroups="content.groups || []"
+			:layout="content.layout"
+			:groupByRelation="content.groupByRelation"
+			:groupActions="content.groupActions"
+			:showObjects="content.showObjects"
+			:showFiles="content.showFiles"
+			:showIntegrations="content.showIntegrations"
+			:showContracts="content.showContracts"
+			:excludeIntegrations="content.excludeIntegrations"
+			:extraSources="content.extraSources"
+			:links="content.links || []"
+			:referenceSections="content.referenceSections"
+			:sectionOrder="content.sectionOrder"
+			:footerActions="content.footerActions"
+			:showAddFooter="content.showAddFooter"
+			:emptyLabel="content.emptyLabel"
 			:hideSingleTabTitle="content.hideSingleTabTitle !== false"
 			:showTotalCount="content.showTotalCount !== false"
-			@openIntegration="onOpenIntegration" />
+			@openIntegration="onOpenIntegration"
+			@selectObject="onSelectObject" />
 
 		<!-- `type: 'object-geo'` — view/edit the object's `@self.geo` on a map. -->
 		<CnObjectGeoWidget
@@ -126,7 +147,7 @@
 			:objectData="object"
 			:register="register"
 			:schema="schema"
-			:editable="content.editable !== false"
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)"
 			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
 			:allowBasemapSwitch="content.allowBasemapSwitch === true"
@@ -139,10 +160,107 @@
 
 		<!-- Mount-mode integration leaf (openregister#2127): a bare host-owned
 		     element the leaf mounts its own framework into. -->
+		<!-- An integration widget whose `props` name a value the record does not
+		     hold yet (`objectId: "@object.caseReference"` on a ticket with no
+		     case) is absent. Mounting it would hand the leaf an empty host, and a
+		     leaf falls back to the page's own object from there. -->
+		<span
+			v-else-if="(isIntegration && widgetPropsPending) || consumerWidgetWaiting"
+			hidden
+			data-testid="cn-detail-widget-props-pending" />
+
+		<!-- A mount-mode leaf whose descriptor asks for the library card
+		     (`chrome: "card"`): the host draws the card, its title with the
+		     count the leaf reports, the leaf's actions in the title row and the
+		     library empty state. The leaf reports them through the `onHeader`
+		     mount prop and renders only its rows. -->
+		<CnWidgetWrapper
+			v-else-if="wrapsMountLeaf"
+			:headerWrap="widget.headerWrap === true"
+			:title="leafCardTitle"
+			:showTitle="leafCardTitle !== ''"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__leaf-card"
+			data-testid="cn-detail-widget-leaf-card">
+			<template v-if="leafCardIcon" #title-icon>
+				<CnIcon :name="leafCardIcon" :size="20" />
+			</template>
+			<template v-if="rendererHeader.count !== null" #title-meta>
+				<span class="cn-detail-page__catalog-count" data-testid="cn-detail-widget-header-count">{{ rendererHeader.count }}</span>
+			</template>
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
+			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+			<CnWidgetEmptyState
+				v-if="rendererHeader.empty"
+				:name="rendererHeader.empty.name"
+				:description="rendererHeader.empty.description" />
+			<CnLeafMountHost
+				:provider="integrationProvider"
+				:mountProps="integrationMountProps" />
+		</CnWidgetWrapper>
+
 		<CnLeafMountHost
 			v-else-if="isMountIntegration"
 			:provider="integrationProvider"
 			:mountProps="integrationMountProps" />
+
+		<!-- An integration widget with `content.view: "tab"` on a card surface:
+		     the leaf's full tab (its rows and its own buttons) inside a card the
+		     widget titles, instead of the provider's compact count card. -->
+		<CnWidgetWrapper
+			v-else-if="wrapsLeafTab"
+			:headerWrap="widget.headerWrap === true"
+			:title="leafCardTitle"
+			:showTitle="leafCardTitle !== ''"
+			:subtitle="widgetSubtitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			class="cn-detail-page__leaf-card"
+			data-testid="cn-detail-widget-tab-card">
+			<template v-if="leafCardIcon" #title-icon>
+				<CnIcon :name="leafCardIcon" :size="20" />
+			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+			<component :is="resolveRegistryTab(widget.integrationId)" v-bind="integrationProps" />
+		</CnWidgetWrapper>
 
 		<!-- Integration leaf, component mode. In BARE mode this renders the
 		     provider's `tab` (its bare content) rather than its `widget` (which
@@ -153,6 +271,14 @@
 			:is="integrationComponent"
 			v-else-if="isIntegration && integrationComponent"
 			v-bind="integrationProps" />
+
+		<!-- An integration whose leaf is not registered (its app is absent or
+		     its bundle did not load) says so, as CnIntegrationWidget does. -->
+		<CnIntegrationWidgetEmpty
+			v-else-if="integrationAbsent"
+			:provider="absentIntegrationProvider"
+			:reason="absentIntegrationProvider.appName ? 'missing-app' : 'unknown'"
+			data-testid="cn-detail-widget-integration-absent" />
 
 		<!-- Content-only catalog widgets (object-list / table / files) render
 		     bare tables. On a card surface they get the titled wrapper (ADR-062:
@@ -165,46 +291,333 @@
 		     component would be a silent visual regression across the fleet. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
+			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="actionsShown || catalogAddInMenu || rendererHeader.menuActions.length > 0"
 			:showRefresh="false"
 			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
 			class="cn-detail-page__catalog-card">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
-			<template v-if="catalogAddEnabled" #action-items>
-				<NcActionButton @click="invokeCatalogAdd">
+			<!-- A renderer that reports its own header (`header` event:
+			     `{ link, note, action, actions, pill }`, e.g. record-list's "3 in
+			     totaal", a facts card's status pill). -->
+			<template v-if="hasRendererHeaderItems || catalogAddInHeader" #actions>
+				<CnDetailWidgetHeaderItems v-if="hasRendererHeaderItems" :header="rendererHeader" />
+				<!-- The board look draws the catalog Add as a button in the title
+				     row; the list's footer Add is hidden there (look-board-detail.css). -->
+				<NcButton
+					v-if="catalogAddInHeader"
+					:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
+					class="cn-detail-page__catalog-add"
+					:class="{ 'cn-button--tonal': catalogAddTonal }"
+					data-testid="cn-detail-widget-catalog-add"
+					@click="invokeCatalogAdd()">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ addLabel }}
+				</NcButton>
+				<template v-if="catalogAddInHeader">
+					<NcButton
+						v-for="(entry, index) in catalogAddActions"
+						:key="`add-action-${index}`"
+						:variant="catalogAddTonal ? 'tertiary' : 'secondary'"
+						class="cn-detail-page__catalog-add"
+						:class="{ 'cn-button--tonal': catalogAddTonal }"
+						data-testid="cn-detail-widget-catalog-add-action"
+						@click="invokeCatalogAdd(entry.createDefaults)">
+						<template #icon>
+							<CnIcon v-if="entry.icon" :name="entry.icon" :size="20" />
+							<Plus v-else :size="20" />
+						</template>
+						{{ entry.label }}
+					</NcButton>
+				</template>
+			</template>
+			<template v-if="catalogAddInMenu || rendererHeader.menuActions.length > 0" #action-items>
+				<NcActionButton v-if="catalogAddInMenu" @click="invokeCatalogAdd()">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
 					{{ addLabel }}
 				</NcActionButton>
+				<template v-if="catalogAddInMenu">
+					<NcActionButton
+						v-for="(entry, index) in catalogAddActions"
+						:key="`add-action-menu-${index}`"
+						@click="invokeCatalogAdd(entry.createDefaults)">
+						<template #icon>
+							<CnIcon v-if="entry.icon" :name="entry.icon" :size="20" />
+							<Plus v-else :size="20" />
+						</template>
+						{{ entry.label }}
+					</NcActionButton>
+				</template>
+				<!-- `menuActions` a renderer reports: items in the card's Actions menu. -->
+				<NcActionButton
+					v-for="(action, index) in rendererHeader.menuActions"
+					:key="`menu-${index}-${action.label}`"
+					:closeAfterClick="true"
+					data-testid="cn-detail-widget-menu-action"
+					@click="action.run()">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="20" />
+					</template>
+					{{ action.label }}
+				</NcActionButton>
 			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 			<component
 				:is="renderer"
 				ref="renderer"
-				v-bind="rendererProps" />
+				v-bind="rendererProps"
+				@header="onRendererHeader"
+				@selectObject="onSelectObject" />
+			<!-- `content.trailWidgetIds`: other widgets drawn inside this card, after its own content. -->
+			<CnDetailWidgetHost
+				v-for="trail in trailWidgets"
+				:key="`trail-${trail.id}`"
+				class="cn-detail-widget-host__trail"
+				:widget="trail"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
 		</CnWidgetWrapper>
 
 		<!-- Registry "card" widgets (stat / gauge / delta) render bare tile
 		     content, so on a card surface they need the same titled wrapper the
 		     dashboard gives them (ADR-062: a lone stat must not read as uncarded
 		     floating text). `card-fit` centres the tile and drops the inner
-		     scrollbar. -->
+		     scrollbar. No Actions menu: it would hold nothing here and squeezes
+		     the title of a narrow tile. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || content.title || ''"
+			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
 			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
 			flush
+			:showActions="false"
 			:showRefresh="false"
 			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
 			class="cn-detail-page__card-fit">
 			<template v-if="widget.icon" #title-icon>
 				<CnIcon :name="widget.icon" :size="20" />
 			</template>
-			<component :is="renderer" :content="content" v-bind="content" />
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+			<component :is="renderer" :content="content" v-bind="declaredContent" />
+		</CnWidgetWrapper>
+
+		<!-- A chart on a card surface: the titled card every body widget
+		     carries (ADR-062), with the whole prop bag, so record tokens in its
+		     `cellSource` or `dataSource` still resolve. In a tab panel it stays
+		     bare. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsChart"
+			:headerWrap="widget.headerWrap === true"
+			:title="widget.title || ''"
+			:subtitle="widgetSubtitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__card-fit"
+			data-testid="cn-detail-widget-chart-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+		</CnWidgetWrapper>
+
+		<!-- An app's own widget (consumer registry) on a card surface, the
+		     side column or a tab stack, whose registry entry asks for the
+		     titled card (`chrome: "card"`). Opt-in: many app widgets draw their
+		     own card. A body grid cell has its own card, so there it stays
+		     bare. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsConsumerWidget"
+			:headerWrap="widget.headerWrap === true"
+			:title="widget.title || ''"
+			:subtitle="rendererHeader.subtitle || widgetSubtitle"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__consumer-card"
+			data-testid="cn-detail-widget-consumer-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<!-- The app widget reports its title row the way the built-in
+			     cards do (`header` event). -->
+			<template v-if="hasRendererHeaderItems" #actions>
+				<CnDetailWidgetHeaderItems :header="rendererHeader" />
+			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@header="onRendererHeader"
+				@selectObject="onSelectObject" />
+			<!-- `content.trailWidgetIds`: other widgets drawn inside this card, after its own content. -->
+			<CnDetailWidgetHost
+				v-for="trail in trailWidgets"
+				:key="`trail-${trail.id}`"
+				class="cn-detail-widget-host__trail"
+				:widget="trail"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+		</CnWidgetWrapper>
+
+		<!-- A titled `sections` widget in the side column or a tab stack: its
+		     sections stack inside one titled card, as the other cards there
+		     are drawn. A grid cell has its own card, and `content.cards` makes
+		     every section a card of its own, so both stay as they are. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsSections"
+			:headerWrap="widget.headerWrap === true"
+			:title="widget.title"
+			:subtitle="widgetSubtitle"
+			:showTitle="effectiveShowCardTitle"
+			titleIconPosition="left"
+			:titleTone="widgetTitleTone"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			:headerLink="cardHeaderLink"
+			class="cn-detail-page__sections-card"
+			data-testid="cn-detail-widget-sections-card">
+			<template v-if="widget.icon" #title-icon>
+				<CnIcon :name="widget.icon" :size="20" />
+			</template>
+			<!-- `content.leadWidgetIds`: other widgets drawn inside this card, before its own content. -->
+			<CnDetailWidgetHost
+				v-for="lead in leadWidgets"
+				:key="`lead-${lead.id}`"
+				class="cn-detail-widget-host__lead"
+				:widget="lead"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
+			<!-- `content.trailWidgetIds`: other widgets drawn inside this card, after its own content. -->
+			<CnDetailWidgetHost
+				v-for="trail in trailWidgets"
+				:key="`trail-${trail.id}`"
+				class="cn-detail-widget-host__trail"
+				:widget="trail"
+				chrome="bare"
+				:objectId="objectId"
+				:object="object"
+				:objectType="objectType"
+				:register="register"
+				:schema="schema"
+				:store="store"
+				:availableWidgets="availableWidgets"
+				:cnRegistry="cnRegistry" />
+		</CnWidgetWrapper>
+
+		<!-- A library widget that draws its own title row and asks for the
+		     card (registry `ownsTitle` + `chrome: "card"`): an untitled card
+		     on a card surface, so it does not float bare in a tab stack. -->
+		<CnWidgetWrapper
+			v-else-if="renderer && wrapsSelfTitledWidget"
+			:headerWrap="widget.headerWrap === true"
+			:showTitle="false"
+			:showActions="false"
+			:showRefresh="false"
+			:showRequestFeature="false"
+			class="cn-detail-page__self-titled-card"
+			data-testid="cn-detail-widget-self-titled-card">
+			<component
+				:is="renderer"
+				ref="renderer"
+				v-bind="rendererProps"
+				@selectObject="onSelectObject" />
 		</CnWidgetWrapper>
 
 		<!-- Every other content-driven catalog widget, and every bare-mode
@@ -217,7 +630,9 @@
 			:is="renderer"
 			v-else-if="renderer"
 			ref="renderer"
-			v-bind="rendererProps" />
+			v-bind="rendererProps"
+			@header="onRendererHeader"
+			@selectObject="onSelectObject" />
 
 		<!-- No renderer resolves: render nothing, which is what CnDetailPage has
 		     always done here. Surfacing an "unknown widget" box instead would be
@@ -229,17 +644,37 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton, NcButton } from '@nextcloud/vue'
+import { computed } from 'vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import CnIntegrationWidgetEmpty from '../CnIntegrationWidget/CnIntegrationWidgetEmpty.vue'
 import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
 import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
+import CnObjectFilesWidget from '../CnObjectFilesWidget/CnObjectFilesWidget.vue'
 import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
 import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
+import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import CnDetailWidgetHeaderItems from './CnDetailWidgetHeaderItems.vue'
+import { getByPath } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { normalizeLook } from '../../composables/useLook.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { normalizeNotice, PAGE_NOTICE_CHANNEL, WIDGET_NOTICES } from '../../utils/cardNotices.js'
+import { pickConditionalText } from '../../utils/conditionalText.js'
+import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { unwrapAppConfig } from '../../utils/formatMetric.js'
+import { isActivityWidget } from '../../utils/headerMeta.js'
+import { resolveLazyComponent } from '../../utils/lazyComponent.js'
+import { createActionState, listAddActions, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import {
 	isCardWidgetDef,
 	isContentOnlyWidgetDef,
@@ -251,6 +686,8 @@ import {
 	widgetContentOf,
 	widgetTitleOf,
 } from '../../utils/widgetDispatch.js'
+import { resolveWidgetHeaderActions, WIDGET_BODY_ACTIONS, WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
+import { HOST_WIDGET_ID } from '../../utils/widgetSelection.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -304,14 +741,18 @@ export default {
 	name: 'CnDetailWidgetHost',
 
 	components: {
+		CnDetailWidgetHeaderItems,
 		CnIcon,
+		CnIntegrationWidgetEmpty,
 		CnLeafMountHost,
 		CnObjectDataWidget,
 		CnObjectGeoWidget,
 		CnRelatedObjectsWidget,
+		CnWidgetEmptyState,
 		CnWidgetWrapper,
 		NcActionButton,
-		NcEmptyContent,
+		NcButton,
+		CnEmptyContent,
 		Plus,
 	},
 
@@ -326,6 +767,25 @@ export default {
 			from: PANEL_ACTION_SINK,
 			default: null,
 		},
+
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
+		/** The host's translate (CnAppRoot provides `cnTranslate`). */
+		cnTranslate: { default: () => (key) => key },
+		/** The page's action dispatcher (CnPageRenderer), for `headerActions`. */
+		cnDispatchAction: { default: null },
+		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
+		cnRecordEdit: { default: null },
+		/** The page's object sidebar (`{ open, requestedTab }`), for an `open-sidebar-tab` header action. */
+		objectSidebarState: { default: null },
+		/** The records the detail page reads beside the record (`@context.<name>`), for a subtitle that depends on them. */
+		cnDetailVisibilityRows: { default: null },
+		/**
+		 * The page-level app config (CnDetailPage provides `cnAppConfig` from
+		 * its `appConfig` prop), which answers `@config.<key>` in a widget's
+		 * `props`. Empty when no ancestor provides one.
+		 */
+		cnAppConfig: { default: () => ({}) },
 	},
 
 	/**
@@ -340,14 +800,29 @@ export default {
 	 * injection resolves to null instead of finding a channel that goes nowhere.
 	 *
 	 * @return {object} The narrowed sink, or null.
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
 	 */
 	provide() {
 		const sink = this.panelActionSink
 		return {
+			// The widget's manifest `headerActions`, for the card that titles
+			// it. In bare mode the surface (a tab panel) draws them instead.
+			// A self-titled renderer that takes them draws them in its own
+			// title row, so the card around it does not.
+			[WIDGET_HEADER_ACTIONS]: computed(() => (this.isBare || this.rendererDrawsHeaderActions ? [] : this.declaredHeaderActions)),
+			// The widget's manifest `bodyActions`, for a leaf that draws its
+			// own button row in the body (the contacts tab).
+			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
+			// The card's notices, and the dispatcher that can add to them.
+			[WIDGET_NOTICES]: computed(() => this.widgetNotices),
+			cnDispatchAction: this.dispatchFromCard,
+			// The hosted widget's id, read at call time, so a list can publish its
+			// rows under it for a card that follows them (side-card-follows-row).
+			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
 			[PANEL_ACTION_SINK]: sink
 				? {
-						set: (items) => sink.set(this.widget?.id, items, 'widget'),
-						clear: () => sink.clear(this.widget?.id, 'widget'),
+						set: (...args) => sink.set(...this.narrowPanelArgs(args, 'set')),
+						clear: (...args) => sink.clear(...this.narrowPanelArgs(args, 'clear')),
 					}
 				: null,
 		}
@@ -378,6 +853,17 @@ export default {
 			type: String,
 			default: 'card',
 			validator: (v) => ['card', 'bare'].includes(v),
+		},
+
+		/**
+		 * The host sits in a body grid cell, which draws its own card: an
+		 * app's own widget then stays bare, as it always has.
+		 *
+		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
+		 */
+		inGridCell: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The bound record's id. Present on the first render; `object` is not. */
@@ -474,6 +960,35 @@ export default {
 		},
 
 		/**
+		 * Whether a card draws the manifest `headerLink` of its widget (on the
+		 * definition, or `content.headerLink` / `viewAllRoute`) in its header
+		 * when the renderer reports none. Off by default: a tab panel's link
+		 * is drawn beside the tab strip. CnTabsWidget turns it on for the
+		 * cards after the first in a stack, whose links had no place.
+		 *
+		 * @spec openspec/changes/stack-card-header-link/specs/stack-card-header-link/spec.md#requirement-a-stacked-card-draws-its-own-header-link
+		 */
+		showHeaderLink: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Whether a widget on a card keeps its overflow Actions menu when its
+		 * definition does not say (`showActions`). `false` (CnDetailPage
+		 * `showWidgetActions: false`) drops it from the record's data cards; a
+		 * definition with `showActions: true` keeps it, one with
+		 * `showActions: false` drops it whatever this says. True by default,
+		 * which is the menu every card had.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-detail-page-can-drop-the-widget-actions-menu
+		 */
+		showActions: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * The consumer's component registry, consulted before the built-in
 		 * catalog so a custom widget type overrides a built-in (REQ-MVR-005).
 		 *
@@ -485,7 +1000,7 @@ export default {
 		},
 	},
 
-	emits: ['geo-saved', 'open-integration'],
+	emits: ['geo-saved', 'open-integration', 'select-object', 'panel-header'],
 
 	setup() {
 		// Every integration component this host renders goes through the
@@ -503,6 +1018,19 @@ export default {
 			resolveRegistryBaseWidget: resolveBaseWidget,
 			resolveRegistryTab: resolveTab,
 			getRegistryProvider: getById,
+		}
+	},
+
+	data() {
+		return {
+			/**
+			 * The card header a content-only renderer reports through its
+			 * `header` event (screens-relation-pages): a link and a note,
+			 * with the list's total already filled in.
+			 */
+			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null, menuActions: [] },
+			/** The notices this card's actions answered, newest last. */
+			runtimeNotices: [],
 		}
 	},
 
@@ -533,6 +1061,47 @@ export default {
 		 */
 		resolvedTitle() {
 			return this.isBare ? undefined : widgetTitleOf(this.widget)
+		},
+
+		/**
+		 * The widgets `content.leadWidgetIds` names, drawn inside this card before
+		 * its own content (DqZaakDocumenten: the review summary in the Files
+		 * card), those whose `visibleWhen` holds against the record.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-lead-widgets-in-card/specs/widget-lead-widgets/spec.md#requirement-a-card-can-lead-with-other-widgets
+		 */
+		leadWidgets() {
+			return this.widgetsNamed(this.content && this.content.leadWidgetIds)
+		},
+
+		/**
+		 * The widgets `content.trailWidgetIds` names, drawn inside this card after
+		 * its own content (DqZaak Zaakplan: the case's goals under the plan),
+		 * those whose `visibleWhen` holds against the record.
+		 *
+		 * @return {object[]}
+		 * @spec openspec/changes/widget-trail-widgets-in-card/specs/widget-lead-widgets/spec.md#requirement-a-card-can-end-with-other-widgets
+		 */
+		trailWidgets() {
+			return this.widgetsNamed(this.content && this.content.trailWidgetIds)
+		},
+
+		/** @return {boolean} Whether the reported header has anything for the title row. */
+		hasRendererHeaderItems() {
+			const h = this.rendererHeader
+			return !!(h.note || h.pill || (h.actions && h.actions.length > 0))
+		},
+
+		/**
+		 * The card header's link: the one the renderer reports, else, with
+		 * `showHeaderLink`, the one the manifest declares for the widget.
+		 *
+		 * @spec openspec/changes/stack-card-header-link/specs/stack-card-header-link/spec.md#requirement-a-stacked-card-draws-its-own-header-link
+		 * @return {object|null} `{ label, route?, params?, query?, href? }` or null.
+		 */
+		cardHeaderLink() {
+			return this.rendererHeader.link || (this.showHeaderLink ? resolveHeaderLink(widgetHeaderLink(this.widget), { objectId: this.objectId, object: this.object }) : null)
 		},
 
 		/**
@@ -572,6 +1141,25 @@ export default {
 		 */
 		widgetTitle() {
 			return widgetTitleOf(this.widget) || ''
+		},
+
+		/**
+		 * The muted line under a card's title (`subtitle` on the widget or in
+		 * its content), translated by the card. Empty when neither sets one.
+		 *
+		 * @return {string} The subtitle.
+		 */
+		widgetSubtitle() {
+			const subtitle = (this.widget && this.widget.subtitle) || this.content.subtitle || ''
+			if (!Array.isArray(subtitle)) {
+				return typeof subtitle === 'string' ? subtitle : ''
+			}
+			// `[{ when, text }]`: the line depends on the record and the records the
+			// page reads beside it (`@context.<name>`), as a `visibleWhen` does.
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const object = this.object || null
+			const data = object && (!this.cnDetailVisibilityRows || rows) ? { ...object, '@context': rows || {} } : null
+			return pickConditionalText(subtitle, data)
 		},
 
 		/**
@@ -633,6 +1221,81 @@ export default {
 			return isContentOnlyWidgetDef(this.widget)
 		},
 
+		/**
+		 * Whether a chart gets the titled card: on a card surface, with a title.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsChart() {
+			return !this.isBare && Boolean(this.widget) && this.widget.type === 'chart' && Boolean(this.widget.title)
+		},
+
+		/**
+		 * Whether an app's own widget (from the consumer registry) gets the
+		 * titled card: on a card surface outside a body grid cell, when its
+		 * registry entry asks for it (`chrome: "card"`). Opt-in, because many
+		 * app widgets already draw their own card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-consumer-widget-card/specs/detail-page/spec.md#requirement-a-consumer-widget-on-a-card-surface-gets-the-titled-card
+		 */
+		wrapsConsumerWidget() {
+			if (this.isBare || this.inGridCell || !this.widget || !this.widget.type || this.isContentOnly || this.isCard) {
+				return false
+			}
+			const entry = (this.cnRegistry || {})[this.widget.type]
+			if (!entry) {
+				return false
+			}
+			return typeof entry === 'object' && entry.chrome === 'card'
+		},
+
+		/**
+		 * Whether a library widget that draws its own title row gets an
+		 * untitled card: on a card surface outside a body grid cell, when its
+		 * registry entry owns its title and asks for the card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/retention-card-in-tab-stack/specs/detail-page/spec.md
+		 */
+		wrapsSelfTitledWidget() {
+			if (this.isBare || this.inGridCell || !this.widget || !this.widget.type || this.isContentOnly || this.isCard || this.wrapsConsumerWidget) {
+				return false
+			}
+			const entry = getWidgetTypeEntry(this.widget.type)
+			return Boolean(entry && entry.ownsTitle && entry.chrome === 'card')
+		},
+
+		/**
+		 * Whether the self-titled widget in the card draws the manifest
+		 * `headerActions` in its own title row: it declares a `headerActions`
+		 * prop. Otherwise the untitled card drew them in a row of their own
+		 * above the widget's title (PqKlant Activiteit).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/self-titled-widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-self-titled-widget-draws-its-header-actions-beside-its-title
+		 */
+		rendererDrawsHeaderActions() {
+			if (!this.wrapsSelfTitledWidget || !this.renderer) {
+				return false
+			}
+			const declared = resolveLazyComponent(this.renderer)?.props
+			return Array.isArray(declared) ? declared.includes('headerActions') : Boolean(declared && Object.hasOwn(declared, 'headerActions'))
+		},
+
+		/**
+		 * Whether a `sections` widget gets one titled card: on a card surface
+		 * outside a body grid cell, with a title, and not in `cards` mode.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsSections() {
+			if (this.isBare || this.inGridCell || !this.widget || this.widget.type !== 'sections' || !this.widget.title) {
+				return false
+			}
+			return !(this.widget.content && this.widget.content.cards)
+		},
+
 		/** @return {boolean} true when the registry entry declares `card`. */
 		isCard() {
 			return isCardWidgetDef(this.widget)
@@ -644,7 +1307,15 @@ export default {
 		 * @return {object|null} The component, or null.
 		 */
 		renderer() {
-			return resolveRegistryRenderer(this.widget, this.cnRegistry)
+			// A `files` widget on a detail page belongs to THIS object's folder; the
+			// placement-folder CnFilesWidget stays the dashboard widget. A consumer
+			// registry entry for `files` still wins.
+			if (this.widget && this.widget.type === 'files' && !(this.cnRegistry && this.cnRegistry.files) && this.register && this.schema) {
+				return CnObjectFilesWidget
+			}
+			// Inside a dashboard's tabs the dashboard's resolution holds.
+			const onDashboard = this.surface === 'app-dashboard' || this.surface === 'user-dashboard'
+			return resolveRegistryRenderer(this.widget, this.cnRegistry, { typeAsWritten: onDashboard })
 		},
 
 		/**
@@ -660,6 +1331,33 @@ export default {
 		},
 
 		/**
+		 * Whether an `integration` widget names a leaf the registry does not
+		 * hold. Only asked when the host can look leaves up at all.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-widget-mounts-leaves/specs/integration-widget-mounts-leaves/spec.md#requirement-an-absent-leaf-says-it-is-not-available
+		 */
+		integrationAbsent() {
+			return this.isIntegration && typeof this.getRegistryProvider === 'function' && !this.integrationProvider
+		},
+
+		/**
+		 * The stand-in descriptor the empty state of an absent leaf draws: the
+		 * widget's `appName` (else its `requiredApp`), icon and title.
+		 *
+		 * @return {{id: string, appName: string, label: string, icon: string}}
+		 */
+		absentIntegrationProvider() {
+			const widget = this.widget || {}
+			return {
+				id: widget.integrationId || '',
+				appName: widget.appName || (this.requiredApp ? this.requiredAppLabel : ''),
+				label: this.translateLabel(widgetTitleOf(widget) || '') || widget.integrationId || '',
+				icon: widget.icon || '',
+			}
+		},
+
+		/**
 		 * Whether the integration is a mount-mode leaf (ADR-066), rendered
 		 * through CnLeafMountHost rather than as a component.
 		 *
@@ -671,6 +1369,123 @@ export default {
 				&& provider.renderMode === 'mount'
 				&& typeof provider.mount === 'function'
 				&& typeof provider.unmount === 'function'
+		},
+
+		/**
+		 * Whether a mount-mode leaf gets the library card: on a card surface,
+		 * grid cell included, when its descriptor asks for it (`chrome:
+		 * "card"`). Opt-in, because a leaf that draws its own card would
+		 * otherwise sit in two.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-mount-mode-leaf-can-take-the-library-card
+		 */
+		wrapsMountLeaf() {
+			return !this.isBare && this.isMountIntegration && this.integrationProvider.chrome === 'card'
+		},
+
+		/**
+		 * Whether a component-mode integration shows its full tab inside a card
+		 * (`content.view: "tab"`), as a case's Parties card lists the people by
+		 * role with their Link and New buttons.
+		 *
+		 * @return {boolean}
+		 */
+		wrapsLeafTab() {
+			return !this.isBare
+				&& this.isIntegration
+				&& !this.isMountIntegration
+				&& this.content.view === 'tab'
+				&& Boolean(this.integrationProvider?.tab)
+				&& typeof this.resolveRegistryTab === 'function'
+		},
+
+		/**
+		 * The widget's title tone (`titleTone`): `side` titles its card as a
+		 * side card in the board look.
+		 *
+		 * @return {string} `side`, or ''.
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		widgetTitleTone() {
+			return this.widget && this.widget.titleTone === 'side' ? 'side' : ''
+		},
+
+		/**
+		 * The leaf card's title: the manifest's, else the descriptor's label.
+		 *
+		 * @return {string} The title in the user's language.
+		 */
+		/**
+		 * The widget's manifest `headerActions` as buttons: gated on the
+		 * record, dispatched through the page's dispatcher.
+		 *
+		 * @return {Array<object>} The buttons.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
+		 */
+		declaredHeaderActions() {
+			return resolveWidgetHeaderActions(this.widget, this.actionContext)
+		},
+
+		/**
+		 * The widget's manifest `bodyActions` as buttons, for a leaf that draws
+		 * them in its own button row ("Partij toevoegen" beside the contacts
+		 * tab's Link and New buttons).
+		 *
+		 * @return {Array<object>} The buttons.
+		 */
+		declaredBodyActions() {
+			return resolveWidgetHeaderActions(this.widget, this.actionContext, 'bodyActions')
+		},
+
+		/**
+		 * What a header or body action resolves and dispatches with.
+		 *
+		 * @return {object} `{ object, objectId, translate, dispatch }`.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		actionContext() {
+			return {
+				object: this.object || {},
+				objectId: this.objectId,
+				translate: (key) => this.translateLabel(key),
+				recordEdit: this.cnRecordEdit,
+				sidebar: this.objectSidebarState,
+				dispatch: (action, extra = {}) => this.dispatchFromCard(action, extra),
+			}
+		},
+
+		/**
+		 * The card's notices: the manifest's `notices` (each with its own
+		 * `visibleWhen`), then what this card's actions answered.
+		 *
+		 * @return {{list: Array<object>, object: object, objectId: string|number, dismiss: Function}} What the card draws.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		widgetNotices() {
+			const declared = this.widget && Array.isArray(this.widget.notices) ? this.widget.notices : []
+			return {
+				list: [...declared, ...this.runtimeNotices],
+				object: this.object || {},
+				objectId: this.objectId,
+				dismiss: (notice) => {
+					this.runtimeNotices = this.runtimeNotices.filter((entry) => entry !== notice)
+				},
+			}
+		},
+
+		leafCardTitle() {
+			// An empty title is a card without one (a `titleWhen` entry that says so).
+			if (this.widget && this.widget.title === '') {
+				return ''
+			}
+			const title = widgetTitleOf(this.widget)
+			return title ? this.translateLabel(title) : (this.integrationProvider?.label || '')
+		},
+
+		/** @return {string} The leaf card's icon: the manifest's, else the descriptor's. */
+		leafCardIcon() {
+			return this.widget?.icon || this.integrationProvider?.icon || ''
 		},
 
 		/**
@@ -750,17 +1565,130 @@ export default {
 		 *
 		 * @return {object} The prop bag.
 		 */
+		/**
+		 * The widget's own `props` with their tokens resolved: `@objectId` and
+		 * `@object.<field>` from the record, `@config.<key>` from the page's
+		 * app config, at any depth. A manifest can so point an integration at
+		 * another object than the page's, such as the decisions on the case a
+		 * ticket became (`props: { objectId: "@object.caseReference" }`), and
+		 * name that object's register and schema from the instance's
+		 * configuration instead of as literals
+		 * (`register: "@config.caseRegister"`).
+		 *
+		 * @return {object} The resolved prop bag, `{}` when the widget declares none.
+		 */
+		resolvedWidgetProps() {
+			const declared = this.widget?.props
+			if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return {}
+			}
+			return resolveDeepTokens(declared, {
+				objectId: this.objectId,
+				object: this.object,
+				config: unwrapAppConfig(this.cnAppConfig),
+				context: (this.cnDetailVisibilityRows && this.cnDetailVisibilityRows.value) || null,
+			})
+		},
+
+		/**
+		 * Whether a prop written as a token still has no value: the record is
+		 * not loaded, it does not hold the field, or the app config does not
+		 * hold the key. Only top-level props
+		 * written as a token count; a literal empty string is the author's.
+		 *
+		 * @return {boolean} true while the widget must not mount.
+		 */
+		widgetPropsPending() {
+			const declared = this.widget?.props
+			if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return false
+			}
+			const resolved = this.resolvedWidgetProps
+			return Object.keys(declared).some((key) => {
+				const written = declared[key]
+				if (typeof written !== 'string' || written.charAt(0) !== '@') {
+					return false
+				}
+				const value = resolved[key]
+				return value === undefined || value === null || value === ''
+					|| (typeof value === 'string' && value.charAt(0) === '@')
+			})
+		},
+
+		/**
+		 * The object an integration is mounted for: the page's, unless the
+		 * widget's `props` name another `register`, `schema` or `objectId`.
+		 *
+		 * @return {object} `{ register, schema, objectId }`.
+		 */
+		widgetIntegrationContext() {
+			const context = { ...this.derivedIntegrationContext }
+			const own = this.resolvedWidgetProps
+			for (const key of ['register', 'schema', 'objectId']) {
+				if (own[key] !== undefined && own[key] !== null && own[key] !== '') {
+					context[key] = String(own[key])
+				}
+			}
+			return context
+		},
+
+		/**
+		 * The widget's title for a leaf that names its title `titleLabel`
+		 * (contacts, notes, tasks, contact moments): without it the leaf
+		 * printed its own default. Empty when the widget has no title, so the
+		 * leaf keeps that default.
+		 *
+		 * @return {{titleLabel?: string}} The prop, or nothing.
+		 * @spec openspec/changes/leaf-card-widget-title/specs/leaf-card-widget-title/spec.md#requirement-a-leaf-card-carries-the-widgets-title
+		 */
+		leafTitleLabel() {
+			const title = this.translateLabel(this.widget?.title || '')
+			return title ? { titleLabel: title } : {}
+		},
+
+		/**
+		 * An integration widget's `labels` (prop name to text, or to a map of
+		 * texts), translated in the host's language: a leaf cannot translate
+		 * the host app's words.
+		 *
+		 * @return {object} Prop name to translated text or map.
+		 * @spec openspec/changes/leaf-labels-in-the-host-language/specs/leaf-labels-in-the-host-language/spec.md#requirement-an-integration-widget-gives-its-leaf-labels-in-the-hosts-language
+		 * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-contact-row-can-lead-with-the-word-for-its-kind
+		 */
+		leafLabels() {
+			const labels = this.widget?.labels
+			if (!labels || typeof labels !== 'object' || Array.isArray(labels)) {
+				return {}
+			}
+			const out = {}
+			for (const [prop, text] of Object.entries(labels)) {
+				if (typeof text === 'string') {
+					out[prop] = this.translateLabel(text)
+				} else if (text && typeof text === 'object' && !Array.isArray(text)) {
+					out[prop] = Object.fromEntries(Object.entries(text)
+						.filter(([, word]) => typeof word === 'string')
+						.map(([key, word]) => [key, this.translateLabel(word)]))
+				}
+			}
+			return out
+		},
+
 		integrationProps() {
 			return {
 				surface: this.surface,
-				title: this.widget?.title || '',
+				// Through the host's translate: an integration card (CnDetailCard)
+				// prints its title as given.
+				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
+				...(this.widgetSubtitle ? { subtitle: this.translateLabel(this.widgetSubtitle) } : {}),
 				// A provider opting into `bareWidget` is being rendered where the
 				// tab strip already supplies the card and the title, so tell it to
 				// drop its own. Without this the panel gets a titled card inside
 				// the tabs card, repeating the label the open tab already shows.
 				...(this.usesBareWidget ? { chromeless: true } : {}),
 				...this.derivedIntegrationContext,
-				...(this.widget?.props || {}),
+				...this.leafLabels,
+				...this.resolvedWidgetProps,
 			}
 		},
 
@@ -772,9 +1700,17 @@ export default {
 		integrationMountProps() {
 			return {
 				surface: this.surface,
+				title: this.translateLabel(this.widget?.title || ''),
+				...this.leafTitleLabel,
 				...this.derivedIntegrationContext,
-				integrationContext: this.derivedIntegrationContext,
-				...(this.widget?.props || {}),
+				// The context follows the widget's own host, so a leaf that
+				// reads `integrationContext.objectId` gets the same object as
+				// one that reads `objectId`.
+				integrationContext: this.widgetIntegrationContext,
+				...this.leafLabels,
+				...this.resolvedWidgetProps,
+				// A carded leaf reports its title row and empty state here.
+				...(this.wrapsMountLeaf ? { onHeader: this.onRendererHeader } : {}),
 			}
 		},
 
@@ -809,7 +1745,121 @@ export default {
 					surface: this.surface,
 				})
 			}
-			return { ...base, ...this.content }
+			// The board look: a self-titled card (an audit trail, a calendar)
+			// takes the manifest title, so the side column's History card says
+			// what the board says instead of the widget's own default.
+			const title = this.cardTitle
+			if (title) {
+				base.title = title
+			}
+			if (this.rendererDrawsHeaderActions) {
+				base.headerActions = this.declaredHeaderActions
+			}
+			return { ...base, ...this.declaredContent, ...this.consumerWidgetProps }
+		},
+
+		/**
+		 * Whether the widget is the app's own (a consumer registry entry).
+		 *
+		 * @return {boolean}
+		 */
+		isConsumerWidget() {
+			const type = this.widget && this.widget.type
+			return Boolean(type && this.cnRegistry && this.cnRegistry[type])
+		},
+
+		/**
+		 * The props an app widget takes from its manifest `props`: literals,
+		 * and `@objectId` / `@object.<field>` / `@config.<key>` /
+		 * `@content.<path>` tokens. A token that does not resolve is left out,
+		 * so the component's own default holds; only declared props pass.
+		 *
+		 * @spec openspec/changes/consumer-widget-props/specs/detail-page/spec.md#requirement-an-app-widget-takes-its-props-from-the-manifest
+		 * @return {object} The prop bag, `{}` for any other widget.
+		 */
+		consumerWidgetProps() {
+			const declared = this.widget?.props
+			if (!this.isConsumerWidget || !declared || typeof declared !== 'object' || Array.isArray(declared)) {
+				return {}
+			}
+			const bag = {}
+			for (const [key, written] of Object.entries(declared)) {
+				const value = typeof written === 'string' && written.startsWith('@content.')
+					? getByPath(this.content || {}, written.slice('@content.'.length))
+					: this.resolvedWidgetProps[key]
+				if (value === undefined || value === null || (typeof value === 'string' && value.charAt(0) === '@')) {
+					continue
+				}
+				bag[key] = value
+			}
+			return pickDeclaredProps(this.renderer, bag, this.widget.type)
+		},
+
+		/**
+		 * Whether an app widget that asks for `@objectId` has none yet.
+		 *
+		 * @spec openspec/changes/consumer-widget-props/specs/detail-page/spec.md#requirement-an-app-widget-takes-its-props-from-the-manifest
+		 * @return {boolean} true while the widget must not mount.
+		 */
+		consumerWidgetWaiting() {
+			const declared = this.widget?.props
+			if (!this.isConsumerWidget || !declared || typeof declared !== 'object') {
+				return false
+			}
+			const asksForId = Object.values(declared).includes('@objectId')
+			return asksForId && (this.objectId === null || this.objectId === undefined || this.objectId === '')
+		},
+
+		/**
+		 * The content keys the renderer declares as props. An undeclared key
+		 * would fall through as an attribute onto the renderer's root and could
+		 * override a value the widget computes there; the whole content still
+		 * arrives as `content`.
+		 *
+		 * `content.chartKind` is read as the chart's `type`, as the dashboard
+		 * dispatcher reads it, so a chart placed on a detail page draws.
+		 *
+		 * @return {object} The declared content keys.
+		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
+		 * @spec openspec/changes/detail-chart-kind/specs/widget-hosts/spec.md#requirement-a-detail-chart-reads-chartkind-as-its-type
+		 */
+		declaredContent() {
+			let bindings = this.content
+			if (bindings && typeof bindings === 'object' && bindings.chartKind !== undefined && bindings.type === undefined) {
+				const { chartKind, ...rest } = bindings
+				bindings = { ...rest, type: chartKind }
+			}
+			return pickDeclaredProps(this.renderer, bindings, this.widget?.type || '')
+		},
+
+		/**
+		 * The title a self-titled renderer gets under the board look: the
+		 * manifest title through the host's translate, else History for the
+		 * activity widget. Empty outside the board look, in a tab panel, and
+		 * when `content.title` already names the card.
+		 *
+		 * @return {string} The title, or ''.
+		 * @spec openspec/changes/screens-detail-labels-parity/specs/detail-labels-board-look/spec.md#requirement-a-side-card-takes-its-manifest-title
+		 */
+		cardTitle() {
+			if (normalizeLook(this.cnLook) !== 'board' || this.isBare || !this.widget || this.isContentOnly || this.isCard) {
+				return ''
+			}
+			// Only a renderer that takes a `title` prop: on any other the value
+			// would land on its root element as a tooltip.
+			const declared = resolveLazyComponent(this.renderer)?.props
+			const takesTitle = Array.isArray(declared) ? declared.includes('title') : Boolean(declared && Object.hasOwn(declared, 'title'))
+			if (!takesTitle) {
+				return ''
+			}
+			if (typeof this.content.title === 'string' && this.content.title !== '') {
+				return ''
+			}
+			const title = widgetTitleOf(this.widget)
+			if (title) {
+				return this.translateLabel(title)
+			}
+			return isActivityWidget(this.widget) ? t('nextcloud-vue', 'History') : ''
 		},
 
 		/**
@@ -836,7 +1886,71 @@ export default {
 			if (!['object-list', 'table'].includes(this.widget?.type)) {
 				return false
 			}
-			return this.content.allowCreate !== false
+			if (this.content.allowCreate === false) {
+				return false
+			}
+			// A declared `createAction` shows only where its visibleWhen holds,
+			// the same answer the list gives for its own Add buttons.
+			return createActionState(this.content, this.object).visible
+		},
+
+		/**
+		 * Whether the catalog Add is a button in the card's title row: the board
+		 * look draws it there, right-aligned, instead of in the Actions menu and
+		 * the list's footer bar.
+		 *
+		 * @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button
+		 * @return {boolean} true when the header button renders.
+		 */
+		catalogAddInHeader() {
+			return this.catalogAddEnabled && !this.isBare && normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Whether the title-row Add is the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen").
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		catalogAddTonal() {
+			return this.content?.addVariant === 'tonal'
+		},
+
+		/**
+		 * Whether the catalog Add is an item of the card's Actions menu, as
+		 * ADR-062 places it in the Nextcloud look.
+		 *
+		 * @spec openspec/changes/board-object-list-add-button/specs/board-object-list-add-button/spec.md#requirement-the-board-look-draws-a-cards-add-as-a-title-row-button
+		 * @return {boolean} true when the menu item renders.
+		 */
+		catalogAddInMenu() {
+			return this.catalogAddEnabled && !this.catalogAddInHeader
+		},
+
+		/**
+		 * A list's extra adds (`content.addActions`), drawn beside the catalog
+		 * Add wherever it stands; none while a declared `createAction` replaces
+		 * the list's create form.
+		 *
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+		 * @return {Array<{label: string, icon: string, createDefaults: object|null}>}
+		 */
+		catalogAddActions() {
+			return listAddActions(this.content, this.catalogAddEnabled && !listCreateAction(this.content), this.cnTranslate)
+		},
+
+		/**
+		 * Whether the widget's overflow Actions menu renders: the definition's
+		 * own `showActions` when it is a boolean, else the surface's
+		 * `showActions`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-detail-page-can-drop-the-widget-actions-menu
+		 * @return {boolean} true when the menu renders.
+		 */
+		actionsShown() {
+			const own = this.widget && this.widget.showActions
+			return typeof own === 'boolean' ? own : this.showActions
 		},
 
 		/**
@@ -849,11 +1963,24 @@ export default {
 			if (this.showCardTitle !== null) {
 				return this.showCardTitle
 			}
+			if (this.widget?.title === '' && this.content.title === undefined) {
+				return false
+			}
 			return this.widget?.title !== undefined || this.content.title !== undefined
 		},
 
-		/** @return {string} Label for the catalog Add action. */
+		/**
+		 * Label for the catalog Add action: the createAction's label, else the
+		 * list's own `addLabel`, as the list's Add reads it.
+		 *
+		 * @return {string}
+		 */
 		addLabel() {
+			const action = listCreateAction(this.content)
+			const label = action && typeof action.label === 'string' && action.label !== '' ? action.label : (typeof this.content.addLabel === 'string' ? this.content.addLabel : '')
+			if (label !== '') {
+				return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
+			}
 			return t('nextcloud-vue', 'Add')
 		},
 
@@ -893,11 +2020,19 @@ export default {
 		},
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+	 */
 	mounted() {
 		this.publishOwnPanelActions()
+		subscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+	 */
 	beforeUnmount() {
+		unsubscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		// A closed tab's panel can be torn down while the strip lives on, and an
 		// item whose host is gone would call into nothing.
 		if (this.panelActionSink) {
@@ -906,6 +2041,135 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A notice raised on the page channel for this card (`widgetId`).
+		 *
+		 * @param {{notice?: object, widgetId?: string}} payload The event.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		onPageNoticeEvent(payload) {
+			const notice = payload && payload.widgetId && this.widget && payload.widgetId === this.widget.id
+				? normalizeNotice(payload.notice, 'info')
+				: null
+			if (notice) {
+				this.runtimeNotices = [notice]
+			}
+		},
+
+		/**
+		 * Dispatch an action run from this card, through the page dispatcher,
+		 * with `showNotice` so an answer that asks for a notice lands in this
+		 * card. The card's earlier answer goes when the next action runs.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} [extra] Extra dispatch context.
+		 * @return {unknown} The dispatch result.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-action-answer-becomes-a-notice-in-its-card
+		 */
+		dispatchFromCard(action, extra = {}) {
+			this.runtimeNotices = []
+			const context = {
+				showNotice: (notice) => {
+					this.runtimeNotices = [...this.runtimeNotices, notice]
+				},
+
+				...extra,
+			}
+			return typeof this.cnDispatchAction === 'function'
+				? this.cnDispatchAction(action, context)
+				: dispatchAction(action, { router: this.$router || null, ...context })
+		},
+
+		/**
+		 * The available widgets with the given ids, in that order, those whose
+		 * `visibleWhen` holds against the record and its page context.
+		 *
+		 * @param {unknown} list The ids.
+		 * @return {object[]}
+		 */
+		widgetsNamed(list) {
+			const ids = Array.isArray(list) ? list : []
+			if (ids.length === 0) {
+				return []
+			}
+			const rows = this.cnDetailVisibilityRows ? this.cnDetailVisibilityRows.value : null
+			const data = this.object ? { ...this.object, '@context': rows || {} } : null
+			return ids
+				.map((id) => (this.availableWidgets || []).find((def) => def && def.id === id))
+				.filter((def) => def && (!def.visibleWhen || (data !== null && evaluateVisibleWhenLocal(def.visibleWhen, data))))
+		},
+
+		/**
+		 * Take the header a content-only renderer, an app widget in the
+		 * titled card, or a carded mount-mode leaf (`onHeader`) reports.
+		 *
+		 * @param {{link?: object|null, note?: string, action?: {label: string, icon?: string, run: () => unknown}|null, actions?: Array<{label: string, icon?: string, run: () => unknown}>, count?: number, empty?: {name: string, description?: string}|null}} header The header parts.
+		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
+		 * @spec openspec/changes/integration-leaf-card/specs/integration-leaf-card/spec.md#requirement-a-carded-leaf-reports-its-count-actions-and-empty-state
+		 */
+		onRendererHeader(header) {
+			const link = header && header.link && typeof header.link === 'object' ? header.link : null
+			const note = header && typeof header.note === 'string' ? header.note : ''
+			// A menu action (`items`) runs through its items.
+			const runs = (action) => typeof action.run === 'function'
+				|| (Array.isArray(action.items) && action.items.length > 0 && action.items.every((item) => item && item.label && typeof item.run === 'function'))
+			const usable = (action) => action && action.label && runs(action)
+			// `action` (one) and `actions` (several) both count, `action` first.
+			const actions = [header && header.action, ...((header && Array.isArray(header.actions)) ? header.actions : [])].filter(usable)
+			const pill = header && header.pill && typeof header.pill.label === 'string' && header.pill.label !== '' ? header.pill : null
+			const count = header && Number.isFinite(header.count) ? header.count : null
+			const empty = header && header.empty && typeof header.empty.name === 'string' && header.empty.name !== ''
+				? { name: header.empty.name, description: typeof header.empty.description === 'string' ? header.empty.description : '' }
+				: null
+			// `subtitle`: a muted line under the card title (a task table's "1 open, 3 done").
+			const subtitle = header && typeof header.subtitle === 'string' ? header.subtitle : ''
+			// `menuActions`: items for the card's Actions menu instead of the title row.
+			const menuActions = (header && Array.isArray(header.menuActions) ? header.menuActions : []).filter(usable)
+			this.rendererHeader = { link, note, subtitle, actions, pill, count, empty, menuActions }
+			if (this.isBare) {
+				/**
+				 * @event panel-header What the widget reported for a title row it
+				 * does not have in bare chrome (`{ subtitle, actions, ... }`), for
+				 * the surface (a tab panel heading) to draw.
+				 */
+				this.$emit('panel-header', this.rendererHeader)
+			}
+		},
+
+		/**
+		 * A manifest label through the host's translate; '' stays ''.
+		 *
+		 * @param {string} text The label as written in the manifest.
+		 * @return {string} The label in the user's language.
+		 * @spec openspec/changes/screens-detail-labels-parity/specs/detail-labels-board-look/spec.md#requirement-detail-labels-read-in-the-users-language
+		 */
+		translateLabel(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Re-key a call on the channel this host provides onto the one it holds.
+		 * A widget publishes `set(items)`; a host nested in this one speaks the
+		 * surface's `set(id, items, source)`. Items are always an array and an
+		 * id never is, which tells the two apart.
+		 *
+		 * @param {Array} args The arguments as called.
+		 * @param {'set'|'clear'} kind Which channel method was called.
+		 * @return {Array} Arguments for the held channel.
+		 */
+		narrowPanelArgs(args, kind) {
+			const id = this.widget?.id
+			if (kind === 'set') {
+				return Array.isArray(args[0])
+					? [id, args[0], 'widget']
+					: [id, args[1], args[2] || 'widget']
+			}
+			return [id, args.length > 1 ? (args[1] || 'widget') : 'widget']
+		},
+
 		/**
 		 * Publish or withdraw this host's OWN items on the surface.
 		 *
@@ -958,15 +2222,34 @@ export default {
 		},
 
 		/**
+		 * Pass a related-object click up; the page decides where it opens. Heard
+		 * from the Related widget itself and from a registry widget that nests a
+		 * host of its own (a Tabs widget with a Related tab).
+		 *
+		 * @param {object} raw The clicked object as the related widget holds it.
+		 */
+		onSelectObject(raw) {
+			/**
+			 * @event select-object A related object was clicked in the related widget. Payload is the raw object; its `@self` names the register and schema.
+			 * @type {object}
+			 */
+			this.$emit('select-object', raw)
+		},
+
+		/**
 		 * Delegate to the rendered list widget's own create affordance, so the
 		 * card's Add action and the widget's footer button open the same form.
+		 * An extra add (`content.addActions`) passes its `createDefaults`.
 		 *
+		 * @param {object|null} [defaults] The extra add's defaults.
 		 * @return {void}
 		 */
-		invokeCatalogAdd() {
+		invokeCatalogAdd(defaults = null) {
 			const child = this.$refs.renderer
 			const target = Array.isArray(child) ? child[0] : child
-			if (target && typeof target.openCreate === 'function') {
+			if (defaults && target && typeof target.openCreateWith === 'function') {
+				target.openCreateWith(defaults)
+			} else if (target && typeof target.openCreate === 'function') {
 				target.openCreate()
 			}
 		},
@@ -975,6 +2258,31 @@ export default {
 </script>
 
 <style scoped>
+/* A leaf card in a narrow cell keeps its title and count: the title row
+   wraps and the actions move under it instead of squeezing the title out. */
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header) {
+	flex-wrap: wrap;
+}
+
+.cn-detail-page__leaf-card :deep(.cn-widget-wrapper__header-left) {
+	flex: 1 0 auto;
+}
+
+/* The count beside a card title: the grey 20px badge of the tab strip. */
+.cn-detail-page__catalog-count {
+	background-color: var(--color-border);
+	border-radius: 10px;
+	box-sizing: border-box;
+	color: var(--color-main-text);
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	min-width: 20px;
+	padding: 0 6px;
+	text-align: center;
+}
+
 .cn-detail-widget-host,
 .cn-detail-widget-host > * {
 	height: 100%;

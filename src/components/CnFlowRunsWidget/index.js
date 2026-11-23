@@ -10,13 +10,15 @@
  * cog `CnWidgetStyleEditorModal`.
  */
 
-import CnFlowRunsWidgetForm from '../CnFlowRunsWidgetForm/CnFlowRunsWidgetForm.vue'
-import CnFlowRunsWidget from './CnFlowRunsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnFlowRunsWidgetForm = lazyComponent(() => import('../CnFlowRunsWidgetForm/CnFlowRunsWidgetForm.vue'), 'CnFlowRunsWidgetForm')
+const LazyCnFlowRunsWidget = lazyComponent(() => import('./CnFlowRunsWidget.vue'), 'CnFlowRunsWidget')
+
 registerDashboardWidget('flow-runs', {
-	renderer: CnFlowRunsWidget,
-	form: CnFlowRunsWidgetForm,
+	renderer: LazyCnFlowRunsWidget,
+	form: LazyCnFlowRunsWidgetForm,
 	defaultContent: {
 		limit: 6,
 		pollSeconds: 15,
@@ -33,5 +35,5 @@ registerDashboardWidget('flow-runs', {
 	requires: { graphql: ['openregister:flow-runs'] },
 })
 
-export { CnFlowRunsWidget }
-export default CnFlowRunsWidget
+export { default as CnFlowRunsWidget } from './CnFlowRunsWidget.vue'
+export { default } from './CnFlowRunsWidget.vue'

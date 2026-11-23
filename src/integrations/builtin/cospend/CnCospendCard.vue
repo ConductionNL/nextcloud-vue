@@ -108,7 +108,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import CurrencyEur from 'vue-material-design-icons/CurrencyEur.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -250,7 +250,7 @@ export default {
 		},
 
 		rowUrl(row) {
-			if (row.url) {
+			if (row.url && safeHref(row.url) !== '#') {
 				return row.url
 			}
 			const projectId = row.projectId ?? row.project_id ?? row.data?.projectid ?? row.data?.project_id ?? null

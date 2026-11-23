@@ -170,6 +170,8 @@ This is the manifest-side equivalent of Vue Router's named-view sidebar pattern.
 |-------|------|---------|-------------|
 | `sidebarComponent` | String | unset | Key in `customComponents`. The resolved component renders inside `CnAppRoot`'s `#sidebar` slot **as default content** — the consumer's `#sidebar` slot override (when supplied) wins via Vue's slot mechanic. Unknown names log a `console.warn` and the holder stays `null` (slot falls through to consumer content). |
 
+A `type: "flow"` (or the older `flow-detail`) page that names no `sidebarComponent` mounts `CnFlowSidebar`, which holds the flow's name, description, trigger and step editor; `sidebar: { show: false }` still hides it, and a named `sidebarComponent` still wins.
+
 Composes with `sidebar.show`:
 
 - `sidebar.show: false` ALWAYS wins — the slot does not render at all and the resolved component is suppressed.
@@ -265,6 +267,27 @@ register/schema/objectId triple changes.
 }
 ```
 
+## Related objects open their detail page
+
+On a `type:"detail"` page the Related widget lists the objects linked to the
+one on screen. A click on one of them reaches the renderer as
+`related-object-click` (re-emitted by [CnDetailPage](./cn-detail-page.md)),
+and the renderer opens the first `type:"detail"` page bound to that object's
+register and schema, with the id in whichever param that page's route
+declares. The object's `@self` names its register and schema by id; a
+manifest may name them by slug, so a miss on the literal pair describes both
+through `/apps/openregister/api/registers/{id}` and `/schemas/{id}` (once per
+id for as long as the app's bundle stays loaded; a failed lookup is retried on
+the next click) and matches again. Without a matching page, or with a page the
+router does not know, the click warns in the console and does nothing — the
+same contract as a dead row click on an index page. The click also travels
+up from a Related tab inside a [CnTabsWidget](./cn-tabs-widget.md) (the Tabs
+widget and [CnDetailWidgetHost](./cn-detail-widget-host.md) both re-emit
+`select-object`) and from a v2 widget-grid page, where
+[CnWidgetGrid](./cn-widget-grid.md) re-emits it from every slot the renderer
+mounts (body, sidebar, header-actions, footer, modal and the `tab:*` /
+`section:*` slots).
+
 ## Live updates on manifest pages
 
 Manifest-rendered pages inherit **notify_push live updates with zero
@@ -293,6 +316,35 @@ installed), fall back to visibility-gated polling when notify_push is
 absent, release their subscription on unmount, and honour a
 `config.subscribe: false` opt-out on the page entry. Nothing connects
 while no such page is mounted.
+
+## Query presets on an index page
+
+A menu entry can deep-link to an index page with a query (`menu[].query`, for
+example `{ "caseType": "<uuid>" }`). With `config.queryPresets` that entry gets
+its own lenses, columns and copy without a second page:
+
+```json
+"queryPresets": [
+  {
+    "id": "woo",
+    "match": { "caseType": "<uuid>" },
+    "title": "Woo requests",
+    "quickFilters": [{ "label": "All", "filter": {}, "default": true }],
+    "columns": ["title", "requester", "receivedAt"]
+  }
+]
+```
+
+The first preset whose every `match` pair is in the route query replaces
+`title`, `quickFilters`, `columns`, `cardFields`, `countText`,
+`searchPlaceholder`, `footerNote`, `defaultSort`, `viewSwitch`, `addLabel`,
+`headerButtons`, `breadcrumb`, `headerMeta` and `afterList`. Its `match` pairs
+reach the page as `fixedFilters`, so the query that chose the preset shows no
+removable filter chip. A folder scope on the page can carry the same keys, and
+its value wins over the preset's (see CnIndexPage). Other keys
+stay the page's own: a preset never changes the register, the schema or what
+the list may write. Switching preset remounts the list, so the active lens
+always belongs to the lenses on screen.
 
 ## Related
 

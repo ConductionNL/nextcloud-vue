@@ -119,7 +119,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import Clock from 'vue-material-design-icons/Clock.vue'
 import Timer from 'vue-material-design-icons/Timer.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -307,7 +307,7 @@ export default {
 		},
 
 		rowUrl(row) {
-			if (row.url) {
+			if (row.url && safeHref(row.url) !== '#') {
 				return row.url
 			}
 			const kind = this.rowKind(row)

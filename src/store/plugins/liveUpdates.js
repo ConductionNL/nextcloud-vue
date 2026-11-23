@@ -399,14 +399,19 @@ export function liveUpdatesPlugin(opts = {}) {
 			// Plain (non-reactive) Map: type → last params object
 			store.__lastCollectionParams = new Map()
 
-			store.$onAction(({ name, args, after }) => {
+			// Detached: the store outlives the component whose setup first
+			// used it, and an attached observer is removed with that scope.
+			// Recorded when the fetch starts, so a hint arriving while it is in
+			// flight repeats it rather than the query before. An append page
+			// (the board's "Load more") is not a query of its own.
+			store.$onAction(({ name, args }) => {
 				if (name === 'fetchCollection') {
-					const [type, params = {}] = args
-					after(() => {
+					const [type, params = {}, options = {}] = args
+					if (!(options && options.append === true)) {
 						store.__lastCollectionParams.set(type, params)
-					})
+					}
 				}
-			})
+			}, true)
 
 			// -- In-flight dedup for fetchObject --
 			// Plain Map: dedupKey → Promise
@@ -432,19 +437,35 @@ export function liveUpdatesPlugin(opts = {}) {
 			const collectionInFlight = new Map()
 
 			const originalFetchCollection = store.fetchCollection.bind(store)
-			store.fetchCollection = async function dedupedFetchCollection(type, params = {}) {
+			store.fetchCollection = async function dedupedFetchCollection(type, params = {}, options = {}) {
 				if (!store.__liveDedupActive) {
-					return originalFetchCollection(type, params)
+					return originalFetchCollection(type, params, options)
 				}
 				const key = collectionDedupKey(type, params)
-				if (collectionInFlight.has(key)) {
-					return collectionInFlight.get(key)
+				let entry = collectionInFlight.get(key)
+				if (entry && !(options && options.append === true)) {
+					// Joining makes the shared request's query the newest again.
+					const currentQuery = store.__currentCollectionQuery || (store.__currentCollectionQuery = {})
+					currentQuery[type] = JSON.stringify(params)
+					store.__lastCollectionParams.set(type, params)
 				}
-				const promise = originalFetchCollection(type, params).finally(() => {
-					collectionInFlight.delete(key)
-				})
-				collectionInFlight.set(key, promise)
-				return promise
+				if (!entry) {
+					// The shared request reports into its own sink, copied to
+					// each caller's `options.outcome` below, so a caller that
+					// joined it learns that request's result too.
+					const outcome = {}
+					const promise = originalFetchCollection(type, params, { ...options, outcome }).finally(() => {
+						collectionInFlight.delete(key)
+					})
+					entry = { promise, outcome }
+					collectionInFlight.set(key, entry)
+				}
+				const results = await entry.promise
+				const sink = options && options.outcome
+				if (sink && typeof sink === 'object' && 'error' in entry.outcome) {
+					sink.error = entry.outcome.error
+				}
+				return results
 			}
 		},
 	}

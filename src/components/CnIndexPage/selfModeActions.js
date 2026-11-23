@@ -1,8 +1,22 @@
+import { useObjectCopy } from '../../composables/useObjectCopy.js'
+import { saveEdited } from '../../utils/saveEdited.js'
+import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import {
 	cloneObjectForCopy,
+	copyOverrideValues,
 	runSelfExportRequest,
 	runSelfImportRequest,
 } from './selfModeIO.js'
+
+/**
+ * The page's `copy.overrides` as plain field values.
+ *
+ * @param {object} ctx The page context.
+ * @return {object} The values.
+ */
+function copyOverridesOf(ctx) {
+	return copyOverrideValues(typeof ctx.copyOverrides === 'function' ? ctx.copyOverrides() : null)
+}
 
 function resolveNameField(ctx) {
 	return ctx.effectiveSchema()?.configuration?.objectNameField
@@ -11,6 +25,90 @@ function resolveNameField(ctx) {
 
 function findSource(ctx, id) {
 	return ctx.effectiveObjects().find((o) => o.id === id || o['@self']?.id === id)
+		|| (typeof ctx.knownRow === 'function' ? ctx.knownRow(id) : undefined)
+}
+
+/**
+ * The register/schema of a row that belongs to another pair than the page's,
+ * in a list fetched from a `collectionUrl`. Registers a store type for that
+ * pair on first use. Returns null for rows of the page's own pair, and always
+ * without a `collectionUrl`.
+ *
+ * @param {object} opts Page context.
+ * @param {string} opts.collectionUrl The page's collection endpoint, or ''.
+ * @param {string} opts.register The page's register.
+ * @param {string} opts.schema The page's schema.
+ * @param {object|null} opts.primarySchema The page's resolved schema.
+ * @param {object|null} [opts.primaryRegister] The page's resolved register, which matches a slug `register` to `@self.register`.
+ * @param {object|null} opts.store The object store.
+ * @param {object} row The row.
+ * @return {{register: string, schema: string, type: string}|null} The row's own pair.
+ */
+export function resolveRowTarget({ collectionUrl, register, schema, primarySchema, primaryRegister, store }, row) {
+	if (!collectionUrl || !row || !store) {
+		return null
+	}
+	const self = row['@self'] || {}
+	const reg = self.register !== undefined && self.register !== null ? String(self.register) : ''
+	const sch = self.schema !== undefined && self.schema !== null ? String(self.schema) : ''
+	if (!reg || !sch) {
+		return null
+	}
+	const idsOf = (...values) => values.filter((v) => v !== undefined && v !== null && v !== '').map(String)
+	const schemaIds = idsOf(schema, primarySchema && primarySchema.id, primarySchema && primarySchema.slug)
+	const registerIds = idsOf(register, primaryRegister && primaryRegister.id, primaryRegister && primaryRegister.slug)
+	if (schemaIds.includes(sch) && registerIds.includes(reg)) {
+		return null
+	}
+	const type = `${reg}-${sch}`
+	if (!store.objectTypeRegistry?.[type]) {
+		store.registerObjectType(type, sch, reg, { registerSlug: reg, schemaSlug: sch })
+	}
+	return { register: reg, schema: sch, type }
+}
+
+/**
+ * The store type a row is written through: its own pair's, or the page's.
+ *
+ * @param {object} ctx Accessor closures.
+ * @param {object} [row] The row.
+ * @return {string} The type slug.
+ */
+function typeFor(ctx, row) {
+	const target = row && typeof ctx.rowTarget === 'function' ? ctx.rowTarget(row) : null
+	return target ? target.type : ctx.selfObjectType()
+}
+
+/**
+ * The source's address for the copy endpoint, or null when the register or
+ * schema is not known as a slug.
+ *
+ * @param {object} ctx Accessor closures.
+ * @param {object} source The object being copied.
+ * @return {{register: string, schema: string, id: string}|null} The address.
+ */
+function copyAddress(ctx, source) {
+	const self = source['@self'] || {}
+	const target = typeof ctx.rowTarget === 'function' ? ctx.rowTarget(source) : null
+	if (target) {
+		return { register: target.register, schema: target.schema, id: String(source.id || self.id) }
+	}
+	const reg = ctx.register()
+	const sch = ctx.schema()
+	const register = (typeof reg === 'string' && reg) || self.register
+	const schema = (typeof sch === 'string' && sch) || (sch && (sch.slug || sch.id)) || self.schema || ctx.effectiveSchema()?.slug
+	return register && schema ? { register: String(register), schema: String(schema), id: String(source.id || self.id) } : null
+}
+
+/**
+ * Whether an error says the server has no copy endpoint (404 or 405).
+ *
+ * @param {unknown} error The error.
+ * @return {boolean} True when the endpoint is missing.
+ */
+function copyEndpointMissing(error) {
+	const status = error && error.response && error.response.status
+	return status === 404 || status === 405
 }
 
 function selfModeReady(ctx) {
@@ -24,12 +122,12 @@ function refreshList(ctx) {
 	}
 }
 
-function storeError(ctx) {
-	return ctx.selfObjectStore()?.getError?.(ctx.selfObjectType())
+function storeError(ctx, type = ctx.selfObjectType()) {
+	return ctx.selfObjectStore()?.getError?.(type)
 }
 
-function storeErrorMessage(ctx, fallback) {
-	const err = storeError(ctx)
+function storeErrorMessage(ctx, fallback, type) {
+	const err = storeError(ctx, type)
 	return (err && err.message) || fallback
 }
 
@@ -46,13 +144,14 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			const ok = await ctx.selfObjectStore().deleteObject(ctx.selfObjectType(), id)
+			const type = typeFor(ctx, findSource(ctx, id))
+			const ok = await ctx.selfObjectStore().deleteObject(type, id)
 			if (ok) {
 				ctx.setResults.singleDelete({ success: true })
 				ctx.emit('delete', id)
 				refreshList(ctx)
 			} else {
-				ctx.setResults.singleDelete({ error: storeErrorMessage(ctx, 'Delete failed') })
+				ctx.setResults.singleDelete({ error: storeErrorMessage(ctx, 'Delete failed', type) })
 			}
 		} catch (err) {
 			ctx.setResults.singleDelete({ error: (err && err.message) || 'Delete failed' })
@@ -65,12 +164,28 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			const { successfulIds, failedIds } = await ctx.selfObjectStore().deleteObjects(ctx.selfObjectType(), ids)
+			// One request per pair: a mixed list holds rows of several types.
+			const idsByType = new Map()
+			for (const id of ids) {
+				const type = typeFor(ctx, findSource(ctx, id))
+				idsByType.set(type, [...(idsByType.get(type) || []), id])
+			}
+			const successfulIds = []
+			const failedIds = []
+			let failedType = null
+			for (const [type, typeIds] of idsByType) {
+				const outcome = await ctx.selfObjectStore().deleteObjects(type, typeIds)
+				successfulIds.push(...outcome.successfulIds)
+				failedIds.push(...outcome.failedIds)
+				if (outcome.failedIds.length > 0 && failedType === null) {
+					failedType = type
+				}
+			}
 			if (failedIds.length === 0) {
 				ctx.setResults.massDelete({ success: true, successfulIds })
 			} else {
 				ctx.setResults.massDelete({
-					error: storeErrorMessage(ctx, `Failed to delete ${failedIds.length} item(s)`),
+					error: storeErrorMessage(ctx, `Failed to delete ${failedIds.length} item(s)`, failedType),
 					successfulIds,
 					failedIds,
 				})
@@ -93,14 +208,33 @@ export function createSelfModeActions(ctx) {
 			return true
 		}
 		try {
-			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx))
-			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
+			// Links the person left ticked: one request to the server's copy endpoint.
+			// A server without it (404 or 405) falls through to the fields-only copy below.
+			const include = Array.isArray(payload && payload.include) ? payload.include : []
+			const address = include.length > 0 ? copyAddress(ctx, source) : null
+			if (address) {
+				try {
+					const copied = await useObjectCopy().copy(address, newName, include, { ...copyOverridesOf(ctx), [resolveNameField(ctx)]: newName })
+					ctx.setResults.singleCopy({ success: true, object: copied.object, links: copied.links })
+					ctx.emit('copy', payload)
+					refreshList(ctx)
+					return true
+				} catch (copyError) {
+					if (!copyEndpointMissing(copyError)) {
+						ctx.setResults.singleCopy({ error: (copyError && copyError.message) || 'Copy failed' })
+						return true
+					}
+				}
+			}
+			const clone = cloneObjectForCopy(source, newName, resolveNameField(ctx), copyOverridesOf(ctx))
+			const type = typeFor(ctx, source)
+			const saved = await ctx.selfObjectStore().saveObject(type, clone)
 			if (saved) {
 				ctx.setResults.singleCopy({ success: true })
 				ctx.emit('copy', payload)
 				refreshList(ctx)
 			} else {
-				ctx.setResults.singleCopy({ error: storeErrorMessage(ctx, 'Copy failed') })
+				ctx.setResults.singleCopy({ error: storeErrorMessage(ctx, 'Copy failed', type) })
 			}
 		} catch (err) {
 			ctx.setResults.singleCopy({ error: (err && err.message) || 'Copy failed' })
@@ -117,15 +251,33 @@ export function createSelfModeActions(ctx) {
 		const getName = (payload && payload.getName) || ((item) => item[ctx.massActionNameField()])
 		const successfulIds = []
 		const failedIds = []
+		const links = []
+		let serverCopy = Array.isArray(payload && payload.include) && payload.include.length > 0
 		for (const id of ids) {
 			const source = findSource(ctx, id)
 			if (!source) {
 				failedIds.push(id)
 				continue
 			}
-			const clone = cloneObjectForCopy(source, getName(source), nameField)
+			// One copy request per row with the ticked kinds; a server without the endpoint falls back to fields only.
+			const address = serverCopy ? copyAddress(ctx, source) : null
+			if (address) {
+				try {
+					const copied = await useObjectCopy().copy(address, getName(source), payload.include, { ...copyOverridesOf(ctx), [nameField]: getName(source) })
+					links.push(...copied.links.map((l) => ({ ...l, source: id })))
+					successfulIds.push(id)
+					continue
+				} catch (copyError) {
+					if (!copyEndpointMissing(copyError)) {
+						failedIds.push(id)
+						continue
+					}
+					serverCopy = false
+				}
+			}
+			const clone = cloneObjectForCopy(source, getName(source), nameField, copyOverridesOf(ctx))
 			try {
-				const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), clone)
+				const saved = await ctx.selfObjectStore().saveObject(typeFor(ctx, source), clone)
 				if (saved) {
 					successfulIds.push(id)
 				} else {
@@ -136,12 +288,13 @@ export function createSelfModeActions(ctx) {
 			}
 		}
 		if (failedIds.length === 0) {
-			ctx.setResults.massCopy({ success: true, successfulIds })
+			ctx.setResults.massCopy({ success: true, successfulIds, ...(links.length > 0 ? { links } : {}) })
 		} else {
 			ctx.setResults.massCopy({
 				error: storeErrorMessage(ctx, `Failed to copy ${failedIds.length} item(s)`),
 				successfulIds,
 				failedIds,
+				...(links.length > 0 ? { links } : {}),
 			})
 		}
 		refreshList(ctx)
@@ -153,10 +306,16 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
+			// The selected rows when there are any, else the rows the list
+			// matches: never the whole schema by surprise.
+			const ids = typeof ctx.selectedIds === 'function' ? ctx.selectedIds() : []
+			const list = ctx.list()
 			await runSelfExportRequest({
 				register: ctx.register(),
 				schema: ctx.schema(),
 				format: payload && payload.format,
+				ids: ids.length > 0 ? ids : undefined,
+				query: list && typeof list.buildParams === 'function' ? list.buildParams(1) : undefined,
 			})
 			ctx.setResults.massExport({ success: true })
 		} catch (err) {
@@ -170,13 +329,18 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			await runSelfImportRequest({
+			const dryRun = !!(payload && payload.options && payload.options.dryRun)
+			const report = await runSelfImportRequest({
 				register: ctx.register(),
 				schema: ctx.schema(),
 				file: payload && payload.file,
+				dryRun,
 			})
-			ctx.setResults.massImport({ success: true })
-			refreshList(ctx)
+			const summary = report && typeof report === 'object' ? (report.summary || null) : null
+			ctx.setResults.massImport({ success: true, dryRun, ...(summary ? { summary } : {}) })
+			if (!dryRun) {
+				refreshList(ctx)
+			}
 		} catch (err) {
 			ctx.setResults.massImport({ error: (err && err.message) || 'Import failed' })
 		}
@@ -188,13 +352,27 @@ export function createSelfModeActions(ctx) {
 			return false
 		}
 		try {
-			const saved = await ctx.selfObjectStore().saveObject(ctx.selfObjectType(), formData)
+			const item = ctx.editItem()
+			const type = item ? typeFor(ctx, item) : ctx.selfObjectType()
+			// An edit writes only the keys the form changed (a PATCH), so keys
+			// the form does not show keep their stored value.
+			const saved = await saveEdited(ctx.selfObjectStore(), type, item || null, formData)
 			if (saved) {
 				ctx.setResults.form({ success: true })
-				ctx.emit(ctx.editItem() ? 'edit' : 'create', saved)
+				const isCreate = !ctx.editItem()
+				ctx.emit(isCreate ? 'create' : 'edit', saved)
+				// @self.register/@self.schema are numeric DB ids, not slugs, so
+				// override with this page's own slug props (self-fetch mode
+				// guarantees ctx.schema() is already a string).
+				if (isCreate) {
+					dispatchObjectCreated({ register: ctx.register(), schema: ctx.schema(), object: saved })
+				}
 				refreshList(ctx)
+				if (isCreate && typeof ctx.afterCreateSuccess === 'function') {
+					ctx.afterCreateSuccess(saved)
+				}
 			} else {
-				const err = storeError(ctx)
+				const err = storeError(ctx, type)
 				if (err && err.isValidation) {
 					// Keep the form visible so the user can fix the invalid data.
 					ctx.setResults.formValidation(err.fields, err.message || 'Validation failed')
@@ -208,7 +386,27 @@ export function createSelfModeActions(ctx) {
 		return true
 	}
 
+	/**
+	 * Save a row with new values (a PATCH of what changed) and reload the
+	 * list. Undefined when the page is not in self-fetch mode.
+	 *
+	 * @param {object} row The row as loaded.
+	 * @param {object} values The row with its new values.
+	 * @return {Promise<{saved: object|null}|undefined>} The saved row, or undefined.
+	 */
+	async function handleRowSave(row, values) {
+		if (!selfModeReady(ctx)) {
+			return undefined
+		}
+		const saved = await saveEdited(ctx.selfObjectStore(), typeFor(ctx, row), row, values)
+		if (saved) {
+			refreshList(ctx)
+		}
+		return { saved }
+	}
+
 	return {
+		handleRowSave,
 		handleSingleDelete,
 		handleMassDelete,
 		handleSingleCopy,

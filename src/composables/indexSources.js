@@ -3,10 +3,27 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  */
 
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
+import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
+import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { reactive } from 'vue'
+import AccountOutline from 'vue-material-design-icons/AccountOutline.vue'
+import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
+import Cancel from 'vue-material-design-icons/Cancel.vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
+import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
+import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Undo from 'vue-material-design-icons/Undo.vue'
+import { formatRelativeDate } from '../utils/boardDate.js'
+import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
+import { fillTemplate } from '../utils/fillTemplate.js'
+import { FLOW_RUN_ERROR_STATUSES, flowRunCounters, flowRunOutcome, flowRunStatuses, flowRunSubjects } from '../utils/flowRunStatus.js'
+import { fetchGroupMembers, fetchPresence, fetchStatuses, fetchUsers } from '../utils/nextcloudDirectory.js'
+import { readPath } from '../utils/readPath.js'
+import { resolveNextcloudUser } from '../utils/userAutocomplete.js'
 import { useFlowStore } from './useFlowStore.js'
+import { organisationRecord, useOrganisationStore } from './useOrganisationStore.js'
 import { useTaskInboxStore } from './useTaskInboxStore.js'
 
 /**
@@ -39,37 +56,170 @@ import { useTaskInboxStore } from './useTaskInboxStore.js'
  */
 
 /**
+ * Monday 00:00 of the current week, local time, as ISO 8601.
+ *
+ * "This week" on a flow list is the calendar week a person plans in, not a
+ * rolling seven days: on a Monday morning it reads as a fresh count.
+ *
+ * @param {Date} [now] The reference moment.
+ * @return {string} The start of the week.
+ */
+export function startOfWeek(now = new Date()) {
+	const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+	const offset = (start.getDay() + 6) % 7
+	start.setDate(start.getDate() - offset)
+	return start.toISOString()
+}
+
+/**
+ * How a flow starts, as a label, a muted second line and an icon.
+ *
+ * `trigger` is a catalogue event id, `schedule` (with `cron`) or `manual`.
+ * An event id reads as its catalogue label when the catalogue knows it,
+ * else as the id, so a trigger the catalogue has not loaded yet still says
+ * something true.
+ *
+ * @param {object} flow The flow row.
+ * @param {Array<object>} catalog The event catalogue (`{id, label}`).
+ * @return {{label: string, detail: string, icon: object}} The trigger cell.
+ */
+export function flowTriggerCell(flow, catalog = []) {
+	const trigger = String(flow?.trigger || '')
+	if (trigger === 'schedule') {
+		return { label: t('nextcloud-vue', 'On a schedule'), detail: String(flow?.cron || ''), icon: CalendarClock }
+	}
+	if (trigger === '' || trigger === 'manual') {
+		return { label: t('nextcloud-vue', 'Run by hand'), detail: '', icon: HandBackRight }
+	}
+	const entry = (catalog || []).find((item) => item && item.id === trigger)
+	return {
+		label: (entry && entry.label) || trigger,
+		detail: String(flow?.triggerSchema || ''),
+		icon: LightningBolt,
+	}
+}
+
+/**
  * The flow source: OpenRegister's one native flow store.
  *
+ * Rows carry the run figures a flow list shows beside each flow (how its
+ * last run ended, how often it ran this week), read in one request from
+ * the run summary rather than derived from a page of runs.
+ *
+ * The columns are those of board OrFlows, with `health` (a dot before the name)
+ * and `owner` (before the status). `sourceConfig.extraColumns` narrows those
+ * two: `[]` leaves both out.
+ *
+ * The quick filters (All, Active, Paused, With errors) narrow the loaded
+ * list in place: every flow of the app is already loaded, so the counts on
+ * the tabs and the rows they show can never disagree.
+ *
+ * @param config
  * @return {object} The source adapter.
  */
-function flowsSource() {
+function flowsSource(config = {}) {
 	const store = useFlowStore()
+	const extraColumns = [].concat(config.extraColumns ?? ['health', 'owner'])
+	const view = reactive({ state: 'all', owners: [], runsRoute: '/flow-runs', flowsRoute: '/flows' })
+	const statuses = flowRunStatuses()
+
+	/**
+	 * Every flow row with its display fields, before any tab narrows it.
+	 *
+	 * @return {Array<object>} The rows.
+	 */
+	const allRows = () => (store.flows || []).map((flow) => {
+		const id = flow.id || flow.uuid
+		const summary = (store.runSummary || {})[id] || {}
+		const lastRun = summary.lastRun || null
+		const lastOutcome = flowRunOutcome(lastRun)
+		const lastStatus = lastRun ? statuses[lastOutcome] : null
+		const trigger = flowTriggerCell(flow, store.eventCatalog)
+		return {
+			...flow,
+			triggerLabel: trigger.label,
+			triggerDetail: trigger.detail,
+			triggerIcon: trigger.icon,
+			lastRunStatus: lastOutcome,
+			lastRunLabel: lastRun
+				? ((lastStatus && lastStatus.label) || lastOutcome)
+				: t('nextcloud-vue', 'Not run yet'),
+			lastRunAt: lastRun ? formatRelativeDate(lastRun.created, { withTime: true }) : '',
+			lastRunFailed: FLOW_RUN_ERROR_STATUSES.includes(lastOutcome),
+			runsThisWeek: Number(summary.runsSince) || 0,
+			// The switch reads `enabled`; the label is what a screen reader and
+			// an export see. A flow with no owner is enabled but cannot start,
+			// because a trigger has no acting user to run as.
+			statusLabel: flow.enabled === false
+				? t('nextcloud-vue', 'Paused')
+				: (flow.owner ? t('nextcloud-vue', 'Active') : t('nextcloud-vue', 'No owner')),
+		}
+	})
+
+	const lastRunColors = {}
+	Object.values(statuses).forEach((entry) => {
+		lastRunColors[entry.label] = entry.variant
+	})
+
+	const filters = {
+		all: () => true,
+		active: (row) => row.enabled !== false,
+		paused: (row) => row.enabled === false,
+		errors: (row) => row.lastRunFailed,
+	}
 
 	return {
 		store,
 
 		/**
-		 * Load the flows for the scoped app.
+		 * Load the flows for the scoped app, then their run summary.
 		 *
-		 * @param {object} config The page config.
+		 * @param {object} config The page config; `state` is the active tab
+		 *   (`all`, `active`, `paused`, `errors`), `runsRoute`/`flowsRoute`
+		 *   override where the page tabs lead.
 		 *
 		 * @return {Promise<void>} Resolves when loaded.
 		 */
-		load: (config) => store.load({ app: config?.app }),
+		load: async (config) => {
+			view.state = filters[config?.state] ? config.state : 'all'
+			view.owners = [].concat(config?.owner ?? []).map(String).filter((owner) => owner !== '')
+			view.runsRoute = config?.runsRoute || '/flow-runs'
+			view.flowsRoute = config?.flowsRoute || '/flows'
+			await store.load({ app: config?.app })
+			await store.loadRunSummary((store.flows || []).map((flow) => flow.id || flow.uuid), startOfWeek())
+		},
 
 		/**
-		 * @return {Array<object>} The rows, with the display status resolved.
+		 * @return {Array<object>} The rows of the active tab.
 		 */
-		rows: () => (store.flows || []).map((flow) => ({
-			...flow,
-			// Enabled and dispatchable are NOT the same thing: a trigger fires
-			// with no acting user, so a flow with no owner has no identity to
-			// run as and will not start however enabled it looks.
-			statusLabel: flow.enabled === false
-				? t('nextcloud-vue', 'Disabled')
-				: (flow.owner ? t('nextcloud-vue', 'Enabled') : t('nextcloud-vue', 'No owner')),
-		})),
+		rows: () => allRows()
+			.filter(filters[view.state] || filters.all)
+			.filter((row) => view.owners.length === 0 || view.owners.includes(String(row.owner ?? ''))),
+
+		/**
+		 * The owner filter (a page's `filterMenuFields` entry on `owner`)
+		 * reaches `load` as `owner`.
+		 */
+		searchFields: {
+			owner: { param: 'owner' },
+		},
+
+		/**
+		 * The owners of the loaded flows with how many each owns, for the
+		 * owner filter's values.
+		 *
+		 * @return {{owner: Array<{value: string, count: number}>}} The buckets.
+		 */
+		facets: () => {
+			const counts = new Map()
+			for (const flow of (store.flows || [])) {
+				const owner = String(flow?.owner ?? '')
+				if (owner !== '') {
+					counts.set(owner, (counts.get(owner) || 0) + 1)
+				}
+			}
+			return { owner: [...counts].map(([value, count]) => ({ value, count })) }
+		},
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
@@ -77,12 +227,73 @@ function flowsSource() {
 		loading: () => !!store.loading,
 
 		columns: [
-			{ key: 'name', label: t('nextcloud-vue', 'Name') },
-			{ key: 'description', label: t('nextcloud-vue', 'Description') },
-			{ key: 'trigger', label: t('nextcloud-vue', 'Trigger') },
-			{ key: 'cron', label: t('nextcloud-vue', 'Schedule') },
-			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status') },
+			...(extraColumns.includes('health') ? [{ key: 'lastRunStatus', label: t('nextcloud-vue', 'Health'), labelHidden: true, width: '32px', widget: 'flowHealth' }] : []),
+			{ key: 'name', label: t('nextcloud-vue', 'Flow'), secondary: 'description' },
+			{
+				key: 'triggerLabel',
+				label: t('nextcloud-vue', 'Trigger'),
+				secondary: 'triggerDetail',
+				widget: 'iconLabel',
+				widgetProps: { icon: (row) => row.triggerIcon },
+			},
+			{
+				key: 'lastRunLabel',
+				label: t('nextcloud-vue', 'Last run'),
+				secondary: 'lastRunAt',
+				widget: 'badge',
+				widgetProps: { colorMap: lastRunColors },
+			},
+			{ key: 'runsThisWeek', label: t('nextcloud-vue', 'Runs this week'), class: 'cn-table-col--end' },
+			...(extraColumns.includes('owner') ? [{ key: 'owner', label: t('nextcloud-vue', 'Owner') }] : []),
+			{
+				key: 'statusLabel',
+				label: t('nextcloud-vue', 'Status'),
+				widget: 'switch',
+				widgetProps: {
+					checked: (row) => row.enabled !== false,
+					onToggle: (row, enabled) => store.setEnabled(row.id || row.uuid, enabled),
+				},
+			},
 		],
+
+		quickFilters: [
+			{ label: t('nextcloud-vue', 'All'), filter: { state: 'all' }, default: true },
+			{ label: t('nextcloud-vue', 'Active'), filter: { state: 'active' } },
+			{ label: t('nextcloud-vue', 'Paused'), filter: { state: 'paused' } },
+			{ label: t('nextcloud-vue', 'With errors'), filter: { state: 'errors' } },
+		],
+
+		/**
+		 * The number on each quick filter, by tab index, from the loaded list.
+		 *
+		 * @return {Record<number, number>} The counts.
+		 */
+		tabCounts: () => {
+			const rows = allRows()
+			return {
+				0: rows.length,
+				1: rows.filter(filters.active).length,
+				2: rows.filter(filters.paused).length,
+				3: rows.filter(filters.errors).length,
+			}
+		},
+
+		/**
+		 * The page tabs above the list: the flows and this week's runs.
+		 *
+		 * @return {Array<{label: string, to: string, count: number}>} The tabs.
+		 */
+		pageTabs: () => [
+			{ id: 'flows', label: t('nextcloud-vue', 'Flows'), to: view.flowsRoute, count: (store.flows || []).length },
+			{
+				id: 'runs',
+				label: t('nextcloud-vue', 'Runs this week'),
+				to: view.runsRoute,
+				count: Object.values(store.runSummary || {}).reduce((sum, entry) => sum + (Number(entry?.runsSince) || 0), 0),
+			},
+		],
+
+		footerNote: t('nextcloud-vue', 'A paused flow keeps its steps and history. It starts again when you switch it on.'),
 
 		// ONE Edit, and it NAVIGATES. `action: 'open'` is the source-action
 		// grammar CnIndexPage resolves to "open this row where the source says
@@ -145,6 +356,114 @@ function flowsSource() {
 }
 
 /**
+ * The flow runs source: this week's runs of the app's flows, newest first.
+ *
+ * The second tab of a flow list. Reads the same run history the flow
+ * editor reads, narrowed on the server to the app's flows and the week, so
+ * the rows are the runs the flows tab counted. A row opens the run on its
+ * flow's canvas (`/flows/:flowId?run=:uuid`), where CnFlowDetail shows it.
+ *
+ * `sourceConfig.counters` draws the run counters above the list and adds the
+ * Subject column; `sourceConfig.flowId` narrows the list to one flow (board
+ * OrFlowOverzicht).
+ *
+ * @param {object} [config] The page's source config.
+ * @return {object} The source adapter.
+ */
+function flowRunsSource(config = {}) {
+	const store = useFlowStore()
+	const view = reactive({ runsRoute: '/flow-runs', flowsRoute: '/flows' })
+	const statuses = flowRunStatuses()
+	const statusColors = {}
+	Object.values(statuses).forEach((entry) => {
+		statusColors[entry.label] = entry.variant
+	})
+
+	/**
+	 * Where a run opens: its flow's canvas in run view.
+	 *
+	 * @param {object} row The run row.
+	 * @return {object|null} A router location, or null without ids.
+	 */
+	const runTarget = (row) => {
+		const flowId = row?.flowId
+		const uuid = row?.uuid
+		return flowId && uuid
+			? { path: `${view.flowsRoute}/${encodeURIComponent(flowId)}`, query: { run: String(uuid) } }
+			: null
+	}
+
+	return {
+		store,
+
+		/**
+		 * Load the app's flows, then their runs since the start of the week.
+		 *
+		 * @param {object} config The page config (`app`, `runsRoute`, `flowsRoute`).
+		 * @return {Promise<void>} Resolves when loaded.
+		 */
+		load: async (config) => {
+			view.runsRoute = config?.runsRoute || '/flow-runs'
+			view.flowsRoute = config?.flowsRoute || '/flows'
+			await store.load({ app: config?.app })
+			const ids = config?.flowId ? [config.flowId] : (store.flows || []).map((flow) => flow.id || flow.uuid)
+			const since = startOfWeek()
+			await Promise.all([store.loadRecentRuns(ids, since), store.loadRunSummary(ids, since)])
+		},
+
+		/**
+		 * @return {Array<object>} The runs, with flow name and status label.
+		 */
+		rows: () => {
+			const names = {}
+			;(store.flows || []).forEach((flow) => {
+				names[flow.id || flow.uuid] = flow.name
+			})
+			return (store.recentRuns || []).map((run) => ({
+				...run,
+				id: run.uuid,
+				flowName: names[run.flowId] || run.flowId,
+				statusLabel: (statuses[flowRunOutcome(run)] && statuses[flowRunOutcome(run)].label) || flowRunOutcome(run),
+				startedAt: formatRelativeDate(run.created, { withTime: true }),
+				subjectLabel: flowRunSubjects(run).map((subject) => subject.uuid).join(', '),
+				subjectRoles: flowRunSubjects(run).map((subject) => subject.role).filter(Boolean).join(', '),
+			}))
+		},
+
+		/**
+		 * @return {Array<object>} The tiles above the list, when the page asks for them.
+		 */
+		counters: () => (config.counters === true ? flowRunCounters(store.recentRuns || []) : []),
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => !!store.loading || !!store.recentRunsLoading,
+
+		columns: [
+			{ key: 'flowName', label: t('nextcloud-vue', 'Flow'), secondary: 'error' },
+			...(config.counters === true ? [{ key: 'subjectLabel', label: t('nextcloud-vue', 'Subject'), secondary: 'subjectRoles' }] : []),
+			{ key: 'statusLabel', label: t('nextcloud-vue', 'Status'), widget: 'badge', widgetProps: { colorMap: statusColors } },
+			{ key: 'startedAt', label: t('nextcloud-vue', 'Started') },
+			{ key: 'trigger', label: t('nextcloud-vue', 'Trigger') },
+		],
+
+		pageTabs: () => [
+			{ id: 'flows', label: t('nextcloud-vue', 'Flows'), to: view.flowsRoute, count: (store.flows || []).length },
+			{ id: 'runs', label: t('nextcloud-vue', 'Runs this week'), to: view.runsRoute, count: (store.recentRuns || []).length },
+		],
+
+		// A location, not a URL: the canvas is the consuming app's own page,
+		// so a plain click pushes on its router and a ctrl/cmd click resolves
+		// the same location into a new tab.
+		rowTarget: runTarget,
+		showAdd: false,
+		title: t('nextcloud-vue', 'Runs this week'),
+		description: t('nextcloud-vue', 'Every run of this app\'s flows since Monday, newest first.'),
+	}
+}
+
+/**
  * The absolute deep link for one task.
  *
  * A task's detail page is OpenRegister's, not the consuming app's, so the
@@ -194,6 +513,49 @@ export function taskDueLabel(task) {
 }
 
 /**
+ * The CMMN states in which a task is finished: no verb applies to it any more.
+ *
+ * @type {string[]}
+ */
+const TASK_TERMINAL_STATES = ['completed', 'terminated', 'disabled']
+
+/**
+ * The columns the task inbox sorts by (`TaskController::index` `sort`), by
+ * column key: the raw fields and the source's own label columns.
+ *
+ * @type {{[key: string]: string}}
+ */
+const TASK_SORT_FIELDS = { dueAt: 'dueAt', dueLabel: 'dueAt', priority: 'priority', priorityLabel: 'priority', created: 'created' }
+
+/**
+ * The form the tasks source's Edit verb asks with: the task's own fields the
+ * engine lets the people working it change, filled from the task.
+ *
+ * @param {object} task The task.
+ * @return {{schema: object, item: object, fieldOverrides: object}} The form.
+ * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+ */
+function taskEditForm(task) {
+	const due = typeof task.dueAt === 'string' ? task.dueAt.slice(0, 10) : ''
+	return {
+		schema: {
+			type: 'object',
+			required: ['title'],
+			properties: {
+				title: { type: 'string', title: t('nextcloud-vue', 'Title') },
+				description: { type: 'string', format: 'textarea', title: t('nextcloud-vue', 'Description') },
+				dueAt: { type: 'string', format: 'date', title: t('nextcloud-vue', 'Due by') },
+				priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'], title: t('nextcloud-vue', 'Priority') },
+			},
+		},
+		item: { title: task.title || '', description: task.description || '', dueAt: due, priority: task.priority || 'normal' },
+		fieldOverrides: {
+			priority: { enumLabels: { low: t('nextcloud-vue', 'Low'), normal: t('nextcloud-vue', 'Normal'), high: t('nextcloud-vue', 'High'), urgent: t('nextcloud-vue', 'Urgent') } },
+		},
+	}
+}
+
+/**
  * The tasks source: the caller's inbox on OpenRegister's one task store.
  *
  * The viewer's inbox and nothing else. The endpoint answers from the
@@ -234,6 +596,23 @@ function tasksSource() {
 		[priorityLabels.urgent]: 'error',
 	}
 
+	/**
+	 * A task with the display fields a list row and a detail page read. Keyed
+	 * on its uuid, the identity of the task contract.
+	 *
+	 * @param {object} task The task as the engine returned it.
+	 * @return {object} The task with `id`, `title` and the labels.
+	 */
+	const taskRow = (task) => ({
+		...task,
+		id: task.uuid,
+		title: task.displayTitle || task.title || task.uuid,
+		subjectLabel: (task.subject && task.subject.title) || '',
+		stateLabel: stateLabels[task.state] || String(task.state || ''),
+		priorityLabel: priorityLabels[task.priority] || String(task.priority || ''),
+		dueLabel: taskDueLabel(task),
+	})
+
 	return {
 		store,
 
@@ -250,31 +629,139 @@ function tasksSource() {
 		/**
 		 * @return {Array<object>} The rows, with the display fields resolved.
 		 */
-		rows: () => (store.tasks || []).map((task) => ({
-			...task,
-			// CnIndexPage keys rows on `id` by default; the row contract's
-			// identity is the uuid.
-			id: task.uuid,
-			title: task.displayTitle || task.title || task.uuid,
-			subjectLabel: (task.subject && task.subject.title) || '',
-			stateLabel: stateLabels[task.state] || String(task.state || ''),
-			priorityLabel: priorityLabels[task.priority] || String(task.priority || ''),
-			dueLabel: taskDueLabel(task),
-		})),
+		rows: () => (store.tasks || []).map(taskRow),
+
+		/**
+		 * Read one task for a detail page (`type: "detail"` with
+		 * `entitySource: "tasks"`).
+		 *
+		 * @param {string} id The task uuid.
+		 * @return {Promise<object|null>} The task, or null when it could not be read.
+		 * @spec openspec/changes/tasks-record-source/specs/tasks-record-source/spec.md#requirement-the-tasks-source-reads-one-task
+		 */
+		loadRecord: (id) => store.fetchRecord(id),
+
+		/**
+		 * @param {string} id The task uuid.
+		 * @return {object|null} The task read for this id, with the row's display fields, or null.
+		 */
+		record: (id) => {
+			const task = store.records?.[String(id)]
+			return task ? taskRow(task) : null
+		},
+
+		/**
+		 * @param {string} id The task uuid.
+		 * @return {number|null} The HTTP status of a failed read of this id, or null.
+		 */
+		recordError: (id) => store.recordErrors?.[String(id)] ?? null,
+
+		/**
+		 * The lifecycle verbs a detail page offers on this task, read off the
+		 * row and never guessed at: claim while nobody holds it, hand back
+		 * while somebody does, complete and cancel while it is open. A finished
+		 * task offers none. Whether the viewer MAY run one is the engine's
+		 * call; it refuses with a message the page shows as-is.
+		 *
+		 * @param {object|null} task The task on the page.
+		 * @return {Array<{id: string, label: string, icon: object, menu: boolean, successMessage?: string}>} The verbs, buttons first.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		verbs: (task) => {
+			if (!task || TASK_TERMINAL_STATES.includes(String(task.state || ''))) {
+				return []
+			}
+			const held = String(task.assignee || '').trim() !== ''
+			return [
+				{ id: 'complete', label: t('nextcloud-vue', 'Finish'), icon: Check, menu: false, successMessage: t('nextcloud-vue', 'Task completed') },
+				held
+					? { id: 'unclaim', label: t('nextcloud-vue', 'Hand back'), icon: Undo, menu: false }
+					: { id: 'claim', label: t('nextcloud-vue', 'Pick up'), icon: HandBackRight, menu: false },
+				{ id: 'edit', label: t('nextcloud-vue', 'Edit'), icon: Pencil, menu: false, successMessage: t('nextcloud-vue', 'Task saved'), form: taskEditForm(task) },
+				{ id: 'cancel', label: t('nextcloud-vue', 'Cancel task'), icon: Cancel, menu: true },
+			]
+		},
+
+		/**
+		 * Run a verb on a task and keep the page's record in step.
+		 *
+		 * @param {string} id The task uuid.
+		 * @param {string} verb The verb id.
+		 * @param {{url?: string, body?: object}} [options] An app route to post the verb to instead of the engine's; for `edit`, the new values.
+		 * @return {Promise<{ok: boolean, record: (object|null), message: string}>} The outcome.
+		 */
+		runVerb: (id, verb, options) => (verb === 'edit'
+			? store.editRecord(id, options?.body)
+			: store.runRecordVerb(id, verb, options || {})),
+
+		/**
+		 * Whether this task's checklist can still be ticked: not once it is finished.
+		 *
+		 * @param {object|null} task The task on the page.
+		 * @return {boolean}
+		 */
+		canCheckItems: (task) => Boolean(task) && !TASK_TERMINAL_STATES.includes(String(task.state || '')),
+
+		/**
+		 * Tick or untick one checklist item through the engine.
+		 *
+		 * @param {string} id The task uuid.
+		 * @param {string} itemId The item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<{ok: boolean, record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		checkItem: (id, itemId, checked) => store.checkRecordItem(id, itemId, checked),
 
 		/**
 		 * @return {boolean} Whether a load is in flight.
 		 */
 		loading: () => !!store.loading,
 
+		// The inbox pages: the page sends `limit` and `offset` and draws the
+		// pager from the datastore total.
+		pages: true,
+
+		/**
+		 * @return {number} The datastore total, independent of the page size.
+		 */
+		total: () => Number(store.total) || 0,
+
+		/**
+		 * Count the inbox for a config without touching the rows on screen,
+		 * for a quick-filter tab with `showCount`.
+		 *
+		 * @param {object} config The merged config, as for `load`.
+		 * @return {Promise<number>} The datastore total.
+		 */
+		count: async (config) => (await store.fetchFor({ ...(config || {}), limit: 1 })).total,
+
 		columns: [
 			{ key: 'title', label: t('nextcloud-vue', 'Task') },
 			{ key: 'subjectLabel', label: t('nextcloud-vue', 'Subject') },
 			{ key: 'stateLabel', label: t('nextcloud-vue', 'State'), widget: 'badge', widgetProps: { colorMap: stateColorMap } },
-			{ key: 'priorityLabel', label: t('nextcloud-vue', 'Priority'), widget: 'badge', widgetProps: { colorMap: priorityColorMap } },
-			{ key: 'dueLabel', label: t('nextcloud-vue', 'Due') },
+			{ key: 'priorityLabel', label: t('nextcloud-vue', 'Priority'), widget: 'badge', widgetProps: { colorMap: priorityColorMap }, sortable: true },
+			{ key: 'dueLabel', label: t('nextcloud-vue', 'Due'), sortable: true },
 			{ key: 'assignee', label: t('nextcloud-vue', 'Assignee') },
 		],
+
+		/**
+		 * The inbox argument a column header's order becomes: the inbox
+		 * sorts by deadline, priority or creation, server side, so a sorted
+		 * page is the first page of the whole sorted inbox.
+		 *
+		 * @param {string} key The column key.
+		 * @param {string} order `asc` or `desc`.
+		 * Open tasks come before finished ones (`openFirst`), each in that order.
+		 *
+		 * @return {{sort: string, openFirst: boolean}|null} The parameters, or null for a column the inbox cannot sort by.
+		 * @spec openspec/changes/tasks-source-sorts-on-server/specs/index-sources/spec.md#requirement-a-named-source-can-sort-on-the-server
+		 * @spec openspec/changes/tasks-source-open-first/specs/index-sources/spec.md#requirement-a-sorted-task-list-puts-open-tasks-first
+		 */
+		sortParam: (key, order) => {
+			const field = TASK_SORT_FIELDS[key]
+			return field ? { sort: (order === 'desc' ? '-' : '') + field, openFirst: true } : null
+		},
 
 		// The scope tabs. Each tab's filter is merged over the page's
 		// `sourceConfig` (tab wins on a colliding key) and the merged config
@@ -306,6 +793,19 @@ function tasksSource() {
 			window.location.assign(taskDeepLink(String(uuid)))
 		},
 
+		/**
+		 * The URL a clicked row opens, so a ctrl/cmd/shift or middle click can
+		 * open it in a new tab.
+		 *
+		 * @param {object} row The clicked row.
+		 *
+		 * @return {string|null} The task's deep link, or null without an id.
+		 */
+		rowTarget: (row) => {
+			const uuid = row?.uuid || row?.id
+			return uuid ? taskDeepLink(String(uuid)) : null
+		},
+
 		// The sidebar fields this inbox can answer, and the argument each one
 		// becomes. Measured against `TaskController::index()` and
 		// `TaskInboxCriteria`, which take the same predicates for the page and
@@ -321,8 +821,15 @@ function tasksSource() {
 			objectUuid: { param: 'objectUuid', single: true },
 			state: { param: 'state', join: ',' },
 			priority: { param: 'priority', single: true },
+			// Single-valued, like `priority`: the endpoint compares one kind.
+			// Joining two into a comma string would match a kind nobody wrote.
+			kind: { param: 'kind', single: true },
 			dueAt: { range: ['dueAfter', 'dueBefore'] },
 		},
+
+		// The column headers filter through these same search fields: a column
+		// with a field behind it gets a funnel, the others none.
+		headerFilters: 'searchFields',
 
 		// A task is created by a flow, never by a person clicking Add. Without
 		// this the index falls back to its OpenRegister form dialog, which
@@ -334,13 +841,1092 @@ function tasksSource() {
 }
 
 /**
+ * Read a dotted path off a response body.
+ *
+ * @param {object} body The response body.
+ * @param {string} path A dotted path such as `data.items`.
+ * @return {unknown} The value, or undefined.
+ */
+function readRowsPath(body, path) {
+	return String(path).split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), body)
+}
+
+/**
+ * The parts of an answer a detail page's `sourceConfig.attach` puts on its
+ * record: record key to dot-path in the answer. A path the answer does not
+ * hold is left out, so it never overwrites a field of the record with nothing.
+ *
+ * @param {object|Array|null} body The endpoint's answer.
+ * @param {object|null} attach The declared map, `{ <record key>: <answer path> }`.
+ * @return {object} The parts found, by record key.
+ * @spec openspec/changes/detail-endpoint-answer-parts/specs/detail-page/spec.md#requirement-a-detail-page-over-an-app-endpoint-keeps-the-other-parts-of-the-answer
+ */
+function attachedParts(body, attach) {
+	if (!attach || typeof attach !== 'object' || Array.isArray(attach)) {
+		return {}
+	}
+	const out = {}
+	for (const [name, path] of Object.entries(attach)) {
+		if (typeof path !== 'string' || path === '') {
+			continue
+		}
+		const value = readRowsPath(body, path)
+		if (value !== undefined) {
+			out[name] = value
+		}
+	}
+	return out
+}
+
+/**
+ * The `sourceConfig` keys the endpoint source reads itself; every other key
+ * goes along as a query parameter.
+ *
+ * @type {Array<string>}
+ */
+const ENDPOINT_SOURCE_KEYS = ['url', 'rowsPath', 'totalPath', 'searchParam', 'searchFields', 'notePath', 'noteText', 'refusedText', 'facets']
+
+/**
+ * The endpoint source: rows from an app's own endpoint
+ * (`entitySource: "endpoint"`), for a list that is not OpenRegister objects,
+ * such as dossiq's postvak.
+ *
+ * `sourceConfig.url` is an app path (`/apps/dossiq/api/postvak`), resolved
+ * with `generateUrl` and fetched with the session, so the endpoint does its
+ * own authorization. `sourceConfig.rowsPath` names where the rows sit in the
+ * response (`results` by default; a bare array is taken as is). Every other
+ * key, the active tab's filter and the sidebar choices included, goes along
+ * as a query parameter. The manifest declares the columns.
+ *
+ * Without a `sourceConfig.url`, and when the page config itself arrived in
+ * its place (CnPageRenderer's fallback for a page that sets no
+ * `sourceConfig`, recognisable by its `entitySource` key), nothing is
+ * requested: page-config keys must never become query parameters. The list
+ * stays empty and one console error names the page.
+ *
+ * A quick filter with `showCount` is counted with `count(config)`: the same
+ * request with that tab's filter, its total read at `sourceConfig.totalPath`
+ * (`total` by default), else the number of rows the answer holds.
+ *
+ * Three more keys shape what the page says around the rows:
+ * - `searchParam`: the page's search box sends its term as this parameter
+ *   (`sender`), so the endpoint does the searching.
+ * - `notePath` and `noteText`: a value read off the answer (`filterOrder`) and
+ *   the sentence it is said in ("Filters run in this order: {order}", its one
+ *   placeholder taking the value); a list
+ *   is joined with commas. Shown above the rows.
+ * - `refusedText`: what a refused load (403) says when the endpoint gave no
+ *   `message` of its own. A refusal is not an empty list, so the page shows it
+ *   instead of the rows, and a failed load is not one either.
+ * - `searchFields`: the filters the endpoint takes, in the same shape a
+ *   registered source declares them (`{ status: { param: 'status', single:
+ *   true } }`), so a filter strip or sidebar on the page narrows the
+ *   endpoint's query.
+ * - `facets`: the values the endpoint counts in its answer, offered as a
+ *   picker after the search (`[{ field, path, label?, allLabel?, labels? }]`,
+ *   the answer holding `[{ value, count }]` at `path`). A choice is a page
+ *   filter on `field`, so `searchFields` must declare it.
+ *
+ * @param {object} [declared] The page's `sourceConfig`, for `searchParam` and `searchFields`.
+ * @param {object} [context] The page's helpers; `translate` is the app's catalogue.
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-endpoint-source/specs/index-page/spec.md#requirement-an-index-page-can-list-rows-from-an-app-endpoint
+ */
+function endpointSource(declared = {}, context = {}) {
+	const state = reactive({ rows: [], loading: false, refusal: '', failed: false, note: '', facets: {}, records: {}, recordErrors: {} })
+	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
+	const searchParam = typeof declared.searchParam === 'string' && declared.searchParam !== '' ? declared.searchParam : null
+	const searchFields = declared.searchFields && typeof declared.searchFields === 'object' && !Array.isArray(declared.searchFields) ? declared.searchFields : null
+	const facetDeclarations = Array.isArray(declared.facets)
+		? declared.facets.filter((facet) => facet && typeof facet.field === 'string' && facet.field !== '' && typeof facet.path === 'string' && facet.path !== '')
+		: []
+	let seq = 0
+	let warned = false
+	let recordConfig = null
+
+	/**
+	 * The declared facets read off an answer: `{ <field>: [{ value, count }] }`.
+	 *
+	 * @param {object} body The response body.
+	 * @return {object} The facets.
+	 */
+	const facetsOf = (body) => {
+		const facets = {}
+		for (const facet of facetDeclarations) {
+			const raw = body && typeof body === 'object' && !Array.isArray(body) ? readRowsPath(body, facet.path) : null
+			facets[facet.field] = Array.isArray(raw)
+				? raw.filter((entry) => entry && entry.value !== undefined && entry.value !== null && entry.value !== '')
+						.map((entry) => ({ value: String(entry.value), count: Number(entry.count) || 0 }))
+				: []
+		}
+		return facets
+	}
+
+	/**
+	 * The query parameters for a config: every key but the source's own
+	 * (`url`, the paths, the texts), empty values left out, a list joined by
+	 * commas.
+	 *
+	 * @param {object} config The config.
+	 * @return {object} The parameters.
+	 */
+	const paramsOf = (config) => {
+		const params = {}
+		for (const [key, value] of Object.entries(config)) {
+			if (ENDPOINT_SOURCE_KEYS.includes(key) || value === undefined || value === null || value === '') {
+				continue
+			}
+			params[key] = Array.isArray(value) ? value.join(',') : (typeof value === 'object' ? JSON.stringify(value) : value)
+		}
+		return params
+	}
+
+	/**
+	 * Whether a config can be requested: it names a url and is not the page
+	 * config handed over in its place.
+	 *
+	 * @param {object} config The config.
+	 * @return {boolean}
+	 */
+	const requestable = (config) => {
+		const url = config && config.url
+		return typeof url === 'string' && url !== '' && !Object.hasOwn(config, 'entitySource')
+	}
+
+	/**
+	 * The note read off an answer, in the page's sentence.
+	 *
+	 * @param {object} body The response body.
+	 * @param {string} [path] Where the value sits.
+	 * @param {string} [text] The sentence, with one `{placeholder}` where the value goes.
+	 * @return {string} The note, or '' when there is nothing to say.
+	 */
+	const noteOf = (body, path, text) => {
+		if (!path || !body || typeof body !== 'object' || Array.isArray(body)) {
+			return ''
+		}
+		const raw = readRowsPath(body, path)
+		const value = Array.isArray(raw) ? raw.filter((v) => v !== null && v !== undefined && v !== '').join(', ') : (raw === null || raw === undefined ? '' : String(raw))
+		if (value === '') {
+			return ''
+		}
+		return text ? translate(text).replace(/\{\w+\}/, value) : value
+	}
+
+	/**
+	 * The sentence a refused load is said in: the endpoint's own, else the
+	 * page's, else the library's.
+	 *
+	 * @param {object} body The refusal's body.
+	 * @param {string} [text] The page's `refusedText`.
+	 * @return {string} The sentence.
+	 */
+	const refusalOf = (body, text) => {
+		if (body && typeof body.message === 'string' && body.message.trim() !== '') {
+			return body.message
+		}
+		return text ? translate(text) : t('nextcloud-vue', 'You may not read this list.')
+	}
+
+	return {
+		/**
+		 * The parameter the page's search term is sent as, or null when this
+		 * endpoint takes no search.
+		 */
+		searchParam,
+
+		/**
+		 * The page filters this endpoint takes, and the parameter each becomes.
+		 */
+		searchFields,
+
+		/**
+		 * The facets the page offers as pickers, as declared.
+		 */
+		facetDeclarations,
+
+		/**
+		 * Fetch the rows.
+		 *
+		 * @param {object} config The page's source config with the tab filter merged in.
+		 * @return {Promise<void>} Resolves when loaded or refused; a failed request leaves no rows and rethrows.
+		 */
+		load: async (config) => {
+			const { url, rowsPath, notePath, noteText, refusedText } = config || {}
+			const mine = ++seq
+			if (!requestable(config)) {
+				state.rows = []
+				if (!warned) {
+					warned = true
+					const page = (config && (config.title || config.id)) || 'an index page'
+					// eslint-disable-next-line no-console
+					console.error(`[CnIndexPage] entitySource "endpoint" on "${page}" needs an explicit sourceConfig with a url (an app path such as /apps/<app>/api/<path>); nothing is loaded.`)
+				}
+				return
+			}
+			const params = paramsOf(config)
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const res = await axios.get(generateUrl(url), { params })
+				const body = res ? res.data : null
+				const rows = Array.isArray(body) ? body : readRowsPath(body, rowsPath || 'results')
+				if (mine === seq) {
+					state.rows = Array.isArray(rows) ? rows : []
+					state.refusal = ''
+					state.failed = false
+					state.note = noteOf(body, notePath, noteText)
+					state.facets = facetsOf(body)
+				}
+			} catch (error) {
+				if (mine !== seq) {
+					return
+				}
+				state.rows = []
+				state.note = ''
+				const refused = error && error.response && error.response.status === 403
+				state.refusal = refused ? refusalOf(error.response.data, refusedText) : ''
+				state.failed = !refused
+				if (!refused) {
+					throw error
+				}
+			} finally {
+				if (mine === seq) {
+					state.loading = false
+				}
+			}
+		},
+
+		/**
+		 * Count the rows for a config without touching the rows on screen, for
+		 * a quick-filter tab with `showCount`.
+		 *
+		 * @param {object} config The page's source config with the tab's filter merged in.
+		 * @return {Promise<number>} The total, or NaN when nothing can be requested.
+		 */
+		count: async (config) => {
+			if (!requestable(config)) {
+				return Number.NaN
+			}
+			const { url, rowsPath, totalPath } = config
+			const { default: axios } = await import('@nextcloud/axios')
+			const res = await axios.get(generateUrl(url), { params: paramsOf(config) })
+			const body = res ? res.data : null
+			const total = body && typeof body === 'object' && !Array.isArray(body) ? readRowsPath(body, totalPath || 'total') : undefined
+			if (typeof total === 'number' && Number.isFinite(total)) {
+				return total
+			}
+			const rows = Array.isArray(body) ? body : readRowsPath(body, rowsPath || 'results')
+			return Array.isArray(rows) ? rows.length : Number.NaN
+		},
+
+		/**
+		 * @return {Array<object>} The rows the endpoint returned.
+		 */
+		rows: () => state.rows,
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => state.loading,
+
+		/**
+		 * @return {string} The sentence the last load was refused with, or ''.
+		 */
+		refusal: () => state.refusal,
+
+		/**
+		 * @return {boolean} Whether the last load failed for another reason than a refusal.
+		 */
+		failed: () => state.failed,
+
+		/**
+		 * @return {string} The note read off the last answer, or ''.
+		 */
+		note: () => state.note,
+
+		/**
+		 * @return {object} The declared facets of the last answer, `{ <field>: [{ value, count }] }`.
+		 */
+		facets: () => state.facets,
+
+		/**
+		 * Take the detail page's source config: `url` names one record, with
+		 * `{id}` for the record id (`/apps/pipelinq/api/audit/{id}`),
+		 * `recordPath` where the record sits in the answer (the whole answer
+		 * by default), and `attach`, other parts of the answer put on the
+		 * record (`{ messages: 'messages' }`).
+		 *
+		 * @param {object|null} config The detail page's `sourceConfig`.
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
+		 */
+		configure: (config) => {
+			recordConfig = config && typeof config === 'object' ? config : null
+		},
+
+		/**
+		 * Read one record for a detail page from `sourceConfig.url`.
+		 *
+		 * @param {string} id The record id.
+		 * @return {Promise<object|null>} The record, or null when it could not be read.
+		 * @spec openspec/changes/detail-endpoint-source/specs/detail-page/spec.md#requirement-a-detail-page-can-read-its-record-from-an-app-endpoint
+		 */
+		loadRecord: async (id) => {
+			const key = String(id)
+			const template = recordConfig && typeof recordConfig.url === 'string' ? recordConfig.url : ''
+			if (template === '' || !template.includes('{id}')) {
+				// eslint-disable-next-line no-console
+				console.error('[CnDetailPage] entitySource "endpoint" needs a sourceConfig url with {id}; no record is read.')
+				state.recordErrors = { ...state.recordErrors, [key]: 404 }
+				return null
+			}
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const res = await axios.get(generateUrl(template.replace(/\{id\}/g, encodeURIComponent(key))))
+				const body = res ? res.data : null
+				const found = recordConfig.recordPath ? readRowsPath(body, recordConfig.recordPath) : body
+				if (!found || typeof found !== 'object' || Array.isArray(found)) {
+					state.recordErrors = { ...state.recordErrors, [key]: 404 }
+					return null
+				}
+				const record = { ...found, ...attachedParts(body, recordConfig.attach) }
+				state.records = { ...state.records, [key]: record }
+				const { [key]: dropped, ...rest } = state.recordErrors
+				state.recordErrors = rest
+				return record
+			} catch (error) {
+				state.recordErrors = { ...state.recordErrors, [key]: error?.response?.status ?? 500 }
+				return null
+			} finally {
+				state.loading = false
+			}
+		},
+
+		/**
+		 * @param {string} id The record id.
+		 * @return {object|null} The record read for this id, or null.
+		 */
+		record: (id) => state.records[String(id)] ?? null,
+
+		/**
+		 * @param {string} id The record id.
+		 * @return {number|null} The HTTP status of a failed read of this id, or null.
+		 */
+		recordError: (id) => state.recordErrors[String(id)] ?? null,
+	}
+}
+
+/**
+ * Fill `{field}` placeholders in a link template from a row.
+ *
+ * @param {string} template A path such as `/apps/dossiq/cases/{id}`.
+ * @param {object} row The row.
+ * @return {string} The path.
+ */
+function fillRowTemplate(template, row) {
+	return String(template).replace(/\{([\w.@]+)\}/g, (match, path) => {
+		const value = readPath(row, path)
+		return value === undefined || value === null ? '' : encodeURIComponent(String(value))
+	})
+}
+
+/**
+ * The search source: one search term over several OpenRegister schemas and
+ * the reader's files (`entitySource: "search"`), with a quick filter per kind
+ * and its count (DqZoekresultaten).
+ *
+ * `sourceConfig.kinds` lists what is searched:
+ * `{ id, label, register, schema, titleField?, subtitleField?, subtitleTemplate?, statusField?, statusResolve?, linkedField?, linkedTemplate?, linkedUser?, href?, limit? }`
+ * for objects (OpenRegister's `_search`, so the reader sees what they may
+ * read), or `{ id, label, files: true, limit? }` for the reader's files
+ * (Nextcloud's unified search). The term is `sourceConfig.term`, else the
+ * address's `?q=` (or `sourceConfig.termQuery`). A kind that fails shows no
+ * rows and no count; the others still answer.
+ *
+ * The kind's `label` goes through the app's translate (the "Soort" cell and
+ * the quick filters). `statusResolve: { register?, schema, labelField? }`
+ * reads `statusField` as a reference and shows the referenced object's label
+ * (`labelField`, else `title`, then `name`); the status column is a pill,
+ * coloured by `sourceConfig.statusColorMap`. `linkedTemplate` (a field
+ * template, "{case.title}") or `linkedField` (a path) fills the "Linked"
+ * column, drawn when a kind declares one; `sourceConfig.linkedLabel` names it.
+ * `subtitleTemplate` ("Case {identifier}", translated) fills the line under a
+ * result, else `subtitleField`; `subtitleResolve` (`{ field, schema, labelField,
+ * as }`) names a referenced object for it as `{as}`. `sourceConfig.titleWrap`
+ * wraps a long result title instead of cutting it.
+ * `linkedUser: true` reads that value as a user id and shows the user's
+ * display name. `sourceConfig.columnWidths` sets a width per column key.
+ * The page's title and count line can name the term as `{term}`, and the
+ * count is the active kind's total. Kind, link and status are filterable.
+ *
+ * @param {object} [config] The page's source config.
+ * @param {object} [context] The page's helpers.
+ * @param {Function} [context.translate] The app's translate.
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-search-source/specs/index-page/spec.md#requirement-an-index-page-can-search-several-schemas-and-files
+ */
+/**
+ * Columns with the widths a page names per column key
+ * (`sourceConfig.columnWidths`, `{ title: '250px' }`); a column it does not
+ * name keeps none.
+ *
+ * @param {Array<object>} columns The columns.
+ * @param {object|undefined} widths The widths by key.
+ * @return {Array<object>} The columns.
+ * @spec openspec/changes/search-linked-user-and-widths/specs/search-linked-user-and-widths/spec.md
+ */
+function withColumnWidths(columns, widths) {
+	if (!widths || typeof widths !== 'object') {
+		return columns
+	}
+	return columns.map((col) => (typeof widths[col.key] === 'string' && widths[col.key] !== '' ? { ...col, width: widths[col.key] } : col))
+}
+
+function searchSource(config = {}, context = {}) {
+	const translate = typeof context.translate === 'function' ? context.translate : (text) => text
+	const kinds = (Array.isArray(config && config.kinds) ? config.kinds : [])
+		.filter((kind) => kind && typeof kind.id === 'string' && kind.id !== '' && (kind.files === true || (kind.register && kind.schema)))
+		.map((kind) => ({ ...kind, label: translate(String(kind.label || kind.id)) }))
+	const hasLinked = kinds.some((kind) => kind.linkedTemplate || kind.linkedField)
+	// The All tab in the app's word when it has one ("Alles" in dossiq, as its
+	// other lists say), else the library's.
+	const allLabel = () => {
+		const own = translate('All')
+		return own !== 'All' ? own : t('nextcloud-vue', 'All')
+	}
+	const state = reactive({ rows: [], totals: {}, loading: false, kind: 'all', term: '', filters: {} })
+	let seq = 0
+	// Once the page's search box has sent a term, an empty box means no term,
+	// not the address's `?q=` again.
+	let boxUsed = false
+	const addressTerm = () => {
+		const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+		return String((query && query.get((config && config.termQuery) || 'q')) || '').trim()
+	}
+
+	/**
+	 * The labels of the objects a kind's status points at, by id: the
+	 * referenced schema read once per search.
+	 *
+	 * @param {object} kind The kind with `statusResolve`.
+	 * @return {Promise<Map<string, string>>} Labels by id; empty when it cannot be read.
+	 */
+	const statusLabels = async (kind) => {
+		const resolve = kind.statusResolve
+		if (!resolve || !resolve.schema) {
+			return new Map()
+		}
+		const objects = await fetchReferenceObjects({ register: resolve.register || kind.register, schema: resolve.schema }).catch(() => [])
+		const labels = new Map()
+		for (const object of objects) {
+			const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+			const label = readPath(object, resolve.labelField || 'title') ?? object.name
+			if (id !== undefined && label !== undefined && label !== null) {
+				labels.set(String(id), String(label))
+			}
+		}
+		return labels
+	}
+
+	/**
+	 * What a row shows in the Linked column.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object.
+	 * @return {string}
+	 */
+	/**
+	 * What one row is, for the Kind column under `kindAsText`: the kind's
+	 * `rowLabel` (a template on the found object, "{objectType}"), else the
+	 * kind's label.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object or file entry.
+	 * @return {string}
+	 */
+	const kindTextOf = (kind, object) => {
+		if (typeof kind.rowLabel === 'string' && kind.rowLabel !== '') {
+			const label = translate(kind.rowLabel)
+			return kind.rowLabel.includes('{') ? (fillTemplate(label, object || {}) || kind.label) : label
+		}
+		return kind.label
+	}
+
+	/**
+	 * What a row shows in the Linked column.
+	 *
+	 * @param {object} kind The row's kind.
+	 * @param {object} object The found object.
+	 * @return {string}
+	 */
+	const linkedOf = (kind, object) => {
+		if (kind.linkedTemplate) {
+			return fillTemplate(translate(kind.linkedTemplate), object)
+		}
+		if (kind.linkedField) {
+			const value = readPath(object, kind.linkedField)
+			return value === undefined || value === null ? '' : String(value)
+		}
+		return ''
+	}
+
+	// `subtitleResolve`: `{ field, schema, register?, labelField?, as }` names
+	// the object a reference points at, for the subtitle template as `{as}`.
+	const subtitleLabels = async (kind) => {
+		const resolve = kind.subtitleResolve
+		if (!resolve || !resolve.schema || !resolve.field) {
+			return null
+		}
+		const objects = await fetchReferenceObjects({ register: resolve.register || kind.register, schema: resolve.schema }).catch(() => [])
+		const labels = new Map()
+		for (const object of objects) {
+			const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+			const label = readPath(object, resolve.labelField || 'title') ?? object.name
+			if (id !== undefined && label !== undefined && label !== null) {
+				labels.set(String(id), String(label))
+			}
+		}
+		return labels
+	}
+
+	const subtitleOf = (kind, object, labels = null) => {
+		if (kind.subtitleTemplate) {
+			const resolve = kind.subtitleResolve
+			const data = labels && resolve
+				? { ...object, [resolve.as || resolve.field]: labels.get(String(readPath(object, resolve.field) ?? '')) ?? '' }
+				: object
+			return fillTemplate(translate(kind.subtitleTemplate), data)
+		}
+		return kind.subtitleField ? String(readPath(object, kind.subtitleField) ?? '') : ''
+	}
+
+	// `linkedUser`: the Linked cell holds a user id; name the user instead.
+	const linkedUserNames = async (kind, objects) => {
+		const ids = [...new Set(objects.map((object) => linkedOf(kind, object)).filter((id) => id !== ''))]
+		const options = await Promise.all(ids.map((id) => resolveNextcloudUser(id).catch(() => null)))
+		return new Map(ids.map((id, index) => [id, (options[index] && options[index].label) || id]))
+	}
+
+	const searchObjects = async (axios, kind, term) => {
+		const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: kind.register, schema: kind.schema })
+		const res = await axios.get(url, { params: { _search: term, _limit: kind.limit || 20 } })
+		const body = (res && res.data) || {}
+		const results = Array.isArray(body.results) ? body.results : (Array.isArray(body) ? body : [])
+		const labels = kind.statusResolve && kind.statusField ? await statusLabels(kind) : null
+		const userNames = kind.linkedUser === true ? await linkedUserNames(kind, results) : null
+		const subtitleNames = await subtitleLabels(kind)
+		return {
+			total: typeof body.total === 'number' ? body.total : results.length,
+			rows: results.map((object) => {
+				const id = object.id || object.uuid || (object['@self'] && object['@self'].id)
+				const rawStatus = kind.statusField ? readPath(object, kind.statusField) : undefined
+				const status = rawStatus === undefined || rawStatus === null
+					? ''
+					: (labels ? (labels.get(String(rawStatus)) || '') : String(rawStatus))
+				return {
+					id: `${kind.id}:${id}`,
+					kind: kind.id,
+					kindLabel: kind.label,
+					kindText: kindTextOf(kind, object),
+					title: String(readPath(object, kind.titleField || 'title') ?? object.name ?? id ?? ''),
+					subtitle: subtitleOf(kind, object, subtitleNames),
+					status,
+					linked: userNames ? (userNames.get(linkedOf(kind, object)) || linkedOf(kind, object)) : linkedOf(kind, object),
+					href: kind.href ? generateUrl(fillRowTemplate(kind.href, { ...object, id })) : '',
+					object,
+				}
+			}),
+		}
+	}
+
+	const searchFiles = async (axios, kind, term) => {
+		const res = await axios.get(generateOcsUrl('search/providers/files/search'), {
+			params: { term, limit: kind.limit || 20, format: 'json' },
+			headers: { 'OCS-APIRequest': 'true' },
+		})
+		const entries = (res && res.data && res.data.ocs && res.data.ocs.data && res.data.ocs.data.entries) || []
+		return {
+			total: entries.length,
+			rows: entries.map((entry, index) => ({
+				id: `${kind.id}:${entry.resourceUrl || index}`,
+				kind: kind.id,
+				kindLabel: kind.label,
+				kindText: kindTextOf(kind, entry),
+				title: entry.title || '',
+				subtitle: entry.subline || '',
+				status: '',
+				linked: '',
+				href: entry.resourceUrl || '',
+			})),
+		}
+	}
+
+	return {
+		/**
+		 * Run the search over every kind, in parallel.
+		 *
+		 * @param {object} cfg The page's source config with the active tab's `kind` merged in.
+		 * @return {Promise<void>} Resolves when every kind answered or failed.
+		 */
+		load: async (cfg) => {
+			state.kind = cfg && typeof cfg.kind === 'string' ? cfg.kind : 'all'
+			// The header filters on Kind, Linked and Status narrow the answer
+			// already fetched; they do not search again.
+			const filters = {}
+			for (const key of ['kindLabel', 'kindText', 'linked', 'status']) {
+				const value = cfg && cfg[key]
+				const values = (Array.isArray(value) ? value : (value === undefined || value === null || value === '' ? [] : [value])).map(String)
+				if (values.length > 0) {
+					filters[key] = values
+				}
+			}
+			state.filters = filters
+			const typed = cfg && typeof cfg.searchTerm === 'string' ? cfg.searchTerm.trim() : ''
+			boxUsed = boxUsed || typed !== ''
+			const term = typed || (boxUsed ? '' : String((cfg && cfg.term) || addressTerm()).trim())
+			const mine = ++seq
+			state.term = term
+			if (term === '' || kinds.length === 0) {
+				state.rows = []
+				state.totals = {}
+				return
+			}
+			state.loading = true
+			const { default: axios } = await import('@nextcloud/axios')
+			const answers = await Promise.all(kinds.map((kind) => (kind.files === true ? searchFiles(axios, kind, term) : searchObjects(axios, kind, term)).catch(() => null)))
+			if (mine !== seq) {
+				return
+			}
+			const totals = {}
+			const rows = []
+			answers.forEach((answer, index) => {
+				if (answer) {
+					totals[kinds[index].id] = answer.total
+					rows.push(...answer.rows)
+				}
+			})
+			state.totals = totals
+			state.rows = rows
+			state.loading = false
+		},
+
+		/**
+		 * @return {Array<object>} The results of the active kind, or all of them.
+		 */
+		rows: () => (state.kind === 'all' ? state.rows : state.rows.filter((row) => row.kind === state.kind))
+			.filter((row) => Object.entries(state.filters).every(([key, values]) => values.includes(String(row[key])))),
+
+		/**
+		 * @return {string} The term searched for, for a `{term}` in the title or count line.
+		 */
+		term: () => state.term,
+
+		// The page's search box searches again, and starts out holding the
+		// term from the address; the term shows as a removable chip.
+		searchParam: 'searchTerm',
+		initialSearch: () => String((config && config.term) || addressTerm()).trim(),
+		searchChip: true,
+
+		/**
+		 * @return {number} The active kind's total, or every kind's together on All.
+		 */
+		total: () => (state.kind === 'all'
+			? Object.values(state.totals).reduce((sum, value) => sum + value, 0)
+			: (state.totals[state.kind] || 0)),
+
+		/**
+		 * @return {boolean} Whether a search is in flight.
+		 */
+		loading: () => state.loading,
+
+		columns: withColumnWidths([
+			{ key: 'title', label: t('nextcloud-vue', 'Result'), secondary: 'subtitle', sortable: true, ...(config && config.titleWrap === true ? { cellClass: 'cn-cell--wrap' } : {}) },
+			// `kindAsText`: what one row is, as plain text ("Zaak", "Lantaarnpaal",
+			// DqZoekresultaten), instead of the plural kind as a pill.
+			config && config.kindAsText === true
+				? { key: 'kindText', label: t('nextcloud-vue', 'Kind'), sortable: true }
+				: { key: 'kindLabel', label: t('nextcloud-vue', 'Kind'), enum: kinds.map((kind) => kind.label), sortable: true },
+			...(hasLinked ? [{ key: 'linked', label: config.linkedLabel ? translate(config.linkedLabel) : t('nextcloud-vue', 'Linked'), sortable: true }] : []),
+			{
+				key: 'status',
+				label: t('nextcloud-vue', 'Status'),
+				widget: 'badge',
+				widgetProps: { colorMap: (config && config.statusColorMap) || {} },
+				sortable: true,
+			},
+		], config && config.columnWidths),
+
+		/**
+		 * Every column header carries a filter button (DqZoekresultaten); the
+		 * filters narrow the answer already fetched (`load`).
+		 */
+		headerFilters: true,
+
+		/**
+		 * The page orders the rows a header asks for: the answer is one fetch,
+		 * so there is nothing to ask the servers again.
+		 */
+		sortsRows: true,
+
+		quickFilters: kinds.length > 0
+			? [
+					{ label: allLabel(), filter: { kind: 'all' }, default: true },
+					...kinds.map((kind) => ({ label: kind.label || kind.id, filter: { kind: kind.id } })),
+				]
+			: null,
+
+		/**
+		 * The number on each kind's quick filter: the total each search
+		 * reported, and their sum on All.
+		 *
+		 * @return {Record<number, number>} The counts by tab index.
+		 */
+		tabCounts: () => {
+			const counts = { 0: Object.values(state.totals).reduce((sum, value) => sum + value, 0) }
+			kinds.forEach((kind, index) => {
+				if (typeof state.totals[kind.id] === 'number') {
+					counts[index + 1] = state.totals[kind.id]
+				}
+			})
+			return counts
+		},
+
+		/**
+		 * Open a result where it lives.
+		 *
+		 * @param {object} row The clicked row.
+		 * @return {void}
+		 */
+		openRow: (row) => {
+			if (row && row.href) {
+				window.location.assign(row.href)
+			}
+		},
+
+		/**
+		 * @param {object} row A row.
+		 * @return {string|null} The URL the row opens, for a new tab.
+		 */
+		rowTarget: (row) => (row && row.href) || null,
+	}
+}
+
+/**
+ * The members that match a search, in the asked order, and the page of them
+ * the pager asks for.
+ *
+ * @param {Array<object>} members The members, by name.
+ * @param {object} config `search`, `nameLike`, `rolesLike`, `emailLike`, `today`, `sortKey`, `sortOrder`, `limit`, `offset`.
+ * @return {{rows: Array<object>, total: number}} The page and how many match.
+ */
+function membersPage(members, config = {}) {
+	const has = (member, fields, text) => fields.some((field) => String(member[field] || '').toLowerCase().includes(text))
+	const term = String(config.search || '').trim().toLowerCase()
+	let rows = term === '' ? members.slice() : members.filter((member) => has(member, ['displayname', 'function', 'roles', 'email'], term))
+	// The table heads' filters: text contains, and the Today values picked.
+	for (const [param, fields] of [['nameLike', ['displayname', 'function']], ['rolesLike', ['roles']], ['emailLike', ['email']]]) {
+		const text = String(config[param] || '').trim().toLowerCase()
+		if (text !== '') {
+			rows = rows.filter((member) => has(member, fields, text))
+		}
+	}
+	const today = (Array.isArray(config.today) ? config.today : (config.today ? [config.today] : [])).map(String)
+	if (today.length > 0) {
+		rows = rows.filter((member) => today.includes(member.today))
+	}
+	if (config.sortKey) {
+		const sign = config.sortOrder === 'desc' ? -1 : 1
+		rows = rows.sort((a, b) => sign * String(a[config.sortKey] ?? '').localeCompare(String(b[config.sortKey] ?? '')))
+	}
+	const total = rows.length
+	const limit = Number(config.limit) || 0
+	if (limit > 0) {
+		const offset = Number(config.offset) || 0
+		rows = rows.slice(offset, offset + limit)
+	}
+	return { rows, total }
+}
+
+/**
+ * The users source: the members of a Nextcloud group, with their function,
+ * roles, e-mail and whether they are in today (`entitySource: "users"`,
+ * DqAfdelingen). Pair it with `folderSidebar: { source: 'groups',
+ * filterField: 'group' }`, which lists the groups as the folder tree; the
+ * selected group arrives as `group`. `sourceConfig.group` is the group shown
+ * before one is picked; without one, All lists every user the reader may
+ * list (all users for an admin, their groups' users for a sub-admin).
+ *
+ * Today is the dav app's out-of-office period when one runs now ("Absent
+ * until 14 Oct"), else the user status (present, away) and its message. The
+ * function is the profile `headline`, the roles the profile `role`, unless
+ * `sourceConfig.functionField` / `rolesField` name other user fields.
+ * Listing a group needs an admin or the group's sub-admin; a refused request
+ * leaves the list empty.
+ *
+ * The page gets a pager (`pages`), and the search term and the header's order
+ * come as `search` and `sortKey` / `sortOrder`: the group's members are read
+ * once and searched, sorted and paged here, so a new page, term or order does
+ * not read every member's presence again.
+ *
+ * @return {object} The source adapter.
+ * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+ */
+function usersSource() {
+	const state = reactive({ rows: [], loading: false, total: 0 })
+	let seq = 0
+	// The members last read, for the group and request they were read for.
+	let readMembers = []
+	let membersKey = null
+	const presenceLabels = {
+		present: t('nextcloud-vue', 'Present'),
+		away: t('nextcloud-vue', 'Away'),
+	}
+	const presenceColors = {
+		[presenceLabels.present]: 'success',
+		[presenceLabels.away]: 'info',
+	}
+
+	return {
+		/**
+		 * Load the group's members and their presence.
+		 *
+		 * @param {object} config The page's source config with the picked `group`.
+		 * @return {Promise<void>} Resolves when loaded.
+		 */
+		load: async (config) => {
+			const group = String((config && (config.group || config.defaultGroup)) || '')
+			const { search, sortKey, sortOrder, limit, offset, nameLike, rolesLike, emailLike, today, ...request } = config || {}
+			const key = JSON.stringify({ ...request, group })
+			const narrows = [offset, search, sortKey, nameLike, rolesLike, emailLike, today].some((value) => value !== undefined)
+			// A new page, term, order or head filter of the members already read: no request.
+			if (key === membersKey && narrows) {
+				const page = membersPage(readMembers, config)
+				state.rows = page.rows
+				state.total = page.total
+				return
+			}
+			const mine = ++seq
+			state.loading = true
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				const [members, statuses] = await Promise.all([
+					group === '' ? fetchUsers(axios, { limit: (config && config.limit) || 500 }) : fetchGroupMembers(axios, group),
+					fetchStatuses(axios),
+				])
+				const functionField = (config && config.functionField) || 'headline'
+				const rolesField = (config && config.rolesField) || 'role'
+				const rows = await Promise.all(members.map(async (user) => {
+					const presence = await fetchPresence(axios, user.id, statuses[user.id] || null)
+					let today = ''
+					if (presence.state === 'absent') {
+						const until = presence.until ? new Date(`${presence.until}T12:00:00`) : null
+						today = until
+							? t('nextcloud-vue', 'Absent until {date}', { date: until.toLocaleDateString(getCanonicalLocale() || undefined, { day: 'numeric', month: 'short' }) })
+							: t('nextcloud-vue', 'Absent')
+						// An absence reads as a warning; any other line (a status
+						// message such as "Buiten") as information, as the boards draw it.
+						presenceColors[today] = 'warning'
+					} else if (presence.message) {
+						today = presence.message
+					} else if (presenceLabels[presence.state]) {
+						today = presenceLabels[presence.state]
+					}
+					return {
+						id: user.id,
+						displayname: user.displayname || user['display-name'] || user.id,
+						function: String(user[functionField] || ''),
+						roles: String(user[rolesField] || ''),
+						email: user.email || '',
+						today,
+						presence: presence.state,
+					}
+				}))
+				if (mine === seq) {
+					readMembers = rows.sort((a, b) => a.displayname.localeCompare(b.displayname))
+					membersKey = key
+					const page = membersPage(readMembers, config)
+					state.rows = page.rows
+					state.total = page.total
+				}
+			} catch (error) {
+				if (mine === seq) {
+					readMembers = []
+					membersKey = null
+					state.rows = []
+					state.total = 0
+				}
+				throw error
+			} finally {
+				if (mine === seq) {
+					state.loading = false
+				}
+			}
+		},
+
+		/**
+		 * @return {Array<object>} The members on this page.
+		 */
+		rows: () => state.rows,
+
+		pages: true,
+
+		/**
+		 * @return {number} The members that match, on every page.
+		 */
+		total: () => state.total,
+
+		searchParam: 'search',
+
+		/**
+		 * @param {string} key The column.
+		 * @param {string} order `asc` or `desc`.
+		 * @return {object} The load arguments.
+		 */
+		sortParam: (key, order) => ({ sortKey: key, sortOrder: order }),
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => state.loading,
+
+		columns: [
+			{ key: 'displayname', label: t('nextcloud-vue', 'Employee'), secondary: 'function', sortable: true, cellClass: 'cn-cell--lead' },
+			{ key: 'roles', label: t('nextcloud-vue', 'Roles'), sortable: true },
+			{ key: 'email', label: t('nextcloud-vue', 'E-mail'), sortable: true },
+			{ key: 'today', label: t('nextcloud-vue', 'Today'), widget: 'badge', widgetProps: { colorMap: presenceColors, variant: 'info' }, sortable: true },
+		],
+
+		searchFields: {
+			group: { param: 'group', single: true },
+			'displayname[like]': { param: 'nameLike', single: true },
+			'roles[like]': { param: 'rolesLike', single: true },
+			'email[like]': { param: 'emailLike', single: true },
+			today: { param: 'today' },
+		},
+
+		/** A filter button on every head (DqAfdelingen); the members read are narrowed here. */
+		headerFilters: true,
+
+		/**
+		 * A member's row menu (DqAfdelingen): their Nextcloud profile, and an
+		 * e-mail when they have an address. Both are links.
+		 */
+		rowActions: [
+			{ id: 'open-profile', label: t('nextcloud-vue', 'Open profile'), icon: AccountOutline, href: (row) => generateUrl(`/u/${encodeURIComponent(row.id)}`) },
+			{ id: 'send-email', label: t('nextcloud-vue', 'Send email'), icon: EmailOutline, href: (row) => `mailto:${row.email}`, visible: (row) => Boolean(row && row.email) },
+		],
+
+		showAdd: false,
+	}
+}
+
+/**
+ * The organisations source: OpenRegister organisations, which are not
+ * register/schema objects.
+ *
+ * The list is the viewer's own organisations and the single read refuses an
+ * organisation the viewer has no access to; both are decided by OpenRegister
+ * from the session. The adapter forwards nothing that could widen that.
+ *
+ * It is a RECORD source as well (`loadRecord` + `record`), so a
+ * `type: "detail"` page with the same `entitySource` shows one organisation
+ * with the header, pills, facts and `@objectId` / `@object.*` tokens an object
+ * page has.
+ *
+ * @return {object} The source adapter.
+ * @spec openspec/changes/organisations-entity-source/specs/organisations-entity-source/spec.md
+ */
+function organisationsSource() {
+	const store = useOrganisationStore()
+
+	const statusLabels = {
+		provisioning: t('nextcloud-vue', 'Provisioning'),
+		active: t('nextcloud-vue', 'Active'),
+		suspended: t('nextcloud-vue', 'Suspended'),
+		deprovisioning: t('nextcloud-vue', 'Deprovisioning'),
+		archived: t('nextcloud-vue', 'Archived'),
+		retained: t('nextcloud-vue', 'Retained'),
+	}
+
+	return {
+		store,
+
+		/**
+		 * Load the viewer's organisations. The endpoint takes no parameters.
+		 *
+		 * @return {Promise<void>} Resolves when loaded.
+		 */
+		load: () => store.load(),
+
+		/**
+		 * @return {Array<object>} The rows, keyed on the organisation uuid.
+		 */
+		rows: () => (store.organisations || []).map(organisationRecord),
+
+		/**
+		 * @return {boolean} Whether a load is in flight.
+		 */
+		loading: () => !!store.loading,
+
+		/**
+		 * Read one organisation for a detail page.
+		 *
+		 * @param {string} id The organisation uuid.
+		 * @return {Promise<object|null>} The organisation, or null when it could not be read.
+		 */
+		loadRecord: (id) => store.fetchRecord(id),
+
+		/**
+		 * @param {string} id The organisation uuid.
+		 * @return {object|null} The organisation read for this id, keyed on its uuid, or null.
+		 */
+		record: (id) => {
+			const organisation = store.records?.[String(id)]
+			return organisation ? organisationRecord(organisation) : null
+		},
+
+		/**
+		 * @param {string} id The organisation uuid.
+		 * @return {number|null} The HTTP status of a failed read of this id, or null.
+		 */
+		recordError: (id) => store.recordErrors?.[String(id)] ?? null,
+
+		columns: [
+			{ key: 'name', label: t('nextcloud-vue', 'Name') },
+			{
+				key: 'status',
+				label: t('nextcloud-vue', 'Status'),
+				enum: Object.keys(statusLabels),
+				enumLabels: statusLabels,
+				colorMap: { active: 'success', provisioning: 'info', suspended: 'warning', deprovisioning: 'error', archived: 'default', retained: 'default' },
+			},
+			{ key: 'type', label: t('nextcloud-vue', 'Type') },
+			{ key: 'created', label: t('nextcloud-vue', 'Created'), type: 'string', format: 'date-time' },
+		],
+
+		// Creating an organisation is not the index's object form, and
+		// OpenRegister has no delete for one, so neither action is offered.
+		showAdd: false,
+		title: t('nextcloud-vue', 'Organisations'),
+	}
+}
+
+/**
  * The registered sources, by the name a manifest uses.
  *
  * @type {Record<string, () => object>}
  */
+export { flowRunStatuses }
+
 export const indexSources = {
 	flows: flowsSource,
+	flowRuns: flowRunsSource,
 	tasks: tasksSource,
+	endpoint: endpointSource,
+	search: searchSource,
+	users: usersSource,
+	organisations: organisationsSource,
 }
 
 /**
@@ -353,10 +1939,12 @@ export const indexSources = {
  * indistinguishable from a source that genuinely has no rows.
  *
  * @param {string} name The source name from `config.source`.
+ * @param {object} [config] The page's source config, for a source that builds its tabs from it.
+ * @param {object} [context] The page's helpers a source may use, such as `translate` (the app's catalogue).
  *
  * @return {object|null} The adapter, or null when the name is not registered.
  */
-export function resolveIndexSource(name) {
+export function resolveIndexSource(name, config, context) {
 	const key = String(name || '')
 	if (!key) {
 		return null
@@ -369,5 +1957,33 @@ export function resolveIndexSource(name) {
 		return null
 	}
 
-	return factory()
+	return factory(config || {}, context || {})
+}
+
+/**
+ * Resolve a named source for ONE record, for a `type: "detail"` page.
+ *
+ * The same registry as the index: a source that can also read a single record
+ * supplies `loadRecord(id)` and `record(id)`, and the detail page names it with
+ * the same `entitySource`. A name that is unknown, or a source that cannot read
+ * one record, resolves to null with a console warning, and the page shows no
+ * record rather than the wrong one.
+ *
+ * @param {string} name The source name from `config.entitySource`.
+ * @return {object|null} The adapter, or null.
+ * @spec openspec/changes/organisations-entity-source/specs/organisations-entity-source/spec.md
+ */
+export function resolveRecordSource(name) {
+	const key = String(name || '')
+	if (!key) {
+		return null
+	}
+	const factory = indexSources[key]
+	const source = typeof factory === 'function' ? factory() : null
+	if (!source || typeof source.loadRecord !== 'function' || typeof source.record !== 'function') {
+		// eslint-disable-next-line no-console
+		console.warn(`[CnDetailPage] entitySource "${key}" is not a source that reads one record. The page shows no record.`)
+		return null
+	}
+	return source
 }

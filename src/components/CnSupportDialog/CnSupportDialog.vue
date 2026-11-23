@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		class="cn-support-dialog"
@@ -78,8 +83,10 @@
 					:key="button.id"
 					:variant="button.variant"
 					wide
+					:href="button.url || undefined"
+					target="_blank"
 					:data-testid="`cn-support-dialog-${button.id}`"
-					@click="openAction(button.id, button.url)">
+					@click="openAction(button.id, button.url, $event)">
 					<template #icon>
 						<CnIcon v-if="button.iconName" :name="button.iconName" :size="20" />
 						<component :is="button.iconComponent" v-else :size="20" />
@@ -88,7 +95,7 @@
 				</NcButton>
 			</div>
 		</div>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
@@ -122,12 +129,14 @@
  * sidebar container).
  */
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 import BriefcaseOutline from 'vue-material-design-icons/BriefcaseOutline.vue'
 import HandHeart from 'vue-material-design-icons/HandHeart.vue'
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { ensureCaveatFontFace } from './assets/caveatFontFace.js'
 import { DEFAULT_FOUNDER_AVATAR } from './assets/founderAvatar.js'
 
@@ -143,7 +152,7 @@ export default {
 	name: 'CnSupportDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		CnIcon,
 		HandHeart,
@@ -151,6 +160,8 @@ export default {
 		Star,
 		BriefcaseOutline,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/**
@@ -421,24 +432,23 @@ export default {
 
 	methods: {
 		/**
-		 * Open `url` in a new tab and notify listeners.
+		 * Notify listeners of a CTA click. The CTA is a real link to `url`
+		 * (new tab), which the browser follows after this handler.
 		 *
 		 * @param {string} action Stable identifier — one of
 		 *                        `feature-request`, `app-store`, `donate`,
 		 *                        `support`.
 		 * @param {string} url    URL the CTA points at.
+		 * @param {MouseEvent} [event] The native click event.
 		 */
-		openAction(action, url) {
-			if (url) {
-				window.open(url, '_blank', 'noopener,noreferrer')
-			}
+		openAction(action, url, event) {
 			/**
-			 * @event action Fired alongside the native `window.open` call on
-			 *   each CTA click. Useful for analytics or to short-circuit the
-			 *   default open-in-new-tab behaviour from a parent listener.
-			 * @type {{action: string, url: string}}
+			 * @event action Fired on each CTA click, before the browser opens
+			 *   the link in a new tab. Useful for analytics; a listener that
+			 *   calls `event.preventDefault()` cancels the navigation.
+			 * @type {{action: string, url: string, event: MouseEvent}}
 			 */
-			this.$emit('action', { action, url })
+			this.$emit('action', { action, url, event })
 		},
 
 		onClose() {

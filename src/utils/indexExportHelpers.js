@@ -26,12 +26,13 @@ import { buildQueryString, prefixUrl } from './headers.js'
  *
  * @param {string} register The register slug.
  * @param {string} schema The schema slug.
- * @param {object} [routeQuery] The current route's query params (filters) to pass through.
+ * @param {object} [routeQuery] The query the list sends (`useListView`'s params) or the current route's query params. The paging parameters `_limit` and `_page` are always dropped: an export is the whole list, not its page.
  * @param {'csv'|'excel'} format The requested export format.
  * @return {string} The webroot-prefixed export URL, ready for `window.location.assign()`.
  */
 export function buildExportUrl(register, schema, routeQuery, format) {
 	const base = `/apps/openregister/api/objects/${register}/${schema}/export`
-	const params = { format, ...(routeQuery || {}) }
+	const { _limit, _page, ...rest } = routeQuery || {}
+	const params = { format, ...rest }
 	return prefixUrl(base) + buildQueryString(params)
 }

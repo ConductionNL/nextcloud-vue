@@ -40,6 +40,10 @@ Manifest-driven map page. Resolved automatically by `CnPageRenderer` for `pages[
 }
 ```
 
+## Image maps
+
+`config.layers` accepts a layer `{ "type": "image", "url", "width", "height" }`, which turns the page into a picture in flat pixel coordinates (markers read `config.markers.xField` / `yField`, and `@click` carries `{ x, y }`). See [`CnMapWidget`](./cn-map-widget.md#image-maps). The manifest schema requires `width` and `height` on an image layer.
+
 ## Slots
 
 | Slot       | Scope                          | Purpose                                                        |
@@ -56,3 +60,7 @@ Manifest-driven map page. Resolved automatically by `CnPageRenderer` for `pages[
 ## Reference
 
 <GeneratedRef />
+
+## The reader's position
+
+`showUserLocation` (`config.showUserLocation`) draws the reader's position as a dot with its accuracy circle, and `centerOnUser` (`config.centerOnUser`) centres the map on it when the page opens. The browser asks for the location once the map has loaded, and only on a page that sets one of them. A refusal or a timeout leaves the map as it was. The page emits `user-location` with `{ lat, lng, accuracy, at }`.

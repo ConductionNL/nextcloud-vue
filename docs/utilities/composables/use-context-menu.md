@@ -25,7 +25,7 @@ const { isOpen, targetItem, open, close, isActionDisabled, triggerAction } = use
 | `open({ item, event })` | Function | Open the menu at the cursor position. Sets CSS vars and data attribute on `documentElement`. |
 | `close()` | Function | Close the menu and clean up DOM. Use as `@close` handler on CnContextMenu. |
 | `isActionDisabled(action)` | Function | Resolve `action.disabled` — supports both `boolean` and `(item) => boolean`. Only needed when not using CnContextMenu (which handles this internally). |
-| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row }`. Only needed when not using CnContextMenu. |
+| `triggerAction(action)` | Function | Call `action.handler(targetItem)`, return `{ action, row, id?, builtin? }`, the same payload CnRowActions and CnContextMenu emit. Only needed when not using CnContextMenu. |
 
 ## Usage
 

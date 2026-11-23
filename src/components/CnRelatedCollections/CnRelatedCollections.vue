@@ -10,8 +10,8 @@
 			class="cn-related-collections__section"
 			:data-testid="`cn-related-collection-${i}`">
 			<div class="cn-related-collections__header">
-				<h3 v-if="col.title" class="cn-related-collections__title">
-					{{ col.title }}
+				<h3 v-if="col.title" class="cn-related-collections__title" :lang="langOf(col.title)">
+					{{ shown(col.title) }}
 				</h3>
 				<!--
 					@slot section-action
@@ -30,6 +30,7 @@
 
 <script>
 import CnObjectListWidget from '../CnObjectListWidget/CnObjectListWidget.vue'
+import { labelLang } from '../../utils/manifestTranslate.js'
 
 /**
  * CnRelatedCollections — declarative related-object list sections for a
@@ -63,6 +64,11 @@ export default {
 
 	components: { CnObjectListWidget },
 
+	inject: {
+		/** The label lookup from CnAppRoot, so manifest labels show in the user's language. */
+		cnTranslate: { default: null },
+	},
+
 	props: {
 		/**
 		 * The related-collection descriptors.
@@ -78,6 +84,26 @@ export default {
 	emits: ['row-click'],
 
 	methods: {
+		/**
+		 * A manifest label through the injected lookup, or as written.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
 		/**
 		 * Map a related-collection descriptor to a `CnObjectListWidget` content
 		 * blob (1:1 — the widget already understands register/schema/filter/sort/

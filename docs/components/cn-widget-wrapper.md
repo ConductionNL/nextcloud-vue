@@ -48,6 +48,8 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `title` | String | `'Widget'` | Widget title shown in the header |
+| `eyebrow` | String | `''` | A short muted line above the title ("Saldo per week" above "Prognose 13 weken"), through the host translate. On a dashboard it comes from the widget definition's `eyebrow` |
+| `subtitle` | String | `''` | A muted line under the title ("Dit kwartaal, beslist binnen de termijn"), through the host translate. On a dashboard it comes from the widget definition's `subtitle` ; on a detail page the widget's `subtitle` may also be `[{ "when": <visibleWhen>, "text": "..." }]`, the first entry whose condition holds for the record and its `@context` rows (DqZaakDocumenten: only on a case type with `documentReview.enabled`) |
 | `showTitle` | Boolean | `true` | Whether to render the header bar |
 | `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel exactly (translucent blurred background via `--color-main-background-blur` + `--filter-background-blur`, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu (Refresh / Documentation / Request-a-feature + `#action-items`) renders. Set `false` for compact surfaces (e.g. a KPI tile) to drop the menu and free header width. |
@@ -218,3 +220,72 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
   --color-border: var(--color-main-text);
 }
 ```
+
+## A side-card title (`titleTone`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `titleTone` | `String` | `''` | `side` titles the card as a side card in the board look: 15px, weight 600, muted. For a card in a page's right column (DqDagAfsluiten "Uw dag"). In a manifest: `titleTone: "side"` on the widget definition; CnDashboardPage and CnDetailWidgetHost pass it on. |
+
+## Actions under a long title (`headerWrap`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `headerWrap` | `Boolean` | `false` | Lets the header actions drop to a row of their own when the title and subtitle fill the header, instead of squeezing them. A widget definition sets it as `headerWrap: true` (DqZaaktypeOverzicht Rechten). |
+
+## A text link in the header (`headerLink`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `headerLink` | `Object \| null` | `null` | One text link in the header's actions group, before the overflow menu: `{ label, tab?, route?, params?, query?, href? }`. A `tab` opens that tab of the same page (a `#<tab>` anchor the tab strip follows), a `route` is a named router link (needs a router), an `href` a plain anchor. The label goes through the host translate function. With `placement: "title"` the link sits under the title instead, at the title's edge (DqDashboard "Alles bekijken"). In a manifest: `headerLink` on the widget definition or its layout entry. |
+
+```json
+{ "id": "week", "type": "custom", "title": "Deadlines this week", "headerLink": { "label": "All deadlines", "route": "Cases", "query": { "due": "7d" } } }
+```
+
+A link to another tab of the same detail page (DqZaaktype: the side Historie card opens the Historie tab):
+
+```json
+{ "id": "history-side", "type": "audit-trail", "headerLink": { "label": "All history", "tab": "history" } }
+```
+
+Theme hooks: `--cn-widget-header-link-size` (14px), `--cn-widget-header-link-weight` (600).
+
+## Buttons in the header (`headerActions`)
+
+A widget definition on a detail page can declare buttons for its card's title row, the board's per-card actions ("Flow uitvoeren", "Notitie toevoegen", "Bewerken"):
+
+```json
+{
+  "id": "case-flow-runs",
+  "type": "flow-runs",
+  "title": "Flows",
+  "headerActions": [
+    { "label": "Run flow", "icon": "Play", "action": { "type": "open-modal", "target": "CnActionDialog", "props": { "objectId": "@objectId" } } },
+    { "label": "Edit", "variant": "primary", "visibleWhen": { "field": "status", "op": "neq", "value": "closed" }, "action": { "type": "navigate", "route": "CaseEdit", "params": { "id": "@objectId" } } }
+  ]
+}
+```
+
+| Key | Description |
+|---|---|
+| `label` | The button text, an i18n key. Required. |
+| `icon` | A `CnIcon` name. |
+| `variant` | `secondary` (default, outlined) or `primary`. |
+| `visibleWhen` | A condition on the record. One the page cannot decide (it names an `endpoint` or a `source`) hides the button. |
+| `action` | Any action the page's dispatcher takes (`navigate`, `open-modal`, `api-call`, a registered handler). `@objectId` and `@object.<field>` are resolved first. Required. |
+
+Two actions belong to the detail page itself rather than to the dispatcher:
+
+- `{ "type": "edit-record" }` opens the page's own record edit form, the one its Edit button opens (DqZaaktype "Termijnen" Bewerken). The button is left out where the page offers no Edit.
+- `{ "type": "open-tab", "tab": "<tab id>" }` opens that tab of the page, through the same `#<tab>` anchor a `headerLink` with `tab` uses (DqZaaktypeOverzicht "Statussen" Bewerken opens the Statuses tab).
+
+On a dashboard (CnDashboardPage) the same `headerActions` on a widget definition are drawn in that widget's card; the page resolves them and hands them to the card's `headerActions` prop. CnDetailWidgetHost resolves them and provides them to the card it puts the widget in. The outermost CnWidgetWrapper or CnDetailCard below it draws them, before its `actions` slot; a card inside that one does not draw them again. A title-less card gets a header for them. In a tab panel (bare), CnTabsWidget draws them in the panel's heading, or on a row of their own when the panel has no heading.
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn at the top of the card body; a detail host's provided notices come after these: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](./cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

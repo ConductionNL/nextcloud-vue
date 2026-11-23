@@ -83,7 +83,7 @@ describe('CnDetailPage — auto-subscribe store resolution', () => {
 		await flush()
 		expect(mockDefaultStore.subscribe).not.toHaveBeenCalled()
 		// The schema-driven fetch still runs — only the subscription is skipped.
-		expect(mockDefaultStore.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+		expect(mockDefaultStore.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1', { extend: ['@self.can'] })
 		w.unmount()
 	})
 

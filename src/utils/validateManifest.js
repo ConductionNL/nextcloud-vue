@@ -1,7 +1,13 @@
 // Single source of truth for "which widget keys does the library render
 // itself?", bound to the runtime registries by
 // tests/utils/libraryWidgetKeys.spec.js so the two cannot drift apart again.
+// The built-in files-browser column names, imported from the component that
+// renders them so the validator and the browser cannot disagree about which
+// names exist.
+import { BUILT_IN_FILE_COLUMNS } from '../components/CnFilesBrowser/filesBrowserColumns.js'
 import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
+// The same resolver CnIndexPage orders row actions with, so the placement warnings measure the order that actually renders.
+import { resolveRowActions } from './resolveRowActions.js'
 // Shared slot→columns resolution so the validator's grid bound matches the
 // renderer (CnWidgetGrid) exactly. A mismatch would let a manifest pass
 // validation yet clip at render time.
@@ -95,6 +101,9 @@ const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
  * In addition to JSON Schema validation, applies the following post-schema
  * checks that cannot be expressed in pure JSON Schema:
  *  - `pages[].id` uniqueness across the array
+ *  - `pages[].widgets[].id` uniqueness across the WHOLE manifest for every
+ *    entry declaring `ncDashboard` (Nextcloud's widget namespace is per app,
+ *    not per page)
  *  - `gridX + gridWidth <= 12` for every widget in every page (only on
  *    slots where gridColumns is 12 — i.e. all non-sidebar slots)
  *  - Single-12×12-custom-widget dashboard rule (ADR-036 Decision 1): a
@@ -106,10 +115,21 @@ const CHART_VALUE_AXIS_BASELINES = ['auto', 'zero', 'fit']
  *    `pages[].headerComponent`, `pages[].actionsComponent`,
  *    `pages[].slots.*`, `menu[].id`, `menu[].route`,
  *    `dependencies[]`, `version`
+ *  - A `type: 'files'` page whose `config.columns` names a built-in column
+ *    that does not exist, or declares one with an unknown `source` or an
+ *    `attribute` source reading no property
+ *  - A `config.folderSidebar.folders[]` scope naming a column key that the
+ *    page's own `config.columns` does not declare (the page declares which
+ *    columns it has; a scope only chooses among them)
+ *
+ * It also returns non-fatal `warnings`, which never affect `valid` (index pages with an `entitySource` are skipped):
+ *  - A `"builtin:<id>"` placeholder whose built-in the manifest's toggles turn off
+ *  - The built-in Delete enabled but not the last entry of the rendered row action order
  *
  * @spec openspec/changes/manifest-v2-schema/specs/manifest-v2-schema/spec.md
+ * @spec openspec/changes/row-action-builtin-placement/specs/index-page/spec.md
  * @param {object} manifest The v2 manifest object to validate.
- * @return {{ valid: boolean, errors: string[] }}
+ * @return {{ valid: boolean, errors: string[], warnings: string[] }}
  */
 export function validateManifestV2(manifest) {
 	// Clone so Ajv useDefaults mutations don't affect the caller's copy.
@@ -125,6 +145,20 @@ export function validateManifestV2(manifest) {
 	}
 
 	// --- Post-schema checks ---
+
+	// 0. i18n (manifest-i18n-labels): labels only for declared languages, and the
+	//    source language is not one of the languages translated into.
+	if (clone.i18n && typeof clone.i18n === 'object' && Array.isArray(clone.i18n.languages)) {
+		const declared = new Set(clone.i18n.languages)
+		if (declared.has(clone.i18n.sourceLanguage)) {
+			errors.push(`i18n/sourceLanguage: "${clone.i18n.sourceLanguage}" is the source language and must not also be in languages`)
+		}
+		for (const lang of Object.keys(clone.i18n.labels || {})) {
+			if (!declared.has(lang)) {
+				errors.push(`i18n/labels/${lang}: language "${lang}" is not declared in i18n.languages`)
+			}
+		}
+	}
 
 	// 1. pages[].id uniqueness
 	if (Array.isArray(clone.pages)) {
@@ -190,6 +224,33 @@ export function validateManifestV2(manifest) {
 					if (gx + gw > resolved) {
 						errors.push(`pages[${pIndex}]/widgets[${wIndex}]: Widget '${widget.widgetKey}' in slot '${widget.slot}': gridX (${gx}) + gridWidth (${gw}) exceeds ${resolved}`)
 					}
+				}
+			})
+		})
+	}
+
+	// 2b. `ncDashboard` widget ids are unique across the WHOLE manifest.
+	//     The schema can require the id but not compare two pages, and the
+	//     page is the wrong scope anyway: Nextcloud keys each user's chosen
+	//     dashboard widgets per APP, so two pages both declaring id 'recent'
+	//     derive one panel and the second silently replaces the first in a
+	//     namespace no migration of this app can reach.
+	if (Array.isArray(clone.pages)) {
+		const seenDashboardIds = new Map()
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || !Array.isArray(page.widgets)) {
+				return
+			}
+			page.widgets.forEach((widget, wIndex) => {
+				if (!widget || !isPlainObject(widget.ncDashboard) || typeof widget.id !== 'string') {
+					return
+				}
+				const here = `pages[${pIndex}]/widgets[${wIndex}]`
+				const first = seenDashboardIds.get(widget.id)
+				if (first) {
+					errors.push(`${here}/id: "${widget.id}" already publishes to the Nextcloud dashboard at ${first} — an ncDashboard id must be unique across the whole manifest`)
+				} else {
+					seenDashboardIds.set(widget.id, here)
 				}
 			})
 		})
@@ -587,6 +648,8 @@ export function validateManifestV2(manifest) {
 			}
 			const pathBase = `/pages/${pIndex}/config`
 
+			validateSmartPaste(config, pathBase, errors)
+
 			const fieldList = Array.isArray(config.fields) ? config.fields : []
 			const declaredKeys = new Set(fieldList
 				.filter((f) => f && typeof f.key === 'string')
@@ -681,7 +744,125 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
-	return { valid: errors.length === 0, errors }
+	// N. A files browser's `columns` may name a built-in or declare its own.
+	//    A string naming no built-in is refused here, with the page and the
+	//    name in the message: dropping it silently would look like a column
+	//    that failed to load rather than a name that does not exist.
+	if (Array.isArray(clone.pages)) {
+		const builtIns = Object.keys(BUILT_IN_FILE_COLUMNS)
+		clone.pages.forEach((page, pIndex) => {
+			if (!page || page.type !== 'files' || !isPlainObject(page.config) || !Array.isArray(page.config.columns)) {
+				return
+			}
+			const pageId = typeof page.id === 'string' && page.id !== '' ? page.id : `pages[${pIndex}]`
+			page.config.columns.forEach((entry, cIndex) => {
+				const at = `pages[${pIndex}]/config/columns/${cIndex}`
+				if (typeof entry === 'string') {
+					if (!builtIns.includes(entry)) {
+						errors.push(`${at}: "${pageId}" names no built-in column "${entry}". The built-ins are ${builtIns.join(', ')}; declare an object with key, label and source for anything else`)
+					}
+					return
+				}
+				if (!isPlainObject(entry) || typeof entry.key !== 'string' || entry.key === '') {
+					errors.push(`${at}: "${pageId}" has a column that is neither a built-in name nor an object with a key`)
+					return
+				}
+				if (entry.source !== undefined && !['node', 'attribute', 'row'].includes(entry.source)) {
+					errors.push(`${at}/source: "${pageId}" column "${entry.key}" has source "${entry.source}"; it must be node, attribute or row`)
+				}
+				if (entry.source === 'attribute' && (typeof entry.attribute !== 'string' || entry.attribute === '')) {
+					errors.push(`${at}/attribute: "${pageId}" column "${entry.key}" reads a DAV property but names none`)
+				}
+			})
+		})
+	}
+
+	// N. A `folderSidebar` scope may narrow and reorder the page's columns, not
+	//    add to them. `config.columns` is the page's declaration of which
+	//    columns it HAS; a scope entry decides which of them it shows. So a
+	//    scope naming a key the page does not declare is refused here, rather
+	//    than silently dropped at render time — a scope written before a column
+	//    was taken out of the page would otherwise look like it still worked.
+	//    A page declaring no columns derives them from its schema at runtime,
+	//    which this validator cannot see, so there is nothing to measure a
+	//    scope against and the check stays silent instead of guessing.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			const config = page && isPlainObject(page.config) ? page.config : null
+			const sidebar = config && isPlainObject(config.folderSidebar) ? config.folderSidebar : null
+			if (!sidebar || !Array.isArray(sidebar.folders) || !Array.isArray(config.columns) || config.columns.length === 0) {
+				return
+			}
+			const declaredKeyList = config.columns
+				.map((col) => (typeof col === 'string' ? col : (col && typeof col.key === 'string' ? col.key : '')))
+				.filter((key) => key !== '')
+			const declared = new Set(declaredKeyList)
+			sidebar.folders.forEach((scope, sIndex) => {
+				if (!isPlainObject(scope) || !Array.isArray(scope.columns)) {
+					return
+				}
+				const scopeId = typeof scope.id === 'string' && scope.id !== '' ? scope.id : `folders[${sIndex}]`
+				scope.columns.forEach((col, cIndex) => {
+					const key = typeof col === 'string' ? col : (col && typeof col.key === 'string' ? col.key : '')
+					if (key !== '' && !declared.has(key)) {
+						errors.push(`pages[${pIndex}]/config/folderSidebar/folders/${sIndex}/columns/${cIndex}: scope "${scopeId}" names column "${key}", which pages[${pIndex}].config.columns does not declare`)
+					}
+				})
+			})
+		})
+	}
+
+	// --- Post-schema warnings (never affect `valid`) ---
+	const warnings = []
+
+	// W1. Row action placement on an index page: a placeholder whose built-in the manifest turns off, and the built-in Delete placed before other row actions.
+	//     An entitySource page is skipped: its built-in defaults depend on the source at runtime.
+	if (Array.isArray(clone.pages)) {
+		clone.pages.forEach((page, pIndex) => {
+			const config = page && page.type === 'index' && isPlainObject(page.config) ? page.config : null
+			if (!config || !Array.isArray(config.actions) || typeof config.entitySource === 'string') {
+				return
+			}
+			const resolved = resolveRowActions(config.actions, indexPageBuiltinStubs(config))
+			for (const warning of resolved.warnings) {
+				if (warning.code === 'disabled-placeholder') {
+					warnings.push(`pages[${pIndex}]/config/actions: ${warning.message}`)
+				}
+			}
+			if (resolved.deleteNotLast) {
+				warnings.push(`pages[${pIndex}]/config/actions: "builtin:delete" is not the last row action in the rendered order (enabled built-ins the array does not place are appended after it); Delete is normally last`)
+			}
+		})
+	}
+
+	return { valid: errors.length === 0, errors, warnings }
+}
+
+/**
+ * The built-in row actions an index page enables, as `{ id, builtin, label }` stubs in default order.
+ * They are read from its config the way CnPageRenderer derives the show*Action props: an explicit `config.show*Action` wins over `config.actionToggles`, and `config.readOnly: true` turns Edit, Copy and Delete off by default.
+ * A non-boolean value counts as the default.
+ *
+ * @param {object} config The page's config.
+ * @return {Array<{id: string, builtin: true, label: string}>} The enabled built-ins.
+ */
+function indexPageBuiltinStubs(config) {
+	const toggles = isPlainObject(config.actionToggles) ? config.actionToggles : {}
+	const flag = (key, readOnlyOff) => {
+		if (typeof config[key] === 'boolean') {
+			return config[key]
+		}
+		if (typeof toggles[key] === 'boolean') {
+			return toggles[key]
+		}
+		return !(readOnlyOff && config.readOnly === true)
+	}
+	return [
+		['view', flag('showViewAction', false)],
+		['edit', flag('showEditAction', true)],
+		['copy', flag('showCopyAction', true)],
+		['delete', flag('showDeleteAction', true)],
+	].filter(([, on]) => on).map(([id]) => ({ id, builtin: true, label: id }))
 }
 
 /**
@@ -745,7 +926,7 @@ function isSentinel(value) {
  *   `pageTypes` registry is known up-front. When omitted, any
  *   non-empty string is accepted; the runtime renderer logs a warning
  *   for unknown types.
- * @return {{ valid: boolean, errors: string[] }}
+ * @return {{ valid: boolean, errors: string[], warnings?: string[] }} A v2 manifest also gets `warnings`, which never affect `valid`.
  */
 export function validateManifest(manifest, options = {}) {
 	// Dispatch to v2 validator when the manifest declares a v2 $schema.
@@ -1170,6 +1351,7 @@ function validateTypeConfig(page, index, errors) {
 			}
 
 			validateConfigMode(cfg, pathSlash, pathBracket, errors)
+			validateSmartPaste(cfg, pathSlash, errors)
 			break
 		}
 		case 'map': {
@@ -1178,7 +1360,7 @@ function validateTypeConfig(page, index, errors) {
 		// entries MUST have a closed-enum `type` and (except inline
 		// geojson) a non-empty `url`; `markers.dataSource` MUST
 		// declare exactly one of `url` OR `register + schema`.
-			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson']
+			const allowedLayerTypes = ['tile', 'wms', 'wfs', 'geojson', 'image']
 			const center = cfg && cfg.center
 			const validCenter = Array.isArray(center)
 				&& center.length === 2
@@ -1200,7 +1382,15 @@ function validateTypeConfig(page, index, errors) {
 							return
 						}
 						if (!allowedLayerTypes.includes(layer.type)) {
-							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson`)
+							errors.push(`${lPath}/type: must be one of tile | wms | wfs | geojson | image`)
+						}
+						if (layer.type === 'image') {
+							// map-image-layer: a picture needs its pixel size.
+							for (const dim of ['width', 'height']) {
+								if (typeof layer[dim] !== 'number' || !(layer[dim] > 0)) {
+									errors.push(`${lPath}/${dim}: an image layer needs a ${dim} in pixels (a positive number)`)
+								}
+							}
 						}
 						const hasUrl = typeof layer.url === 'string' && layer.url.length > 0
 						const hasInlineGeojson = layer.type === 'geojson'
@@ -1611,6 +1801,46 @@ function validateConfigMode(cfg, pathSlash, pathBracket, errors) {
  * the schema's `pattern` on the `handler` property.
  */
 const HANDLER_PATTERN = /^(navigate|emit|none|[A-Za-z][A-Za-z0-9_]*)$/
+
+/**
+ * Validate `config.smartPaste` on a form page (form-smart-paste).
+ *
+ * Every `fields` entry must name a declared `config.fields[].key`; `enabled`
+ * needs a non-empty `handler` and a page that is not `public` (an unset
+ * `mode` is `public`, as `CnFormPage` defaults it).
+ *
+ * @param {object} cfg The page's `config` block.
+ * @param {string} pathSlash JSON-pointer-style path prefix of the config.
+ * @param {string[]} errors Accumulator.
+ */
+function validateSmartPaste(cfg, pathSlash, errors) {
+	const sp = cfg && cfg.smartPaste
+	if (sp === undefined) {
+		return
+	}
+	if (!isPlainObject(sp)) {
+		errors.push(`${pathSlash}/smartPaste: must be an object`)
+		return
+	}
+	const declared = new Set((Array.isArray(cfg.fields) ? cfg.fields : []).filter((f) => f && typeof f.key === 'string').map((f) => f.key))
+	if (!Array.isArray(sp.fields) || sp.fields.length === 0) {
+		errors.push(`${pathSlash}/smartPaste/fields: must list at least one field key`)
+	} else {
+		sp.fields.forEach((key, index) => {
+			if (typeof key !== 'string' || !declared.has(key)) {
+				errors.push(`${pathSlash}/smartPaste/fields[${index}]: "${key}" does not match any declared config.fields[].key`)
+			}
+		})
+	}
+	if (sp.enabled === true) {
+		if (typeof sp.handler !== 'string' || sp.handler.length === 0) {
+			errors.push(`${pathSlash}/smartPaste/handler: required, must be a non-empty string when enabled is true`)
+		}
+		if (cfg.mode === undefined || cfg.mode === 'public') {
+			errors.push(`${pathSlash}/smartPaste/enabled: smart paste cannot be enabled on a public form; set mode to "edit" or "create"`)
+		}
+	}
+}
 
 /**
  * Validate `config.actions[]` for index page type
@@ -2153,6 +2383,14 @@ function validateFieldsArray(fields, fieldsPath, errors, allowedTypes = FORM_FIE
 			errors.push(`${fieldPath}/type: must be a non-empty string`)
 		} else if (!allowedTypes.includes(field.type)) {
 			errors.push(`${fieldPath}/type: must be one of ${allowedTypes.join(', ')}`)
+		}
+		if (field.type === 'file') {
+			if (field.multiple !== undefined && typeof field.multiple !== 'boolean') {
+				errors.push(`${fieldPath}/multiple: must be a boolean`)
+			}
+			if (field.capture !== undefined && field.capture !== 'environment' && field.capture !== 'user') {
+				errors.push(`${fieldPath}/capture: must be one of environment, user`)
+			}
 		}
 	})
 }

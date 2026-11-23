@@ -12,6 +12,7 @@
 // `isAppInstalled` utility (imported by CnAppNav) can have its
 // `getCapabilities` call intercepted.
 import { mount } from '@vue/test-utils'
+import { reactive } from 'vue'
 import CnAppNav from '../../src/components/CnAppNav/CnAppNav.vue'
 import { NEXTCLOUD_ICONS } from '../../src/components/CnMenuTreeNode/nextcloudIcons.js'
 
@@ -50,6 +51,7 @@ function mountNav({
 	useProps = false,
 	routeName = 'a',
 	routePath,
+	route,
 	translate,
 	openUserSettings,
 	replayWalkthrough,
@@ -83,7 +85,8 @@ function mountNav({
 		propsData,
 		provide,
 		mocks: {
-			$route: { name: routeName, path: routePath },
+			// A reactive `route` can be mutated by a test to move between pages.
+			$route: route ?? { name: routeName, path: routePath },
 		},
 	})
 }
@@ -244,17 +247,17 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-admin-settings-external"]').exists()).toBe(true)
 		})
 
-		it('action "admin-settings" opens the settings page in a new tab, not in place', () => {
+		it('action "admin-settings" is a real link to the absolute settings href, left to the browser', () => {
 			const item = { id: 'x', label: 'Admin', action: 'admin-settings' }
 			const wrapper = mountNav({ isAdmin: true, appId: 'openconnector' })
+			expect(wrapper.vm.itemHref(item)).toMatch(/^[a-z]+:\/\/.*\/settings\/admin\/openconnector$/i)
+			expect(wrapper.vm.itemTo(item)).toBeNull()
 			const originalOpen = window.open
 			window.open = jest.fn()
-			wrapper.vm.onItemClick(item, { preventDefault: jest.fn() })
-			expect(window.open).toHaveBeenCalledWith(
-				expect.stringContaining('/settings/admin/openconnector'),
-				'_blank',
-				'noopener',
-			)
+			const preventDefault = jest.fn()
+			wrapper.vm.onItemClick(item, { preventDefault })
+			expect(window.open).not.toHaveBeenCalled()
+			expect(preventDefault).not.toHaveBeenCalled()
 			window.open = originalOpen
 		})
 
@@ -1062,6 +1065,11 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-personal-settings"]').exists()).toBe(false)
 		})
 
+		it('labels the foldout "Advanced" when no nav.settingsLabel is set', () => {
+			const wrapper = mountNav({ manifest: sectionManifest, routeName: 'home' })
+			expect(wrapper.vm.settingsFoldoutLabel).toBe('Advanced')
+		})
+
 		it('uses nav.settingsLabel override for the foldout label', () => {
 			const m = { ...sectionManifest, nav: { settingsLabel: 'Beheer' } }
 			const wrapper = mountNav({ manifest: m, routeName: 'home', translate: (k) => k })
@@ -1110,28 +1118,45 @@ describe('CnAppNav', () => {
 			expect(wrapper.find('[data-testid="cn-nav-primary-action"]').exists()).toBe(false)
 		})
 
-		it('emits primary-action-click and pushes the named route on click', () => {
+		it('renders a route action as a router link and still emits on click', async () => {
 			const push = jest.fn()
 			const wrapper = mount(CnAppNav, {
 				propsData: { manifest: withPrimary({ label: 'app.new', route: 'a' }), translate: (k) => k },
 				mocks: { $route: { name: 'b' }, $router: { push } },
 			})
-			wrapper.vm.onPrimaryActionClick()
+			const button = wrapper.find('[data-testid="cn-nav-primary-action"]').findComponent({ name: 'NcButton' })
+			expect(button.vm.$attrs.to).toEqual({ name: 'a' })
+			await button.trigger('click')
 			expect(wrapper.emitted('primary-action-click')).toBeTruthy()
-			expect(push).toHaveBeenCalledWith({ name: 'a' })
+			expect(wrapper.emitted('primary-action')).toBeTruthy()
+			// The link navigates; the component does not push by hand.
+			expect(push).not.toHaveBeenCalled()
 		})
 
-		it('opens an external href in a new tab and does not navigate', () => {
+		it('renders an href action as a new-tab link and does not window.open', async () => {
 			const push = jest.fn()
 			const open = jest.spyOn(window, 'open').mockImplementation(() => {})
 			const wrapper = mount(CnAppNav, {
 				propsData: { manifest: withPrimary({ label: 'app.docs', href: 'https://example.test' }), translate: (k) => k },
 				mocks: { $route: { name: 'a' }, $router: { push } },
 			})
-			wrapper.vm.onPrimaryActionClick()
-			expect(open).toHaveBeenCalledWith('https://example.test', '_blank', 'noopener,noreferrer')
+			const button = wrapper.find('[data-testid="cn-nav-primary-action"]').findComponent({ name: 'NcButton' })
+			expect(button.vm.$attrs.href).toBe('https://example.test')
+			expect(button.vm.$attrs.target).toBe('_blank')
+			await button.trigger('click')
+			expect(wrapper.emitted('primary-action-click')).toBeTruthy()
+			expect(open).not.toHaveBeenCalled()
 			expect(push).not.toHaveBeenCalled()
 			open.mockRestore()
+		})
+
+		it('keeps NcAppNavigationNew for an action with neither href nor route', () => {
+			const wrapper = mount(CnAppNav, {
+				propsData: { manifest: withPrimary({ id: 'create', label: 'app.new' }), translate: (k) => k },
+				mocks: { $route: { name: 'a' } },
+			})
+			expect(wrapper.findComponent({ name: 'NcAppNavigationNew' }).exists()).toBe(true)
+			expect(wrapper.vm.primaryActionLink).toBeNull()
 		})
 	})
 
@@ -1311,6 +1336,30 @@ describe('CnAppNav', () => {
 			})
 			expect(wrapper.find('[data-testid="cn-nav-caption-section-1"]').exists()).toBe(true)
 			expect(wrapper.find('[data-testid="cn-nav-entry-section-1"]').exists()).toBe(false)
+			// No href, no pencil.
+			expect(wrapper.find('[data-testid="cn-nav-caption-edit-section-1"]').exists()).toBe(false)
+		})
+
+		it('draws a caption href as a pencil link that names the caption', () => {
+			const wrapper = mountNav({
+				manifest: {
+					version: '1.0.0',
+					pages: [],
+					menu: [
+						{ id: 'mine', type: 'caption', label: 'My case types', order: 1, href: '/index.php/settings/user/dossiq' },
+						{ id: 'a', label: 'app.a', route: 'a', order: 2 },
+					],
+				},
+				useProps: true,
+				routeName: 'a',
+			})
+			const edit = wrapper.find('[data-testid="cn-nav-caption-edit-mine"]')
+			expect(edit.exists()).toBe(true)
+			// Inside the caption, as its action (NcActionLink is stubbed here).
+			expect(wrapper.find('[data-testid="cn-nav-caption-mine"] [data-testid="cn-nav-caption-edit-mine"]').exists()).toBe(true)
+			expect(edit.attributes('href')).toBe('/index.php/settings/user/dossiq')
+			expect(edit.attributes('aria-label')).toBe('Change My case types')
+			expect(edit.find('.pencil-icon').exists()).toBe(true)
 		})
 	})
 
@@ -1428,6 +1477,62 @@ describe('CnAppNav', () => {
 			expect(wrapper.vm.isItemOpen(groupManifest.menu[0])).toBe(true)
 		})
 
+		describe('a group opened for the route stays open', () => {
+			const twoLeaves = {
+				version: '1.0.0',
+				pages: [],
+				menu: [
+					{ id: 'home', label: 'app.home', route: 'home', order: 1 },
+					{
+						id: 'group',
+						label: 'app.group',
+						order: 2,
+						children: [
+							{ id: 'leaf1', label: 'app.leaf1', route: 'leaf1' },
+							{ id: 'leaf2', label: 'app.leaf2', route: 'leaf2' },
+						],
+					},
+				],
+			}
+			const group = twoLeaves.menu[1]
+
+			it('keeps the group open after the route leaves it', async () => {
+				const route = reactive({ name: 'leaf1', path: undefined })
+				const wrapper = mountNav({ manifest: twoLeaves, useProps: true, route })
+				expect(wrapper.vm.isItemOpen(group)).toBe(true)
+
+				route.name = 'home'
+				await wrapper.vm.$nextTick()
+
+				// Only a close by the person closes it.
+				expect(wrapper.vm.isItemOpen(group)).toBe(true)
+				wrapper.vm.setItemOpen(group, false)
+				expect(wrapper.vm.isItemOpen(group)).toBe(false)
+			})
+
+			it('leaves a group closed by hand closed while moving between its children', async () => {
+				const route = reactive({ name: 'leaf1', path: undefined })
+				const wrapper = mountNav({ manifest: twoLeaves, useProps: true, route })
+				wrapper.vm.setItemOpen(group, false)
+
+				route.name = 'leaf2'
+				await wrapper.vm.$nextTick()
+
+				expect(wrapper.vm.isItemOpen(group)).toBe(false)
+			})
+
+			it('reopens a closed group when the route enters it from outside', async () => {
+				const route = reactive({ name: 'home', path: undefined })
+				const wrapper = mountNav({ manifest: twoLeaves, useProps: true, route })
+				wrapper.vm.setItemOpen(group, false)
+
+				route.name = 'leaf2'
+				await wrapper.vm.$nextTick()
+
+				expect(wrapper.vm.isItemOpen(group)).toBe(true)
+			})
+		})
+
 		it('seeds the open state from the manifest item.open until first interaction', () => {
 			const openedGroup = {
 				version: '1.0.0',
@@ -1531,6 +1636,39 @@ describe('CnAppNav', () => {
 			const wrapper = mountNav({ manifest })
 			const child = wrapper.vm.itemTo({ id: 'ct-1', route: 'Cases', query: { caseType: 'uuid-1' } })
 			expect(child.query.caseType).toBe('uuid-1')
+			wrapper.unmount()
+		})
+	})
+
+	// A menu entry may carry route `params` for a parameterised route, e.g.
+	// one entry per catalog → /catalogs/:slug. itemTo() folds them in.
+	describe('menu-item route params', () => {
+		it('includes params in the router target when item.params is set', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', params: { slug: 'news' } }))
+				.toEqual({ name: 'Items', params: { slug: 'news' } })
+			wrapper.unmount()
+		})
+
+		it('carries params and query together', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', params: { slug: 'news' }, query: { tab: 'open' } }))
+				.toEqual({ name: 'Items', params: { slug: 'news' }, query: { tab: 'open' } })
+			wrapper.unmount()
+		})
+
+		it('omits params when absent or empty', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items' })).toEqual({ name: 'Items' })
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', params: {} })).toEqual({ name: 'Items' })
+			expect(wrapper.vm.itemTo({ id: 'x', route: 'Items', query: { a: 1 } })).toEqual({ name: 'Items', query: { a: 1 } })
+			wrapper.unmount()
+		})
+
+		it('returns null for action/href items regardless of params', () => {
+			const wrapper = mountNav({})
+			expect(wrapper.vm.itemTo({ id: 'x', href: '/foo', params: { slug: 'a' } })).toBeNull()
+			expect(wrapper.vm.itemTo({ id: 'x', action: 'user-settings', params: { slug: 'a' } })).toBeNull()
 			wrapper.unmount()
 		})
 	})

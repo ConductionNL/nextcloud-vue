@@ -3,13 +3,41 @@
   - SPDX-License-Identifier: EUPL-1.2
   -->
 <template>
-	<div class="cn-graph-canvas" @drop="onDrop" @dragover.prevent>
+	<div class="cn-graph-canvas"
+		:class="{ 'cn-graph-canvas--checked': issueList.length > 0 }"
+		@drop="onDrop"
+		@dragover.prevent>
+		<!-- The check strip (`issues`): DqFlow "Controle: 1 fout, 1
+		     waarschuwing." with one line per finding; a finding on a step
+		     is a button that brings that step into view. -->
+		<section v-if="issueList.length > 0"
+			class="cn-graph-canvas__issues cn-notice-widget cn-notice-widget--inline"
+			:class="issueErrors > 0 ? 'cn-notice-widget--warning' : 'cn-notice-widget--info'"
+			role="status"
+			data-testid="cn-graph-canvas-issues">
+			<p class="cn-graph-canvas__issues-text">
+				<strong data-testid="cn-graph-canvas-issues-title">{{ issuesSummary }}</strong>
+			</p>
+			<ul class="cn-graph-canvas__issue-list">
+				<li v-for="(issue, index) in issueList" :key="index" :class="`cn-graph-canvas__issue--${issue.level}`">
+					<span class="cn-graph-canvas__issue-level">{{ issue.levelLabel }}: </span>
+					<button v-if="issue.nodeId"
+						type="button"
+						class="cn-graph-canvas__issue-target"
+						data-testid="cn-graph-canvas-issue-target"
+						@click="showIssue(issue)">
+						{{ issue.text }}
+					</button>
+					<span v-else>{{ issue.text }}</span>
+				</li>
+			</ul>
+		</section>
 		<VueFlow
 			:nodes="nodes"
 			:edges="edges"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
-			:fitViewOnInit="fitView"
+			:fitViewOnInit="fitOnInit"
 			:snapToGrid="snapToGrid"
 			:snapGrid="snapGrid"
 			:nodesDraggable="interactive"
@@ -21,7 +49,8 @@
 			@connect="onConnect"
 			@nodeClick="onNodeClick"
 			@edgeClick="onEdgeClick"
-			@paneClick="onPaneClick">
+			@paneClick="onPaneClick"
+			@nodesInitialized="onNodesInitialized">
 			<!-- Per-type node components, Vue Flow's convention. A host that
 			     registers `type: 'trigger'` gets `#node-trigger`; anything
 			     unregistered falls back to CnFlowNode, which carries the
@@ -37,7 +66,9 @@
 					v-bind="nodeProps"
 					:deletable="!readOnly"
 					@connect="onConnect"
-					@remove="onNodeRemove">
+					@remove="onNodeRemove"
+					@activate="onNodeActivate"
+					@menu="onNodeMenu">
 					<template #default="slotProps">
 						<!-- @slot node The body of a step, rendered inside the
 						     focusable node wrapper. Receives `{ node }` with the
@@ -106,33 +137,41 @@
 				type="button"
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Zoom in')"
+				:title="t('nextcloud-vue', 'Zoom in')"
 				@click="zoomIn()">
-				+
+				<Plus :size="20" />
 			</button>
 			<button
 				type="button"
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Zoom out')"
+				:title="t('nextcloud-vue', 'Zoom out')"
 				@click="zoomOut()">
-				−
+				<Minus :size="20" />
 			</button>
 			<button
 				type="button"
 				class="cn-graph-canvas__control"
 				:aria-label="t('nextcloud-vue', 'Fit the whole flow in view')"
-				@click="fitViewNow()">
-				⤢
+				:title="t('nextcloud-vue', 'Fit the whole flow in view')"
+				@click="fitToView()">
+				<FitToScreenOutline :size="20" />
 			</button>
 		</div>
 	</div>
 </template>
 
 <script>
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { Background } from '@vue-flow/background'
 import { useVueFlow, VueFlow } from '@vue-flow/core'
 import { MiniMap } from '@vue-flow/minimap'
+import FitToScreenOutline from 'vue-material-design-icons/FitToScreenOutline.vue'
+import Minus from 'vue-material-design-icons/Minus.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFlowEdge from './CnFlowEdge.vue'
 import CnFlowNode from './CnFlowNode.vue'
+import { fitPaddingFor } from '../../utils/overlayInset.js'
 
 /**
  * A graph canvas built on Vue Flow — the library n8n runs.
@@ -171,7 +210,7 @@ import CnFlowNode from './CnFlowNode.vue'
 export default {
 	name: 'CnGraphCanvas',
 
-	components: { VueFlow, Background, MiniMap, CnFlowNode, CnFlowEdge },
+	components: { VueFlow, Background, MiniMap, CnFlowNode, CnFlowEdge, FitToScreenOutline, Minus, Plus },
 
 	props: {
 		/** Nodes in Vue Flow's shape: `{ id, type, position: {x,y}, data }`. */
@@ -202,6 +241,25 @@ export default {
 		fitView: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * The most that first frame may zoom in. 0 lets it go to `maxZoom`;
+		 * 1 keeps a graph that fits at its own size.
+		 */
+		fitMaxZoom: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * Pixels per side (`{ top, right, bottom, left }`) that chrome floating
+		 * over the canvas covers, or a function returning them when the canvas
+		 * fits. Every fit keeps the graph clear of them.
+		 */
+		fitInset: {
+			type: [Object, Function],
+			default: null,
 		},
 
 		/** Snap dragged nodes to the grid. */
@@ -251,6 +309,24 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * What a check of the graph found: `[{ level: 'error' | 'warning',
+		 * text, nodeId? }]`, drawn as a strip above the canvas. A finding with
+		 * `nodeId` is a button that brings that step into view.
+		 *
+		 * @type {Array<{level: string, text: string, nodeId?: string}>}
+		 */
+		issues: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The strip's title with `{errors}` and `{warnings}`; default "Check: {errors}, {warnings}." counted in words. */
+		issuesTitle: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: [
@@ -266,6 +342,17 @@ export default {
 		'canvas-drop',
 
 		'node-remove',
+		'node-activate',
+		'node-menu',
+		'issue-select',
+
+		/**
+		 * The canvas zoom changed, by any route — a control here, the host's own
+		 * toolbar, the wheel, or a fit-view.
+		 *
+		 * @type {number}
+		 */
+		'zoom-change',
 	],
 
 	setup() {
@@ -274,12 +361,72 @@ export default {
 		// FUNCTION of the same name. Returning both puts two `fitView` bindings
 		// on the instance — eslint's `vue/no-dupe-keys` catches it, but the
 		// symptom would have been a fit button that tries to call `true`.
-		const { project, zoomIn, zoomOut, fitView: fitViewNow } = useVueFlow()
+		// `zoomTo` and `viewport` so a HOST toolbar can drive the zoom and show
+		// the real figure — including one the wheel or a fit-view changed.
+		const { project, zoomIn, zoomOut, zoomTo, fitView: fitViewNow, viewport } = useVueFlow()
 
-		return { project, zoomIn, zoomOut, fitViewNow }
+		return { project, zoomIn, zoomOut, zoomTo, fitViewNow, viewport }
+	},
+
+	data() {
+		return {
+			// Whether the capped first frame (`fitMaxZoom`) has been taken.
+			framedOnce: false,
+		}
 	},
 
 	computed: {
+		/**
+		 * The findings as drawn, errors first.
+		 *
+		 * @return {Array<{level: string, levelLabel: string, text: string, nodeId: string}>} The findings.
+		 * @spec openspec/changes/graph-canvas-check-strip/specs/graph-canvas-check-strip/spec.md#requirement-a-graph-canvas-shows-what-a-check-found
+		 */
+		issueList() {
+			const list = Array.isArray(this.issues) ? this.issues : []
+			return list
+				.filter((issue) => issue && typeof issue.text === 'string' && issue.text !== '')
+				.map((issue) => ({
+					level: issue.level === 'error' ? 'error' : 'warning',
+					levelLabel: issue.level === 'error' ? t('nextcloud-vue', 'Error') : t('nextcloud-vue', 'Warning'),
+					text: issue.text,
+					nodeId: issue.nodeId ? String(issue.nodeId) : '',
+				}))
+				.sort((a, b) => (a.level === b.level ? 0 : (a.level === 'error' ? -1 : 1)))
+		},
+
+		/**
+		 * @return {number} The number of errors.
+		 *
+		 * @spec openspec/changes/graph-canvas-check-strip/specs/graph-canvas-check-strip/spec.md#requirement-a-graph-canvas-shows-what-a-check-found
+		 */
+		issueErrors() {
+			return this.issueList.filter((issue) => issue.level === 'error').length
+		},
+
+		/**
+		 * @return {string} "Check: 1 error, 1 warning." or the host's title.
+		 * @spec openspec/changes/graph-canvas-check-strip/specs/graph-canvas-check-strip/spec.md#requirement-a-graph-canvas-shows-what-a-check-found
+		 */
+		issuesSummary() {
+			const errors = this.issueErrors
+			const warnings = this.issueList.length - errors
+			const errorText = n('nextcloud-vue', '{count} error', '{count} errors', errors, { count: errors })
+			const warningText = n('nextcloud-vue', '{count} warning', '{count} warnings', warnings, { count: warnings })
+			if (this.issuesTitle) {
+				return this.issuesTitle.replace('{errors}', errorText).replace('{warnings}', warningText)
+			}
+			return t('nextcloud-vue', 'Check: {errors}, {warnings}.', { errors: errorText, warnings: warningText })
+		},
+
+		/**
+		 * @return {boolean} Whether Vue Flow frames the graph itself on init;
+		 *   a cap or an inset frames it in onNodesInitialized instead.
+		 */
+		fitOnInit() {
+			return this.fitView && !this.fitMaxZoom && !this.fitInset
+		},
+
 		/**
 		 * @return {boolean} Whether the canvas accepts interaction at all.
 		 */
@@ -288,7 +435,59 @@ export default {
 		},
 	},
 
+	watch: {
+		// Reported rather than owned: Vue Flow holds the transform, so a host
+		// that mirrors it in its own toolbar must hear every change, not only
+		// the ones its own buttons caused.
+		'viewport.zoom': {
+			immediate: true,
+			handler(value) {
+				this.$emit('zoom-change', value)
+			},
+		},
+	},
+
 	methods: {
+		/**
+		 * Bring the step of a finding into view and say which one.
+		 *
+		 * @param {{nodeId: string}} issue The finding.
+		 * @spec openspec/changes/graph-canvas-check-strip/specs/graph-canvas-check-strip/spec.md#requirement-a-graph-canvas-shows-what-a-check-found
+		 */
+		showIssue(issue) {
+			if (typeof this.fitViewNow === 'function') {
+				this.fitViewNow({ nodes: [issue.nodeId], maxZoom: 1.2, padding: 0.4 })
+			}
+			this.$emit('issue-select', issue.nodeId)
+		},
+
+		/**
+		 * Frame the graph once its nodes have a size, no closer than
+		 * `fitMaxZoom`. Only the first time: a step added later must not move
+		 * the view the author is working in.
+		 *
+		 * @return {void}
+		 */
+		onNodesInitialized() {
+			if (!this.fitView || (!this.fitMaxZoom && !this.fitInset) || this.framedOnce) {
+				return
+			}
+			this.framedOnce = true
+			const inset = typeof this.fitInset === 'function' ? this.fitInset() : this.fitInset
+			const padding = fitPaddingFor(inset)
+			this.fitViewNow(this.fitMaxZoom ? { maxZoom: this.fitMaxZoom, padding } : { padding })
+		},
+
+		/**
+		 * Frame the whole graph, clear of `fitInset`.
+		 *
+		 * @return {void}
+		 */
+		fitToView() {
+			const inset = typeof this.fitInset === 'function' ? this.fitInset() : this.fitInset
+			this.fitViewNow({ padding: fitPaddingFor(inset) })
+		},
+
 		/**
 		 * Forward Vue Flow's node changes.
 		 *
@@ -391,6 +590,41 @@ export default {
 			const port = cut === -1 ? handleId : handleId.slice(0, cut)
 
 			return port === 'in' ? null : port
+		},
+
+		/**
+		 * Forward Enter or Space on a node: the keyboard double-click.
+		 *
+		 * @param {string} id The node id.
+		 * @return {void}
+		 */
+		onNodeActivate(id) {
+			if (this.readOnly === true) {
+				return
+			}
+
+			/**
+			 * @event node-activate Enter or Space on a node. Payload is the id.
+			 */
+			this.$emit('node-activate', id)
+		},
+
+		/**
+		 * Forward Shift+F10 or the menu key on a node: the keyboard click menu.
+		 *
+		 * @param {object} request `{ id, clientX, clientY }`, a point at the node.
+		 * @return {void}
+		 */
+		onNodeMenu(request) {
+			if (this.readOnly === true) {
+				return
+			}
+
+			/**
+			 * @event node-menu Shift+F10 or the menu key on a node. Payload is
+			 *   `{ id, clientX, clientY }`.
+			 */
+			this.$emit('node-menu', request)
 		},
 
 		/**
@@ -542,6 +776,58 @@ export default {
 	width: 100%;
 	height: 100%;
 	min-height: 320px;
+}
+
+.cn-graph-canvas--checked {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-graph-canvas--checked > .vue-flow {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.cn-graph-canvas__issues {
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--color-warning-light, #fff4de);
+	color: var(--color-warning-text, #7a4f00);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-graph-canvas__issues.cn-notice-widget--info {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-graph-canvas__issues-text {
+	margin: 0;
+}
+
+.cn-graph-canvas__issue-list {
+	margin: 4px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-graph-canvas__issue-level {
+	font-weight: 600;
+}
+
+.cn-graph-canvas__issue-target {
+	margin: 0;
+	padding: 0;
+	min-height: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	text-decoration: underline;
+	cursor: pointer;
 }
 
 /* ⚠️ VUE FLOW'S DEFAULT NODE DRAWS A BOX WE NEVER ASKED FOR.

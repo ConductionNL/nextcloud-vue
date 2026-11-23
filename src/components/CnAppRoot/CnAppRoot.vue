@@ -31,10 +31,12 @@
 
   Hosts a per-user `NcAppSettingsDialog` that any descendant can open
   via the injected `cnOpenUserSettings()` method. CnAppNav binds the
-  inject to manifest entries with `action: "user-settings"`. Apps
-  populate the modal by passing `NcAppSettingsSection`s into the
-  `#user-settings` slot; the slot falls back to a single placeholder
-  section when no content is supplied.
+  inject to manifest entries with `action: "user-settings"`. The modal
+  draws the library's default sections (notifications, credentials,
+  walkthrough replay, integrations). Apps add their own
+  `NcAppSettingsSection`s through `#user-settings-sections` and place,
+  order or hide the defaults with the `userSettingsSections` prop. The
+  older `#user-settings` slot replaces the defaults instead.
 
   A SECOND, distinct `NcAppSettingsDialog` hosts admin-only, app-level
   (not per-user) settings, driven GENERICALLY by `manifest.adminSettings[]`
@@ -57,7 +59,16 @@
   and REQ-OR-1..REQ-OR-7 of the cnapproot-app-availability-guard spec.
 -->
 <template>
-	<NcContent :appName="appDisplayName || (manifest && manifest.name) || appId" :data-nldesign-theme-scope="appId" data-testid="cn-app-root">
+	<NcContent
+		:appName="appDisplayName || (manifest && manifest.name) || appId"
+		:data-nldesign-theme-scope="appId"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--page-ground': pageGround }"
+		data-testid="cn-app-root">
+		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
+		<CnEnvironmentBanner
+			v-if="environmentName"
+			class="cn-app-root__environment"
+			:environment="environmentName" />
 		<!-- Phase 0a: capabilities check in flight -->
 		<template v-if="capabilitiesLoading">
 			<div class="cn-app-root__capabilities-loading" data-testid="cn-app-root-capabilities-loading">
@@ -169,7 +180,7 @@
 				<div class="cn-app-root__setup">
 					<CnSetupWizard
 						:appId="appId"
-						:appName="appDisplayName || (manifest && manifest.name) || appId"
+						:appName="shownAppName"
 						:steps="manifest.setup.steps"
 						:cancellable="false"
 						:completedStepIds="setupCompletedStepIds"
@@ -180,6 +191,10 @@
 
 		<!-- Phase 3: shell -->
 		<template v-else>
+			<!-- The brand block in Nextcloud's own header (board look); teleported, renders nothing here. -->
+			<CnBrandBar v-if="brandInHeader" :brand="resolvedBrandBlock" @unavailable="headerMissing = true" />
+			<!-- The app's own line on the header's search field (board look); renders nothing here. -->
+			<CnHeaderSearchLabel v-if="headerSearchLabel" :label="headerSearchLabel" />
 			<!--
 			  @slot menu
 			  @description Left-rail navigation surface. Default:
@@ -199,7 +214,13 @@
 			<!-- @binding {boolean} isOwner Whether the user owns this app (ADR-079 §3). -->
 			<!-- @binding {boolean} isAdmin Whether the user administers the instance; gates the Admin-settings link. -->
 			<!-- @binding {string} appId The app id used to build the Admin-settings target. -->
-			<slot name="menu"
+			<!-- `hideMenu` renders no navigation at all, so the content starts
+			     at the left edge. An EMPTY #menu override cannot do that: an
+			     empty slot falls back to the default CnAppNav (ensureValidVNode),
+			     which is why launchpad passed a hidden empty span. -->
+			<slot
+				v-if="!hideMenu"
+				name="menu"
 				:manifest="menuManifest"
 				:permissions="permissions"
 				:isOwner="isOwner"
@@ -420,7 +441,7 @@
 			<div v-if="setupWizardOpen" class="cn-app-root__setup-optional">
 				<CnSetupWizard
 					:appId="appId"
-					:appName="appDisplayName || (manifest && manifest.name) || appId"
+					:appName="shownAppName"
 					:steps="manifest.setup.steps"
 					:cancellable="true"
 					:completedStepIds="setupCompletedStepIds"
@@ -452,8 +473,14 @@
 			  an object to override copy/URLs. Persistence is per-user
 			  (server preferences endpoint) with a localStorage fallback.
 			-->
+			<!--
+			  Waits for the setup status: until it loads the shell renders
+			  provisionally, and a required unmet step then swaps it for the
+			  wizard, unmounting the dialog mid-transition (NcModal's focus trap
+			  then throws on its missing mask).
+			-->
 			<CnSupportDialog
-				v-if="cnSupportVisible"
+				v-if="cnSupportVisible && setupStatusSettled"
 				:appName="cnSupportAppName"
 				:appSlug="appId"
 				:appStoreUrl="cnSupportAppStoreUrl"
@@ -481,9 +508,18 @@
 			  dismissed the walkthrough remounts and the first-visit tour
 			  starts (or resumes) then. `!== true` keeps apps that opted out
 			  of the support note (`cnSupportVisible` undefined) unaffected.
+
+			  Withheld the same way while the setup status is still loading
+			  and while the non-gating setup wizard is open
+			  (`walkthroughHeldForSetup`). On a first run the wizard and the
+			  first-visit tour both qualify; the tour used to open behind the
+			  wizard, and its window-level ESC listener meant closing the
+			  wizard with ESC also dismissed the tour and recorded it as seen.
+			  Held back, the tour is never mounted, so nothing is recorded; it
+			  starts when the wizard is dismissed or finished.
 			-->
 			<!-- @slot walkthrough Override the gating-free walkthrough overlay. Scope: { manifest, seenVersion }. -->
-			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true"
+			<slot v-if="walkthroughEnabled && walkthroughSeenResolved && cnSupportVisible !== true && !walkthroughHeldForSetup"
 				name="walkthrough"
 				:manifest="manifest"
 				:seenVersion="walkthroughSeenVersion">
@@ -492,26 +528,55 @@
 					:manifest="manifest"
 					:seenVersion="walkthroughSeenVersion"
 					:resume="walkthroughResume"
-					:translate="translate"
+					:autoStart="!walkthroughPaused"
+					:translate="manifestTranslate"
 					@complete="onWalkthroughComplete"
-					@dismiss="onWalkthroughComplete" />
+					@pause="onWalkthroughPause"
+					@progress="onWalkthroughProgress" />
 			</slot>
 			<!--
 			  User-settings modal. Always mounted so descendants can
 			  open it via the `cnOpenUserSettings` inject (CnAppNav
 			  wires this to manifest entries with
-			  `action: "user-settings"`). The `#user-settings` slot
-			  hosts NcAppSettingsSection children; the placeholder
-			  fallback below renders when no slot content is supplied.
+			  `action: "user-settings"`).
+
+			  The dialog draws its sections in the order
+			  `userSettingsSectionOrder()` returns: `app` (the app's own
+			  sections from the slots), `notifications`, `credentials`,
+			  `walkthrough` and `integrations`. A key that is left out is
+			  not drawn. Two slots carry the app's sections:
+			  - `#user-settings-sections` adds them: the library's default
+			    sections stay unless `userSettingsSections` leaves them out.
+			  - `#user-settings` (the original slot) replaces the defaults,
+			    as it always did: only the app's content and the
+			    integrations section are drawn, unless `userSettingsSections`
+			    names more.
 			-->
-			<NcAppSettingsDialog
-				:open="userSettingsOpen"
-				:showNavigation="true"
-				:name="resolvedUserSettingsTitle"
+			<component
+				:is="resolvedLook === 'board' ? 'CnUserSettingsDialog' : 'NcAppSettingsDialog'"
+				v-bind="userSettingsDialogProps"
 				@update:open="userSettingsOpen = $event">
-				<!-- @slot user-settings Sections rendered inside the host NcAppSettingsDialog. Pass NcAppSettingsSection children. Defaults to the notification-preferences pane when omitted. -->
-				<slot name="user-settings">
-					<CnNotificationPreferences v-if="userSettingsOpen" />
+				<template v-for="section in userSettingsSectionOrder()" :key="section">
+					<template v-if="section === 'app'">
+						<!-- @slot user-settings The app's own sections (NcAppSettingsSection children), REPLACING the library's default sections: filling it draws only this content and the integrations section, unless the `userSettingsSections` prop names more. Prefer `#user-settings-sections`. -->
+						<slot name="user-settings" />
+						<!-- @slot user-settings-sections The app's own sections (NcAppSettingsSection children), ADDED to the library's default sections (notifications, credentials, walkthrough, integrations). Place, order or hide the defaults with the `userSettingsSections` prop. -->
+						<slot name="user-settings-sections" />
+					</template>
+					<!--
+						The user's "My views" menu entries: reorder, remove, add
+						(board DqPersoonlijkeInstellingen). Only in an app with a
+						page that offers saved views.
+					-->
+					<NcAppSettingsSection v-else-if="section === 'views' && userSettingsOpen && offersSavedViews"
+						id="cn-saved-view-menu"
+						:name="libraryCopy('Views in my menu')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<FilterOutline :size="18" />
+						</template>
+						<CnSavedViewMenuSettings />
+					</NcAppSettingsSection>
+					<CnNotificationPreferences v-else-if="section === 'notifications' && userSettingsOpen" />
 					<!--
 						Credential broker (OpenRegister). Lets the user manage the
 						secrets OR holds on their behalf; apps call external providers
@@ -519,13 +584,16 @@
 						`credentials[]` declarations drive the informational "Apps
 						requesting credentials" list.
 					-->
-					<NcAppSettingsSection v-if="userSettingsOpen"
+					<NcAppSettingsSection v-else-if="section === 'credentials' && userSettingsOpen"
 						id="credentials"
-						:name="translate('Credentials')">
+						:name="libraryCopy('Credentials')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<KeyOutline :size="18" />
+						</template>
 						<CnCredentials
 							scope="personal"
 							:appId="appId"
-							:appName="appDisplayName || (manifest && manifest.name) || appId"
+							:appName="shownAppName"
 							:appCredentials="(manifest && manifest.credentials) || []" />
 					</NcAppSettingsSection>
 					<!--
@@ -533,62 +601,82 @@
 						when the manifest declares an enabled tour, so apps
 						without a walkthrough never show an empty section.
 					-->
-					<NcAppSettingsSection v-if="walkthroughEnabled"
+					<NcAppSettingsSection v-else-if="section === 'walkthrough' && walkthroughEnabled"
 						id="cn-walkthrough"
 						:name="restartWalkthroughSectionName">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<Play :size="18" />
+						</template>
 						<p class="cn-app-root__walkthrough-hint">
 							{{ restartWalkthroughHint }}
 						</p>
-						<NcButton variant="secondary" @click="restartWalkthroughFromSettings">
-							<template #icon>
-								<Restart :size="20" />
-							</template>
-							{{ restartWalkthroughLabel }}
-						</NcButton>
-					</NcAppSettingsSection>
-				</slot>
-				<!--
-					Integrations (ADR-110) — the links that leave this app for
-					another one, gathered out of the navigation into one place.
-
-					DELIBERATELY OUTSIDE the #user-settings slot. Six fleet apps
-					override that slot, and anything placed inside the default
-					fallback disappears the moment an app supplies its own
-					content — silently, because an unmatched slot renders nothing
-					and reports nothing. A contract every app is supposed to
-					honour cannot live somewhere six apps switch off by accident.
-
-					Renders nothing when the app declares no integration
-					entries, so apps without any never show an empty section.
-				-->
-				<NcAppSettingsSection v-if="userSettingsOpen && integrationEntries.length"
-					id="cn-integrations"
-					:name="translate('Integrations')">
-					<p class="cn-app-root__integrations-hint">
-						{{ translate('These open in another app.') }}
-					</p>
-					<ul class="cn-app-root__integrations">
-						<li v-for="entry in integrationEntries" :key="entry.id">
-							<!--
-								One uniform external-link icon rather than the
-								entry's own: every row here goes to a different
-								app, which is the thing worth signalling, and
-								CnIcon falls back to a question mark for any
-								name an app has not registered — a broken-looking
-								glyph on a link that works fine.
-							-->
-							<NcButton variant="tertiary"
-								:href="entry.href"
-								:aria-label="entry.label">
+						<div class="cn-app-root__walkthrough-actions">
+							<NcButton
+								v-if="walkthroughProgressValue"
+								variant="primary"
+								data-testid="cn-walkthrough-continue"
+								@click="continueWalkthroughFromSettings">
 								<template #icon>
-									<OpenInNew :size="20" />
+									<Play :size="20" />
 								</template>
-								{{ entry.label }}
+								{{ continueWalkthroughLabel }}
 							</NcButton>
-						</li>
-					</ul>
-				</NcAppSettingsSection>
-			</NcAppSettingsDialog>
+							<NcButton
+								variant="secondary"
+								data-testid="cn-walkthrough-restart"
+								@click="restartWalkthroughFromSettings">
+								<template #icon>
+									<Restart :size="20" />
+								</template>
+								{{ walkthroughProgressValue ? startOverWalkthroughLabel : restartWalkthroughLabel }}
+							</NcButton>
+						</div>
+					</NcAppSettingsSection>
+					<!--
+						Integrations (ADR-110): the links that leave this app for
+						another one, gathered out of the navigation into one place.
+
+						Drawn whether or not the app fills `#user-settings`: six
+						fleet apps fill that slot, and a section placed inside its
+						fallback disappeared for all of them in silence. Only an
+						explicit `userSettingsSections` without `integrations`
+						hides it, for an app whose board does not draw it.
+
+						Renders nothing when the app declares no integration
+						entries, so apps without any never show an empty section.
+					-->
+					<NcAppSettingsSection v-else-if="section === 'integrations' && userSettingsOpen && integrationEntries.length"
+						id="cn-integrations"
+						:name="translate('Integrations')">
+						<template v-if="resolvedLook === 'board'" #icon>
+							<OpenInNew :size="18" />
+						</template>
+						<p class="cn-app-root__integrations-hint">
+							{{ libraryCopy('These open in another app.') }}
+						</p>
+						<ul class="cn-app-root__integrations">
+							<li v-for="entry in integrationEntries" :key="entry.id">
+								<!--
+									One uniform external-link icon rather than the
+									entry's own: every row here goes to a different
+									app, which is the thing worth signalling, and
+									CnIcon falls back to a question mark for any
+									name an app has not registered, a broken-looking
+									glyph on a link that works fine.
+								-->
+								<NcButton variant="tertiary"
+									:href="entry.href"
+									:aria-label="manifestTranslate(entry.label)">
+									<template #icon>
+										<OpenInNew :size="20" />
+									</template>
+									{{ manifestTranslate(entry.label) }}
+								</NcButton>
+							</li>
+						</ul>
+					</NcAppSettingsSection>
+				</template>
+			</component>
 
 			<!--
 			  ADR-079 Step 2: the generic admin-settings modal has been REMOVED.
@@ -623,28 +711,28 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { loadState } from '@nextcloud/initial-state'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
-import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
-import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
-import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import CnBrandBar from '../CnBrandBar/CnBrandBar.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
-import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
-import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
+import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
+import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
-import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
 import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
+import { useEnvironment } from '../../composables/useEnvironment.js'
 import { useManifestEditor } from '../../composables/useManifestEditor.js'
 import { useScopedTheme } from '../../composables/useScopedTheme.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
@@ -652,20 +740,46 @@ import { useSupportDialog } from '../../composables/useSupportDialog.js'
 import { provideTenantContext } from '../../composables/useTenantContext.js'
 import { useUserPreferences } from '../../composables/useUserPreferences.js'
 import {
+	loadWalkthroughProgress,
 	loadWalkthroughSeenVersion,
 	normaliseSeenVersion,
+	persistWalkthroughProgress,
 	persistWalkthroughSeenVersion,
+	readLocalWalkthroughProgress,
 	readLocalWalkthroughSeenVersion,
 	useWalkthrough,
 } from '../../composables/useWalkthrough.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
+import { resolveModalEntry } from '../../utils/builtInModals.js'
+import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
+import { setFeatureFlags } from '../../utils/featureFlags.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
+import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTranslate.js'
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
+import { loadMyTeam } from '../../utils/myTeam.js'
+import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
+import { resolveBrand } from '../../utils/resolveBrand.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
+import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
+
+const CnAiCompanion = defineAsyncComponent(() => import('../CnAiCompanion/CnAiCompanion.vue').then((m) => m.default))
+const CnCommandPalette = defineAsyncComponent(() => import('../CnCommandPalette/CnCommandPalette.vue').then((m) => m.default))
+const CnCredentials = defineAsyncComponent(() => import('../CnCredentials/CnCredentials.vue').then((m) => m.default))
+const CnNotificationPreferences = defineAsyncComponent(() => import('../CnNotificationPreferences/CnNotificationPreferences.vue').then((m) => m.default))
+const CnObjectSidebar = defineAsyncComponent(() => import('../CnObjectSidebar/CnObjectSidebar.vue').then((m) => m.default))
+const CnSavedViewMenuSettings = defineAsyncComponent(() => import('../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue').then((m) => m.default))
+const CnSetupWizard = defineAsyncComponent(() => import('../CnSetupWizard/CnSetupWizard.vue').then((m) => m.default))
+const CnSupportDialog = defineAsyncComponent(() => import('../CnSupportDialog/CnSupportDialog.vue').then((m) => m.default))
+const CnUserSettingsDialog = defineAsyncComponent(() => import('../CnUserSettingsDialog/CnUserSettingsDialog.vue').then((m) => m.default))
+const CnWalkthrough = defineAsyncComponent(() => import('../CnWalkthrough/CnWalkthrough.vue').then((m) => m.default))
 
 /**
  * Recognised registry kinds and their required metadata fields.
@@ -693,6 +807,13 @@ const REGISTRY_KIND_REQUIRED_FIELDS = {
 	// an integration `widget`, a `section` requires NO sidebar tab and carries no
 	// grid metadata — it sits wherever the page's `placement` puts it.
 	section: [],
+	// Named behaviour: a plain function (exposed as `.handler` / `.fn`) that a
+	// manifest names from `actions[].handler`, `bulkActions[].handler` or
+	// `headerActions[].handler`. Resolved by name through
+	// `resolveRegisteredHandler`, never mounted, so it carries no component and
+	// no metadata — the registry home for what used to live in the legacy
+	// `customComponents` map as a bare function.
+	handler: [],
 	// Create-override handler: a plain async function (exposed as `.handler` /
 	// `.fn`) that CnPageRenderer resolves for CnIndexPage's `createOverride`
 	// prop so a declarative `type:"index"` page can route its generic Add
@@ -713,10 +834,35 @@ const KNOWN_REGISTRY_KINDS = Object.keys(REGISTRY_KIND_REQUIRED_FIELDS)
  */
 const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
 
+/**
+ * The sections of the user-settings modal, in their default order. `app`
+ * stands for the app's own slot content.
+ */
+const USER_SETTINGS_SECTIONS = ['app', 'views', 'notifications', 'credentials', 'walkthrough', 'integrations']
+
+/**
+ * The server's merged feature map for the app (initial state `features`), or null.
+ *
+ * @param {string} appId The app id.
+ * @return {object|null}
+ */
+function readFeatureState(appId) {
+	if (!appId) {
+		return null
+	}
+	try {
+		return loadState(appId, 'features', null)
+	} catch {
+		return null
+	}
+}
+
 export default {
 	name: 'CnAppRoot',
 
 	components: {
+		CnBrandBar,
+		CnHeaderSearchLabel,
 		NcAppContent,
 		NcAppSettingsDialog,
 		NcAppSettingsSection,
@@ -726,11 +872,15 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 		DatabaseSearchOutline,
+		FilterOutline,
+		KeyOutline,
 		OpenInNew,
+		Play,
 		Restart,
 		CnAppNav,
 		CnAppLoading,
 		CnDependencyMissing,
+		CnEnvironmentBanner,
 		CnSetupWizard,
 		CnWalkthrough,
 		CnAiCompanion,
@@ -738,6 +888,8 @@ export default {
 		CnObjectSidebar,
 		CnSupportDialog,
 		CnNotificationPreferences,
+		CnSavedViewMenuSettings,
+		CnUserSettingsDialog,
 		CnCredentials,
 		CnTenantBadge,
 	},
@@ -761,6 +913,13 @@ export default {
 			// — the working copy while editing, the live manifest otherwise. A
 			// getter so it stays reactive despite provide() running once; when
 			// not editing it returns the live manifest, identical to before.
+			// A computed ref, not a getter: options-API inject resolves a plain
+			// value once, so a getter would freeze the look at creation.
+			cnLook: computed(() => self.resolvedLook),
+
+			// True while CnBrandBar draws the block in Nextcloud's header, so CnAppNav skips its own.
+			cnBrandInHeader: computed(() => self.brandInHeader),
+
 			get cnManifest() {
 				return self.manifestEditor ? self.manifestEditor.source.value : self.manifest
 			},
@@ -773,6 +932,10 @@ export default {
 			get cnUserPreferences() {
 				return self.userPreferences
 			},
+
+			// The saved views this user added to the menu, and the way to
+			// change them, for an index page's sidebar.
+			cnSavedViewMenu: self.savedViewMenu,
 
 			// The same manifest as a REF. The getter above is NOT enough on its
 			// own: Options-API `inject` resolves a provided value once, at the
@@ -822,7 +985,8 @@ export default {
 			},
 
 			cnCustomComponents: this.customComponents,
-			cnTranslate: this.translate,
+			cnTranslate: this.manifestTranslate,
+			cnDiagnostics: (report) => reportDiagnostic(report),
 			cnPageTypes: this.pageTypes,
 			cnFormatters: { ...BUILT_IN_FORMATTERS, ...this.formatters },
 			cnCellWidgets: this.cellWidgets,
@@ -849,7 +1013,7 @@ export default {
 			 * @param {object} props Props forwarded to the modal component.
 			 */
 			cnOpenModal: (key, props = {}) => {
-				const entry = this.registry[key]
+				const entry = resolveModalEntry(this.registry, key)
 				if (!entry || entry.kind !== 'modal') {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnAppRoot] cnOpenModal: "${key}" is not a registered modal (kind must be "modal").`)
@@ -884,8 +1048,11 @@ export default {
 			 * Restart entry for the product walkthrough (ADR-043). Descendants
 			 * (a menu/settings "Replay walkthrough" entry, or a manifest menu
 			 * `action: "replay-walkthrough"`) call this to re-run a tour. With no
-			 * `tourId` the first declared tour is used.
+			 * `tourId` the first declared tour is used. An unfinished tour
+			 * continues where the user was (a paused tour, else the saved
+			 * step); "Start over" in the user settings goes back to step 1.
 			 *
+			 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 			 * @param {string} [tourId] The tour to restart.
 			 * @return {void}
 			 */
@@ -895,9 +1062,18 @@ export default {
 				}
 				const wt = useWalkthrough(this.appId, this.manifest)
 				const id = tourId || (this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id)
-				if (id) {
-					wt.restart(id)
+				if (!id) {
+					return
 				}
+				const progress = this.walkthroughProgressValue
+				this.unpauseWalkthroughProgress()
+				if (wt.paused.value && wt.activeTour.value && wt.activeTour.value.id === id && wt.resumePaused()) {
+					return
+				}
+				if (progress && progress.tourId === id && wt.resumeAt(id, progress.stepId)) {
+					return
+				}
+				wt.restart(id)
 			},
 
 			/**
@@ -932,6 +1108,18 @@ export default {
 			 * wiring.
 			 */
 			cnAppId: this.appId,
+			/**
+			 * The app's labels for its notification rules, read by the
+			 * notification-preferences pane in the user-settings modal. A
+			 * getter so a late prop update is still seen by a pane that
+			 * mounts after it.
+			 *
+			 * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
+			 */
+			get cnNotificationLabels() {
+				return self.notificationLabels || {}
+			},
+
 			/**
 			 * Target repo slug for the in-product feature-request deep
 			 * link (e.g. `ConductionNL/pipelinq`). Read from the
@@ -1006,6 +1194,13 @@ export default {
 			 * the counts.
 			 */
 			cnMenuCounts: this.cnMenuCounts,
+			/**
+			 * Reactive `{ [menuItemId]: number }` totals for menu entries
+			 * whose `count` is an object (`{ register, schema, filter? }`),
+			 * populated by `_hydrateMenuItemCounts()`. Read by
+			 * `CnAppNav.resolveCount()`.
+			 */
+			cnMenuItemCounts: this.cnMenuItemCounts,
 		}
 	},
 
@@ -1147,6 +1342,32 @@ export default {
 		appId: {
 			type: String,
 			required: true,
+		},
+
+		/**
+		 * Render no app navigation at all: neither the default CnAppNav nor
+		 * the `#menu` slot, so the content starts at the left edge (a start
+		 * page without a menu). Off by default; the navigation renders as it
+		 * always has.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
+		 */
+		hideMenu: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Paint the content area with the page ground (the NL Design System
+		 * content-surface token, or Nextcloud's hover background) instead of
+		 * the main-background panel. For a dashboard app whose canvas is the
+		 * page; widgets keep their own surfaces. Off by default.
+		 *
+		 * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
+		 */
+		pageGround: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -1328,6 +1549,66 @@ export default {
 		},
 
 		/**
+		 * The environment this instance is: `development`, `test`, `acceptance` or
+		 * `production`. An app fills it from its own instance setting when it has
+		 * one; it wins over the active organisation's `environment` field. A
+		 * non-production environment is named in a banner on every screen that
+		 * cannot be dismissed, and the tab title gets a prefix (`[DEV]`, `[TEST]`,
+		 * `[ACC]`). Production, an unknown value or no value shows nothing.
+		 *
+		 * @type {string}
+		 */
+		environment: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The language labels are shown in. Defaults to the user's Nextcloud
+		 * language; buildiq's preview passes the maker's pick so the preview can
+		 * read another language than the designer around it. The label lookup tries
+		 * `manifest.i18n.labels[language]` (then its base, `en_GB` to `en`), then the
+		 * host `translate`, then the text as written.
+		 *
+		 * @type {string}
+		 */
+		language: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Listener for diagnostics: called with one report per request, render
+		 * error, unknown component and binding problem (`{ kind, at, pageId, ... }`).
+		 * Also provided as `cnDiagnostics`. Reports never hold a body, header, query
+		 * value or user id; the library sends nothing itself. Without it no report
+		 * is built and no timing is taken.
+		 *
+		 * @type {(report: object) => void}
+		 */
+		diagnostics: {
+			type: Function,
+			default: null,
+		},
+
+		/**
+		 * Labels for the app's notification rules, shown in the
+		 * user-settings notification pane instead of the rule keys. Keyed
+		 * `<schema>.<key>` (or just `<key>`); values are already translated
+		 * strings, e.g. `{ 'case.caseAssigned': t('dossiq', 'A case is
+		 * assigned to me') }`, or per-locale maps `{ nl, en }`. A rule's own
+		 * `label` from OpenRegister wins; a rule with no label anywhere reads
+		 * as its key split into words, never as the raw key.
+		 *
+		 * @type {{[key: string]: (string|object)}}
+		 * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
+		 */
+		notificationLabels: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * List of permission strings the current user holds. Forwarded
 		 * to CnAppNav's permission filter.
 		 *
@@ -1361,8 +1642,10 @@ export default {
 		 *
 		 * Recognised kinds: `widget`, `modal`, `page`, `form-field`,
 		 * `cell-renderer`, the slot-component kinds `header`, `actions`,
-		 * `tab`, `section` (mounted into named page slots), and the handler
-		 * kind `create-override`. See spec REQ-MVR-002.
+		 * `tab`, `section` (mounted into named page slots), and the function
+		 * kinds `handler` (a manifest `actions[]` / `bulkActions[]` /
+		 * `headerActions[]` handler) and `create-override`. See spec
+		 * REQ-MVR-002.
 		 *
 		 * @type {object}
 		 */
@@ -1403,6 +1686,31 @@ export default {
 		},
 
 		/**
+		 * The look the app is drawn in: `board` or `nextcloud`. Empty falls back
+		 * to the manifest's top-level `look`, then `nextcloud`. Provided to
+		 * descendants as `cnLook`.
+		 *
+		 * @type {''|'board'|'nextcloud'}
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The brand block (`{ logo, emblem, name, caption, alt, placement }`)
+		 * the board look draws at the start of Nextcloud's header. Empty falls back
+		 * to the manifest's `nav.brand`. `placement: "nav"` keeps the block
+		 * in the navigation.
+		 *
+		 * @type {object|null}
+		 */
+		brand: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Title rendered at the top of the user-settings modal
 		 * (NcAppSettingsDialog `name` prop). Defaults to the
 		 * translated string "User settings"; pass a custom label
@@ -1413,6 +1721,66 @@ export default {
 		userSettingsTitle: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Deprecated and ignored: the board user-settings dialog draws no
+		 * line above its title (DqPersoonlijkeInstellingen).
+		 *
+		 * @deprecated
+		 * @type {string}
+		 */
+		userSettingsEyebrow: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Deprecated and ignored: the board user-settings dialog draws no
+		 * sentence under its title (DqPersoonlijkeInstellingen).
+		 *
+		 * @deprecated
+		 * @type {string}
+		 */
+		userSettingsSubtitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: Nextcloud's own personal settings, listed first in the
+		 * user-settings navigation as links, `[{ label, section? | href?, icon? }]`
+		 * (`section` is a personal settings section id). With any, the app's
+		 * sections sit under one entry named after the app. Labels go through
+		 * the app's `translate`.
+		 *
+		 * @type {Array<object>}
+		 */
+		userSettingsNextcloudLinks: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The sections of the user-settings modal, in the order they are
+		 * drawn. Keys: `app` (the content of the `#user-settings-sections`
+		 * and `#user-settings` slots), `notifications`, `credentials`,
+		 * `walkthrough` and `integrations`. A key that is left out is not
+		 * drawn, so `['app', 'credentials', 'walkthrough']` hides the
+		 * notifications pane and the integrations section. Unknown keys are
+		 * ignored. The app's slot content is always drawn: without `app` in
+		 * the list it comes first.
+		 *
+		 * `null` (the default) keeps what each slot always did: all
+		 * defaults after the `#user-settings-sections` content, or only the
+		 * `#user-settings` content and the integrations section when an app
+		 * fills that older slot.
+		 *
+		 * @type {Array<string>|null}
+		 */
+		userSettingsSections: {
+			type: Array,
+			default: null,
 		},
 
 		/**
@@ -1456,7 +1824,7 @@ export default {
 		},
 	},
 
-	emits: ['setup-complete', 'walkthrough-complete'],
+	emits: ['setup-complete', 'setup-wizard-dismissed', 'walkthrough-complete'],
 
 	/**
 	 * Component-instance state for the capabilities guard.
@@ -1566,8 +1934,12 @@ export default {
 			{ deep: true, immediate: true },
 		)
 
+		// The environment this instance is: the app's own setting, else the active organisation's.
+		const { environment: environmentName } = useEnvironment({ environment: () => props.environment, tenant: tenantContext })
+
 		return {
 			...supportPair,
+			environmentName,
 			cnTenantContext: tenantContext,
 			manifestEditor,
 			buildiqAvailable: buildiqEditable,
@@ -1597,6 +1969,23 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// Saved views this user added to the menu (per-user preference).
+			// One object for the whole session, so the provide hands out a
+			// live reference: `entries` changes, the holder does not.
+			savedViewMenuLoaded: false,
+			savedViewMenu: {
+				entries: [],
+				toggle: (entry) => this.toggleSavedViewMenu(entry),
+				sync: (page, views) => this.syncSavedViewMenu(page, views),
+				set: (entries) => this.setSavedViewMenu(entries),
+			},
+
+			// Nextcloud's own header, present on a server-rendered page; the
+			// brand block goes into it (CnBrandBar). Read once at creation so
+			// the navigation never draws a block that then moves.
+			headerPresent: typeof document !== 'undefined' && !!document.getElementById('header'),
+			// Set when CnBrandBar finds the header gone: the navigation draws the block.
+			headerMissing: false,
 			capabilitiesLoading: willCheck,
 			missingApps: [],
 			guardError: null,
@@ -1662,6 +2051,13 @@ export default {
 			 * picked up by CnAppNav's reactive render.
 			 */
 			cnMenuCounts: reactive({}),
+			/**
+			 * Reactive `{ [menuItemId]: number }` map of filtered totals, one
+			 * per menu entry whose `count` is an object. Provided to
+			 * descendants as `cnMenuItemCounts`. Populated by
+			 * `_hydrateMenuItemCounts()` at mount.
+			 */
+			cnMenuItemCounts: reactive({}),
 			/**
 			 * Open state of the host NcAppSettingsDialog. Toggled
 			 * to `true` by the provided `cnOpenUserSettings()`
@@ -1753,6 +2149,15 @@ export default {
 			 */
 			walkthroughSeenVersionValue: readLocalWalkthroughSeenVersion(this.appId),
 			/**
+			 * Where the user is in an unfinished tour (`{ tourId, stepId,
+			 * index, version }`), or null. Seeded from the local mirror, then
+			 * replaced by the per-user `<completionConfigKey>-progress`
+			 * preference. The tour resumes at this step on the next visit.
+			 *
+			 * @type {object|null}
+			 */
+			walkthroughProgressValue: readLocalWalkthroughProgress(this.appId),
+			/**
 			 * Whether `walkthroughSeenVersionValue` is settled. Starts `true`
 			 * when the manifest declares no `completionConfigKey` (the local
 			 * read above is already the final answer) and `false` when it does,
@@ -1764,6 +2169,14 @@ export default {
 			walkthroughSeenResolved: !(this.manifest
 				&& this.manifest.walkthrough
 				&& this.manifest.walkthrough.completionConfigKey),
+
+			/**
+			 * Whether the setup status has finished loading at least once.
+			 * Stays `true` across later refreshes.
+			 *
+			 * @type {boolean}
+			 */
+			setupStatusSettled: false,
 
 			/**
 			 * Key of the currently active modal (opened via cnOpenModal).
@@ -1834,6 +2247,77 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The look the app is drawn in: the `look` prop, else the manifest's
+		 * root `look`, else `nextcloud`. `board` puts `cn-look-board` on the
+		 * root element.
+		 *
+		 * @return {string} `board` or `nextcloud`.
+		 */
+		resolvedLook() {
+			return (this.look || this.manifest?.look) === 'board' ? 'board' : 'nextcloud'
+		},
+
+		/**
+		 * The brand CnBrandBar draws in the header: the `brand` prop, else the manifest's
+		 * `nav.brand`, read into one shape.
+		 *
+		 * @return {object|null} The resolved brand, or null.
+		 */
+		resolvedBrandBlock() {
+			return resolveBrand(this.brand || this.manifest?.nav?.brand, (text) => this.manifestTranslate(text))
+		},
+
+		/**
+		 * Whether CnBrandBar draws the brand block in Nextcloud's header: the
+		 * board look, a brand that can be drawn, a placement other than `nav`,
+		 * and a `#header` to put it in. Without `#header` the navigation draws it.
+		 *
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-board-look-draws-the-brand-block-in-the-nextcloud-header
+		 * @return {boolean}
+		 */
+		brandInHeader() {
+			return this.resolvedLook === 'board'
+				&& !this.headerMissing
+				&& this.headerPresent
+				&& !!this.resolvedBrandBlock
+				&& this.resolvedBrandBlock.placement !== 'nav'
+		},
+
+		/**
+		 * The line on the search field in Nextcloud's header: the manifest's
+		 * `nav.searchPlaceholder`, translated, under the board look on a page
+		 * with a header. Empty otherwise, and then the field keeps Nextcloud's line.
+		 *
+		 * @spec openspec/changes/screens-board-top-bar-search/specs/layout-components/spec.md#requirement-the-board-look-names-what-the-header-search-finds
+		 * @return {string}
+		 */
+		headerSearchLabel() {
+			const key = this.manifest?.nav?.searchPlaceholder
+			if (this.resolvedLook !== 'board' || !this.headerPresent || typeof key !== 'string' || key === '') {
+				return ''
+			}
+			return this.manifestTranslate(key)
+		},
+
+		/**
+		 * The label lookup provided as `cnTranslate`: the manifest's own
+		 * translations for the language first, then the host `translate`, then the
+		 * text as written. It reads the live manifest (the editor's working copy
+		 * while editing) and the language on every call.
+		 *
+		 * @return {Function} `(text, vars) => string`
+		 */
+		manifestTranslate() {
+			return createManifestTranslate({
+				getManifest: () => (this.manifestEditor ? this.manifestEditor.source.value : this.manifest),
+				getLanguage: () => this.language || getLanguage(),
+				translate: (text, vars) => this.translate(text, vars),
+				library: (text, vars) => t('nextcloud-vue', text, vars),
+				hasTranslation: (text) => appCatalogHas(this.appId, text),
+			})
+		},
+
 		/**
 		 * The per-user preference reader and writer for this app, built from
 		 * the manifest's `personalisation` block.
@@ -1966,6 +2450,16 @@ export default {
 		},
 
 		/**
+		 * Whether any page of the manifest offers saved views.
+		 *
+		 * @return {boolean}
+		 */
+		offersSavedViews() {
+			const pages = this.manifest && Array.isArray(this.manifest.pages) ? this.manifest.pages : []
+			return pages.some((page) => page && page.type === 'index' && pageOffersSavedViews(page.config))
+		},
+
+		/**
 		 * The manifest the default `<CnAppNav>` renders — the editor's working
 		 * `source` while in-app editing, else the live `manifest` prop. Passed to
 		 * CnAppNav as a REACTIVE prop (not left to the provide/inject fallback):
@@ -1995,6 +2489,12 @@ export default {
 			// prop for async backend-merge updates — see the reactive-menu tests).
 			if (this.manifestEditor && this.manifestEditor.editing.value && m && typeof m === 'object') {
 				return { ...m }
+			}
+			// An app that offers saved views ends its menu with the "My views"
+			// group: the user's pinned views, or one line saying how to add one.
+			// Any other app gets its live manifest by identity.
+			if (m && typeof m === 'object' && Array.isArray(m.menu) && (this.savedViewMenu.entries.length > 0 || this.offersSavedViews)) {
+				return { ...m, menu: withSavedViewMenu(m.menu, this.savedViewMenu.entries, { showEmpty: this.offersSavedViews }) }
 			}
 			return m
 		},
@@ -2306,6 +2806,15 @@ export default {
 		},
 
 		/**
+		 * Whether the setup status is still loading. `false` when the manifest
+		 * declares no setup block.
+		 */
+		setupStatusLoading() {
+			const s = this.setupState
+			return !!s && s.loading.value !== false
+		},
+
+		/**
 		 * Whether the setup wizard should be OFFERED (non-gating) because
 		 * every required step is met but at least one ACTIONABLE optional step
 		 * isn't (REQ-SETUP-NV-012). Never true while the gating phase is active —
@@ -2344,6 +2853,10 @@ export default {
 		 * Neither guard subsumes the other — (1) is about steps the server never
 		 * reports, (2) about steps it can never mark done — so both are needed.
 		 *
+		 * 3. On-demand steps (`onDemand: true`) are excluded too: they run only
+		 *    when the user asks (learniq's "Remove the example data"), so they
+		 *    are never outstanding work.
+		 *
 		 * @return {boolean} True when an actionable optional step is genuinely outstanding.
 		 */
 		optionalSetupPending() {
@@ -2363,7 +2876,9 @@ export default {
 			const outstanding = s.completed.value === true
 				? (s.optionalUnmetReported ? s.optionalUnmetReported.value : [])
 				: s.optionalUnmet.value
-			return outstanding.some((st) => st.type !== 'info' && st.type !== 'summary')
+			// On-demand steps (`onDemand: true`) run only when the user asks,
+			// so they are never outstanding and never reason to open the wizard.
+			return outstanding.some((st) => st.type !== 'info' && st.type !== 'summary' && st.onDemand !== true)
 		},
 
 		/**
@@ -2447,6 +2962,20 @@ export default {
 		},
 
 		/**
+		 * Whether the setup flow holds the walkthrough back: the setup status
+		 * has not settled yet (an outstanding optional step may still open the
+		 * wizard), or the non-gating setup wizard is open. The gating setup
+		 * phase needs no check here, it replaces the shell (and the tour with
+		 * it) outright. Apps without a `setup` block settle immediately, so
+		 * this is `false` for them from the first render.
+		 *
+		 * @return {boolean} True while the tour must wait for setup.
+		 */
+		walkthroughHeldForSetup() {
+			return !this.setupStatusSettled || this.setupWizardOpen
+		},
+
+		/**
 		 * The user's last-seen app version for walkthrough composition. Resolved
 		 * from the per-user `completionConfigKey` preference (cross-device) with
 		 * the localStorage mirror as fallback; CnAppRoot writes BOTH on completion
@@ -2468,13 +2997,27 @@ export default {
 			try {
 				const p = new URLSearchParams(window.location.search)
 				const tourId = p.get('cn_resume_tour')
-				if (!tourId) {
-					return null
+				if (tourId) {
+					return { tourId, stepId: p.get('cn_resume_step') || '' }
 				}
-				return { tourId, stepId: p.get('cn_resume_step') || '' }
 			} catch {
-				return null
+				// No URL token; fall through to the remembered progress.
 			}
+			// An unfinished tour continues at the step the user reached,
+			// unless the user paused it: then it waits for "Continue".
+			const progress = this.walkthroughProgressValue
+			return progress && !progress.paused ? { tourId: progress.tourId, stepId: progress.stepId } : null
+		},
+
+		/**
+		 * Whether the user paused the tour (X, ESC or the dim). A paused tour
+		 * stays hidden across page loads until the user picks "Continue".
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @return {boolean} True while the saved progress is paused.
+		 */
+		walkthroughPaused() {
+			return !!(this.walkthroughProgressValue && this.walkthroughProgressValue.paused)
 		},
 
 		phase() {
@@ -2677,7 +3220,52 @@ export default {
 		},
 
 		resolvedUserSettingsTitle() {
-			return this.userSettingsTitle || this.translate('User settings')
+			return this.userSettingsTitle || this.libraryCopy('User settings')
+		},
+
+		/**
+		 * The app's name as the reader reads it: `appDisplayName` or the
+		 * manifest's `name` through the app's translate, else the name
+		 * Nextcloud's app menu shows (localised), else the id with a capital.
+		 * Used for the user settings dialog, the setup wizard and the
+		 * credentials section; never for NcContent's `appName`, which also
+		 * keys the stored list-pane width (`pane-list-size-<appName>`).
+		 *
+		 * @spec openspec/changes/app-shown-name-in-chrome/specs/app-root/spec.md#requirement-the-app-chrome-shows-the-apps-localised-name
+		 * @return {string}
+		 */
+		shownAppName() {
+			const given = this.appDisplayName || (this.manifest && this.manifest.name) || ''
+			return appShownName(this.appId, given ? this.translate(given) : '')
+		},
+
+		/**
+		 * The props of the user-settings dialog: `NcAppSettingsDialog`'s, or
+		 * under the board look CnUserSettingsDialog's (title, the app's name
+		 * for the note under the sections, and the Nextcloud links).
+		 *
+		 * @spec openspec/changes/user-settings-board-dialog/specs/user-settings-board-dialog/spec.md#requirement-the-user-settings-dialog-takes-the-board-look
+		 * @return {object}
+		 */
+		userSettingsDialogProps() {
+			if (this.resolvedLook !== 'board') {
+				return { open: this.userSettingsOpen, showNavigation: true, name: this.resolvedUserSettingsTitle }
+			}
+			const props = {
+				open: this.userSettingsOpen,
+				title: this.resolvedUserSettingsTitle,
+				appName: this.shownAppName,
+			}
+			if (this.userSettingsEyebrow) {
+				props.eyebrow = this.translate(this.userSettingsEyebrow)
+			}
+			if (this.userSettingsSubtitle) {
+				props.subtitle = this.translate(this.userSettingsSubtitle)
+			}
+			if (Array.isArray(this.userSettingsNextcloudLinks) && this.userSettingsNextcloudLinks.length > 0) {
+				props.nextcloudLinks = this.userSettingsNextcloudLinks.map((link) => ({ ...link, label: this.translate(link?.label || '') }))
+			}
+			return props
 		},
 
 		/**
@@ -2696,7 +3284,7 @@ export default {
 		 * @return {string}
 		 */
 		restartWalkthroughSectionName() {
-			return this.translate('Walkthrough')
+			return this.libraryCopy('Walkthrough')
 		},
 
 		/**
@@ -2705,7 +3293,7 @@ export default {
 		 * @return {string}
 		 */
 		restartWalkthroughHint() {
-			return this.translate('Take the guided tour of this app again.')
+			return this.libraryCopy('Take the guided tour of this app again.')
 		},
 
 		/**
@@ -2714,7 +3302,25 @@ export default {
 		 * @return {string}
 		 */
 		restartWalkthroughLabel() {
-			return this.translate('Restart walkthrough')
+			return this.libraryCopy('Restart walkthrough')
+		},
+
+		/**
+		 * Label for continuing an unfinished tour at the remembered step.
+		 *
+		 * @return {string}
+		 */
+		continueWalkthroughLabel() {
+			return t('nextcloud-vue', 'Continue where you left off')
+		},
+
+		/**
+		 * Label for restarting an unfinished tour from the first step.
+		 *
+		 * @return {string}
+		 */
+		startOverWalkthroughLabel() {
+			return t('nextcloud-vue', 'Start over')
 		},
 
 		/**
@@ -2727,12 +3333,24 @@ export default {
 			if (!this.activeModalKey) {
 				return null
 			}
-			const entry = (this.registry || {})[this.activeModalKey]
+			const entry = resolveModalEntry(this.registry, this.activeModalKey)
 			return (entry && entry.component) ? entry.component : null
 		},
 	},
 
 	watch: {
+		// Only an app with a page that offers saved views reads the list,
+		// once, when such a page first appears in the manifest.
+		offersSavedViews: {
+			immediate: true,
+			handler(offers) {
+				if (offers && !this.savedViewMenuLoaded) {
+					this.savedViewMenuLoaded = true
+					this.loadSavedViewMenu()
+				}
+			},
+		},
+
 		/**
 		 * Close a registry modal when the route changes.
 		 *
@@ -2743,6 +3361,28 @@ export default {
 		 */
 		$route() {
 			this.activeModalKey = null
+		},
+
+		/**
+		 * Open the setup wizard again when the address asks for it
+		 * (`?setup=open`), also after it was finished or dismissed, so a menu
+		 * entry or a link can offer "set up again". Ignored for an app without
+		 * setup steps.
+		 *
+		 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+		 */
+		'$route.query.setup': {
+			immediate: true,
+			/**
+			 * @param {string|undefined} value The `setup` query value.
+			 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+			 */
+			handler(value) {
+				const setup = this.manifest && this.manifest.setup
+				if (value === 'open' && setup && setup.enabled !== false && Array.isArray(setup.steps) && setup.steps.length > 0) {
+					this.setupWizardOpen = true
+				}
+			},
 		},
 
 		/**
@@ -2779,6 +3419,29 @@ export default {
 				this.resolveWalkthroughSeenVersion()
 			},
 		},
+
+		diagnostics() {
+			this.syncDiagnostics()
+		},
+
+		'$route.name': function() {
+			clearReportedDiagnostics()
+		},
+
+		setupStatusLoading: {
+			immediate: true,
+			handler(loading) {
+				if (!loading) {
+					this.setupStatusSettled = true
+				}
+			},
+		},
+	},
+
+	created() {
+		this.syncDiagnostics()
+		// Feature toggles: the manifest's declarations and the server's merged map (initial state `features`).
+		setFeatureFlags({ declarations: this.manifest && this.manifest.features, values: readFeatureState(this.appId) })
 	},
 
 	mounted() {
@@ -2792,12 +3455,17 @@ export default {
 		// nested CnAppRoot in Buildiq's BuilderHost is safe.
 		installModalStack()
 
+		// `?cn_edit=1` (the buildiq square on the app's admin page) opens the
+		// app in edit mode, once Buildiq reports itself available.
+		this.$watch(() => this.buildiqAvailable, (available) => this.enterEditFromUrl(available), { immediate: true })
+
 		// Guard against silently losing unsaved in-app edits. The manifest
 		// editor stays `dirty` for the whole Save (the persist PUT can take a
 		// few seconds), so a refresh mid-save would drop the edit before the
 		// write lands; this warns the user while there are unsaved/in-flight
 		// changes. Registered before the early-return so it always installs.
 		window.addEventListener('beforeunload', this.onBeforeUnload)
+		window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
@@ -2805,6 +3473,7 @@ export default {
 			this._validateRegistry()
 			this._warnCustomComponentsDeprecation()
 			this._hydrateMenuCounts()
+			this._hydrateMenuItemCounts()
 			return
 		}
 
@@ -2833,10 +3502,16 @@ export default {
 		this._validateRegistry()
 		this._warnCustomComponentsDeprecation()
 		this._hydrateMenuCounts()
+		this._hydrateMenuItemCounts()
 	},
 
 	beforeUnmount() {
+		if (this.removeDiagnostics) {
+			this.removeDiagnostics()
+			this.removeDiagnostics = null
+		}
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
+		window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 		this.cnScopedTheme.teardown(this.appId)
 		// Scope the side effect to the shell's lifetime. Layers already written
 		// stay on screen (see `uninstallModalStack`), so a dialog outliving the
@@ -2845,6 +3520,116 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Enter edit mode when the URL asks for it (`cn_edit=1`) and Buildiq
+		 * is available, then drop the parameter so a reload stays out of it.
+		 *
+		 * @param {boolean} available Whether Buildiq editing is available.
+		 * @return {void}
+		 * @spec openspec/changes/admin-buildiq-square/specs/admin-buildiq-square/spec.md#requirement-the-app-opens-in-edit-mode-from-the-admin-square
+		 */
+		enterEditFromUrl(available) {
+			if (!available || !this.manifestEditor || typeof window === 'undefined') {
+				return
+			}
+			const url = new URL(window.location.href)
+			if (url.searchParams.get('cn_edit') !== '1') {
+				return
+			}
+			url.searchParams.delete('cn_edit')
+			window.history.replaceState(window.history.state, '', url.toString())
+			if (!this.manifestEditor.editing.value) {
+				this.manifestEditor.enter()
+			}
+		},
+
+		/**
+		 * Read the saved views this user added to the menu.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async loadSavedViewMenu() {
+			const read = this.userPreferences && this.userPreferences.read
+			if (typeof read !== 'function') {
+				return
+			}
+			try {
+				this.savedViewMenu.entries = normalizeSavedViewMenu(await read(SAVED_VIEW_MENU_KEY, []))
+			} catch {
+				// No menu entries; the views themselves are unaffected.
+				return
+			}
+			this._hydrateSavedViewMenuCounts()
+		},
+
+		/**
+		 * Add a saved view to the menu, or remove it, and store the list.
+		 *
+		 * @param {{id: string, page: string, name: string, badge?: object}} entry The view.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async toggleSavedViewMenu(entry) {
+			this.savedViewMenu.entries = toggleSavedViewMenuEntry(this.savedViewMenu.entries, entry)
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/**
+		 * Bring one page's menu entries in line with the views it lists, and
+		 * store the list only when that changed something.
+		 *
+		 * @param {string} page The page's route name.
+		 * @param {Array<object>} views The views the page lists.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-7
+		 */
+		async syncSavedViewMenu(page, views) {
+			const next = syncSavedViewMenu(this.savedViewMenu.entries, page, views)
+			if (JSON.stringify(next) === JSON.stringify(this.savedViewMenu.entries)) {
+				return
+			}
+			this.savedViewMenu.entries = next
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/**
+		 * Replace the list (reordered, entries removed or added) and store it.
+		 *
+		 * @param {Array<object>} entries The new list, in menu order.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/saved-view-menu-settings/specs/saved-view-menu-settings/spec.md#requirement-a-user-orders-and-picks-the-views-in-their-menu
+		 */
+		async setSavedViewMenu(entries) {
+			this.savedViewMenu.entries = normalizeSavedViewMenu(entries)
+			this._hydrateSavedViewMenuCounts()
+			await this.writeSavedViewMenu()
+		},
+
+		/** @return {Promise<void>} Store the list in the user's preferences. */
+		async writeSavedViewMenu() {
+			const write = this.userPreferences && this.userPreferences.write
+			if (typeof write === 'function') {
+				await write(SAVED_VIEW_MENU_KEY, this.savedViewMenu.entries)
+			}
+		},
+
+		/** Listen for the host's `diagnostics` function while it is set; adds this root's page id. */
+		syncDiagnostics() {
+			if (this.removeDiagnostics) {
+				this.removeDiagnostics()
+				this.removeDiagnostics = null
+			}
+			if (typeof this.diagnostics === 'function') {
+				this.removeDiagnostics = addDiagnosticsListener((report) => {
+					const name = this.$route ? this.$route.name : null
+					this.diagnostics({ ...report, pageId: name === undefined || name === null ? null : String(name) })
+				})
+			}
+		},
+
 		/**
 		 * Permission gate for an Integrations entry — deliberately identical
 		 * to `CnAppNav.passesPermission`, including the "no permissions prop
@@ -2975,6 +3760,13 @@ export default {
 				return null
 			}
 
+			// In the board look a flow page is CnFlowBoard, which carries the
+			// flow's controls behind its own side panel button.
+			const pageLook = page.config?.look === 'board' || page.config?.look === 'nextcloud' ? page.config.look : this.resolvedLook
+			if (pageLook === 'board' && defaultPageSidebars[page.type]) {
+				return null
+			}
+
 			return this.resolveAdminSettingsComponent(page.sidebarComponent)
 		},
 
@@ -2988,6 +3780,54 @@ export default {
 			}
 			const legacy = this.customComponents && this.customComponents[key]
 			return legacy || null
+		},
+
+		/**
+		 * The keys of the user-settings sections to draw, in order. A method
+		 * rather than a computed, because which slots an app fills is read
+		 * from `$slots`, which a computed does not track.
+		 *
+		 * @return {Array<string>} Keys out of `USER_SETTINGS_SECTIONS`.
+		 * @spec openspec/changes/user-settings-sections/specs/user-settings-sections/spec.md#requirement-the-user-settings-dialog-keeps-its-default-sections-next-to-the-apps-own
+		 */
+		userSettingsSectionOrder() {
+			const replaces = Boolean(this.$slots['user-settings'])
+			const adds = Boolean(this.$slots['user-settings-sections'])
+			let order
+			if (Array.isArray(this.userSettingsSections)) {
+				order = [...new Set(this.userSettingsSections.filter((key) => USER_SETTINGS_SECTIONS.includes(key)))]
+			} else if (replaces) {
+				order = ['app', 'integrations']
+			} else {
+				order = [...USER_SETTINGS_SECTIONS]
+			}
+			if ((replaces || adds) && !order.includes('app')) {
+				order.unshift('app')
+			}
+			return order
+		},
+
+		/**
+		 * Copy for a part of the user settings dialog the library draws itself
+		 * (its title, the credentials and walkthrough sections). The library's
+		 * own catalogue answers first, because the app's catalogue may give
+		 * the same English word another meaning: learniq translates
+		 * "Credentials" as "Diploma's" for its own records, and the dialog
+		 * showed that above the vault pane. Only when the library has no
+		 * translation in the user's language does the host `translate` get a
+		 * turn, then the text as written.
+		 *
+		 * @param {string} key The English source string.
+		 * @return {string} The translated copy.
+		 * @spec openspec/changes/dutch-user-settings-dialog/specs/dutch-user-settings-dialog/spec.md#requirement-the-user-settings-dialog-reads-dutch-for-a-dutch-reader
+		 */
+		libraryCopy(key) {
+			const own = t('nextcloud-vue', key)
+			if (typeof own === 'string' && own !== '' && own !== key) {
+				return own
+			}
+			const host = this.translate(key)
+			return typeof host === 'string' && host !== '' ? host : key
 		},
 
 		/**
@@ -3125,7 +3965,7 @@ export default {
 			// the server keeps reporting it unmet — so without this the wizard
 			// auto-opens again on every visit. Cancel must not be the only way to
 			// get peace.
-			this.persistSetupWizardDismissal()
+			this.persistSetupWizardDismissal(true)
 			if (this.setupState && typeof this.setupState.refresh === 'function') {
 				this.setupState.refresh()
 			}
@@ -3146,7 +3986,7 @@ export default {
 		 * @return {void}
 		 */
 		dismissSetupWizard() {
-			this.persistSetupWizardDismissal()
+			this.persistSetupWizardDismissal(false)
 			this.setupWizardOpen = false
 		},
 
@@ -3169,7 +4009,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isSetupWizardDismissed() {
-			if (this.setupWizardDismissed) {
+			if (this.setupWizardDismissed || this.isSetupWizardDismissedOnServer()) {
 				return true
 			}
 			try {
@@ -3180,18 +4020,87 @@ export default {
 		},
 
 		/**
-		 * Record the non-gating setup wizard as dismissed for this manifest
-		 * `setup.version` so it doesn't auto-open again.
+		 * Whether the app's setup status says the wizard was closed, so it
+		 * stays closed in every browser and on every device. The status
+		 * (`GET /api/setup/status`) may carry `dismissed: true`, or the
+		 * `setup.version` it was closed at (`dismissed: 2`), which re-opens the
+		 * wizard after a version bump. An app whose status carries neither
+		 * keeps today's per-browser behaviour. An app may also answer the
+		 * outstanding steps itself when it records the close (OpenRegister's
+		 * `dismiss-setup`), which needs nothing here.
 		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @return {boolean} True when the server recorded the close for this version.
+		 */
+		isSetupWizardDismissedOnServer() {
+			const s = this.setupState
+			const status = s && s.status && s.status.value
+			const dismissed = status && typeof status === 'object' ? status.dismissed : undefined
+			if (dismissed === true) {
+				return true
+			}
+			if (typeof dismissed === 'number' && Number.isFinite(dismissed)) {
+				const version = (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0
+				return dismissed >= version
+			}
+			return false
+		},
+
+		/**
+		 * The setup action that records a closed wizard on the server, from
+		 * `manifest.setup.dismissAction`, or '' when the app declares none.
+		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @return {string} The action id.
+		 */
+		setupDismissAction() {
+			const action = this.manifest && this.manifest.setup && this.manifest.setup.dismissAction
+			return typeof action === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(action) ? action : ''
+		},
+
+		/**
+		 * Record the setup wizard as closed for this manifest `setup.version`
+		 * so it doesn't auto-open again: in this browser (localStorage) and,
+		 * when the manifest declares `setup.dismissAction`, on the server
+		 * through the app's own setup action endpoint
+		 * (`POST /apps/{appId}/api/setup/action/{dismissAction}`, admin-only
+		 * like every setup endpoint, so the record is per instance). Then
+		 * emits `setup-wizard-dismissed`. Once per page load: finishing
+		 * records it, and the result screen's Close that follows does not
+		 * post again.
+		 *
+		 * @spec openspec/changes/setup-wizard-close-on-server/specs/cn-setup-wizard/spec.md
+		 * @param {boolean} [finished] True when the user finished the wizard, false when they closed it.
 		 * @return {void}
 		 */
-		persistSetupWizardDismissal() {
+		persistSetupWizardDismissal(finished = false) {
 			try {
 				window.localStorage.setItem(this.setupWizardDismissKey(), '1')
 			} catch {
 				// Best-effort persistence (private mode / no storage).
 			}
+			if (this.setupWizardDismissed) {
+				return
+			}
 			this.setupWizardDismissed = true
+			const action = this.setupDismissAction()
+			if (action) {
+				try {
+					Promise.resolve(axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${action}`), { finished: finished === true }))
+						.catch(() => { /* the local record still holds in this browser */ })
+				} catch {
+					// Never let a failed record break the close.
+				}
+			}
+			/**
+			 * @event setup-wizard-dismissed Emitted once when the user closes or finishes the setup wizard.
+			 * @type {{ appId: string, version: number, finished: boolean }}
+			 */
+			this.$emit('setup-wizard-dismissed', {
+				appId: this.appId,
+				version: (this.manifest && this.manifest.setup && this.manifest.setup.version) || 0,
+				finished: finished === true,
+			})
 		},
 
 		/**
@@ -3211,10 +4120,12 @@ export default {
 				return
 			}
 			try {
-				this.walkthroughSeenVersionValue = await loadWalkthroughSeenVersion(
-					this.appId,
-					this.walkthroughConfigKey,
-				)
+				const [seen, progress] = await Promise.all([
+					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey),
+					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey),
+				])
+				this.walkthroughSeenVersionValue = seen
+				this.walkthroughProgressValue = progress
 			} finally {
 				this.walkthroughSeenResolved = true
 			}
@@ -3238,10 +4149,120 @@ export default {
 			// Fire-and-forget: the loader never rejects and the local mirror is
 			// already written, so a failed PUT must not surface as an error.
 			persistWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, v)
+			// A finished or skipped tour has nothing to continue.
+			if (this.walkthroughProgressValue) {
+				this.walkthroughProgressValue = null
+				persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, null)
+			}
 			/**
 			 * @event walkthrough-complete Emitted when the walkthrough finishes or is dismissed.
 			 */
 			this.$emit('walkthrough-complete')
+		},
+
+		/**
+		 * Remember where the user is in the tour, so a reload or a restart
+		 * entry continues there (local mirror + per-user preference).
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @spec openspec/changes/walkthrough-autostart-and-countdown-dutch/specs/walkthrough-autostart-and-countdown-dutch/spec.md#requirement-a-tour-that-opens-on-its-own-opens-once
+		 * @param {object} progress `{ tourId, stepId, index }` from CnWalkthrough.
+		 * @return {void}
+		 */
+		onWalkthroughProgress(progress) {
+			if (!progress || !progress.tourId) {
+				return
+			}
+			// A fresh tour that opens on its own is recorded as paused at its
+			// first step, so a user who never touches it does not get it again
+			// on every page load; "Continue" in the settings brings it back.
+			// Kept out of memory so the open tour runs on as it is.
+			if (progress.index === 0 && !this.walkthroughProgressValue) {
+				persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, {
+					tourId: progress.tourId,
+					stepId: progress.stepId || '',
+					index: 0,
+					version: String((this.manifest && this.manifest.version) || ''),
+					paused: true,
+				})
+				return
+			}
+			const value = {
+				tourId: progress.tourId,
+				stepId: progress.stepId || '',
+				index: progress.index || 0,
+				version: String((this.manifest && this.manifest.version) || ''),
+			}
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Remember that the user paused the tour, at the step they were on,
+		 * so the next page load keeps it hidden until they pick "Continue".
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @param {object} [where] `{ tourId, stepId, index }` from CnWalkthrough.
+		 * @return {void}
+		 */
+		onWalkthroughPause(where) {
+			const current = this.walkthroughProgressValue || {}
+			const tourId = (where && where.tourId) || current.tourId
+			if (!tourId) {
+				return
+			}
+			const value = {
+				tourId,
+				stepId: (where && where.tourId) ? (where.stepId || '') : (current.stepId || ''),
+				index: (where && where.tourId && Number.isInteger(where.index)) ? where.index : (current.index || 0),
+				version: String((this.manifest && this.manifest.version) || ''),
+				paused: true,
+			}
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Clear the paused mark when the user continues the tour. The step
+		 * stays; the next step change writes fresh progress anyway.
+		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		unpauseWalkthroughProgress() {
+			const progress = this.walkthroughProgressValue
+			if (!progress || !progress.paused) {
+				return
+			}
+			const value = { ...progress }
+			delete value.paused
+			this.walkthroughProgressValue = value
+			persistWalkthroughProgress(this.appId, this.walkthroughConfigKey, value)
+		},
+
+		/**
+		 * Continue an unfinished tour from the user-settings dialog: show a
+		 * paused tour again, or start the remembered tour at its step.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {void}
+		 */
+		continueWalkthroughFromSettings() {
+			this.userSettingsOpen = false
+			if (!this.walkthroughEnabled) {
+				return
+			}
+			setTimeout(() => {
+				const wt = useWalkthrough(this.appId, this.manifest)
+				const progress = this.walkthroughProgressValue
+				this.unpauseWalkthroughProgress()
+				if (wt.resumePaused()) {
+					return
+				}
+				if (progress) {
+					wt.resumeAt(progress.tourId, progress.stepId)
+				}
+			}, 50)
 		},
 
 		/**
@@ -3264,6 +4285,7 @@ export default {
 			setTimeout(() => {
 				const id = this.manifest.walkthrough.tours[0] && this.manifest.walkthrough.tours[0].id
 				if (id) {
+					this.unpauseWalkthroughProgress()
 					useWalkthrough(this.appId, this.manifest).restart(id)
 				}
 			}, 50)
@@ -3432,6 +4454,117 @@ export default {
 		},
 
 		/**
+		 * Fetch the total of every menu entry (top level and children) whose
+		 * `count` is an object `{ register, schema, filter? }`: one
+		 * `GET /api/objects/{register}/{schema}?_limit=1` per entry with the
+		 * filter's tokens (`@me`, `@today`, ...) resolved at fetch time, the
+		 * response `total` written to `cnMenuItemCounts[item.id]`. The
+		 * request goes straight through axios rather than the object store,
+		 * so the index page's whole-schema total in the store is left alone.
+		 * Failures leave the badge unrendered. Given a changed register and
+		 * schema, only the entries counting that list are read again.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @param {{register?: string|null, schema?: string|null}|null} [changed] The list that changed; null reads every count.
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateMenuItemCounts(changed = null) {
+			const register = changed?.register ?? null
+			const schema = changed?.schema ?? null
+			const collect = (items) => {
+				const out = []
+				for (const item of items ?? []) {
+					const count = item?.count
+					if (count && typeof count === 'object' && typeof item.id === 'string' && count.register && count.schema) {
+						out.push(item)
+					}
+					if (Array.isArray(item?.children)) {
+						out.push(...collect(item.children))
+					}
+				}
+				return out
+			}
+			for (const item of [...collect(this.manifest?.menu), ...this._savedViewMenuCountItems()]) {
+				if ((register === null || item.count.register === register) && (schema === null || item.count.schema === schema)) {
+					this._fetchMenuItemCount(item)
+				}
+			}
+		},
+
+		/**
+		 * The "My views" menu entries whose view asks for a filtered count
+		 * (`overrides.badge`), as `{ id, count }` under the menu entry's id.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {Array<{id: string, count: {register: string, schema: string, filter?: object}}>}
+		 * @private
+		 */
+		_savedViewMenuCountItems() {
+			return (this.savedViewMenu?.entries || [])
+				.filter((e) => e.badge && e.badge.count && typeof e.badge.count === 'object')
+				.map((e) => ({ id: `${SAVED_VIEW_MENU_PREFIX}${e.id}`, count: e.badge.count }))
+		},
+
+		/**
+		 * Fetch the count of every "My views" entry that shows one.
+		 *
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-in-the-menu-can-show-a-count
+		 * @return {void}
+		 * @private
+		 */
+		_hydrateSavedViewMenuCounts() {
+			for (const item of this._savedViewMenuCountItems()) {
+				this._fetchMenuItemCount(item)
+			}
+		},
+
+		/**
+		 * Objects changed outside the list showing them (`cn:objects-changed`,
+		 * see `dispatchObjectsChanged`): read the filtered menu counts of that
+		 * register and schema again, so a badge follows a claim, a close or a
+		 * bulk action instead of keeping the number it had at mount. A signal
+		 * without a register or schema reads every filtered count again.
+		 *
+		 * @spec openspec/changes/menu-counts-follow-changed-objects/specs/layout-components/spec.md#requirement-a-filtered-menu-count-follows-changed-objects
+		 * @param {CustomEvent} event The signal, with `detail: { register, schema, id }`.
+		 * @return {void}
+		 */
+		onObjectsChanged(event) {
+			this._hydrateMenuItemCounts(event?.detail ?? null)
+		},
+
+		/**
+		 * One filtered-count request for a menu entry; see
+		 * `_hydrateMenuItemCounts`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-menu-entry-counts-a-filtered-list
+		 * @param {{ id: string, count: { register: string, schema: string, filter?: object } }} item The menu entry.
+		 * @return {Promise<void>}
+		 * @private
+		 */
+		async _fetchMenuItemCount(item) {
+			try {
+				const { register, schema, filter } = item.count
+				const raw = filter && typeof filter === 'object' ? filter : {}
+				// `@myTeam` counts as the list filters: once the team is read,
+				// every team the app answers, and without one no team at all.
+				if (Object.values(raw).some((value) => value === MY_TEAM_TOKEN || (Array.isArray(value) && value.includes(MY_TEAM_TOKEN)))) {
+					await loadMyTeam()
+				}
+				const resolved = dropOptionalUnresolved(resolveFilterTokens(raw, {}))
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}`)
+				const { data } = await axios.get(url, { params: { _limit: 1, ...resolved } })
+				const total = data?.total
+				if (typeof total === 'number' && total >= 0) {
+					this.cnMenuItemCounts[item.id] = total
+				}
+			} catch {
+				// Non-fatal: the badge stays unrendered.
+			}
+		},
+
+		/**
 		 * Hydrate all menu counts with a single `POST /api/objects/counts`
 		 * (OpenRegister batched-counts endpoint). Distributes each returned
 		 * count into the reactive `cnMenuCounts` map. Rejects (so the caller
@@ -3537,6 +4670,28 @@ export default {
 </script>
 
 <style>
+/* pageGround: the content area paints the page ground, the token the boards
+   draw as the page background (NL Design System content surface, or
+   Nextcloud's hover background), instead of the main-background panel.
+   NcAppContent's id outranks its scoped rule. */
+.cn-app-root--page-ground #app-content-vue {
+	background-color: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+}
+
+/* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
+.cn-app-root--with-environment {
+	position: relative;
+	padding-top: 28px;
+	box-sizing: border-box;
+}
+
+.cn-app-root__environment {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline: 0;
+	z-index: 9999;
+}
+
 .cn-app-root__capabilities-loading {
 	display: flex;
 	align-items: center;
@@ -3574,6 +4729,12 @@ export default {
 .cn-app-root__walkthrough-hint {
 	margin-bottom: 12px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-app-root__walkthrough-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .cn-app-root__integrations-hint {

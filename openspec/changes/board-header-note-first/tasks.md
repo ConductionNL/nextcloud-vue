@@ -1,0 +1,1 @@
+- [x] 1.1 board CSS (tests/css/lookBoardHeaderNoteFirst.spec.js)

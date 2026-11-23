@@ -1,0 +1,2 @@
+- [x] dialog.css legend rule under .cn-dialog-board
+- [x] tests/css/dialogBoardChoiceLegend.spec.js

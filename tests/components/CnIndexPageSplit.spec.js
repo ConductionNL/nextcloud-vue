@@ -45,7 +45,10 @@ function mountPage(props = {}, width = 1600) {
 			mocks: {
 				t: (_app, str) => str,
 				$route: { name: 'cases', params: {}, query: {}, meta: { cnPageId: 'cases' } },
-				$router: { push: jest.fn().mockResolvedValue(undefined) },
+				$router: {
+					push: jest.fn().mockResolvedValue(undefined),
+					resolve: ({ name }) => ({ href: `#/${name}` }),
+				},
 			},
 		},
 	})
@@ -244,5 +247,61 @@ describe('CnIndexPage split view — closing', () => {
 		w.vm.closeSplitPane()
 
 		expect(w.vm.$router.push).toHaveBeenCalledWith({ name: 'cases', query: {} })
+	})
+
+	it('draws a close control in the pane, which closes it', async () => {
+		const w = mountPage({ splitId: '2', splitCloseRoute: 'cases' })
+		const close = w.find('[data-testid="cn-index-page-split-close"]')
+
+		expect(close.exists()).toBe(true)
+
+		await close.trigger('click')
+
+		expect(w.emitted('split-close')).toHaveLength(1)
+		expect(w.vm.$router.push).toHaveBeenCalledWith({ name: 'cases', query: {} })
+	})
+
+	it('is clickable text rather than a button', () => {
+		const w = mountPage({ splitId: '2' })
+		const close = w.find('[data-testid="cn-index-page-split-close"]')
+
+		expect(close.element.tagName).toBe('A')
+		expect(close.classes()).toContain('cn-index-page__split-close')
+		expect(close.text()).toContain('Close')
+	})
+
+	it('draws it below the breakpoint too, where it is the only way back to the list', () => {
+		const w = mountPage({ splitId: '2' }, 700)
+
+		expect(w.vm.splitLayout).toBe('detail')
+		expect(w.find('[data-testid="cn-index-page-split-close"]').exists()).toBe(true)
+	})
+
+	it('draws none while the pane is closed', () => {
+		const w = mountPage()
+
+		expect(w.find('[data-testid="cn-index-page-split-close"]').exists()).toBe(false)
+	})
+
+	it('stands down for a host that draws its own from the slot', () => {
+		const w = mountPage({ splitId: '2', splitCloseButton: false })
+
+		expect(w.find('[data-testid="cn-index-page-split-close"]').exists()).toBe(false)
+	})
+
+	// A real link, so middle-click and open-in-new-tab work.
+	it('points at the list address it returns to', () => {
+		const w = mountPage({ splitId: '2', splitCloseRoute: 'cases' })
+
+		expect(w.find('[data-testid="cn-index-page-split-close"]').attributes('href'))
+			.toBe('#/cases')
+	})
+
+	it('takes the label the host gives it', () => {
+		const w = mountPage({ splitId: '2', splitCloseLabel: 'Close the case' })
+		const close = w.find('[data-testid="cn-index-page-split-close"]')
+
+		expect(close.text()).toContain('Close the case')
+		expect(close.attributes('title')).toBe('Close the case')
 	})
 })

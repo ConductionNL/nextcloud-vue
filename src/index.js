@@ -31,31 +31,66 @@ export { default as NcSelectTags } from './components/NcSelectTags/NcSelectTags.
 
 // Components
 export {
+	CnActionAuthMatrix,
 	CnActionButtons,
+	CnActionDialog,
 	CnActionsBar,
 	CnActionsMenu,
+	CnActionTilesWidget,
+	CnAddressSearch,
 	CnAddWidgetModal,
+	CnAdminActionCard,
 	CnAdminSettingsShell,
 	CnAdvancedFormDialog,
+	CnAiFeaturesWidget,
+	CnApiReference,
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAppTile,
+	CnAppTilesWidget,
+	CnAppTilesWidgetForm,
+	CnAppTileWidget,
+	CnAppTileWidgetForm,
+	CnAssignDialog,
+	CnAttentionFlagWidget,
+	CnAudioCapture,
 	CnAuditTrailCard,
+	CnAuditTrailWidget,
+	CnBannerWidget,
+	CnBlockListEditor,
+	CnBoardView,
 	CnBodySections,
 	CnBreadcrumbs,
 	CnBuildiqEditButton,
+	CnBulkJobProgress,
 	CnCalendarWidget,
 	CnCalendarWidgetForm,
+	CnCameraCapture,
+	CnCapabilityTable,
 	CnCard,
 	CnCardGrid,
+	CnCardNotices,
 	CnCellRenderer,
 	CnChartWidget,
 	CnChartWidgetForm,
 	CnChatPage,
+	CnChecklistRunWidget,
+	CnChecklistWidget,
+	CnChildRecordsField,
+	CnChipListManager,
+	CnChipsFieldWidget,
 	CnChoiceCards,
+	CnChoiceMatrix,
+	CnChoicePickerWidget,
+	CnCodeWidget,
 	CnColorPicker,
 	CnCommandPalette,
+	CnConditionGroupEditor,
+	CnConditionListEditor,
 	CnConfigurationCard,
+	CnConflictResolveCard,
+	CnConnectionsPanel,
 	CnContactCreate,
 	CnContactPicker,
 	CnContactsCard,
@@ -63,9 +98,12 @@ export {
 	CnContainerWidget,
 	CnContainerWidgetForm,
 	CnContextMenu,
+	CnConversationThread,
+	CnConversationWidget,
 	CnCopyDialog,
 	CnCountdownWidget,
 	CnCountdownWidgetForm,
+	CnCreateFormWidget,
 	CnCredentials,
 	CnCronField,
 	CnDashboardGrid,
@@ -75,7 +113,9 @@ export {
 	CnDashTileWidgetForm,
 	CnDataMatrix,
 	CnDataTable,
+	CnDateAxisView,
 	CnDateRangePicker,
+	CnDecisionListWidget,
 	CnDeckCardCreate,
 	CnDeckCardPicker,
 	CnDeleteDialog,
@@ -86,8 +126,17 @@ export {
 	CnDetailGrid,
 	CnDetailPage,
 	CnDetailWidgetHost,
+	CnDeviceFramesWidget,
+	CnDialog,
+	CnDialogActions,
+	CnDialogHeader,
+	CnDisplayScreen,
 	CnDividerWidget,
 	CnDividerWidgetForm,
+	CnDocumentReviewList,
+	CnDocumentReviewWidget,
+	CnDuplicateWarning,
+	CnDurationField,
 	CnEditActionsModal,
 	CnEditDataModal,
 	CnEditMenuModal,
@@ -99,17 +148,26 @@ export {
 	CnEditWalkthroughModal,
 	CnEmailCard,
 	CnEmailTab,
+	CnEnvironmentBanner,
+	CnEventsCard,
+	CnExpandableRow,
 	CnExportWizard,
 	CnFacetSidebar,
+	CnFactsWidget,
+	CnFavouriteToggle,
 	CnFeaturesAndRoadmapLink,
 	CnFeaturesAndRoadmapPage,
 	CnFeaturesAndRoadmapSidebar,
 	CnFeaturesAndRoadmapView,
 	CnFeaturesTab,
 	CnFederationStatus,
+	CnFieldCatalogueDialog,
+	CnFieldGroupsWidget,
 	CnFieldHelper,
+	CnFieldListWidget,
 	CnFileField,
 	CnFileManager,
+	CnFilePreview,
 	CnFilesBrowser,
 	CnFilesCard,
 	CnFilesPage,
@@ -123,14 +181,23 @@ export {
 	CnFlowRunsWidgetForm,
 	CnFlowSidebar,
 	CnFlowsPage,
+	CnFlowStepList,
+	CnFlowStepOutcomes,
+	CnFlowViewSwitch,
 	CnFolderSidebar,
 	CnFolderTree,
+	CnFollowToggle,
 	CnFormBuilder,
 	CnFormDialog,
 	CnFormWidgetBase,
 	CnGaugeWidget,
 	CnGaugeWidgetForm,
+	CnGeoCaptureField,
 	CnGraphCanvas,
+	CnGroupedCardsWidget,
+	CnGroupedMenu,
+	CnGuardianHome,
+	CnHandoffAction,
 	CnHeaderWidget,
 	CnHeaderWidgetForm,
 	CnIcon,
@@ -139,6 +206,7 @@ export {
 	CnIconPicker,
 	CnImageWidget,
 	CnImageWidgetForm,
+	CnIndexListWidget,
 	CnIndexPage,
 	CnIndexSidebar,
 	CnInfoWidget,
@@ -146,8 +214,13 @@ export {
 	CnIntegrationTab,
 	CnIntegrationWidget,
 	CnIntegrationWidgetGrid,
+	CnInteractionFormWidget,
 	CnItemCard,
+	CnJourney,
+	CnJourneyDialog,
+	CnJourneyReviewList,
 	CnJsonViewer,
+	CnKbSearchWidget,
 	CnKpiGrid,
 	CnLabelWidget,
 	CnLabelWidgetForm,
@@ -156,14 +229,20 @@ export {
 	CnLifecycleActions,
 	CnLinkButtonWidget,
 	CnLinkButtonWidgetForm,
+	CnLinkedWidget,
 	CnLinksWidget,
 	CnLinksWidgetForm,
 	CnLockedBanner,
 	CnLockIndicator,
 	CnLogsPage,
+	CnMacrosWidget,
+	CnMailTab,
 	CnMapWidget,
 	CnMarkdownEditor,
+	CnMarkdownWidget,
+	CnMarkdownWidgetForm,
 	CnMassActionBar,
+	CnMassActionDialog,
 	CnMassCopyDialog,
 	CnMassDeleteDialog,
 	CnMassExportDialog,
@@ -173,72 +252,136 @@ export {
 	CnMenuWidgetForm,
 	CnMetadataTab,
 	CnNavCardGrid,
+	CnNcDashboardList,
+	CnNcDashboardQuickCreate,
 	CnNcDashboardWidgetForm,
 	CnNcWidgetGridPicker,
 	CnNcWidgetWidget,
+	CnNextStepCard,
+	CnNextStepWidget,
+	CnNoteBody,
 	CnNoteCard,
+	CnNoteComposer,
+	CnNotepadWidget,
+	CnNotepadWidgetForm,
 	CnNotesCard,
+	CnNoticeWidget,
+	CnNotificationMatrix,
 	CnNotificationPreferences,
 	CnObjectAccessTab,
 	CnObjectCalendar,
 	CnObjectCard,
 	CnObjectDataWidget,
+	CnObjectFilesWidget,
 	CnObjectGeoWidget,
 	CnObjectKanban,
+	CnObjectLinksWidget,
 	CnObjectList,
 	CnObjectListWidget,
 	CnObjectListWidgetForm,
 	CnObjectMetadataModal,
 	CnObjectMetadataWidget,
+	CnObjectPartiesWidget,
+	CnObjectPermissionsTab,
+	CnObjectPresenceWidget,
 	CnObjectRow,
 	CnObjectSidebar,
+	CnObjectTranslationsWidget,
+	CnOfflineQueue,
+	CnOrderedListField,
 	CnPageHeader,
 	CnPageRenderer,
 	CnPagination,
+	CnPartyActionsWidget,
+	CnPartyPicker,
 	CnPeopleWidget,
 	CnPeopleWidgetForm,
+	CnPlanWidget,
+	CnPresenceAvatars,
+	CnProcessSteps,
 	CnProgressBar,
 	CnPropertiesTab,
+	CnPropertySourceField,
 	CnPropertyValueCell,
+	CnQrCode,
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
+	CnRadioCardsWidget,
+	CnReadinessChecklist,
+	CnRealtimeToast,
+	CnRecordListWidget,
+	CnRecordNotesWidget,
+	CnRedactionEditor,
 	CnReferencePreview,
 	CnRegisterMapping,
 	CnRegisterSchemaSelect,
 	CnRelatedCollections,
+	CnRelatedFieldFilters,
 	CnRelatedFiles,
 	CnRelatedObjectsWidget,
 	CnRelationLinkModal,
 	CnRelationshipGraph,
 	CnResourceSelect,
+	CnRetentionWidget,
+	CnRevealField,
 	CnRichSubmitDialog,
 	CnRoadmapItem,
 	CnRoadmapTab,
 	CnRowActions,
+	CnRowMarkList,
+	CnSavedViewEditDialog,
+	CnSavedViewMenuSettings,
+	CnSavedViewPresentationDialog,
 	CnSavedViewsControl,
+	CnSavedViewShareDialog,
+	CnSavedViewShareFields,
+	CnSavedViewsPanel,
+	CnSavedViewsWidget,
+	CnSavedViewWidget,
+	CnSavedViewWidgetForm,
 	CnSaveViewDialog,
+	CnScanField,
 	CnSchemaFormDialog,
+	CnSchemaRulesWidget,
+	CnSearchIndexStatus,
 	CnSearchPage,
+	CnSearchSelect,
+	CnSecretAddressCard,
+	CnSectionsWidget,
+	CnSelectionScope,
 	CnSettingsCard,
+	CnSettingsField,
+	CnSettingsFieldsSection,
+	CnSettingsFormWidget,
 	CnSettingsPage,
 	CnSettingsSection,
 	CnSetupWizard,
+	CnShareList,
+	CnShippedConfigurationSection,
 	CnSignatureCapture,
+	CnSlotGrid,
 	CnSpendAnalyticsWidget,
 	CnSpendAnalyticsWidgetForm,
 	CnStagesWidget,
 	CnStagesWidgetForm,
+	CnStateMachineEditor,
+	CnStatGridWidget,
 	CnStatsBlock,
 	CnStatsBlockWidget,
 	CnStatsBlockWidgetForm,
 	CnStatsPanel,
 	CnStatusBadge,
+	CnStatusExplainerWidget,
+	CnStatusList,
 	CnStatWidget,
 	CnStatWidgetForm,
+	CnStepper,
 	CnStructuredDocReview,
+	CnSubObjectsField,
 	CnSummaryAggregates,
 	CnSupportDialog,
+	CnSwitchRowsWidget,
 	CnTab,
 	CnTabbedFormDialog,
 	CnTableWidget,
@@ -246,9 +389,13 @@ export {
 	CnTabsWidget,
 	CnTabsWidgetForm,
 	CnTagsCard,
+	CnTaskFormDialog,
+	CnTaskFormFields,
+	CnTaskFormWidget,
 	CnTasksCard,
 	CnTasksWidget,
 	CnTasksWidgetForm,
+	CnTemplateSelect,
 	CnTenantBadge,
 	CnTextTableEditor,
 	CnTextWidget,
@@ -257,14 +404,21 @@ export {
 	CnTileWidget,
 	CnTimelineStages,
 	CnTimelineView,
+	CnTimelineWidget,
+	CnToggleTableWidget,
+	CnTransferCard,
+	CnTransitionInputFields,
 	CnTranslatedBadge,
 	CnTreeView,
+	CnUnreadMarker,
 	CnUserActionMenu,
 	CnVersionHistory,
 	CnVersionInfoCard,
 	CnVideoWidget,
 	CnVideoWidgetForm,
+	CnViewPresentationPicker,
 	CnWalkthrough,
+	CnWebPushToggle,
 	CnWidgetCardGrid,
 	CnWidgetEditCog,
 	CnWidgetEmptyState,
@@ -277,6 +431,9 @@ export {
 	CnWidgetVisibilityRulesModal,
 	CnWidgetWrapper,
 	CnWizardDialog,
+	CnWorkingCalendarWidget,
+	CnWorkQueue,
+	CnWorkspaceFilterWidget,
 	DEFAULT_DATE_RANGE_PRESETS,
 	defaultPageTypes,
 	fetchWebdavFolderTree,
@@ -295,10 +452,27 @@ export {
 // @deprecated Use `CnBuildiqEditButton`.
 export { CnOpenBuildEditButton } from './components/index.js'
 
+// A CnFilesBrowser data source that reads an OpenRegister object's folder
+// through OpenRegister's files API (openspec: files-browser-openregister-source).
+export { createOpenRegisterSource } from './components/index.js'
+
+// Workplace dashboard primitives (openspec: workplace-dashboard-primitives):
+// the week strip and stacked bar widgets with their forms, the segmented
+// control, and the brand stripe.
+export { CnBrandStripe, CnCountTablesReport, CnEndpointNotice, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
+
+// Page components the page renderer mounts by `pages[].type` that were missing
+// from this entry. A component reachable from a manifest but not importable
+// here resolves to `undefined` in a host that mounts it by hand, and renders
+// nothing without an error. tests/packaging/page-types-are-exported.spec.js
+// keeps the two lists together.
+export { CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnWikiPage } from './components/index.js'
+
 // AI Chat Companion component family
 export {
 	CnAiAgentPicker,
 	CnAiChatPanel,
+	CnAiChatWidget,
 	CnAiCompanion,
 	CnAiFloatingButton,
 	CnAiHistoryList,
@@ -310,6 +484,7 @@ export { default as CnAiHistoryDialog } from './dialogs/CnAiHistoryDialog.vue'
 
 // Generic dialogs (NcDialog-based, one file per dialog — modal-isolation rule)
 export { default as CnConfirmDialog } from './dialogs/CnConfirmDialog.vue'
+export { default as CnQuickEditDialog } from './dialogs/CnQuickEditDialog.vue'
 export { default as CnNoteHistoryDialog } from './dialogs/CnNoteHistoryDialog.vue'
 export { default as CnTransitionInputDialog } from './dialogs/CnTransitionInputDialog.vue'
 export { default as CnFlowEditModal } from './dialogs/CnFlowEditModal.vue'
@@ -319,17 +494,22 @@ export { default as CnFlowEdgeEditModal } from './dialogs/CnFlowEdgeEditModal.vu
 // Store
 export { createObjectStore, useObjectStore } from './store/index.js'
 export { createCrudStore } from './store/index.js'
+export { createJourneyRunStore } from './store/index.js'
 export { createSubResourcePlugin, emptyPaginated } from './store/index.js'
 
 // Store plugins
 export {
 	auditTrailsPlugin,
+	dashboardLayoutKey,
+	dashboardLayoutsPlugin,
 	filesPlugin,
 	getRegisterApiUrl,
 	getSchemaApiUrl,
+	interactionsPlugin,
 	lifecyclePlugin,
 	liveUpdatesPlugin,
 	logsPlugin,
+	mergeUserLayout,
 	registerMappingPlugin,
 	relationsPlugin,
 	SEARCH_TYPE,
@@ -341,7 +521,7 @@ export {
 export { useAiChatStream, useAiContext } from './composables/index.js'
 // AI Chat Companion backend config (single point for the chat backend app id)
 export { chatApiBase, chatHealthUrl, chatSendUrl, chatStreamUrl, conversationMessagesUrl, conversationsUrl, DEFAULT_CHAT_APP_ID } from './composables/index.js'
-export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useManifestEditHistory, useManifestEditor, useObjectLock, useObjectSubscription, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough } from './composables/index.js'
+export { buildBucketQuery, buildCountQuery, clearContextMenuPositionDom, cnRenderMarkdown, createTenantContext, CTX_MENU_CSS_VAR_X, CTX_MENU_CSS_VAR_Y, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR, fetchEndpointSource, invalidateEndpointSourceCache, loadWalkthroughSeenVersion, LockConflictError, PermissionError, persistWalkthroughSeenVersion, provideTenantContext, selectByPath, TENANT_CONTEXT_KEY, useAppInstaller, useAppManifest, useAppStatus, useBrokeredCall, useBuildiqEditAvailability, useChildRecords, useClickDragGuard, useCommandPalette, useContextMenu, useDashboardView, useDataSource, useDetailView, useEndpointSource, useFileComments, useFileOpener, useGraphQL, useIntegrationRegistry, useListNavigation, useListView, useLook, useManifestEditHistory, useManifestEditor, useNotificationPreferencesStore, useObjectActions, useObjectCopy, useObjectLock, useObjectPresence, useObjectSubscription, useOfflineQueue, useRefLabels, useRestoreVersion, useRuntimeManifest, useScopedTheme, useSetupStatus, useSubResource, useSupportDialog, useTenantContext, useUserPreferences, useWalkthrough, useWriteFeedback } from './composables/index.js'
 // Deprecated alias kept for consumers: OpenBuild was renamed to Buildiq in the
 // fleet-wide rename of 2026-08-21. `useBuildiqEditAvailability` above is the
 // canonical name; this alias keeps the ~18 consuming apps that still call
@@ -410,9 +590,31 @@ export {
 // See docs/utilities/offline-collection.md.
 export { DEFAULT_FIELD_INSPECTION_CONFIG, offlineCollection } from './integrations/index.js'
 
+// The shell service worker and its registration helper. Exported as functions
+// and never as a side effect: a service worker changes how every request from
+// an origin is answered, for every app on it, so the host opts in by calling
+// `registerOfflineWorker()` or gets no worker at all.
+//
+// The worker's own decision logic (`isCacheable`, `respondTo`, `cacheNameFor`,
+// `staleCacheNames`) is reached through `offlineCollection`, the same way the
+// rest of the offline core is, because a host configures the worker rather than
+// calling into it.
+// See docs/utilities/register-offline-worker.md.
+export { registerOfflineWorker, unregisterOfflineWorker } from './offline/registerOfflineWorker.js'
+
 // Composables — Features & roadmap menu (add-features-roadmap-menu)
 export { useSpecRef } from './composables/useSpecRef.js'
 export { useFlowStore } from './composables/useFlowStore.js'
+export {
+	FLOW_LAYOUT_COLUMN_WIDTH,
+	FLOW_LAYOUT_MARGIN,
+	FLOW_LAYOUT_ROW_HEIGHT,
+	FLOW_LAYOUT_TOP,
+	layoutFlowNodes,
+	needsFullLayout,
+	placeLooseNodes,
+	readNodePoint,
+} from './composables/flowGraphLayout.js'
 export { registerFlowNodeEditor, resolveFlowNodeEditor, unregisterFlowNodeEditor } from './composables/useFlowNodeEditors.js'
 export { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from './composables/useFlowEdgeStyles.js'
 export { useSuggestFeatureAction } from './composables/useSuggestFeatureAction.js'
@@ -434,6 +636,17 @@ export {
 } from './utils/folderCustomization.js'
 export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
+export { encodeQr } from './utils/qr.js'
+export { APP_TILE_COLOURS, appTileColour, appTileColourValue, contrastWithWhite, defaultAppTileColour } from './utils/appTilePalette.js'
+export { navigationApps, notificationCountsByApp } from './utils/nextcloudApps.js'
+// The words a person reads for a notification rule key (never the raw key).
+export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
+export { readTransitionInputs } from './utils/transitionInputs.js'
+export { conditionSentence, formatConditionValue, operatorLabel, operatorsForType, operatorTakesValue } from './components/CnConditionListEditor/conditionOperators.js'
+// An identifier-shaped key made readable (`shortDescription` → "Short description").
+export { humaniseKey } from './utils/humaniseKey.js'
+// A component that loads its definition on first render, for registries.
+export { lazyComponent, loadLazyComponent, resolveLazyComponent } from './utils/lazyComponent.js'
 
 // Shared field validators. These are UX affordances that run in the browser —
 // they do NOT replace server-side validation, which stays authoritative at the
@@ -452,17 +665,21 @@ export { registerTranslations } from './l10n/index.js'
 
 // Utilities
 export { buildHeaders, buildQueryString, genericError, networkError, parseAxiosError, parseResponseError } from './utils/index.js'
-export { cnFetch, cnFetchJson, CnHttpError } from './utils/cnFetch.js'
+export { cnFetch, cnFetchJson, CnHttpError, configureCnFetch } from './utils/cnFetch.js'
 // The one reading of "is this record locked, and by whom" — shared by
 // CnLockIndicator, CnObjectCard and CnDataTable, and available to apps that
 // need the same answer without rendering a padlock.
 export { isLockedByCurrentUser, isObjectLocked, lockHolder, readLockPayload, resolveObjectLock } from './utils/objectLock.js'
-export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, formatValue, validateValue } from './utils/index.js'
-export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, PREFILL_KEY, splitDynamicFormData, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
+export { dispatchObjectsChanged } from './utils/objectSignals.js'
+export { lensUnavailableText, readLensReports } from './utils/lensAvailability.js'
+export { isWithheld, withheldReason } from './utils/withheldValue.js'
+export { columnsFromSchema, fieldsFromSchema, filtersFromSchema, findRepeatingWrite, formatValue, journeyItemTargets, validateValue } from './utils/index.js'
+export { DYNAMIC_KEY_PREFIX, EXTENDS_FORM_KEY, mergeValueArray, PREFILL_KEY, splitDynamicFormData, storedAnswersFor, usesArrayValues, valueArrayFor, valueRecordsFor } from './utils/index.js'
 // The OpenRegister schema API contract — shared so Buildiq and OpenRegister cannot
 // drift on what a 409 means (breaking change / schema still has objects).
 export { deleteSchema, describeSchemaChange, saveSchema, SchemaBreakingChangeError, SchemaHasObjectsError } from './utils/index.js'
 export { validateManifest, validateManifestV2 } from './utils/validateManifest.js'
+export { validateStateMachine } from './utils/stateMachineValidation.js'
 export { clearResolveCache, resolveManifestSentinels } from './utils/resolveManifestSentinels.js'
 export { clearRouteSentinelWarnings, resolveRouteSentinels } from './utils/resolveRouteSentinels.js'
 export {
@@ -483,9 +700,16 @@ export {
 	SENTINEL_RESOLVERS,
 	warnIfDeprecated,
 } from './utils/resolveManifestTokens.js'
-export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, resetVisibilityCache } from './utils/index.js'
+export { filterWidgetsByVisibility, getCurrentUserGroups, getCurrentUserId, isWidgetVisible, peekCurrentUserGroups, resetVisibilityCache } from './utils/index.js'
+export { fillMyTeamToken, loadMyTeam, loadMyTeamName, peekMyTeam, peekMyTeamName, registerMyTeamNameSource, registerMyTeamSource } from './utils/index.js'
 export { safeHref, safeImageSrc, safeSvgPath } from './utils/index.js'
-export { dispatchAction } from './utils/actionsDispatcher.js'
+export { followLinkClick, isModifiedClick, isNewTabHandled, isRowMiddleClick, openRowTarget, resolveHref } from './utils/index.js'
+export { resolveImageUrl } from './utils/index.js'
+export { resolveDateVariant } from './utils/index.js'
+export { actionLink, dispatchAction } from './utils/actionsDispatcher.js'
+export { candidateWithoutBlanks, duplicateAffordances } from './utils/duplicateWarning.js'
+export { openDuplicateWarning } from './utils/openDuplicateWarning.js'
+export { registerNcDashboardWidgets } from './utils/registerNcDashboardWidgets.js'
 // Nested-modal stacking. `CnAppRoot` installs this itself; apps that do not
 // mount `CnAppRoot` should call `installModalStack()` once from `main.js`, or
 // two open dialogs tie on z-index and the lower one intercepts the clicks.
@@ -493,6 +717,10 @@ export { dispatchAction } from './utils/actionsDispatcher.js'
 // module-private — import them from `src/utils/modalStack.js` if you need to
 // slot something between two dialog layers.
 export { installModalStack, uninstallModalStack } from './utils/modalStack.js'
+// Boot a manifest app on CnAppRoot in one call, the router built from the manifest.
+export { appRouterBase, mountCnApp, routesFromManifest } from './utils/mountCnApp.js'
+// Web push on this device through OpenRegister's web-push channel (opt-in on a click only).
+export { currentPushSubscription, disableWebPush, enableWebPush, webPushSupported } from './utils/webPush.js'
 export { getDashboardColumnOpts, placeNewWidget } from './utils/dashboardPlacement.js'
 export { DASHBOARD_ICONS, DEFAULT_ICON, getIconComponent, isCustomIconUrl } from './components/CnIconPicker/index.js'
 // NB: the NL-government icon sets are deliberately NOT re-exported here.
@@ -518,7 +746,7 @@ export { diffManifest } from './utils/diffManifest.js'
 export { createManifestEditHistory } from './utils/manifestEditHistory.js'
 export { resolveSlotColumns } from './utils/resolveSlotColumns.js'
 // Dashboard widget library (cn-widget-library) — registry helpers + form composable.
-export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listWidgetTypes, registerDashboardWidget } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
+export { dashboardWidgetRegistry, getDefaultContent, getWidgetTypeEntry, listUserAddableWidgetTypes, listWidgetTypes, registerDashboardWidget, userWidgetPresets } from './components/CnWidgetGrid/dashboardWidgetRegistry.js'
 export { registerBuiltinDashboardWidgets } from './components/CnWidgetGrid/registerDashboardWidgets.js'
 export { useWidgetForm } from './composables/useWidgetForm.js'
 

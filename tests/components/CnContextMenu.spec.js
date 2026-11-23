@@ -59,6 +59,44 @@ describe('CnContextMenu visible predicate', () => {
 	})
 })
 
+describe('CnContextMenu matches CnRowActions entry for entry', () => {
+	it('hides an action whose local visibleWhen the target fails, as CnRowActions does', () => {
+		const wrapper = mount(CnContextMenu, {
+			propsData: {
+				actions: [
+					{ label: 'Gated', visibleWhen: { field: 'status', op: 'eq', value: 'closed' } },
+					{ label: 'Remote', visibleWhen: { endpoint: '/apps/x/held', field: 'by', op: 'eq', value: 'nobody' } },
+					{ label: 'Plain' },
+				],
+				targetItem: { status: 'open' },
+			},
+		})
+		expect(wrapper.vm.visibleActions.map((a) => a.label)).toEqual(['Remote', 'Plain'])
+	})
+
+	it('gives a built-in its id testid and payload, apart from an app action with the same id', async () => {
+		const builtinHandler = jest.fn()
+		const appHandler = jest.fn()
+		const wrapper = mount(CnContextMenu, {
+			propsData: {
+				actions: [
+					{ id: 'edit', label: 'Open editor', handler: appHandler },
+					{ id: 'edit', builtin: true, label: 'Bewerken', handler: builtinHandler },
+				],
+				targetItem: { id: 3 },
+			},
+		})
+		await wrapper.find('[data-testid="cn-action-item-open-editor"]').trigger('click')
+		await wrapper.find('[data-testid="cn-action-item-edit"]').trigger('click')
+		expect(appHandler).toHaveBeenCalledTimes(1)
+		expect(builtinHandler).toHaveBeenCalledTimes(1)
+		expect(wrapper.emitted('action')).toEqual([
+			[{ action: 'Open editor', row: { id: 3 }, id: 'edit' }],
+			[{ action: 'Bewerken', row: { id: 3 }, id: 'edit', builtin: true }],
+		])
+	})
+})
+
 describe('CnContextMenu trigger accessibility', () => {
 	it('marks the offscreen NcActions trigger inert (not aria-hidden)', () => {
 		// The global @nextcloud/vue mock stubs NcActions without its trigger
@@ -237,6 +275,58 @@ describe('CnContextMenu outside-click dismissal', () => {
 	})
 })
 
+describe('CnContextMenu reopening over a canvas', () => {
+	const mountOpen = () => mount(CnContextMenu, {
+		propsData: { open: true, actions: [{ label: 'Edit' }] },
+		attachTo: document.body,
+	})
+
+	// REGRESSION. `onClosed` fires after the hide ANIMATION, so a second click on
+	// the same target reopens the menu before it lands. It used to clear the
+	// cursor vars there, wiping coordinates the reopen had already written, and
+	// every menu after the first rendered in the corner.
+	it('keeps the coordinates a reopen wrote while the previous hide is still finishing', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		// The reopen: fresh coordinates, menu open again.
+		document.documentElement.style.setProperty('--cn-ctx-menu-x', '420px')
+		document.documentElement.style.setProperty('--cn-ctx-menu-y', '240px')
+
+		// The previous close's tail, arriving late.
+		wrapper.vm.onClosed()
+
+		expect(document.documentElement.style.getPropertyValue('--cn-ctx-menu-x')).toBe('420px')
+		expect(document.documentElement.style.getPropertyValue('--cn-ctx-menu-y')).toBe('240px')
+
+		document.documentElement.style.removeProperty('--cn-ctx-menu-x')
+		document.documentElement.style.removeProperty('--cn-ctx-menu-y')
+		wrapper.unmount()
+	})
+
+	// REGRESSION. A canvas that stops its own mousedown — Vue Flow's d3-zoom pane
+	// calls stopImmediatePropagation — never lets the event bubble to document,
+	// so a bubble-phase listener never saw it and the menu could not be dismissed
+	// by clicking the canvas it was opened over.
+	it('closes on a press the target swallows, because the watch captures', async () => {
+		const wrapper = mountOpen()
+		await wrapper.vm.$nextTick()
+
+		const canvas = document.createElement('div')
+		canvas.addEventListener('mousedown', (event) => event.stopImmediatePropagation())
+		document.body.appendChild(canvas)
+
+		canvas.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true }))
+		await wrapper.vm.$nextTick()
+
+		expect(wrapper.vm.internalOpen).toBe(false)
+		expect(wrapper.emitted('close')).toBeTruthy()
+
+		canvas.remove()
+		wrapper.unmount()
+	})
+})
+
 describe('CnContextMenu cursor-position scoping', () => {
 	// Regression: the cursor-positioning transform was keyed on the `<html>`
 	// data attribute alone, so it matched *every* `.v-popper__popper` on the
@@ -336,5 +426,34 @@ describe('CnContextMenu cursor-position scoping', () => {
 		// The destructive-action colour is shared with CnRowActions and must not
 		// be gated on a context menu being open.
 		expect(rules).toContain('.cn-row-action--destructive')
+	})
+})
+
+describe('CnContextMenu link actions', () => {
+	it('renders a `to` action as a link, routes a plain click and emits action without calling the handler', async () => {
+		const router = {
+			push: jest.fn(() => Promise.resolve()),
+			resolve: jest.fn((to) => ({ href: `#/${to.name}/${to.params.id}` })),
+		}
+		const handler = jest.fn()
+		const wrapper = mount(CnContextMenu, {
+			propsData: {
+				actions: [
+					{ label: 'View', handler, to: (item) => ({ name: 'Dog', params: { id: item.id } }) },
+					{ label: 'Edit', handler: jest.fn() },
+				],
+				targetItem: { id: 4 },
+			},
+			mocks: { $router: router },
+		})
+		const link = wrapper.find('[data-testid="cn-action-item-view"]')
+		expect(link.classes()).toContain('NcActionLink')
+		expect(link.attributes('href')).toBe('#/Dog/4')
+		expect(wrapper.find('[data-testid="cn-action-item-edit"]').classes()).toContain('NcActionButton')
+
+		await link.trigger('click')
+		expect(router.push).toHaveBeenCalledWith({ name: 'Dog', params: { id: 4 } })
+		expect(handler).not.toHaveBeenCalled()
+		expect(wrapper.emitted('action')).toEqual([[{ action: 'View', row: { id: 4 } }]])
 	})
 })

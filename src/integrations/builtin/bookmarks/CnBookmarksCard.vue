@@ -34,9 +34,11 @@
 					@error="onFaviconError(entity)">
 				<Bookmark v-else :size="14" />
 				<a
+					v-if="hasSafeUrl(entity)"
 					:href="entity.url"
 					target="_blank"
 					rel="noopener noreferrer">{{ bookmarkTitle(entity) }}</a>
+				<span v-else>{{ bookmarkTitle(entity) }}</span>
 			</span>
 			<span v-else class="cn-bookmarks-card__empty">{{ emptyLabel }}</span>
 		</template>
@@ -62,9 +64,11 @@
 						@error="onFaviconError(mostRecent)">
 					<Bookmark v-else :size="14" />
 					<a
+						v-if="hasSafeUrl(mostRecent)"
 						:href="mostRecent.url"
 						target="_blank"
 						rel="noopener noreferrer">{{ bookmarkTitle(mostRecent) }}</a>
+					<span v-else>{{ bookmarkTitle(mostRecent) }}</span>
 				</div>
 				<div v-if="bookmarks.length > 1" class="cn-bookmarks-card__view-all">
 					<a
@@ -99,10 +103,12 @@
 					</div>
 					<div class="cn-bookmarks-card__row-main">
 						<a
+							v-if="hasSafeUrl(bookmark)"
 							:href="bookmark.url"
 							target="_blank"
 							rel="noopener noreferrer"
 							class="cn-bookmarks-card__title">{{ bookmarkTitle(bookmark) }}</a>
+						<span v-else class="cn-bookmarks-card__title">{{ bookmarkTitle(bookmark) }}</span>
 					</div>
 				</li>
 			</ul>
@@ -121,7 +127,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import Bookmark from 'vue-material-design-icons/Bookmark.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -243,6 +249,11 @@ export default {
 
 		bookmarkTitle(bookmark) {
 			return bookmark.title || bookmark.url || ''
+		},
+
+		// Bookmark URLs are user-entered (bookmarklets are `javascript:`), so only a safe one is a link.
+		hasSafeUrl(bookmark) {
+			return safeHref(bookmark.url) !== '#'
 		},
 
 		chipSubtitle(bookmark) {

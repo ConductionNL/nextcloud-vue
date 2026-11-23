@@ -53,6 +53,12 @@ export const SENTINEL_RESOLVERS = Object.freeze({
 	route: 'resolveRouteSentinels',
 	declarative: 'fetchAggregate (OpenRegister server-side)',
 	visibleWhen: 'evaluateVisibleWhen (utils/visibleWhen.js)',
+	answer: 'resolveAssignValue (utils/formAssign.js)',
+	row: 'CnFieldListWidget (rowActions request)',
+	subject: 'CnBannerWidget (action route)',
+	context: 'detailWidgetVisible (utils/detailWidgetVisibility.js)',
+	source: 'CnFactsWidget (a fact row\'s route params)',
+	input: 'CnFactsWidget (action url and payload)',
 })
 
 /**

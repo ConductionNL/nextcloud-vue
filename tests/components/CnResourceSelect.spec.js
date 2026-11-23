@@ -6,7 +6,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 
 const mockStore = {
 	registerObjectType: jest.fn(),
-	fetchCollection: jest.fn(() => Promise.resolve([])),
+	fetchCollectionForOptions: jest.fn(() => Promise.resolve([])),
 	fetchObject: jest.fn(() => Promise.resolve(null)),
 	saveObject: jest.fn((slug, payload) => Promise.resolve({ id: 'new-1', name: payload.name, '@self': { id: 'new-1' } })),
 	collections: {},
@@ -26,7 +26,7 @@ describe('CnResourceSelect', () => {
 
 	beforeEach(() => {
 		mockStore.registerObjectType.mockClear()
-		mockStore.fetchCollection.mockClear()
+		mockStore.fetchCollectionForOptions.mockClear()
 		mockStore.saveObject.mockClear()
 		mockStore.fetchObject.mockClear()
 		mockStore.collections = {}
@@ -61,11 +61,11 @@ describe('CnResourceSelect', () => {
 	})
 
 	it('searches the object store on input', async () => {
-		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'c1', name: 'Acme' }])
+		mockStore.fetchCollectionForOptions.mockResolvedValueOnce([{ id: 'c1', name: 'Acme' }])
 		const w = mount({ minChars: 2 })
 		await w.vm.onSearch('Acme')
 		expect(mockStore.registerObjectType).toHaveBeenCalledWith('pipelinq-client', 'client', 'pipelinq')
-		expect(mockStore.fetchCollection).toHaveBeenCalled()
+		expect(mockStore.fetchCollectionForOptions).toHaveBeenCalled()
 		expect(w.vm.options).toEqual([{ value: 'c1', label: 'Acme' }])
 	})
 
@@ -93,7 +93,7 @@ describe('CnResourceSelect', () => {
 	it('scopes the search with filters, dropping empty entries', async () => {
 		const w = mount({ minChars: 2, filters: { client: 'c-9', queue: null } })
 		await w.vm.onSearch('Acme')
-		expect(mockStore.fetchCollection).toHaveBeenCalledWith('pipelinq-client', {
+		expect(mockStore.fetchCollectionForOptions).toHaveBeenCalledWith('pipelinq-client', {
 			client: 'c-9',
 			_search: 'Acme',
 			_limit: 20,
@@ -102,14 +102,14 @@ describe('CnResourceSelect', () => {
 
 	it('does not preload by default', () => {
 		mount()
-		expect(mockStore.fetchCollection).not.toHaveBeenCalled()
+		expect(mockStore.fetchCollectionForOptions).not.toHaveBeenCalled()
 	})
 
 	it('preloads a first page on mount when asked', async () => {
-		mockStore.fetchCollection.mockResolvedValueOnce([{ id: 'c1', name: 'Acme' }])
+		mockStore.fetchCollectionForOptions.mockResolvedValueOnce([{ id: 'c1', name: 'Acme' }])
 		const w = mount({ preload: true })
 		await flushPromises()
-		expect(mockStore.fetchCollection).toHaveBeenCalledWith('pipelinq-client', { _limit: 20 })
+		expect(mockStore.fetchCollectionForOptions).toHaveBeenCalledWith('pipelinq-client', { _limit: 20 })
 		expect(w.vm.options).toEqual([{ value: 'c1', label: 'Acme' }])
 	})
 
@@ -160,5 +160,55 @@ describe('CnResourceSelect', () => {
 		const spy = jest.spyOn(w.vm, 'createFromTerm').mockResolvedValue()
 		await w.vm.onInput({ value: '__create__', label: 'Gamma', __create: true })
 		expect(spy).toHaveBeenCalledWith('Gamma')
+	})
+})
+
+describe('CnResourceSelect: multiple', () => {
+	const mount = (props = {}) => shallowMount(CnResourceSelect, {
+		propsData: { register: 'pipelinq', schema: 'product', multiple: true, modelValue: [], ...props },
+	})
+
+	beforeEach(() => {
+		mockStore.saveObject.mockClear()
+		mockStore.fetchObject.mockClear()
+	})
+
+	it('emits the array of chosen ids', async () => {
+		const w = mount()
+		await w.vm.onInput([{ value: 'p-1', label: 'Hosting' }, { value: 'p-2', label: 'SLA' }])
+		expect(w.emitted('update:modelValue').pop()).toEqual([['p-1', 'p-2']])
+	})
+
+	it('adds a created object to the selection', async () => {
+		const w = mount({ modelValue: ['p-1'] })
+		await w.vm.onInput([{ value: 'p-1', label: 'Hosting' }, { value: '__create__', label: 'Support', __create: true }])
+		expect(mockStore.saveObject).toHaveBeenCalledWith('pipelinq-product', { name: 'Support' })
+		expect(w.emitted('update:modelValue').pop()).toEqual([['p-1', 'new-1']])
+		expect(w.emitted('create')).toHaveLength(1)
+	})
+
+	it('keeps the labels of chosen options after the search moves on', async () => {
+		const w = mount({ modelValue: ['p-1'] })
+		await w.vm.onInput([{ value: 'p-1', label: 'Hosting' }])
+		await w.setProps({ modelValue: ['p-1'] })
+		w.setData({ options: [] })
+		expect(w.vm.selectedOption).toEqual([{ value: 'p-1', label: 'Hosting' }])
+	})
+
+	it('loads labels for preselected ids', async () => {
+		mockStore.fetchObject.mockResolvedValueOnce({ id: 'p-7', name: 'Implementation' })
+		const w = mount({ modelValue: ['p-7'] })
+		await flushPromises()
+		expect(mockStore.fetchObject).toHaveBeenCalledWith('pipelinq-product', 'p-7')
+		expect(w.vm.selectedOption).toEqual([{ value: 'p-7', label: 'Implementation' }])
+	})
+
+	it('hands the term to a createHandler and selects what it returns', async () => {
+		const createHandler = jest.fn().mockResolvedValue({ id: 'p-9', name: 'Training' })
+		const w = mount({ createHandler })
+		await w.vm.onInput([{ value: '__create__', label: 'Training', __create: true }])
+		expect(createHandler).toHaveBeenCalledWith('Training', { name: 'Training' })
+		expect(mockStore.saveObject).not.toHaveBeenCalled()
+		expect(w.emitted('update:modelValue').pop()).toEqual([['p-9']])
 	})
 })

@@ -26,7 +26,7 @@ An app SHALL NOT hand-roll a list component when the surface it renders can be e
 The `cnFormatters` registry (`BUILT_IN_FORMATTERS` in `builtInFormatters.js`) SHALL provide two generic relative-day display formatters, `daysSince` and `daysUntil`, resolvable by a column's `formatter` name. They SHALL render i18n'd relative phrasing through the library's own translation function (`translate` / `translatePlural` from `@nextcloud/l10n`, app slug `nextcloud-vue`), and SHALL be safe against null / empty / unparseable input by returning the original value or an empty string rather than throwing (the existing built-in-formatter contract).
 
 - `daysUntil(value)` SHALL express a future-oriented deadline: a value in the future renders "N days remaining", a value that is today renders "Due today", and a value in the past renders "N days overdue".
-- `daysSince(value)` SHALL express elapsed time since a past date: a value in the past renders "N days ago", a value that is today renders "Today".
+- `daysSince(value)` SHALL express elapsed time since a past date in whole calendar days, as a running phrase in the user language: today renders "today", one day back renders "yesterday", and further back renders "N days ago" (Dutch: "vandaag", "gisteren", "N dagen geleden"). A future date renders "tomorrow" or "in N days".
 - Day counts SHALL use `translatePlural` so singular/plural forms are correct per locale.
 
 No app SHALL introduce a bespoke component or a per-widget `computed` to produce these display values.

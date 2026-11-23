@@ -89,6 +89,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import CheckboxBlankOutline from 'vue-material-design-icons/CheckboxBlankOutline.vue'
 import CheckboxMarkedOutline from 'vue-material-design-icons/CheckboxMarkedOutline.vue'
 import CloseCircleOutline from 'vue-material-design-icons/CloseCircleOutline.vue'
@@ -96,6 +97,7 @@ import ProgressClock from 'vue-material-design-icons/ProgressClock.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnTasksCard — Inline tasks widget for detail pages.
@@ -185,7 +187,7 @@ export default {
 
 	data() {
 		return {
-			CheckboxMarkedOutline,
+			CheckboxMarkedOutline: markRaw(CheckboxMarkedOutline),
 			allTasks: [],
 			loading: false,
 		}
@@ -260,7 +262,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleDateString(undefined, {
+				return new Date(dateStr).toLocaleDateString(userLocale(), {
 					year: 'numeric',
 					month: 'short',
 					day: 'numeric',

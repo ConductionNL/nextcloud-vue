@@ -30,6 +30,8 @@ jest.mock('../../src/utils/actionsDispatcher.js', () => {
 		postRunNode: jest.fn(() => Promise.resolve({ ok: true })),
 		resolveObjectOpType: jest.fn(() => 'crm/lead'),
 		isExternalActionTarget: actual.isExternalActionTarget,
+		interpolateActionTarget: actual.interpolateActionTarget,
+		actionLink: actual.actionLink,
 		buildOnSuccessRoute: actual.buildOnSuccessRoute,
 		savedObjectId: actual.savedObjectId,
 		resolveCreateOverrideHandler: actual.resolveCreateOverrideHandler,
@@ -46,6 +48,9 @@ jest.mock('@nextcloud/router', () => ({
 jest.mock('../../src/composables/useEndpointSource.js', () => ({
 	__esModule: true,
 	fetchEndpointSource: jest.fn(() => Promise.resolve(null)),
+	// Real: a navigate target runs the token grammar through it, and stubbing
+	// it away would hide whether the target was interpolated at all.
+	interpolateUrlTokens: jest.requireActual('../../src/composables/useEndpointSource.js').interpolateUrlTokens,
 }))
 jest.mock('../../src/utils/visibleWhen.js', () => ({
 	__esModule: true,
@@ -86,7 +91,7 @@ const stubs = {
 		// the parent's handler a SECOND time — one call from the DOM click, one
 		// from `$emit('click')`. Declaring it removes `onClick` from `$attrs`.
 		emits: ['click'],
-		template: '<component :is="href ? \'a\' : \'button\'" :disabled="disabled" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\')"><slot name="icon" /><slot /></component>',
+		template: '<component :is="href ? \'a\' : \'button\'" :disabled="disabled" :href="href" :target="target" v-bind="$attrs" @click="$emit(\'click\', $event)"><slot name="icon" /><slot /></component>',
 	},
 	CnIcon: { name: 'CnIcon', template: '<span class="cn-icon" />' },
 	CnConfirmDialog: {
@@ -96,7 +101,7 @@ const stubs = {
 	},
 	CnFormDialog: {
 		name: 'CnFormDialog',
-		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'includeFields', 'excludeFields', 'fieldOverrides'],
+		props: ['schema', 'item', 'initialData', 'register', 'dialogTitle', 'eyebrow', 'subtitle', 'includeFields', 'excludeFields', 'fieldOverrides', 'confirmLabel'],
 		template: '<div class="form-dialog-stub" />',
 		methods: { setResult() {} },
 	},
@@ -199,6 +204,25 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 		expect(dispatchAction).toHaveBeenCalledTimes(1)
 	})
 
+	it('words the confirm with the action\'s confirmTitle, confirmMessage, confirmLabel and confirmIcon (DqZaakDialogen "Vastleggen")', async () => {
+		const wrapper = mountBar([
+			{ id: 'ack', label: 'Record receipt confirmed', type: 'api-call', url: '/ack', confirm: true, confirmMessage: 'Are you sure?', confirmLabel: 'Record', confirmIcon: 'Check' },
+		])
+		await flush()
+		await wrapper.find('[data-testid="cn-action-ack"]').trigger('click')
+		const dialog = wrapper.findComponent({ name: 'CnConfirmDialog' })
+		expect(dialog.vm.$attrs.confirmLabel).toBe('Record')
+		expect(dialog.vm.$attrs.confirmIcon).toBe('Check')
+		expect(dialog.vm.$attrs.message).toBe('Are you sure?')
+	})
+
+	it('leaves the dialog its own Confirm without a confirmLabel', async () => {
+		const wrapper = mountBar([{ id: 'archive', label: 'Archive', type: 'api-call', url: '/arch', confirm: true }])
+		await flush()
+		await wrapper.find('[data-testid="cn-action-archive"]').trigger('click')
+		expect('confirmLabel' in wrapper.findComponent({ name: 'CnConfirmDialog' }).vm.$attrs).toBe(false)
+	})
+
 	describe('toggle', () => {
 		it('seeds state from stateSource and writes the flipped value optimistically on click', async () => {
 			fetchEndpointSource.mockResolvedValue({ open: true })
@@ -279,6 +303,61 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			await flush()
 			expect(saveObject).toHaveBeenCalledWith('crm/lead', { name: 'Acme' })
 			expect(wrapper.emitted('created')).toBeTruthy()
+		})
+
+		it('hands the dialog the action\'s eyebrow and intro sentence (screens-form-dialog-intro-parity)', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Case', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{
+					id: 'new-case',
+					label: 'New case',
+					type: 'open-form',
+					register: 'dossiq',
+					schema: 'case',
+					formTitle: 'New case',
+					formEyebrow: 'All cases',
+					formSubtitle: 'Fields with * are required.',
+				},
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-case"]').trigger('click')
+			await flush()
+
+			const dialog = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(dialog.props('dialogTitle')).toBe('New case')
+			expect(dialog.props('eyebrow')).toBe('All cases')
+			expect(dialog.props('subtitle')).toBe('Fields with * are required.')
+
+			wrapper.vm.closeForm()
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			const plain = wrapper.findComponent({ name: 'CnFormDialog' })
+			expect(plain.props('eyebrow')).toBe('')
+			expect(plain.props('subtitle')).toBe('')
+		})
+
+		it('labels the create button from the action\'s formConfirmLabel (DqNieuweZaak "Zaak aanmaken")', async () => {
+			const fetchSchema = jest.fn(() => Promise.resolve({ title: 'Case', properties: {} }))
+			useObjectStore.mockReturnValue({ saveObject: jest.fn(), fetchSchema })
+
+			const wrapper = mountBar([
+				{ id: 'new-case', label: 'New case', type: 'open-form', register: 'dossiq', schema: 'case', formConfirmLabel: 'Create case' },
+				{ id: 'new-lead', label: 'New lead', type: 'open-form', register: 'crm', schema: 'lead' },
+			])
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-case"]').trigger('click')
+			await flush()
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).props('confirmLabel')).toBe('Create case')
+
+			wrapper.vm.closeForm()
+			await flush()
+			await wrapper.find('[data-testid="cn-action-new-lead"]').trigger('click')
+			await flush()
+			expect(wrapper.findComponent({ name: 'CnFormDialog' }).props('confirmLabel')).toBe('')
 		})
 
 		it('seeds the create form with the action props without flipping it to edit mode', async () => {
@@ -726,6 +805,39 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			expect(variantOf('plain')).toBe('secondary')
 		})
 
+		it('draws `variant: "error-outline"` as an outlined red button', async () => {
+			// The board's "Terugboeken": white, a red border and red text, with
+			// its icon. NcButton has no such variant, so it is a secondary button
+			// carrying the outline class.
+			const wrapper = mountBar([
+				{ id: 'reverse', label: 'Reverse', variant: 'error-outline', icon: 'Undo', type: 'api-call', url: '/r' },
+				{ id: 'kill', label: 'Delete', variant: 'error', type: 'api-call', url: '/d' },
+			])
+			await flush()
+			const reverse = wrapper.findComponent('[data-testid="cn-action-reverse"]')
+			expect(reverse.props('variant')).toBe('secondary')
+			expect(reverse.classes()).toContain('cn-action-buttons__button--error-outline')
+			const kill = wrapper.findComponent('[data-testid="cn-action-kill"]')
+			expect(kill.props('variant')).toBe('error')
+			expect(kill.classes()).not.toContain('cn-action-buttons__button--error-outline')
+		})
+
+		it('draws `variant: "tonal"` as the board\'s tonal pill', async () => {
+			// The boards' light-blue side-card action ("Herinnering versturen"):
+			// a borderless tertiary button carrying the shared tonal class.
+			const wrapper = mountBar([
+				{ id: 'remind', label: 'Send reminder', variant: 'tonal', icon: 'Send', type: 'api-call', url: '/r' },
+				{ id: 'plain', label: 'Plain', type: 'api-call', url: '/p' },
+			])
+			await flush()
+			const remind = wrapper.findComponent('[data-testid="cn-action-remind"]')
+			expect(remind.props('variant')).toBe('tertiary')
+			expect(remind.classes()).toContain('cn-button--tonal')
+			const plain = wrapper.findComponent('[data-testid="cn-action-plain"]')
+			expect(plain.props('variant')).toBe('secondary')
+			expect(plain.classes()).not.toContain('cn-button--tonal')
+		})
+
 		it('names the overflow menu from overflowLabel', async () => {
 			const wrapper = mountBar(four, { inline: 1, overflowLabel: 'More' })
 			await flush()
@@ -839,6 +951,81 @@ describe('CnActionButtons (#91 Wave 3)', () => {
 			const wrapper = mountBar([
 				{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' },
 			], { display: 'menu' })
+			await flush()
+			const [entries] = wrapper.emitted('entries').at(-1)
+			expect(entries[0]).toMatchObject({ href: '', linkTarget: '' })
+		})
+	})
+
+	describe('an in-app navigate / open-page action becomes a router link', () => {
+		/**
+		 * @return {object} A router stub that resolves and records pushes.
+		 */
+		function makeRouter() {
+			return {
+				push: jest.fn(() => Promise.resolve()),
+				resolve: jest.fn((to) => ({ href: '#' + (typeof to === 'string' ? to : '/' + to.name) })),
+			}
+		}
+
+		it('renders a navigate as an anchor to the router href and routes a plain click', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' }], router },
+				stubs,
+			})
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-dogs"]')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('#/dogs')
+			expect(el.attributes('target')).toBeUndefined()
+
+			await el.trigger('click')
+			await flush()
+			expect(router.push).toHaveBeenCalledWith('/dogs')
+			expect(dispatchAction).not.toHaveBeenCalled()
+		})
+
+		it('leaves a ctrl-click to the browser', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' }], router },
+				stubs,
+			})
+			await flush()
+			await wrapper.find('[data-testid="cn-action-dogs"]').trigger('click', { ctrlKey: true })
+			expect(router.push).not.toHaveBeenCalled()
+		})
+
+		it('links an open-page to its named route', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'cases', label: 'Cases', type: 'open-page', target: 'CaseIndex' }], router },
+				stubs,
+			})
+			await flush()
+			const el = wrapper.find('[data-testid="cn-action-cases"]')
+			expect(el.attributes('href')).toBe('#/CaseIndex')
+			await el.trigger('click')
+			expect(router.push).toHaveBeenCalledWith({ name: 'CaseIndex' })
+		})
+
+		it('keeps a confirm-gated navigate as a dispatched button', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs', confirm: true }], router },
+				stubs,
+			})
+			await flush()
+			expect(wrapper.find('[data-testid="cn-action-dogs"]').element.tagName).toBe('BUTTON')
+		})
+
+		it('keeps an in-app link a run() entry for a display:"menu" host', async () => {
+			const router = makeRouter()
+			const wrapper = mount(CnActionButtons, {
+				propsData: { actions: [{ id: 'dogs', label: 'Dogs', type: 'navigate', target: '/dogs' }], router, display: 'menu' },
+				stubs,
+			})
 			await flush()
 			const [entries] = wrapper.emitted('entries').at(-1)
 			expect(entries[0]).toMatchObject({ href: '', linkTarget: '' })

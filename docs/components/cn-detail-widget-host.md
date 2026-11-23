@@ -18,6 +18,27 @@ The pure decisions live in `utils/widgetDispatch.js`, which both surfaces import
 
 `chrome="bare"` is a tab panel. The strip already shows the title and draws the card, so a second title inside the panel reads as a heading nested in its own heading. Bare mode drops the wrapper and, for an integration leaf, renders the provider's `tab` (its bare content) rather than its `widget` (which draws its own card). That pairing is not new: `CnIntegrationWidget` already does exactly this inside its own panels.
 
+## An app's own widget on a card surface
+
+In card chrome outside a body grid cell (the side column, a tab stack), a widget from the app's `cnRegistry` whose entry asks for it with `chrome: "card"` (`cnRegistry['case-map'] = { component, chrome: 'card' }`) is drawn in the same titled card a catalog widget gets: the definition's `title` and `icon`, no Actions menu. Without it the widget is drawn as is, which suits a widget that draws its own card. A body grid cell draws its own card, so CnDetailPage passes `inGridCell` and the widget stays bare there.
+
+A widget in that card, or a built-in card widget, fills the card's title row by emitting `header` with `{ note?, pill?, action?, actions?, link? }`: a note ("3 open"), a status pill and its actions, each `{ label, icon?, run }`, drawn after the title in order (`action` first). This is how the first card of a tab stack draws "Taak toevoegen" and "Alles tonen" beside its title (DqZaak). An action with `variant: "secondary"` is the card's outlined button (an `ariaLabel` names it more fully than a short label such as "Add"); give it `items: [{ label, run }]` in place of `run` and it opens a menu of those items (PqKlant Contactkanalen "Toevoegen").
+
+## An app's own widget takes its props from the manifest
+
+A widget whose type is an app registry entry takes `props` from its definition. A value is a literal, or a token: `@objectId`, `@object.<field>`, `@config.<key>` or `@content.<path>` (a key of the widget's own `content`). Only the props the component declares are passed. A token that does not resolve is left out, so the component's default holds. A widget that asks for `@objectId` mounts once the page has a record id. So an app maps the page onto its component in the manifest, not in a wrapper:
+
+```json
+{ "id": "client-relationships", "type": "ContactRelationshipsWidget", "title": "Relationships",
+  "props": { "entityId": "@objectId", "entityType": "client", "entityName": "@object.name" } }
+```
+
+## How `content` reaches a catalog widget
+
+A catalog widget gets its whole `content` as the `content` prop and, beside the object context, only the content keys it declares as props, as on a dashboard. A key it does not declare can never land on its root component. A widget with `inheritAttrs: false` keeps every key.
+
+A chart reads `content.chartKind` as its `type`, the key the dashboard dispatcher reads, so the same chart config draws on a dashboard and on a detail page (`{ "type": "chart", "content": { "chartKind": "matrix", … } }`). An explicit `content.type` wins.
+
 ## What bare mode deliberately does not strip
 
 The `data` widget keeps its chrome in both modes. `CnWidgetWrapper` renders its actions inside the header, and `CnObjectDataWidget` puts its **Save** button there, so suppressing the header to remove a duplicate title would also remove the only way to commit an inline edit. A silently unsaveable form is worse than a doubled title.
@@ -43,6 +64,24 @@ It renders rather than hides on purpose. A hidden widget leaves a hole a reader 
 `requiredApp` is read from the definition first and `content` second, so it can sit wherever the rest of that widget's config lives. It is declared rather than inferred from `content.register`, because a register slug is not always an app id and a widget can depend on an app without querying it.
 
 Integration widgets (`type: "integration"`) already degrade this way through the registry's own `requiredApp`; this extends the same behaviour to every other widget type.
+
+## An integration for another object
+
+An integration widget shows the page's own object. To show another one, name it in `props`. The values may be record tokens: `@objectId` and `@object.<field>`, at any depth.
+
+```json
+{
+  "id": "ticket-case-decisions",
+  "type": "integration",
+  "integrationId": "decidesk-decisions",
+  "title": "On the linked case",
+  "props": { "register": "@config.caseRegister", "schema": "@config.caseSchema", "objectId": "@object.caseReference" }
+}
+```
+
+`@objectId` and `@object.<field>` read the record. `@config.<key>` reads the page's app config (the `appConfig` prop of `CnDetailPage`), so the app that owns the other object is looked up on the instance and never written into the manifest.
+
+The widget is not mounted while a prop written as a token has no value: the record is still loading, it does not hold the field, or the app config does not hold the key. A ticket without a case therefore shows no second list, and neither does an instance with no app that keeps cases. A mount-mode leaf gets the named object as `integrationContext` too.
 
 ## Usage
 
@@ -74,6 +113,7 @@ Integration widgets (`type: "integration"`) already degrade this way through the
 | `hideEmpty` | `Boolean` | `false` | Hide empty properties in the `data` widget. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface. Only a container type receives it; a leaf widget has no business knowing what else is on the page. |
 | `showCardTitle` | `Boolean` | `null` | Whether a card widget draws the wrapper header. Null means decide from the definition. |
+| `showHeaderLink` | `Boolean` | `false` | Whether a card draws its widget's manifest `headerLink` (on the definition, or `content.headerLink` / `viewAllRoute`) in its header when the renderer reports none. CnTabsWidget sets it on the cards after the first in a stack. |
 | `cnRegistry` | `Object` | `{}` | The consumer's component registry, consulted before the built-in catalog so a custom type overrides a built-in. |
 
 ## Events
@@ -82,6 +122,7 @@ Integration widgets (`type: "integration"`) already degrade this way through the
 | --- | --- | --- |
 | `geo-saved` | `object` | The geo widget saved a geometry. |
 | `open-integration` | `string` | The related widget asked to open an integration. |
+| `select-object` | `object` | A related object was clicked in the related widget, or in a registry widget that nests a host of its own (a Tabs widget's Related tab); payload is the raw object (`@self` carries its register and schema). |
 
 ## Notes
 
@@ -96,3 +137,7 @@ Integration widgets (`type: "integration"`) already degrade this way through the
 - [`CnTabsWidget`](./cn-tabs-widget.md), the bare-mode surface
 
 <GeneratedRef />
+
+## `showActions`
+
+`showActions` (default `true`) is the surface's answer for the widget's overflow Actions menu when the definition does not say: a definition's own `showActions` boolean wins. CnDetailPage passes its `showWidgetActions`.

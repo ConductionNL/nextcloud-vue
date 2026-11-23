@@ -82,32 +82,34 @@ describe('CnSupportDialog', () => {
 		expect(wrapper.text()).not.toContain('—')
 	})
 
-	it('opens the feature-request URL in a new tab and emits @action', async () => {
+	it('links the feature-request CTA in a new tab and emits @action on click', async () => {
 		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
-		await wrapper.find('[data-testid="cn-support-dialog-feature-request"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith(baseProps.featureRequestUrl, '_blank', 'noopener,noreferrer')
-		expect(wrapper.emitted('action')[0][0]).toEqual({
+		const cta = wrapper.find('[data-testid="cn-support-dialog-feature-request"]')
+		expect(cta.attributes('href')).toBe(baseProps.featureRequestUrl)
+		expect(cta.attributes('target')).toBe('_blank')
+		await cta.trigger('click')
+		// The browser follows the link; nothing is opened by hand.
+		expect(openSpy).not.toHaveBeenCalled()
+		expect(wrapper.emitted('action')[0][0]).toMatchObject({
 			action: 'feature-request',
 			url: baseProps.featureRequestUrl,
 		})
+		expect(wrapper.emitted('action')[0][0].event).toBeInstanceOf(Event)
 	})
 
-	it('opens the app-store URL on second button click', async () => {
+	it('links the app-store CTA to its URL', () => {
 		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
-		await wrapper.find('[data-testid="cn-support-dialog-app-store"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith(baseProps.appStoreUrl, '_blank', 'noopener,noreferrer')
+		expect(wrapper.find('[data-testid="cn-support-dialog-app-store"]').attributes('href')).toBe(baseProps.appStoreUrl)
 	})
 
-	it('uses the default donate URL when none is provided', async () => {
+	it('uses the default donate URL when none is provided', () => {
 		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
-		await wrapper.find('[data-testid="cn-support-dialog-donate"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('https://github.com/sponsors/ConductionNL', '_blank', 'noopener,noreferrer')
+		expect(wrapper.find('[data-testid="cn-support-dialog-donate"]').attributes('href')).toBe('https://github.com/sponsors/ConductionNL')
 	})
 
-	it('uses the default support URL when none is provided', async () => {
+	it('uses the default support URL when none is provided', () => {
 		const wrapper = mount(CnSupportDialog, { propsData: baseProps, stubs })
-		await wrapper.find('[data-testid="cn-support-dialog-support"]').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('https://www.conduction.nl/support', '_blank', 'noopener,noreferrer')
+		expect(wrapper.find('[data-testid="cn-support-dialog-support"]').attributes('href')).toBe('https://www.conduction.nl/support')
 	})
 
 	it('renders the founder name and title in the signature block', () => {

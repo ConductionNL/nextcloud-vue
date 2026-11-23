@@ -21,10 +21,12 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-detail">
+	<div class="cn-flow-detail" :class="{ 'cn-flow-detail--card-nodes': !!nodeBadge, 'cn-flow-detail--quiet-lines': !!nodeBadge && !store.inRunView, 'cn-flow-detail--list': inList }">
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
 		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="toolbarLabel">
+			<!-- @slot toolbar-start What a host puts first in the toolbar (the canvas run's outcome legend). -->
+			<slot name="toolbar-start" />
 			<!--
 				🔴 NOT OFFERED WHILE A RUN IS BEING OPENED.
 
@@ -58,7 +60,8 @@
 					several seconds later. Pressing this produces an immediate
 					message beside the graph it is about.
 				-->
-				<NcButton data-testid="flow-add-step"
+				<NcButton v-if="addStep && editingShown && !inList"
+					data-testid="flow-add-step"
 					@click="stepPickerOpen = true">
 					<template #icon>
 						<Plus :size="20" />
@@ -71,7 +74,8 @@
 				     told no, and pressing it on a snapshot would have written the
 				     snapshot over the live flow. The store refuses the snapshot case
 				     outright; this is the half that says so before the click. -->
-				<NcButton variant="primary"
+				<NcButton v-if="toolbarActions"
+					variant="primary"
 					:disabled="store.saving || !store.flow.name || store.graphLocked"
 					:title="saveDisabledReason"
 					data-testid="flow-save-button"
@@ -82,7 +86,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Save') }}
 				</NcButton>
-				<NcButton :disabled="store.running || !store.flow.id || !hasManualStart"
+				<NcButton v-if="toolbarActions"
+					:disabled="store.running || !store.flow.id || !hasManualStart"
 					:title="runDisabledReason"
 					data-testid="flow-run-button"
 					@click="onRunClick">
@@ -91,7 +96,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Run') }}
 				</NcButton>
-				<NcButton variant="tertiary"
+				<NcButton v-if="toolbarActions"
+					variant="tertiary"
 					:disabled="store.checking || !store.nodes.length"
 					@click="store.check()">
 					<template #icon>
@@ -100,7 +106,8 @@
 					</template>
 					{{ t('nextcloud-vue', 'Check') }}
 				</NcButton>
-				<NcButton variant="tertiary"
+				<NcButton v-if="editingShown && !inList"
+					variant="tertiary"
 					:disabled="!store.nodes.length"
 					:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
 					:title="t('nextcloud-vue', 'Arrange steps automatically')"
@@ -112,7 +119,8 @@
 				<!-- Undo has a BUTTON as well as Ctrl+Z. A shortcut nobody is told
 				     about is a feature only its author has: the affordance is what
 				     tells a user the canvas is safe to experiment on. -->
-				<NcButton variant="tertiary"
+				<NcButton v-if="editingShown"
+					variant="tertiary"
 					:disabled="!store.canUndo"
 					:aria-label="t('nextcloud-vue', 'Undo the last change')"
 					:title="t('nextcloud-vue', 'Undo the last change')"
@@ -132,7 +140,7 @@
 				{{ t('nextcloud-vue', 'Opening the run') }}
 			</span>
 
-			<div class="cn-flow-detail__toolbar-group">
+			<div v-if="!inList" class="cn-flow-detail__toolbar-group">
 				<NcButton variant="tertiary"
 					:disabled="zoom <= minZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom out')"
@@ -143,7 +151,7 @@
 				</NcButton>
 				<NcButton variant="tertiary"
 					:aria-label="t('nextcloud-vue', 'Reset zoom')"
-					@click="zoom = 1">
+					@click="zoomTo(1)">
 					{{ Math.round(zoom * 100) }}%
 				</NcButton>
 				<NcButton variant="tertiary"
@@ -155,6 +163,9 @@
 					</template>
 				</NcButton>
 			</div>
+
+			<!-- @slot toolbar-end What a host adds at the end of the toolbar (the board's validity pill and panel toggle). -->
+			<slot name="toolbar-end" />
 
 			<!-- The way back to a closed sidebar has to live OUTSIDE it. -->
 			<NcButton v-if="!store.sidebarOpen"
@@ -192,12 +203,24 @@
 		     existing `edges` prop: Vue Flow applies an edge's `class` to the
 		     line it draws, so the canvas itself stays a geometry-only renderer
 		     with no status concept (ADR-065). -->
+		<CnFlowStepList v-if="inList"
+			:readonlySteps="readonlySteps"
+			:stepState="listStepState"
+			@add="stepPickerOpen = true"
+			@edit="onListEdit" />
 		<CnGraphCanvas
+			v-else
+			ref="canvas"
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
 			:minZoom="minZoom"
 			:maxZoom="maxZoom"
+			:fitMaxZoom="fitMaxZoom"
+			:fitInset="fitInset"
+			@zoomChange="zoom = $event"
 			@nodeSelect="onNodeSelect"
+			@nodeActivate="onNodeActivate"
+			@nodeMenu="onNodeMenu"
 			@edgeSelect="onEdgeSelect"
 			@edgeLabelClick="onEdgeLabelClick"
 			@edgeLabelContext="onEdgeLabelContext"
@@ -221,8 +244,29 @@
 						runStateOf(node.id) ? `cn-flow-detail__node--run-${runStateOf(node.id)}` : null,
 					]"
 					@dblclick.stop="store.editingNodeId = node.id">
-					<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
-					<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
+					<template v-if="node.data.badge">
+						<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
+						<CnStatusBadge class="cn-flow-detail__node-badge"
+							:label="node.data.badge.label"
+							:variant="node.data.badge.variant || 'default'"
+							size="small" />
+					</template>
+					<template v-else-if="node.data.named">
+						<span class="cn-flow-detail__node-kind">{{ typeLabel(node.data.stepType) }}</span>
+						<span class="cn-flow-detail__node-type">{{ node.data.label }}</span>
+						<span v-if="node.data.summary" class="cn-flow-detail__node-label">{{ node.data.summary }}</span>
+					</template>
+					<template v-else>
+						<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
+						<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
+					</template>
+					<span
+						v-if="node.data.formDrift && node.data.formDrift.length"
+						class="cn-flow-detail__node-warning"
+						data-testid="flow-node-form-drift"
+						:title="t('nextcloud-vue', 'A field this step asks for is no longer available in the schema.')">
+						{{ t('nextcloud-vue', 'Form out of date') }}
+					</span>
 					<span
 						v-if="isUnknown(node.data.stepType)"
 						class="cn-flow-detail__node-warning"
@@ -234,6 +278,14 @@
 					     the colours apart (WCAG 1.4.1), so every coloured node
 					     also says what it is. -->
 					<span
+						v-if="runLinesOf(node.id)"
+						class="cn-flow-detail__node-count"
+						:class="`cn-flow-detail__node-count--${runStateOf(node.id)}`"
+						:aria-label="runLinesLabel(node.id)"
+						data-testid="flow-node-log-count">
+						{{ runLinesOf(node.id) }}
+					</span>
+					<span
 						v-if="runStateOf(node.id)"
 						class="cn-flow-detail__node-run"
 						:class="`cn-flow-detail__node-run--${runStateOf(node.id)}`">
@@ -242,14 +294,15 @@
 				</div>
 			</template>
 
-			<!-- A connection's own name, on the connection.
+			<!-- A connection's own name, on the connection, else its condition in
+			     words when the host asks for that (`edgeConditions`).
 
-			     Rendered only when the author gave the line one: CnFlowEdge
-			     gates the label control on what this slot RENDERS, not on
-			     whether it exists, so an unnamed line draws no empty chip. -->
+			     Rendered only when there is text: CnFlowEdge gates the label
+			     control on what this slot RENDERS, not on whether it exists, so
+			     an unnamed line draws no empty chip. -->
 			<template #edge-label="{ edge }">
-				<template v-if="edge.data && edge.data.label">
-					{{ edge.data.label }}
+				<template v-if="edgeText(edge)">
+					{{ edgeText(edge) }}
 				</template>
 			</template>
 		</CnGraphCanvas>
@@ -299,7 +352,7 @@
 			</template>
 		</NcEmptyContent>
 		<NcEmptyContent
-			v-else-if="store.nodes.length === 0"
+			v-else-if="store.nodes.length === 0 && !inList"
 			class="cn-flow-detail__empty"
 			data-testid="flow-canvas-empty"
 			:name="t('nextcloud-vue', 'No steps yet')"
@@ -308,12 +361,14 @@
 				<Sitemap :size="20" />
 			</template>
 		</NcEmptyContent>
-		<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
+		<CnFlowStepPickerModal v-if="stepPickerOpen" :append="inList" @close="stepPickerOpen = false" />
 	</div>
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import axios from '@nextcloud/axios'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
 import ContentPaste from 'vue-material-design-icons/ContentPaste.vue'
@@ -334,10 +389,15 @@ import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
+import CnFlowStepList from './CnFlowStepList.vue'
 import { useContextMenu } from '../../composables/useContextMenu.js'
 import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { flowRunPicture } from '../../utils/flowRunPicture.js'
+import { isFlowEndStop } from '../../utils/flowRunStatus.js'
+import { taskFormDrift } from '../../utils/taskFormDrift.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * Which glyph stands for which router, in menu order.
@@ -373,6 +433,12 @@ const RUN_CATCH_UP_HOP_MS = 320
 const REPLAY_HOP_MIN_MS = 200
 const REPLAY_HOP_MAX_MS = 1500
 
+/** The canvas messages a quiet run keeps: what went wrong with the run itself. */
+/** The badge colour of a step's outcome in the list view. */
+const RUN_STATE_VARIANTS = { active: 'info', done: 'success', warning: 'warning', failed: 'error', hold: 'warning', skipped: 'default' }
+
+const QUIET_RUN_MESSAGES = ['flow-not-found', 'action-failed', 'run-graph-unsaved', 'run-graph-unreadable', 'run-skipped']
+
 export default {
 	name: 'CnFlowDetail',
 
@@ -381,9 +447,11 @@ export default {
 		CnFlowCanvasMessages,
 		CnFlowEdgeEditModal,
 		CnFlowNodeEditModal,
+		CnFlowStepList,
 		CnFlowStepPickerModal,
 		CnContextMenu,
 		CnGraphCanvas,
+		CnStatusBadge,
 		ContentSave,
 		DockRight,
 		Minus,
@@ -429,6 +497,107 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Which way the automatic layout runs: `right` (default) left to
+		 * right, `down` top to bottom with branches side by side.
+		 */
+		layoutDirection: {
+			type: String,
+			default: 'right',
+			validator: (value) => ['right', 'down'].includes(value),
+		},
+
+		/**
+		 * The most the first fit may zoom in. 0 lets it zoom to `maxZoom`; 1
+		 * keeps a small graph at its own size instead of blowing it up.
+		 */
+		fitMaxZoom: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * Pixels per side that the host's chrome covers over the canvas, or a
+		 * function returning them; passed to CnGraphCanvas `fitInset`.
+		 */
+		fitInset: {
+			type: [Object, Function],
+			default: null,
+		},
+
+		/**
+		 * Draw each step as a card: its name, then the pill this function
+		 * returns for the step (`{ label, variant }`, or null for none), in
+		 * place of the type line. The board's card look passes it (DqFlow).
+		 */
+		nodeBadge: {
+			type: Function,
+			default: null,
+		},
+
+		/**
+		 * Show Save, Run and Check in the canvas toolbar. Off when the host
+		 * draws them itself, as the board look does in its page header.
+		 */
+		toolbarActions: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show an open run without editing chrome: no add, arrange or undo
+		 * buttons, and none of the editor's lock, version or setup notices.
+		 * The board look passes it (PqFlowRun).
+		 */
+		quietRun: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Show "Add a step" in the canvas toolbar. Off when the host draws a
+		 * palette beside the canvas.
+		 */
+		addStep: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Write a line's condition on the line when it has no name of its own
+		 * ("amount is more than 1000"). Manifest key `config.edgeConditions`.
+		 */
+		edgeConditions: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * What edits the flow: `canvas` draws the graph, `list` the trigger and
+		 * the steps in order. Both edit the one flow in the store.
+		 */
+		view: {
+			type: String,
+			default: 'canvas',
+		},
+
+		/**
+		 * The host shows the selected step in a panel of its own, so Edit in
+		 * the list view selects the step instead of opening the step dialog.
+		 */
+		stepPanel: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The ids of the steps the viewer can only read, for the list view.
+		 */
+		readonlySteps: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: ['save', 'run'],
@@ -467,6 +636,8 @@ export default {
 
 	data() {
 		return {
+			// The trigger's schema, loaded to check user-task forms against.
+			subjectSchema: null,
 			// The step picker replaced the sidebar palette; it is a modal, so
 			// its open state is the editor's rather than the sidebar's.
 			stepPickerOpen: false,
@@ -538,6 +709,13 @@ export default {
 
 	computed: {
 		/**
+		 * @return {boolean} Whether the list view is on screen in place of the canvas.
+		 */
+		inList() {
+			return this.view === 'list'
+		},
+
+		/**
 		 * Whether a run named by the URL is still being opened.
 		 *
 		 * The window this component used to spend in flow-edit mode. It starts
@@ -548,6 +726,17 @@ export default {
 		 */
 		openingRun() {
 			return this.store.openingRunUuid !== null
+		},
+
+		/**
+		 * Whether the toolbar's editing buttons are drawn: not while a quiet
+		 * run is open.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-run-on-a-board-flow-page-shows-no-editing-chrome
+		 * @return {boolean}
+		 */
+		editingShown() {
+			return !(this.quietRun && this.store.inRunView)
 		},
 
 		/**
@@ -832,6 +1021,9 @@ export default {
 				data: {
 					stepType: node.type,
 					label: this.nodeLabel(node),
+					named: Boolean(this.nodeName(node)),
+					summary: this.nodeSummary(node),
+					badge: this.nodeBadge ? this.nodeBadge(node) : null,
 					ports: this.store.portsOfNode ? this.store.portsOfNode(node) : undefined,
 
 					// A PORT THAT CANNOT BE CONNECTED IS NOT DRAWN.
@@ -856,6 +1048,9 @@ export default {
 					// on the other side of the screen.
 					hasIncoming: targeted.has(node.id),
 					hasOutgoing: sourced.has(node.id),
+
+					// Declared form fields the subject schema dropped or hid.
+					formDrift: this.formDriftOf(node),
 				},
 			}))
 		},
@@ -945,8 +1140,8 @@ export default {
 		 */
 		runNodeStates() {
 			const anim = this.runAnimation
-			if (anim.mode === null) {
-				return {}
+			if (this.runSettled) {
+				return this.runPicture ? this.runPicture.states : {}
 			}
 
 			const states = {}
@@ -1011,6 +1206,54 @@ export default {
 		},
 
 		/**
+		 * Whether nothing is playing on the canvas, so an open run shows as it
+		 * ended: no watch or replay, or a replay that played to its end.
+		 *
+		 * @return {boolean}
+		 */
+		runSettled() {
+			const anim = this.runAnimation
+
+			return anim.mode === null || (anim.mode === 'replay' && anim.timer === null && anim.queue.length === 0)
+		},
+
+		/**
+		 * The open run over the graph on screen. None over unsaved changes:
+		 * the log names the steps of the graph as it ran.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-run-on-the-canvas-shows-each-steps-outcome
+		 * @return {object|null} The picture.
+		 */
+		runPicture() {
+			const run = this.store.runDetail
+			if (!this.store.inRunView || !run || this.store.dirty) {
+				return null
+			}
+
+			return flowRunPicture(run, this.store.nodes, this.store.canvasEdges)
+		},
+
+		/**
+		 * The canvas lines as the open run took them.
+		 *
+		 * @return {Array<object>} The lines.
+		 */
+		settledEdges() {
+			const picture = this.runPicture
+			if (!picture) {
+				return this.store.canvasEdges
+			}
+
+			return this.store.canvasEdges.map((line) => {
+				if (picture.taken.includes(line.id)) {
+					return { ...line, class: 'cn-flow-detail__edge--run-taken' }
+				}
+
+				return picture.notTaken.includes(line.id) ? { ...line, class: 'cn-flow-detail__edge--run-not-taken' } : line
+			})
+		},
+
+		/**
 		 * The canvas edges with the run's classes on them.
 		 *
 		 * Vue Flow applies an edge record's `class` to the `<g>` it draws, so
@@ -1022,8 +1265,8 @@ export default {
 		 */
 		canvasEdgesWithRunState() {
 			const anim = this.runAnimation
-			if (anim.mode === null) {
-				return this.store.canvasEdges
+			if (this.runSettled) {
+				return this.settledEdges
 			}
 
 			return this.store.canvasEdges.map((line) => {
@@ -1284,11 +1527,61 @@ export default {
 				})
 			}
 
+			// A user-task step whose form names a field the subject schema
+			// dropped, locked or hid: standing until the step or schema is fixed.
+			// Not for a read-only run snapshot, which is history.
+			for (const step of this.driftedSteps) {
+				messages.push({
+					id: `task-form-drift-${step.id}`,
+					severity: 'warning',
+					text: this.t('nextcloud-vue', 'The form of step "{step}" asks for fields the schema no longer offers: {fields}', {
+						step: step.label,
+						fields: step.drift.map((d) => this.driftText(d)).join('; '),
+					}),
+					dismissible: false,
+				})
+			}
+
+			if (this.quietRun && this.store.inRunView) {
+				return messages.filter((message) => QUIET_RUN_MESSAGES.includes(message.id))
+			}
 			return messages
+		},
+
+		/**
+		 * The schema the flow's trigger names: the trigger-object step's
+		 * `schema`, else the legacy `triggerSchema` column. Empty when none, or
+		 * when no step declares a form (nothing to check, so nothing to fetch).
+		 *
+		 * @return {string} The schema reference.
+		 */
+		subjectSchemaRef() {
+			const trigger = this.store.nodes.find((node) => node?.type === 'openregister.trigger-object')
+			const ref = trigger?.config?.schema ?? this.store.flow?.triggerSchema ?? ''
+			const hasFormStep = this.store.nodes.some((node) => this.declaredFormFields(node).length > 0)
+			return hasFormStep && ref !== null && ref !== undefined ? String(ref) : ''
+		},
+
+		/**
+		 * The user-task steps whose declared form drifted from the subject schema.
+		 *
+		 * @return {Array<{id: string, label: string, drift: Array<{field: string, reason: string}>}>} The flagged steps.
+		 */
+		driftedSteps() {
+			return this.store.nodes
+				.map((node) => ({ id: node.id, label: this.nodeLabel(node), drift: this.formDriftOf(node) }))
+				.filter((step) => step.drift.length > 0)
 		},
 	},
 
 	watch: {
+		subjectSchemaRef: {
+			immediate: true,
+			handler(ref) {
+				this.loadSubjectSchema(ref)
+			},
+		},
+
 		/**
 		 * Reload when the route names a different flow.
 		 *
@@ -1435,6 +1728,7 @@ export default {
 	 * @return {void}
 	 */
 	created() {
+		this.store.layoutDirection = this.layoutDirection
 		this.store.beginBootstrap(this.run)
 	},
 
@@ -1467,6 +1761,62 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The fields a user-task step declares in its native form.
+		 *
+		 * @param {object} node The flow node.
+		 * @return {Array} The declared fields, empty for any other step.
+		 */
+		declaredFormFields(node) {
+			const fields = node?.type === 'openregister.user-task' ? node.config?.form?.fields : null
+			return Array.isArray(fields) ? fields : []
+		},
+
+		/**
+		 * Declared fields of a step that drifted from the subject schema.
+		 * Nothing without a loaded schema: the server's save-time check stays the authority.
+		 *
+		 * @param {object} node The flow node.
+		 * @return {Array<{field: string, reason: string}>} The drifted fields.
+		 */
+		formDriftOf(node) {
+			return taskFormDrift(this.subjectSchema, this.declaredFormFields(node))
+		},
+
+		/**
+		 * A drifted field with its reason, in words.
+		 *
+		 * @param {{field: string, reason: string}} d The drifted field.
+		 * @return {string} The sentence fragment.
+		 */
+		driftText(d) {
+			const reasons = {
+				absent: this.t('nextcloud-vue', 'is no longer in the schema'),
+				readOnly: this.t('nextcloud-vue', 'is read-only in the schema'),
+				hidden: this.t('nextcloud-vue', 'is hidden in the schema'),
+			}
+			return `${d.field} ${reasons[d.reason] || reasons.absent}`
+		},
+
+		/**
+		 * Load the trigger's schema for the drift check. A failed read clears it, so nothing is flagged on a guess.
+		 *
+		 * @param {string} ref The schema reference, or empty.
+		 * @return {Promise<void>}
+		 */
+		async loadSubjectSchema(ref) {
+			if (!ref) {
+				this.subjectSchema = null
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl(`/apps/openregister/api/schemas/${encodeURIComponent(ref)}`))
+				this.subjectSchema = this.subjectSchemaRef === ref ? (response?.data || null) : this.subjectSchema
+			} catch {
+				this.subjectSchema = null
+			}
+		},
+
 		/**
 		 * Open the run the URL named, if it named one.
 		 *
@@ -1712,6 +2062,31 @@ export default {
 		},
 
 		/**
+		 * Enter or Space on a step: open its editor, as a double-click does.
+		 *
+		 * @param {string} id The step id.
+		 * @return {void}
+		 */
+		onNodeActivate(id) {
+			this.store.selectedNodeId = id
+			this.store.editingNodeId = id
+		},
+
+		/**
+		 * Shift+F10 or the menu key on a step: its menu, at the step.
+		 *
+		 * @param {object} request          The node's request.
+		 * @param {string} request.id       The step id.
+		 * @param {number} request.clientX  Where to place the menu.
+		 * @param {number} request.clientY  Where to place the menu.
+		 * @return {void}
+		 */
+		onNodeMenu({ id, clientX, clientY }) {
+			this.store.selectedNodeId = id
+			this.openNodeMenu({ item: id, event: { clientX, clientY } })
+		},
+
+		/**
 		 * Place a palette node where it was dropped.
 		 *
 		 * @param {object} drop            The drop payload.
@@ -1917,7 +2292,7 @@ export default {
 				if (anim.failedNodeIds.includes(nodeId) === false) {
 					anim.failedNodeIds.push(nodeId)
 				}
-			} else if (step.status === 'completed' || step.status === 'pinned') {
+			} else if (step.status === 'completed' || step.status === 'pinned' || isFlowEndStop(step)) {
 				if (anim.doneNodeIds.includes(nodeId) === false) {
 					anim.doneNodeIds.push(nodeId)
 				}
@@ -1990,6 +2365,22 @@ export default {
 		},
 
 		/**
+		 * @param {string} id The node id.
+		 * @return {number} How many log lines it wrote in the open run, while it shows as it ended.
+		 */
+		runLinesOf(id) {
+			return (this.runSettled && this.runPicture && this.runPicture.counts[id]) || 0
+		},
+
+		/**
+		 * @param {string} id The node id.
+		 * @return {string} Its count of log lines, in words.
+		 */
+		runLinesLabel(id) {
+			return n('nextcloud-vue', '%n log line', '%n log lines', this.runLinesOf(id))
+		},
+
+		/**
 		 * The run state in words, for the chip beside the colour.
 		 *
 		 * @param {string} state The run state.
@@ -1998,9 +2389,11 @@ export default {
 		runStateLabel(state) {
 			const labels = {
 				active: this.t('nextcloud-vue', 'Running'),
-				done: this.t('nextcloud-vue', 'Done'),
+				done: this.t('nextcloud-vue', 'Succeeded'),
+				warning: this.t('nextcloud-vue', 'Warning'),
 				failed: this.t('nextcloud-vue', 'Failed'),
 				hold: this.t('nextcloud-vue', 'Waiting'),
+				skipped: this.t('nextcloud-vue', 'Not run'),
 			}
 
 			return labels[state] || state
@@ -2013,8 +2406,22 @@ export default {
 		 * @return {void}
 		 */
 		zoomBy(delta) {
-			const next = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta))
-			this.zoom = Math.round(next * 100) / 100
+			this.zoomTo(this.zoom + delta)
+		},
+
+		/**
+		 * Zoom the CANVAS, which is the only thing that holds a transform.
+		 *
+		 * `zoom` here is a mirror of what the canvas reports, never the source:
+		 * setting it moved a number this component owned and nothing else, so
+		 * the toolbar counted up and down over a canvas that never moved.
+		 *
+		 * @param {number} value The wanted zoom, clamped to the declared range.
+		 * @return {void}
+		 */
+		zoomTo(value) {
+			const next = Math.max(this.minZoom, Math.min(this.maxZoom, value))
+			this.$refs.canvas?.zoomTo?.(Math.round(next * 100) / 100)
 		},
 
 		/**
@@ -2036,6 +2443,37 @@ export default {
 			}
 
 			return this.store.catalogEntry(type) === null
+		},
+
+		/**
+		 * @param {string} id A step.
+		 * @return {{label: string, variant: string}|null} Its outcome in the open run, for the list view.
+		 */
+		listStepState(id) {
+			const state = this.runStateOf(id)
+
+			return state ? { label: this.runStateLabel(state), variant: RUN_STATE_VARIANTS[state] || 'default' } : null
+		},
+
+		/**
+		 * @param {string} id The step to edit from the list view.
+		 * @return {void}
+		 */
+		onListEdit(id) {
+			this.store.selectedNodeId = id
+			if (!this.stepPanel) {
+				this.store.editingNodeId = id
+			}
+		},
+
+		/**
+		 * @param {object} edge A drawn line.
+		 * @return {string} What the line says: its name, else its condition when asked for.
+		 */
+		edgeText(edge) {
+			const data = edge.data || {}
+
+			return data.label || (this.edgeConditions ? data.conditionText : '') || ''
 		},
 
 		/**
@@ -2079,19 +2517,14 @@ export default {
 		 * future, without the builder having to know any of them.
 		 *
 		 * @param {object} node The node.
-		 * @return {string} The label.
+		 * @return {string} The summary, or '' when nothing is set.
 		 */
-		nodeLabel(node) {
-			// A name the author gave the step beats a derived summary.
-			if (node.name) {
-				return node.name
-			}
-
+		nodeSummary(node) {
 			const config = (node.config || {})
 			const keys = Object.keys(config).filter((k) => config[k] !== '' && config[k] !== null)
 
 			if (!keys.length) {
-				return this.t('nextcloud-vue', 'not configured')
+				return ''
 			}
 
 			const first = keys[0]
@@ -2103,6 +2536,27 @@ export default {
 			}
 
 			return `${first}: ${shown} +${keys.length - 1}`
+		},
+
+		/**
+		 * The name the author gave a step. The editor writes `name`; a flow
+		 * authored as JSON or through the API carries `label`.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The name, or ''.
+		 */
+		nodeName(node) {
+			return node.name || node.label || ''
+		},
+
+		/**
+		 * What a step is called: its name, else what its configuration says.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The label.
+		 */
+		nodeLabel(node) {
+			return this.nodeName(node) || this.nodeSummary(node) || this.t('nextcloud-vue', 'not configured')
 		},
 	},
 }
@@ -2117,6 +2571,19 @@ export default {
 	   drag alignment visible without a snapping feature. */
 	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
 	background-size: 20px 20px;
+}
+
+/* The list is not a canvas: no dotted grid under it, and its own scrolling. */
+.cn-flow-detail--list {
+	display: flex;
+	flex-direction: column;
+	background-image: none;
+}
+
+.cn-flow-detail--list .cn-flow-detail__toolbar {
+	position: static;
+	align-self: flex-start;
+	box-shadow: none;
 }
 
 /* The canvas paints an opaque main-background of its own, which sat exactly
@@ -2269,6 +2736,18 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* A named step: what kind of step it is, small, over its name. */
+.cn-flow-detail__node-kind {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.7em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-flow-detail__node-label,
 .cn-flow-detail__node-warning {
 	font-size: 0.85em;
@@ -2280,6 +2759,54 @@ export default {
 
 .cn-flow-detail__node-warning {
 	color: var(--color-error-text);
+}
+
+/* ---- The card look (board DqFlow) ------------------------------------ */
+
+/* A step is a 200px card: its name, then the pill of the app that does it. */
+.cn-flow-detail--card-nodes :deep(.cn-flow-node) {
+	inline-size: 200px;
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 10px;
+}
+
+.cn-flow-detail--card-nodes :deep(.cn-flow-node--selected) {
+	padding: 9px 11px;
+	border: 2px solid var(--color-primary-element);
+}
+
+.cn-flow-detail.cn-flow-detail--card-nodes .cn-flow-detail__node {
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.cn-flow-detail--card-nodes .cn-flow-detail__node-label {
+	max-inline-size: 100%;
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* The role accent gives way to the card's own shadow while editing; a run keeps
+   its outcome colours. */
+.cn-flow-detail.cn-flow-detail--quiet-lines :deep(.cn-flow-node:has(.cn-flow-detail__node)) {
+	box-shadow: 0 1px 2px rgba(27, 28, 29, 0.08);
+}
+
+/* Ports show on the card that is pointed at, focused or selected; a port that
+   breaks the flow stays visible. */
+.cn-flow-detail--card-nodes :deep(.cn-flow-node:not(:hover, :focus-within, .cn-flow-node--selected) .cn-flow-node__handle:not(.cn-flow-node__handle--orphan)) {
+	opacity: 0;
+}
+
+/* Plain grey connectors while editing; the steps run top to bottom. */
+.cn-flow-detail--quiet-lines :deep(.vue-flow__edge:not(.selected) .vue-flow__edge-path) {
+	stroke: var(--color-text-maxcontrast);
+	stroke-width: 2;
+	marker-end: none;
 }
 
 .cn-flow-detail__empty {
@@ -2314,6 +2841,17 @@ export default {
 .cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-failed)) {
 	outline: 3px solid var(--color-error);
 	outline-offset: 1px;
+}
+
+/* Finished with a warning: the run went on past this step. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-warning)) {
+	outline: 3px solid var(--color-warning);
+	outline-offset: 1px;
+}
+
+/* A step the finished run did not reach steps back. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-skipped)) {
+	opacity: 0.6;
 }
 
 /* Visibly WAITING: dashed (a different shape from executing and from failed,
@@ -2362,15 +2900,57 @@ export default {
 	color: var(--color-success-text, var(--color-success));
 }
 
+/* How many log lines the step wrote, on the node's corner. */
+.cn-flow-detail__node-count {
+	position: absolute;
+	inset-block-start: -10px;
+	inset-inline-end: 8px;
+	min-inline-size: 20px;
+	padding-inline: 6px;
+	border: 1px solid var(--color-success);
+	border-radius: var(--border-radius-pill, 100px);
+	background: var(--color-main-background);
+	color: var(--color-success-text, var(--color-success));
+	font-size: 0.75em;
+	font-weight: 600;
+	text-align: center;
+}
+
+.cn-flow-detail__node-count--failed {
+	border-color: var(--color-error);
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-flow-detail__node-count--warning,
+.cn-flow-detail__node-count--hold {
+	border-color: var(--color-warning);
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-flow-detail__node-run--skipped {
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-flow-detail__node-run--failed {
 	color: var(--color-error-text, var(--color-error));
 }
 
+.cn-flow-detail__node-run--warning,
 .cn-flow-detail__node-run--hold {
 	color: var(--color-warning-text, var(--color-warning));
 }
 
 /* ---- Run state on the edges ------------------------------------------- */
+
+/* An open run: the route it took stands out, the rest steps back. */
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-taken .vue-flow__edge-path) {
+	stroke: var(--color-success);
+	stroke-width: 3;
+}
+
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-not-taken) {
+	opacity: 0.4;
+}
 
 /* Lines already walked keep a quiet success stroke for the rest of the run. */
 .cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-traced .vue-flow__edge-path),

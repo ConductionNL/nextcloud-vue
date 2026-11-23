@@ -54,6 +54,9 @@ Custom action items can be injected into the overflow menu:
 | `addIcon` | String | `''` | MDI icon name for the Add button (falls back to Plus) |
 | `showAdd` | Boolean | `true` | Whether to show the Add button |
 | `addDisabled` | Boolean | `false` | Whether the Add button is disabled |
+| `addHref` | String | `null` | URL the Add button links to. The button becomes a real link (middle-click, open in new tab) and still emits `add` on a plain click; a ctrl/cmd/shift click opens a new tab and emits nothing. Wins over `addTo`. |
+| `addTo` | String\|Object | `null` | vue-router location (path or `{ name, params }`) the Add button links to. The href is resolved through the router; a plain click routes in place and still emits `add`, so the host must not navigate on `add` itself; a ctrl/cmd/shift click opens a new tab and emits nothing. Ignored when the router cannot resolve it. CnIndexPage sets it for a named source's `addRoute`. |
+| `headerActions` | Array | `[]` | Page-level actions in the overflow menu: `{ id, label, icon?, disabled?, href?, to?, linkTarget? }`. Clicking emits `header-action`. An entry with `href` (a finished URL) or `to` (vue-router location) renders as a real link (`NcActionLink`, `linkTarget` as its `target`) that still emits `header-action` on a plain click, so the host must not navigate for it again; a ctrl/cmd/shift click opens a new tab and emits nothing. CnIndexPage resolves a manifest entry's `href` (an instance path through `generateUrl()`) and `target` into `href` / `linkTarget` before handing it over, and emits nothing upward for it. |
 | `viewMode` | String | `'table'` | Current view mode: `'table'`, `'cards'`, or `'map'` |
 | `showViewToggle` | Boolean | `true` | Whether to show the Cards/Table toggle (each option carries a leading icon) |
 | `cardsLabel` | String | `''` | Label for the cards/grid view-toggle option (defaults to "Cards") |
@@ -63,9 +66,11 @@ Custom action items can be injected into the overflow menu:
 | `showMap` | Boolean | `false` | Whether to render the third "Map" toggle segment. Off by default, so existing two-segment consumers are unchanged |
 | `mapLabel` | String | `''` | Label for the map view-toggle option (defaults to "Map"). Only shown when `showMap` |
 | `mapIcon` | String | `''` | MDI icon name for the map option (defaults to the built-in map-marker icon); resolved via CnIcon |
-| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input |
+| `showSearch` | Boolean | `false` | Show an inline search field on the left of the bar; emits `search` on input. The field takes the place of the "Showing X of Y" counter unless `showCountWithSearch` is set |
+| `searchPlacement` | String | `''` | Board look only: `'toolbar'` draws the search field on row 1, before Filter and the view switch, instead of at the start of row 2 |
 | `searchValue` | String | `''` | Current value of the inline search field (controlled) |
 | `searchPlaceholder` | String | `''` | Placeholder / accessible label for the inline search field |
+| `showCountWithSearch` | Boolean | `false` | Keep the "Showing X of Y" counter visible beside the inline search field: after the search and any `#after-search` controls, before the view toggle, on one line, moving to the next row on a narrow bar when there is no room. It is an `aria-live="polite"` region there, so a changed total is announced. Like the counter without search, it only shows text while `pagination.total` is above 0; at 0 the region stays mounted but empty and visually hidden, so results coming back after none are announced too. No effect without `showSearch` |
 | `refreshing` | Boolean | `false` | Whether a refresh is currently in progress |
 | `refreshDisabled` | Boolean | `false` | Whether the Refresh action is disabled |
 | `showMassImport` | Boolean | `true` | Whether to show the Import action |
@@ -95,10 +100,14 @@ Custom action items can be injected into the overflow menu:
 |------|-------|-------------|
 | `after-search` | — | Refinement controls beside the search field on the bar's LEFT side (e.g. an `NcActions` filter menu with a funnel icon) — the left side groups the visual controls (search, filters, view toggle) |
 | `filters` | — | Inline filter controls rendered inside the bar, between the view toggle and the add/actions (e.g. a `CnQuickFilterBar` segmented toggle). |
+| `actions` | — | Custom buttons rendered between the sidebar toggle and the primary Add button. |
+| `actions-end` | — | Custom buttons rendered AFTER the primary Add button, immediately before the overflow menu (e.g. `CnIndexPage`'s saved-views control) — for content that belongs grouped with "browse/manage" controls rather than with the app-specific buttons in `#actions`. |
 | `header-actions` | — | Extra buttons placed after the Add button, before the overflow menu |
 | `action-items` | — | Extra `NcActionButton` items injected into the overflow menu |
 | `mass-actions` | `{ count, selectedIds }` | Extra mass-action items at the bottom of the overflow menu (optional mirror of the strip's actions) |
 | `selection-actions` | `{ count, selectedIds }` | The host's bulk-action buttons (NcButton family) in the contextual selection strip shown while `selectable` and a selection is active — the primary bulk-actions surface, with a live `role="status"` count and a built-in Clear control |
+
+> **Upgrading:** `#actions` used to render *after* the Add button. It now renders *before* it, and the old position is the new `#actions-end`. Content passed to `#actions` therefore moves to the other side of Add — move it to `#actions-end` to keep the previous placement.
 
 ## Documentation link
 
@@ -123,3 +132,17 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 | `sortOptions` | Array | `[]` | Options `{ value, label }` for the sort dropdown. |
 | `sortValue` | String | `''` | Selected sort option value (controlled). |
 | `sortLabel` | String | *(i18n)* | Accessible label for the sort dropdown. |
+
+## `showCount` and `showActionsMenu`
+
+`showCount` (default `true`): `false` drops the "Showing 20 of 258" line. `showActionsMenu` (default `true`): `false` drops the overflow Actions menu (Refresh, Import, Export, mass actions, header actions), for a page that offers its actions as buttons elsewhere (CnIndexPage `headerButtons`).
+
+## Board layout
+
+Under the board look (`layout="board"`, or the app's `cnLook`) the bar draws no band and lays out two rows: the quick-filter chips, the saved-view chips and the "Save view" button, a labelled Filter button carrying the number of active filters, and an icon-only view switch (table, cards, board, map) on row 1; the search field, "Active:", one removable chip per `activeFilterChips` entry and "Clear all" on row 2. New props: `layout`, `activeFilterChips` (`{ key, label }`), `activeFilterCount`, `showBuildiqButton`, `bulkNoun` and `bulkHint`. New events: `remove-filter` and `clear-filters`. While rows are selected the bulk band renders as its own region after the toolbar element, not inside it. With `bulkBandAlways` the band shows before a selection too, its buttons disabled until rows are selected (DqZaken, DqWerkbord), when it has an action to offer. `bulkLead` replaces the band's lead ("1 zaak geselecteerd") and `bulkCancel` ends it with a Cancel button that clears the selection. Without the look the bar renders as before.
+
+`showBuildiqButton` (Boolean, default true): set false when the page draws the buildiq square in its own header.
+
+### Disabled view segments
+
+Under the board look `disabledViewModes` (an array of modes) draws view switch segments the page cannot open, in the fixed order table, cards, board, map, disabled and titled `<mode>: not available on this list`. A mode that is also offered renders once, enabled. `CnIndexPage` fills it from `config.viewSwitch`. `viewModeLinks` (`{ board: { href, to? } }`) draws a mode that opens another page as a link in its place in the switch: a plain click pushes `to` on the router when given, and `href` serves a new tab; a mode the page offers in place stays a button.

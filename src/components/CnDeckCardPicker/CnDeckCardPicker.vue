@@ -270,7 +270,7 @@ export default {
 
 				// Default: hit Deck's own stack endpoint, which returns
 				// a `cards` array. Shape: { cards: [{id, title}, ...] }.
-				const url = `/index.php/apps/deck/stacks/${this.selectedBoardId}/${stackId}`
+				const url = prefixUrl(`/apps/deck/stacks/${this.selectedBoardId}/${stackId}`)
 				const response = await fetch(url, { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()

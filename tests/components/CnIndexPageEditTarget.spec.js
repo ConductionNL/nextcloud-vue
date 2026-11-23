@@ -36,9 +36,7 @@ function mountPage(propsData = {}) {
 }
 
 /**
- * The row action with this label, from the merged set. Built-in actions carry
- * a label and no id (see defaultActions.js), so label is the only key that
- * addresses both built-ins and manifest-declared actions.
+ * The row action with this label, from the merged set.
  *
  * @param {object} wrapper The mounted wrapper.
  * @param {string} label   The action label.
@@ -75,7 +73,8 @@ describe('CnIndexPage — an action that cannot render is not an action', () => 
 		const wrapper = mountPage({
 			actions: ['create', 'edit', 'delete', { id: 'view', label: 'Open', icon: 'EyeOutline' }],
 		})
-		expect(wrapper.vm.mergedActions.filter((a) => a && a.id === 'view')).toHaveLength(1)
+		// The app action, not the built-in View that shares its id.
+		expect(wrapper.vm.mergedActions.filter((a) => a && a.id === 'view' && !a.builtin)).toHaveLength(1)
 		// Nothing label-less survives into the menu — that is the whole fix.
 		expect(wrapper.vm.mergedActions.every((a) => a && a.label)).toBe(true)
 	})

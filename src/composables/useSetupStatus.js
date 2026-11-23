@@ -4,6 +4,7 @@
  */
 
 import { computed, ref } from 'vue'
+import { missingRequiredApps, readServerAppStatuses } from './useDependencyCheck.js'
 
 /**
  * Per-`appId` cache of setup-status results. The Vue refs are stored so all
@@ -27,6 +28,14 @@ const cache = new Map()
  * every non-admin user of an app with a `setup` block met a wizard they had no
  * permission to complete instead of the app itself.
  *
+ * A step that declares `requires: [appId, ...]` is **not applicable** while any
+ * of those apps is not installed and enabled: it is neither met nor unmet, so
+ * it never lands in `requiredUnmet` or `optionalUnmet`. `CnSetupWizard` skips
+ * such a step, and counting it as unmet kept the wizard reopening (optional
+ * step) or gating the app (required step) for a step it would never show. App
+ * status is resolved exactly as the wizard does it: the `dependency_statuses`
+ * initial state first, then `useAppStatus`.
+ *
  * @param {string} appId Nextcloud app id (e.g. `"procest"`).
  * @param {object} manifest The app manifest (reads `manifest.setup`).
  * @return {{
@@ -35,6 +44,7 @@ const cache = new Map()
  *   requiredUnmet: import('vue').ComputedRef<Array<object>>,
  *   optionalUnmet: import('vue').ComputedRef<Array<object>>,
  *   optionalUnmetReported: import('vue').ComputedRef<Array<object>>,
+ *   notApplicable: import('vue').ComputedRef<Array<object>>,
  *   completed: import('vue').ComputedRef<boolean>,
  *   enabled: boolean,
  *   loading: import('vue').Ref<boolean>,
@@ -45,6 +55,7 @@ const cache = new Map()
  *
  * @example
  * const { requiredUnmet, completed, loading } = useSetupStatus('procest', manifest)
+ * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
  */
 export function useSetupStatus(appId, manifest) {
 	const setup = (manifest && manifest.setup) || {}
@@ -68,6 +79,9 @@ export function useSetupStatus(appId, manifest) {
 		cache.set(appId, entry)
 	}
 	const { status, loading, error, forbidden } = entry
+	// Same source the wizard's dependency gate reads. Initial state is fixed
+	// for the page lifetime, so one read per call is enough.
+	const serverAppStatuses = readServerAppStatuses(appId)
 
 	const steps = computed(() => stepDefs.map((s) => {
 		const bag = status.value.steps || {}
@@ -81,7 +95,12 @@ export function useSetupStatus(appId, manifest) {
 		// that act on an unmet step — CnAppRoot auto-opening the non-gating
 		// wizard — must act only on steps the server actually reported, or an
 		// unknowable step parks the wizard over the app for ever.
-		return { ...s, done: st.done === true, reported, detail: st.detail }
+		//
+		// `applicable` is false when the step `requires` an app that is not
+		// installed and enabled. The wizard skips such a step, so it can never
+		// be done here; it is not applicable rather than unmet.
+		const missingApps = missingRequiredApps(s.requires, serverAppStatuses).map((row) => row.id)
+		return { ...s, done: st.done === true, reported, detail: st.detail, applicable: missingApps.length === 0, missingApps }
 	}))
 	// Presentational step types carry no work, so the server never reports a
 	// `done` flag for them. Counting them as "unmet" made `optionalUnmet`
@@ -89,7 +108,9 @@ export function useSetupStatus(appId, manifest) {
 	// which kept CnAppRoot's non-gating setup wizard auto-opening over the
 	// app on every fresh browser profile no matter how complete setup was.
 	// Only actionable steps can be unmet.
-	const isActionable = (s) => s.type !== 'info' && s.type !== 'summary'
+	// A step whose required apps are absent is skipped by the wizard, so it
+	// is neither met nor unmet (see `applicable` above).
+	const isActionable = (s) => s.type !== 'info' && s.type !== 'summary' && s.applicable !== false
 	// `forbidden` empties BOTH lists, and that is what actually suppresses the
 	// wizard: CnAppRoot gates on `requiredUnmet.length > 0` (blocking) and on
 	// `requiredUnmet.length === 0 && optionalUnmet.length > 0` (auto-open) —
@@ -110,6 +131,8 @@ export function useSetupStatus(appId, manifest) {
 	// suppressing it is what left dossiq's `seed` step (and with it the app's
 	// only demo-data affordance) permanently unreachable.
 	const optionalUnmetReported = computed(() => optionalUnmet.value.filter((s) => s.reported === true))
+	// Steps the wizard skips because an app in their `requires` is absent.
+	const notApplicable = computed(() => steps.value.filter((s) => s.applicable === false))
 	const completed = computed(() => {
 		if (!enabled) {
 			return true
@@ -170,7 +193,7 @@ export function useSetupStatus(appId, manifest) {
 		refresh()
 	}
 
-	return { steps, status, requiredUnmet, optionalUnmet, optionalUnmetReported, completed, enabled, loading, error, forbidden, refresh }
+	return { steps, status, requiredUnmet, optionalUnmet, optionalUnmetReported, notApplicable, completed, enabled, loading, error, forbidden, refresh }
 }
 
 /**

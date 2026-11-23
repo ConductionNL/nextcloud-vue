@@ -83,7 +83,10 @@
 			class="cn-sidebar-tab__empty cn-maps-tab__empty">
 			<MapMarker :size="32" class="cn-maps-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openMapsApp">
+			<NcButton
+				variant="primary"
+				:href="mapsAppUrl"
+				target="_blank">
 				<template #icon>
 					<MapMarker :size="20" />
 				</template>
@@ -139,12 +142,15 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openPoint(point)">
+					<NcActionLink
+						:closeAfterClick="true"
+						:href="pointUrl(point)"
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ openOnMapLabel }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton :closeAfterClick="true" @click="unlinkPoint(point)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -170,7 +176,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import LinkOff from 'vue-material-design-icons/LinkOff.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
@@ -180,7 +186,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnMapPoiCreate from '../../../components/CnMapPoiCreate/CnMapPoiCreate.vue'
 import CnMapPoiPicker from '../../../components/CnMapPoiPicker/CnMapPoiPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const COMMENT_MAX_CHARS = 160
@@ -197,6 +203,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcListItem,
 		NcLoadingIcon,
@@ -349,19 +356,6 @@ export default {
 			return this.pointCategory(point)
 		},
 
-		/**
-		 * Open a single POI in NC Maps (row action).
-		 *
-		 * @param {object} point Provider row.
-		 *
-		 * @return {void}
-		 */
-		openPoint(point) {
-			if (typeof window !== 'undefined') {
-				window.open(this.pointUrl(point), '_blank', 'noopener')
-			}
-		},
-
 		coordOf(point, key) {
 			const d = this.dataOf(point)
 			const v = point[key] ?? d[key] ?? null
@@ -393,8 +387,9 @@ export default {
 			return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		pointUrl(point) {
-			if (typeof point.url === 'string' && point.url !== '') {
+			if (typeof point.url === 'string' && point.url !== '' && safeHref(point.url) !== '#') {
 				return point.url
 			}
 			if (this.pointHasCoords(point)) {
@@ -410,12 +405,6 @@ export default {
 				return this.mapsAppUrl
 			}
 			return `${this.mapsAppUrl}/?point=${lat},${lng}`
-		},
-
-		openMapsApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.mapsAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

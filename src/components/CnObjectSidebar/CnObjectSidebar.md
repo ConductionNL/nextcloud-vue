@@ -103,3 +103,7 @@ export default {
 ## A tab you can link to
 
 `requested-tab` in, `on-tab-change` out. The callback fires with `(tabId, canonicalising)` whenever the sidebar settles on a tab, so a host keeping the tab in the address writes the tab that is really showing. See [the reference page](../../../docs/components/cn-object-sidebar.md#a-tab-you-can-link-to).
+
+### Tasks source
+
+`tasksSource` (String, default `'vtodo'`): `'flow-tasks'` makes the Tasks tab list, create and move the OpenRegister flow tasks anchored on the record. See `docs/components/cn-object-sidebar.md`.

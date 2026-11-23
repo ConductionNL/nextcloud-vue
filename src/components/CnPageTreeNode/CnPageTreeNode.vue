@@ -23,7 +23,6 @@
 					:canAddChild="maxDepth > 0"
 					@addChild="addChild(node)"
 					@rename="(id) => renamePage(node.ref, id)"
-					@navigate="bubbleNavigate"
 					@remove="removeNode(node, null)" />
 
 				<!-- One level of children: a drop target on every top page so a
@@ -43,7 +42,6 @@
 							<CnPageTreeRow :page="child.ref"
 								:canAddChild="false"
 								@rename="(id) => renamePage(child.ref, id)"
-								@navigate="bubbleNavigate"
 								@remove="removeNode(child, node)" />
 						</li>
 					</template>
@@ -57,6 +55,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import draggable from 'vuedraggable'
 import CnPageTreeRow from './CnPageTreeRow.vue'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 // Stable per-page-object render keys, independent of the mutable `id`. Keyed by
 // the page ref itself (a WeakMap, so removed pages are GC'd) so a slug rename —
@@ -113,8 +112,6 @@ export default {
 			default: null,
 		},
 	},
-
-	emits: ['navigate'],
 
 	data() {
 		return {
@@ -183,20 +180,6 @@ export default {
 				pageKeys.set(ref, key)
 			}
 			return key
-		},
-
-		/**
-		 * Bubble a row's "Go to page" request up to the modal, which navigates.
-		 *
-		 * @param {string} route The route path to open.
-		 * @return {void}
-		 */
-		bubbleNavigate(route) {
-			/**
-			 * @event navigate Emitted when a row's "Go to page" button is used.
-			 * @type {string} The route path to open.
-			 */
-			this.$emit('navigate', route)
 		},
 
 		/**
@@ -335,7 +318,7 @@ export default {
 		 * @return {void}
 		 */
 		addChild(node) {
-			const base = String(node.ref.route || '').replace(/\/+$/, '')
+			const base = stripTrailingSlashes(String(node.ref.route || ''))
 			const ref = { id: this.nextId(), parent: node.ref.id, type: 'detail', route: `${base}/:id`, title: '', config: {} }
 			node.children.push({ ref, children: [] })
 			this.flatten()

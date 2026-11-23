@@ -60,3 +60,22 @@ describe('CnWidgetEmptyState', () => {
 		expect(mountState({}).attributes('role')).toBe('note')
 	})
 })
+
+describe('CnWidgetEmptyState size', () => {
+	it('is the widget size by default', () => {
+		const w = mountState({ name: 'x' })
+		expect(w.classes()).not.toContain('cn-widget-empty-state--card')
+	})
+
+	it('is the card size when asked for', () => {
+		const w = mountState({ name: 'x', size: 'card' })
+		expect(w.classes()).toContain('cn-widget-empty-state--card')
+	})
+
+	it('is the card size in the board look, unless compact or an explicit size says otherwise', () => {
+		const provide = { cnLook: 'board' }
+		expect(mountState({ name: 'x' }, { provide }).classes()).toContain('cn-widget-empty-state--card')
+		expect(mountState({ name: 'x', compact: true }, { provide }).classes()).not.toContain('cn-widget-empty-state--card')
+		expect(mountState({ name: 'x', size: 'widget' }, { provide }).classes()).not.toContain('cn-widget-empty-state--card')
+	})
+})

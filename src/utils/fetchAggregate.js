@@ -34,12 +34,49 @@ export function flattenAggFilter(target, filter, ctx) {
 	for (const [k, v] of Object.entries(filter)) {
 		if (v && typeof v === 'object') {
 			for (const [op, ov] of Object.entries(v)) {
-				target[`filter[${k}][${op}]`] = ov
+				target[`filter[${aggFieldKey(k)}][${op}]`] = ov
 			}
 		} else if (v !== '' && v !== null && v !== undefined) {
-			target[`filter[${k}]`] = v
+			target[aggFilterParam(k)] = v
 		}
 	}
+}
+
+/**
+ * Matches a filter key that spells its operator, `field[op]`.
+ *
+ * @type {RegExp}
+ */
+const OPERATOR_KEY = /^(.+)\[([A-Za-z_]+)\]$/
+const METADATA_KEY = /^@self(?:\[(\w+)\]|\.(\w+))$/
+
+/**
+ * The aggregation endpoint's name for a field: a metadata field written as
+ * the list endpoint takes it (`@self[updated]`, `@self.updated`) is the
+ * endpoint's `_updated` column; any other field is itself.
+ *
+ * @param {string} field The field as a filter names it.
+ * @return {string} The field as the aggregation endpoint names it.
+ */
+export function aggFieldKey(field) {
+	const match = METADATA_KEY.exec(field)
+	return match ? `_${match[1] || match[2]}` : field
+}
+
+/**
+ * The query parameter of one plain filter key. A key that spells its operator
+ * (`scheduledDate[gte]`, the flat form a list page and a lens use) goes out as
+ * `filter[scheduledDate][gte]`, the form the aggregation endpoint reads, and
+ * not as `filter[scheduledDate[gte]]`, a field it does not have, which counted
+ * 0. Any other key goes out as `filter[key]`.
+ *
+ * @spec openspec/changes/screens-stats-block-operator-keys/specs/stats-block/spec.md#requirement-a-stats-block-filter-can-spell-its-operator-in-the-key
+ * @param {string} key The filter key.
+ * @return {string} The query parameter name.
+ */
+export function aggFilterParam(key) {
+	const match = OPERATOR_KEY.exec(key)
+	return match ? `filter[${aggFieldKey(match[1])}][${match[2]}]` : `filter[${aggFieldKey(key)}]`
 }
 
 /**
@@ -76,4 +113,40 @@ export async function fetchAggregateValue(source, ctx) {
 	flattenAggFilter(params, s.filter || {}, ctx)
 	const res = await axios.get(url, { params })
 	return (res && res.data && res.data.value !== undefined) ? res.data.value : null
+}
+
+/**
+ * Fetch the object count per distinct value of one field, in ONE request,
+ * from OpenRegister's `/grouped` aggregation endpoint.
+ *
+ * @param {object} source The grouped descriptor.
+ * @param {string} source.register The register slug.
+ * @param {string} source.schema The schema slug.
+ * @param {string} source.groupBy The field to group on.
+ * @param {object} [source.filter] The filter map.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object}} [ctx] Optional
+ *   token-resolution context for the filter.
+ * @return {Promise<Array<{key: string, count: number}>>} One entry per group; [] when the source is incomplete.
+ * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-stacked-bar-widget
+ */
+export async function fetchGroupedCounts(source, ctx) {
+	const s = source || {}
+	if (!s.register || !s.schema || !s.groupBy) {
+		return []
+	}
+	const [{ default: axios }, { generateUrl }] = await Promise.all([
+		import('@nextcloud/axios'),
+		import('@nextcloud/router'),
+	])
+	const url = generateUrl(
+		'/apps/openregister/api/objects/aggregations/{register}/{schema}/grouped',
+		{ register: s.register, schema: s.schema },
+	)
+	const params = { groupBy: s.groupBy, metric: 'count' }
+	flattenAggFilter(params, s.filter || {}, ctx)
+	const res = await axios.get(url, { params })
+	const groups = (res && res.data && Array.isArray(res.data.groups)) ? res.data.groups : []
+	return groups
+		.filter((g) => g && g.key !== null && g.key !== undefined && g.key !== '')
+		.map((g) => ({ key: String(g.key), count: Number(g.value) || 0 }))
 }

@@ -29,11 +29,27 @@
 				:aria-pressed="String(Boolean(activeView && activeView.key === view.key))"
 				:data-testid="`cn-chart-widget-view-${view.key}`"
 				@click="activeViewKey = view.key">
-				{{ view.label || view.key }}
+				{{ view.label ? hostTranslate(view.label) : view.key }}
 			</button>
 		</div>
-		<div v-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
-			{{ emptyLabel }}
+		<!-- A refused or failed endpoint read shows its sentence instead of
+		     the chart; a short one keeps the chart and says it is short. -->
+		<CnEndpointNotice
+			v-if="!epError && epTruncated"
+			:truncated="true" />
+		<CnEndpointNotice
+			v-if="epAwaitingRequest"
+			:awaitingRequest="true"
+			:requestLabel="endpointSource.requestLabel ? hostTranslate(endpointSource.requestLabel) : ''"
+			:requestHint="endpointSource.requestHint ? hostTranslate(endpointSource.requestHint) : ''"
+			:requestDisabled="epBlocked"
+			@request="epRequest" />
+		<CnEndpointNotice
+			v-else-if="epError"
+			:error="epError"
+			:refused="epRefused" />
+		<div v-else-if="showEmptyState" class="cn-chart-widget__empty" data-testid="cn-chart-widget-empty">
+			{{ hostTranslate(emptyLabel) }}
 		</div>
 		<!-- Sizing box for the apexcharts mount. apexcharts resolves a
 		     percentage `height` against its element's PARENT (Core.js
@@ -45,15 +61,89 @@
 		     own height. Without it the percentage would resolve against the
 		     content-sized root and either collapse to 0 or ignore the pill
 		     row. -->
-		<div v-else-if="chartComponent" class="cn-chart-widget__canvas">
-			<component
-				:is="chartComponent"
-				ref="chart"
-				:type="type"
-				:height="computedHeight"
-				:width="computedWidth"
-				:options="mergedOptions"
-				:series="displayedSeries" />
+		<!-- `bar-list`: one row per category, a track filled to the value's
+		     share of `barMax` (default the largest value), the value at the
+		     end. Rows navigate when the source declares a drilldown. -->
+		<div v-else-if="type === 'bar-list'" class="cn-chart-widget__html" data-testid="cn-chart-widget-bar-list">
+			<ul class="cn-chart-widget__bar-list" :class="{ 'cn-chart-widget__bar-list--value-at-end': barValueAtEnd, 'cn-chart-widget__bar-list--wide': barListWide }">
+				<li v-for="row in barListRows" :key="row.index" class="cn-chart-widget__bar-row">
+					<component
+						:is="row.drill ? 'button' : 'div'"
+						:type="row.drill ? 'button' : null"
+						class="cn-chart-widget__bar-line"
+						:class="{ 'cn-chart-widget__bar-line--drill': row.drill, 'cn-chart-widget__bar-line--selected': row.selected }"
+						:aria-pressed="row.drill ? String(row.selected) : null"
+						:data-selected="row.selected ? 'true' : null"
+						data-testid="cn-chart-widget-bar-row"
+						@click="row.drill ? onDataPointSelection(null, null, { dataPointIndex: row.index }) : null">
+						<span class="cn-chart-widget__bar-label">{{ row.label }}</span>
+						<span v-if="barValueAtEnd" class="cn-chart-widget__bar-track">
+							<span class="cn-chart-widget__bar-fill" aria-hidden="true" :style="{ flexBasis: `${row.share}%` }" />
+							<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+						</span>
+						<template v-else>
+							<span class="cn-chart-widget__bar-track" aria-hidden="true">
+								<span class="cn-chart-widget__bar-fill" :style="{ width: `${row.share}%` }" />
+							</span>
+							<span class="cn-chart-widget__bar-value">{{ row.text }}</span>
+						</template>
+					</component>
+				</li>
+			</ul>
+			<p v-if="footnote" class="cn-chart-widget__footnote">
+				{{ hostTranslate(footnote) }}
+			</p>
+		</div>
+		<!-- `matrix`: one row per series, one column per category, each cell
+		     tinted by its value's share of the largest value, or by `colorMap`
+		     for text cells. -->
+		<div v-else-if="type === 'matrix'" class="cn-chart-widget__html" data-testid="cn-chart-widget-matrix">
+			<div
+				role="table"
+				class="cn-chart-widget__matrix"
+				:aria-label="matrixLabel"
+				:style="{ gridTemplateColumns: `${matrixLabelColumn} repeat(${matrix.columns.length}, minmax(0, 1fr))` }">
+				<div role="row" class="cn-chart-widget__matrix-row">
+					<span role="columnheader" class="cn-chart-widget__matrix-corner" />
+					<span
+						v-for="column in matrix.columns"
+						:key="column"
+						role="columnheader"
+						class="cn-chart-widget__matrix-head">{{ column }}</span>
+				</div>
+				<div
+					v-for="row in matrix.rows"
+					:key="row.label"
+					role="row"
+					class="cn-chart-widget__matrix-row">
+					<span role="rowheader" class="cn-chart-widget__matrix-label">{{ row.label }}</span>
+					<span
+						v-for="(cell, column) in row.cells"
+						:key="column"
+						role="cell"
+						class="cn-chart-widget__matrix-cell"
+						:class="[`cn-chart-widget__matrix-cell--${cell.level}`, { 'cn-chart-widget__matrix-cell--current': cell.current }]"
+						:style="cell.color ? { background: cell.color } : null"
+						:aria-current="cell.current ? 'true' : null"
+						data-testid="cn-chart-widget-matrix-cell">{{ cell.text }}</span>
+				</div>
+			</div>
+			<p v-if="footnote" class="cn-chart-widget__footnote">
+				{{ hostTranslate(footnote) }}
+			</p>
+		</div>
+		<div v-else-if="chartComponent" :ref="setCanvasBox" class="cn-chart-widget__canvas">
+			<!-- The chart is drawn inside the box's shadow root (see chartShadow.js). -->
+			<Teleport v-if="chartTarget" :to="chartTarget">
+				<component
+					:is="chartComponent"
+					ref="chart"
+					:type="type"
+					:height="computedHeight"
+					:width="computedWidth"
+					:options="apexOptions"
+					:series="apexSeries" />
+			</Teleport>
 		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
@@ -63,21 +153,47 @@
 				</p>
 			</slot>
 		</div>
+		<p
+			v-if="footnote && chartComponent && !showEmptyState && type !== 'bar-list' && type !== 'matrix'"
+			class="cn-chart-widget__footnote"
+			data-testid="cn-chart-widget-footnote">
+			{{ hostTranslate(footnote) }}
+		</p>
+		<!-- `notice`: a toned note card under the chart whose words carry
+		     values from the page record (DqHandhaving "Advies: ..."). -->
+		<NcNoteCard
+			v-if="noticeParts"
+			:type="noticeParts.type"
+			:data-tone="noticeParts.type"
+			class="cn-chart-widget__notice"
+			data-testid="cn-chart-widget-notice">
+			<p class="cn-chart-widget__notice-text">
+				<strong v-if="noticeParts.lead">{{ noticeParts.lead }}</strong>{{ noticeParts.lead && noticeParts.text ? ' ' : '' }}{{ noticeParts.text }}
+			</p>
+		</NcNoteCard>
 	</div>
 </template>
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { NcNoteCard } from '@nextcloud/vue'
 import { inject, markRaw, ref } from 'vue'
-import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import widgetData, { seriesTotal } from '../../mixins/widgetData.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
-import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
+import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { userLocale } from '../../utils/userLocale.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
+import { loadApexCharts, loadedApexCharts } from './apexChartsLoader.js'
+import { hostSelectionOptions, markSelectedMarks, redrawHooks, selectedIndicesOf } from './chartSelection.js'
+import { attachChartShadow, createChartContainer, keepSvgMeasurerInShadow } from './chartShadow.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -148,6 +264,22 @@ function parseBucketKey(key) {
 	)
 }
 
+/**
+ * A theme colour by CSS variable name, as a literal: ApexCharts writes colours
+ * into SVG attributes, where `var()` does not resolve.
+ *
+ * @param {string} name The variable, e.g. `--color-error`.
+ * @param {string} fallback The colour when the variable is unset (or no DOM).
+ * @return {string} The colour.
+ */
+function themeColor(name, fallback) {
+	if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') {
+		return fallback
+	}
+	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+	return value || fallback
+}
+
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
@@ -162,6 +294,56 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
  * Never a real category value, so drilldown clicks on it are skipped.
  */
 const OTHER_BUCKET_KEY = '__other__'
+
+/**
+ * The raw key of an aggregate group as a string, '' for an empty one.
+ *
+ * @param {{key: (string|number|null|undefined)}} group The group.
+ * @return {string}
+ */
+function aggregateKeyOf(group) {
+	return group.key === null || group.key === undefined ? '' : String(group.key)
+}
+
+/**
+ * The label a raw aggregate key shows without `labelResolve`.
+ *
+ * @param {string} key The raw key.
+ * @return {string}
+ */
+function aggregateLabelOf(key) {
+	return key === '' ? '—' : key
+}
+
+/**
+ * Fold aggregate groups that carry the same label into one (`mergeByLabel`):
+ * values summed, every raw key kept for the drilldown, the first colour
+ * kept, sorted again by value.
+ *
+ * @param {Array<{key: (string|number|null), value: number}>} groups The groups.
+ * @param {string[]} labels One label per group.
+ * @param {Array<string|undefined>} colors One colour per group, or none.
+ * @return {Array<{key: string, keys: string[], label: string, value: number, color?: string}>}
+ */
+function mergeGroupsByLabel(groups, labels, colors) {
+	const byLabel = new Map()
+	groups.forEach((group, i) => {
+		const label = labels[i]
+		const key = aggregateKeyOf(group)
+		const entry = byLabel.get(label)
+		if (entry) {
+			entry.value += Number(group.value) || 0
+			entry.keys.push(key)
+			entry.color = entry.color || colors[i]
+		} else {
+			byLabel.set(label, { key, keys: [key], label, value: Number(group.value) || 0, color: colors[i] })
+		}
+	})
+	return [...byLabel.values()].sort((a, b) => b.value - a.value)
+}
+
+/** Matrix text-cell tones a `colorMap` may name, as tint classes. */
+const TONE_LEVELS = Object.freeze({ success: 'success', warning: 'warning', error: 'error', danger: 'danger' })
 
 /**
  * CnChartWidget — Chart component for dashboard widgets.
@@ -196,8 +378,70 @@ const OTHER_BUCKET_KEY = '__other__'
  * widget in `pages[].config.widgets[]` instead. See CnDashboardPage's
  * leading docblock for the manifest example.
  */
+/**
+ * A value formatter for a `valueFormat`: 'currency' | 'currency-compact' |
+ * 'compact' (38000 as "38K", no currency) | 'percent' | 'number', or the
+ * object form `{ name, currency?,
+ * decimals?, suffix? }`. Non-numeric values pass through. Null for no format.
+ *
+ * @param {string|object|null} vf The value format.
+ * @return {((value: unknown) => unknown)|null} The formatter.
+ */
+function formatterFor(vf) {
+	if (!vf) {
+		return null
+	}
+	const name = typeof vf === 'string' ? vf : vf.name
+	const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
+	const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
+	const suffix = typeof vf === 'object' && typeof vf.suffix === 'string' ? vf.suffix : ''
+	const numeric = (v, fmt) => {
+		const num = Number(v)
+		return Number.isFinite(num) ? fmt(num) : v
+	}
+	if (name === 'currency') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num))
+	}
+	if (name === 'currency-compact') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			style: 'currency',
+			currency,
+			notation: 'compact',
+			maximumFractionDigits: decimals ?? 1,
+		}).format(num))
+	}
+	if (name === 'compact') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			notation: 'compact',
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num))
+	}
+	if (name === 'number') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num) + suffix)
+	}
+	if (name === 'percent') {
+		return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
+			minimumFractionDigits: decimals ?? 0,
+			maximumFractionDigits: decimals ?? 0,
+		}).format(num) + '%')
+	}
+	return null
+}
+
 export default {
 	name: 'CnChartWidget',
+
+	components: { CnEndpointNotice, NcNoteCard },
+
+	mixins: [widgetData],
 
 	inject: {
 		/**
@@ -213,18 +457,193 @@ export default {
 		 * always a ref to inject, even outside a dashboard.
 		 */
 		cnDashboardDateRange: { default: () => ref(null) },
+		/**
+		 * Host translate function provided by CnAppRoot: manifest-authored
+		 * view labels and series names are i18n keys (screens-dashboard-i18n).
+		 */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
 		/**
-		 * Chart type: area, line, bar, pie, donut, radialBar
+		 * Let a reader pick a category: a slice, bar or bar-list row click
+		 * emits `select` with the grouped field and the category's raw key,
+		 * so a host can turn it into a filter on other widgets. A drilldown
+		 * still navigates; `select` is emitted on every pick either way.
+		 *
+		 * @spec openspec/changes/chart-widget-select-event/specs/chart-widget-select-event/spec.md#requirement-a-chart-can-say-which-category-the-reader-picked
+		 */
+		selectable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The raw keys of the categories to show as selected, such as the
+		 * filter a host made from an earlier `select`. A selected bar-list
+		 * row is ringed and pressed; a selected bar or slice is outlined.
+		 * Area and line charts show no selection.
+		 *
+		 * @type {Array<string|number>}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		selected: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Chart type: area, line, bar, pie, donut, radialBar, or one of the
+		 * two drawn without ApexCharts: `bar-list` (a labelled track per
+		 * category, the value at the end) and `matrix` (a series per row, a
+		 * category per column, each cell tinted by its value).
 		 *
 		 * @type {string}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
 		 */
 		type: {
 			type: String,
 			default: 'area',
-			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar'].includes(v),
+			validator: (v) => ['area', 'line', 'bar', 'pie', 'donut', 'radialBar', 'bar-list', 'matrix'].includes(v),
+		},
+
+		/**
+		 * The value a full `bar-list` track stands for (100 for percentages).
+		 * Null, the default, takes the largest value.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
+		 */
+		barMax: {
+			type: Number,
+			default: null,
+		},
+
+		/**
+		 * A `bar-list` without a track: each bar as long as its share and its
+		 * value right after the bar's end (DqProcesanalyse "Doorlooptijd per
+		 * status"). False, the default, keeps the track and the value column.
+		 *
+		 * @spec openspec/changes/chart-bar-list-value-at-end/specs/chart-bar-list-value-at-end/spec.md#requirement-a-bar-list-can-put-each-value-at-its-bars-end
+		 */
+		barValueAtEnd: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The wide `bar-list` of a share per category: a 220px label column,
+		 * a 90px value column and 12px bars 12px apart (DqTermijnen "Op tijd
+		 * beslist per zaaktype"). False, the default, keeps the compact list
+		 * (DqDashboard "Zaken per status").
+		 *
+		 * @spec openspec/changes/chart-bar-list-wide/specs/chart-bar-list-wide/spec.md
+		 */
+		barListWide: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * A `matrix`'s row-label column width in px. Null, the default, sizes
+		 * the column to its longest label (at least 120px); a width wraps a
+		 * long label instead (DqProcesanalyse "Dagen per fase": 240).
+		 *
+		 * @spec openspec/changes/chart-matrix-label-width/specs/chart-matrix-label-width/spec.md#requirement-a-matrix-can-give-its-row-labels-a-fixed-width
+		 */
+		matrixLabelWidth: {
+			type: Number,
+			default: null,
+		},
+
+		/**
+		 * A toned note card under the chart whose words carry values from the
+		 * page record: `{ lead?, text?, values?, labels?, tone? }`. `lead`
+		 * (bold) and `text` go through the host's translate, then each
+		 * `{name}` is filled from `values[name]`, a literal or a token such as
+		 * `@object.recommendedIntervention`. `labels[name]` turns a key into
+		 * words: `"rows"`, `"columns"` or `"values"` read the matrix's
+		 * cellSource label maps, an object is its own map. `tone` is info
+		 * (default), success, warning or error. Hidden while a value is
+		 * missing, so a half-filled sentence never shows.
+		 *
+		 * @spec openspec/changes/chart-notice/specs/chart-notice/spec.md#requirement-a-chart-can-carry-a-notice-with-record-values
+		 */
+		notice: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A line under the chart ("Klik een balk om de zaken te zien"),
+		 * through the host's translate: under the rows of a `bar-list` or
+		 * `matrix`, and under the plot of an ApexCharts type.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
+		 */
+		footnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Horizontal reference lines on the value axis of a line, area or bar
+		 * chart, such as a norm: `[{ value, label?, color? }]`. Drawn dashed;
+		 * the label goes through the host's translate. The colour defaults to
+		 * the theme's error colour. `valuePath` reads the value from the
+		 * endpoint answer instead, `{value}` in the label writes it, and a
+		 * line without a value is not drawn.
+		 *
+		 * @type {Array<{value?: number, valuePath?: string, label?: string, color?: string}>}
+		 */
+		referenceLines: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * How date categories read on the x-axis: `month` ("jan") or
+		 * `month-year` ("jan 2026"), in the user's language. A category that
+		 * is not a date is shown as is. Empty shows the categories unchanged.
+		 *
+		 * `week` writes an ISO week key (`2026-W40`) as "w40".
+		 *
+		 * @type {''|'month'|'month-year'|'week'}
+		 */
+		categoryFormat: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The `matrix` cell to outline, usually the record's on a detail page:
+		 * `{ row, column, columnKeys? }`, where `row` and `column` take tokens
+		 * such as `@object.behaviour`.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		highlight: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * `matrix`: read the cells from records that each hold one cell, in
+		 * a register: `{ register, schema, filter?, rowField, columnField,
+		 * valueField, rowLabelField?, columnLabelField?, rowLabels?,
+		 * columnLabels?, valueLabels?, rowOrder?, columnOrder?, rowOrderField?,
+		 * columnOrderField?, limit? }`. `filter` takes tokens such as
+		 * `@object.matrixVersion`; the list waits while one is unresolved.
+		 * With `cellsPath` the matrix sits inside ONE record instead: the
+		 * first record `filter` finds (else `fallbackFilter`), its array at
+		 * `cellsPath` narrowed by `cellFilter` (tokens allowed), the axis
+		 * order from `rowOrderPath` / `columnOrderPath` on that record.
+		 * Wins over `series` / `categories`.
+		 *
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 */
+		cellSource: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -383,6 +802,17 @@ export default {
 		},
 
 		/**
+		 * Write each slice's value after its name in a pie or donut legend
+		 * ("Afval 18"), in the value format of the chart.
+		 *
+		 * @type {boolean}
+		 */
+		legendValues: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Named value formatter applied to the VALUE axis labels and the
 		 * tooltip: `"currency"` (Intl currency, 0 decimals), `"currency-compact"`
 		 * (compact notation, e.g. `€ 1,2K`), or `"percent"` (appends `%`). The
@@ -423,6 +853,17 @@ export default {
 		},
 
 		/**
+		 * `matrix`: the text of a cell without a value ("geen"), through the
+		 * host's translate. Empty (the default) leaves the cell blank.
+		 *
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		emptyCellLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Manifest dataSource block. When set, `series` /
 		 * `categories` / `labels` are resolved from the GraphQL
 		 * response via the dataSource selectors and override the
@@ -457,6 +898,9 @@ export default {
 		 *   per-category colour off each referenced object (feeding the
 		 *   same per-category colour path as the `colorMap` prop, which
 		 *   wins on overlap). `metric: 'sum'` requires `sumField`.
+		 *   `mergeByLabel: true` folds groups whose labels read the same
+		 *   into one, summed, before `topN`; a merged bar drills down with
+		 *   all its keys as a list.
 		 *
 		 * Drilldown (Wave 3, #91): a sibling `drilldown: { route,
 		 * filterParam }` block makes every segment / bar click navigate to
@@ -470,7 +914,7 @@ export default {
 		 *   register?: string,
 		 *   schema?: string,
 		 *   filter?: object,
-		 *   aggregate?: ('count'|{ groupBy: string, metric?: string, sumField?: string, topN?: number, otherBucket?: boolean, labelResolve?: { register?: string, schema: string, labelField?: string, colorField?: string } }),
+		 *   aggregate?: ('count'|{ groupBy: string, metric?: string, sumField?: string, topN?: number, otherBucket?: boolean, mergeByLabel?: boolean, labelResolve?: { register?: string, schema: string, labelField?: string, colorField?: string } }),
 		 *   drilldown?: { route: string, filterParam: string },
 		 *   bucket?: { field: string, interval: string, metric?: string, metricField?: string, fromVar?: string, toVar?: string, staticRange?: { from: string, to: string } },
 		 *   graphql?: { query: string, variables?: object, selectors: object }
@@ -511,7 +955,10 @@ export default {
 		 * page publishes `dateFrom` / `dateTo` / `datePreset` into the
 		 * workspace context).
 		 *
-		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, path: string}>}|null}
+		 * `series[].namePath` names a series from the whole response (before
+		 * `responsePath`), for an endpoint that says what its numbers measure.
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string, labelsPath?: string, series?: Array<{name?: string, namePath?: string, path: string}>}|null}
 		 */
 		endpointSource: {
 			type: Object,
@@ -618,7 +1065,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epBlocked: ep.blocked, epAwaitingRequest: ep.awaitingRequest, epRequest: ep.request, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {
@@ -639,6 +1086,11 @@ export default {
 			// `drilldown` click navigates with the filterable value, not the
 			// display label.
 			aggregateData: null,
+			// The `cellSource` matrix, laid out (`{ series, categories, columnKeys }`), or null.
+			cellData: null,
+			// The record a `cellSource` with `cellsPath` read its cells from, for
+			// `@source.<field>` in the notice.
+			cellRecord: null,
 			// Active `views[]` switcher key (null = the first view). Local
 			// UI state only — never persisted.
 			activeViewKey: null,
@@ -646,6 +1098,16 @@ export default {
 			// once at creation (data, not computed — matches the dashboard
 			// date-chip convention).
 			viewsGroupLabel: t('nextcloud-vue', 'Chart view'),
+			// What the apexcharts wrapper is bound to: one raw object and one raw
+			// array, kept equal to `mergedOptions` / `plottedSeries` by filling
+			// them in place. The wrapper builds a chart from them (on mount and
+			// on its own type / size rebuilds) but never sees them change, so
+			// its watchers never fire; `updateChart` updates the live chart.
+			apexOptions: markRaw({}),
+			apexSeries: markRaw([]),
+			// The element ApexCharts is mounted in, moved into the canvas box's
+			// shadow root when the box enters the DOM.
+			chartTarget: null,
 		}
 	},
 
@@ -680,6 +1142,9 @@ export default {
 		 * - OBJECT payload → they point at parallel arrays.
 		 * - Pie-family types flatten the first mapped series into the flat
 		 *   value array ApexCharts expects.
+		 * - `rowsPath` names an array of rows, one series each: the series'
+		 *   name at `rowLabelPath` (default `label`), its values at
+		 *   `rowValuesPath` (default `values`).
 		 *
 		 * @return {{series: Array, categories: Array<string>, labels: Array<string>}|null}
 		 */
@@ -695,6 +1160,9 @@ export default {
 			const seriesDefs = Array.isArray(es.series) ? es.series.filter((s) => s && s.path) : []
 			let labels = []
 			let mapped
+			if (es.rowsPath) {
+				return this.endpointRows(payload, es)
+			}
 			if (Array.isArray(payload)) {
 				if (es.labelsPath) {
 					labels = payload.map((pt) => {
@@ -703,7 +1171,7 @@ export default {
 					})
 				}
 				mapped = seriesDefs.map((s) => ({
-					name: s.name || s.path,
+					name: this.endpointSeriesName(s),
 					data: payload.map((pt) => Number(getByPath(pt, s.path)) || 0),
 				}))
 			} else {
@@ -714,7 +1182,7 @@ export default {
 				mapped = seriesDefs.map((s) => {
 					const values = getByPath(payload, s.path)
 					return {
-						name: s.name || s.path,
+						name: this.endpointSeriesName(s),
 						data: Array.isArray(values) ? values.map((v) => Number(v) || 0) : [],
 					}
 				})
@@ -733,6 +1201,9 @@ export default {
 		 * and `labels`.
 		 */
 		resolvedSeries() {
+			if (this.cellData) {
+				return this.cellData.series
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.series
@@ -745,7 +1216,28 @@ export default {
 			return fromDs !== undefined ? fromDs : this.series
 		},
 
+		/**
+		 * What the chart shows, for the `data` event: its series, categories,
+		 * labels and the total of its first series; null until it has a series.
+		 *
+		 * @return {{series: Array, categories: Array, labels: Array, total: number|null}|null}
+		 * @spec openspec/changes/widget-data-event/specs/widget-data-event/spec.md#requirement-a-self-fetching-widget-tells-its-host-what-it-shows
+		 */
+		widgetData() {
+			const series = this.resolvedSeries
+			if (!Array.isArray(series) || series.length === 0) {
+				return null
+			}
+			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			const rest = this.aggregateData || this.bucketData || this.groupByData
+			const labels = Array.isArray(rest?.labels) ? rest.labels : (Array.isArray(this.labels) ? this.labels : categories)
+			return { series, categories, labels, total: seriesTotal(series) }
+		},
+
 		resolvedCategories() {
+			if (this.cellData) {
+				return this.cellData.categories
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.categories
@@ -759,6 +1251,9 @@ export default {
 		},
 
 		resolvedLabels() {
+			if (this.cellData) {
+				return this.cellData.categories
+			}
 			const ep = this.endpointChartData
 			if (ep) {
 				return ep.labels
@@ -780,6 +1275,28 @@ export default {
 		aggregateDef() {
 			const agg = this.dataSource && this.dataSource.aggregate
 			return (agg && typeof agg === 'object' && agg.groupBy) ? agg : null
+		},
+
+		/**
+		 * The field a picked category belongs to: the aggregate's or the
+		 * source's `groupBy`, else the drilldown's `filterParam`; '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/chart-widget-select-event/specs/chart-widget-select-event/spec.md#requirement-a-chart-can-say-which-category-the-reader-picked
+		 */
+		selectionField() {
+			const agg = this.aggregateDef
+			if (agg && typeof agg.groupBy === 'string') {
+				return agg.groupBy
+			}
+			const gb = this.dataSource && this.dataSource.groupBy
+			if (typeof gb === 'string') {
+				return gb
+			}
+			if (gb && typeof gb.field === 'string') {
+				return gb.field
+			}
+			return (this.drilldownDef && this.drilldownDef.filterParam) || ''
 		},
 
 		/**
@@ -883,14 +1400,15 @@ export default {
 			if (this.colors.length > 0) {
 				return this.colors
 			}
-			// Nextcloud-themed color palette
+			// Element tokens stay bright in dark mode, where the plain status
+			// tokens are dark background tints. Each falls back for Nextcloud < 32.
 			return [
 				'var(--color-primary-element, #0082c9)',
-				'var(--color-success, #46ba61)',
-				'var(--color-warning, #e9a300)',
-				'var(--color-error, #e04224)',
-				'var(--color-primary-element-light, #aad2ed)',
+				'var(--color-element-success, var(--color-success, #46ba61))',
+				'var(--color-element-warning, var(--color-warning, #e9a300))',
+				'var(--color-element-error, var(--color-error, #e04224))',
 				'var(--color-text-maxcontrast, #767676)',
+				'var(--color-element-info, #0099e0)',
 			]
 		},
 
@@ -917,6 +1435,25 @@ export default {
 		 *
 		 * @return {Array} The displayed series.
 		 */
+		/**
+		 * The displayed series with each series name through the host
+		 * translate function, so a manifest series named "Revenue" reads in
+		 * the user's language in the legend and the tooltip. Views still
+		 * filter on the name as written (`displayedSeries`).
+		 *
+		 * @spec openspec/changes/screens-dashboard-i18n/specs/dashboard-page/spec.md#requirement-chart-view-labels-and-series-names-are-translated
+		 * @return {Array} The series handed to ApexCharts.
+		 */
+		plottedSeries() {
+			const series = this.displayedSeries
+			if (!Array.isArray(series)) {
+				return series
+			}
+			return series.map((entry) => (entry && typeof entry === 'object' && typeof entry.name === 'string' && entry.name !== '')
+				? { ...entry, name: this.hostTranslate(entry.name) }
+				: entry)
+		},
+
 		displayedSeries() {
 			const series = this.resolvedSeries
 			const view = this.activeView
@@ -1059,40 +1596,7 @@ export default {
 		 * @return {((value: unknown) => string)|null}
 		 */
 		valueFormatterFn() {
-			const vf = (this.activeView && this.activeView.valueFormat) || this.valueFormat
-			if (!vf) {
-				return null
-			}
-			const name = typeof vf === 'string' ? vf : vf.name
-			const currency = safeCurrencyCode(typeof vf === 'object' ? vf.currency : undefined)
-			const decimals = (typeof vf === 'object' && Number.isFinite(vf.decimals)) ? vf.decimals : null
-			const numeric = (v, fmt) => {
-				const num = Number(v)
-				return Number.isFinite(num) ? fmt(num) : v
-			}
-			if (name === 'currency') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency,
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num))
-			}
-			if (name === 'currency-compact') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					style: 'currency',
-					currency,
-					notation: 'compact',
-					maximumFractionDigits: decimals ?? 1,
-				}).format(num))
-			}
-			if (name === 'percent') {
-				return (v) => numeric(v, (num) => new Intl.NumberFormat(undefined, {
-					minimumFractionDigits: decimals ?? 0,
-					maximumFractionDigits: decimals ?? 0,
-				}).format(num) + '%')
-			}
-			return null
+			return formatterFor((this.activeView && this.activeView.valueFormat) || this.valueFormat)
 		},
 
 		/**
@@ -1162,6 +1666,283 @@ export default {
 			return this.emptyLabel !== '' && !this.hasChartData
 		},
 
+		/**
+		 * The `cellSource` list as it would be asked, tokens resolved, or null
+		 * while there is none or a filter token is unresolved. Refetches when
+		 * it changes.
+		 *
+		 * @return {string|null} The key.
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 */
+		cellSourceKey() {
+			const src = this.cellSource
+			if (!src || typeof src !== 'object' || !src.register || !src.schema || !src.rowField || !src.columnField || !src.valueField) {
+				return null
+			}
+			const ctx = this.chartTokenCtx()
+			const resolve = (value) => resolveFilterTokens(value && typeof value === 'object' ? value : {}, ctx)
+			const filter = resolve(src.filter)
+			const cellFilter = resolve(src.cellFilter)
+			if (hasUnresolvedTokens(filter) || hasUnresolvedTokens(cellFilter)) {
+				return null
+			}
+			const fallbackFilter = src.fallbackFilter ? resolve(src.fallbackFilter) : null
+			return JSON.stringify({ register: src.register, schema: src.schema, filter, fallbackFilter, cellFilter, limit: src.cellsPath ? 1 : (src.limit || 500) })
+		},
+
+		/** @return {string} The matrix row-label column's grid track. */
+		matrixLabelColumn() {
+			const width = Number(this.matrixLabelWidth)
+			return Number.isFinite(width) && width > 0 ? `${width}px` : 'minmax(120px, max-content)'
+		},
+
+		/**
+		 * The rows of a `bar-list`: the categories of the first displayed
+		 * series, each with its value's share of `barMax` (or the largest
+		 * value) and the formatted value.
+		 *
+		 * @return {Array<{index: number, label: string, share: number, text: string, drill: boolean}>}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-bar-list
+		 */
+		barListRows() {
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries[0] : null
+			const values = Array.isArray(series?.data) ? series.data.map((v) => Number(v) || 0) : []
+			const labels = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			const max = Number.isFinite(this.barMax) && this.barMax > 0 ? this.barMax : Math.max(0, ...values)
+			const drill = Boolean(this.drilldownDef && this.$router) || this.selectable
+			return values.map((value, index) => ({
+				index,
+				label: String(labels[index] ?? ''),
+				share: max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0,
+				text: this.formatPlain(value),
+				drill: drill && this.drilldownKeys[index] !== undefined && this.drilldownKeys[index] !== OTHER_BUCKET_KEY,
+				selected: this.selectedIndices.includes(index),
+			}))
+		},
+
+		/**
+		 * The indices of the categories `selected` names, matched on their
+		 * raw keys.
+		 *
+		 * @return {number[]}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		selectedIndices() {
+			return selectedIndicesOf(this.drilldownKeys, this.selected, OTHER_BUCKET_KEY)
+		},
+
+		/**
+		 * The `matrix`: the categories as columns, each displayed series as a
+		 * row, and each cell's tint level (1 to 4) by its share of the
+		 * largest value.
+		 *
+		 * @return {{columns: string[], rows: Array<{label: string, cells: Array<{text: string, level: number}>}>}}
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		matrix() {
+			const columns = (Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []).map((c) => this.hostTranslate(String(c)))
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries.filter((entry) => entry && typeof entry === 'object') : []
+			const max = Math.max(0, ...series.flatMap((entry) => (Array.isArray(entry.data) ? entry.data.map((v) => Number(v) || 0) : [])))
+			const levelOf = (value) => {
+				const share = max > 0 ? value / max : 0
+				if (share >= 0.9) {
+					return 4
+				}
+				if (share >= 0.6) {
+					return 3
+				}
+				return share >= 0.25 ? 2 : 1
+			}
+			const map = this.effectiveColorMap || {}
+			const current = this.matrixHighlight
+			return {
+				columns,
+				rows: series.map((entry, rowIndex) => ({
+					label: this.hostTranslate(String(entry.name ?? '')),
+					cells: columns.map((column, index) => {
+						const raw = Array.isArray(entry.data) ? entry.data[index] : undefined
+						const isCurrent = current !== null && current.row === rowIndex && current.column === index
+						const valueLabels = this.cellSource && typeof this.cellSource.valueLabels === 'object' ? this.cellSource.valueLabels : null
+						if (valueLabels && raw !== null && raw !== undefined && typeof valueLabels[String(raw)] === 'string') {
+							const label = valueLabels[String(raw)]
+							const tone = map[String(raw)] || map[label]
+							const level = TONE_LEVELS[tone] ?? 0
+							return { text: this.hostTranslate(label), level: level || 'tone', color: level ? '' : (tone || ''), current: isCurrent }
+						}
+						if (typeof raw === 'string') {
+							const tone = map[raw]
+							const level = TONE_LEVELS[tone] ?? 0
+							return { text: this.hostTranslate(raw), level: level || 'tone', color: level ? '' : (tone || ''), current: isCurrent }
+						}
+						const value = Number(raw)
+						return Number.isFinite(value) && raw !== null && raw !== undefined
+							? { text: this.formatPlain(value), level: levelOf(value), color: '', current: isCurrent }
+							: { text: this.emptyCellLabel ? this.hostTranslate(this.emptyCellLabel) : '', level: 0, color: '', current: isCurrent }
+					}),
+				})),
+			}
+		},
+
+		/**
+		 * The notice's bold lead, text and note-card type, values filled in;
+		 * null when there is none or a value is missing.
+		 *
+		 * @return {{lead: string, text: string, type: string}|null} The notice.
+		 * @spec openspec/changes/chart-notice/specs/chart-notice/spec.md#requirement-a-chart-can-carry-a-notice-with-record-values
+		 */
+		noticeParts() {
+			const def = this.notice
+			if (!def || typeof def !== 'object' || (!def.lead && !def.text)) {
+				return null
+			}
+			const declared = def.values && typeof def.values === 'object' ? def.values : {}
+			const resolved = resolveFilterTokens(declared, this.chartTokenCtx())
+			// `@source.<field>`: a field of the record the matrix read its cells
+			// from (the matrix's name and version on an enforcement advice).
+			for (const [name, token] of Object.entries(declared)) {
+				if (typeof token === 'string' && token.startsWith('@source.')) {
+					const value = token.slice('@source.'.length).split('.').reduce((at, key) => (at && typeof at === 'object' ? at[key] : undefined), this.cellRecord)
+					resolved[name] = value === undefined ? null : value
+				}
+			}
+			const source = this.cellSource && typeof this.cellSource === 'object' ? this.cellSource : {}
+			const maps = { rows: source.rowLabels, columns: source.columnLabels, values: source.valueLabels }
+			const words = {}
+			for (const name of Object.keys(declared)) {
+				const raw = resolved[name]
+				if (raw === null || raw === undefined || raw === '' || (typeof raw === 'string' && raw.charAt(0) === '@')) {
+					return null
+				}
+				const ref = def.labels && def.labels[name]
+				const map = typeof ref === 'string' ? maps[ref] : ref
+				const label = map && typeof map === 'object' && typeof map[String(raw)] === 'string' ? map[String(raw)] : null
+				words[name] = label ? this.hostTranslate(label) : String(raw)
+			}
+			const fill = (key) => (key ? this.hostTranslate(key).replace(/\{(\w+)\}/g, (match, name) => (name in words ? words[name] : match)) : '')
+			const type = ['info', 'success', 'warning', 'error'].includes(def.tone) ? def.tone : 'info'
+			return { lead: fill(def.lead), text: fill(def.text), type }
+		},
+
+		/**
+		 * The matrix cell of the record (`highlight: { row, column }`, tokens
+		 * such as `@object.behaviour` resolved), as row and column indexes. A
+		 * row matches its series `key`, its name or its 1-based position; a
+		 * column its entry in `highlight.columnKeys`, its label or its
+		 * 1-based position. Null when either does not match.
+		 *
+		 * @return {{row: number, column: number}|null} The cell.
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		matrixHighlight() {
+			const def = this.highlight
+			if (!def || typeof def !== 'object') {
+				return null
+			}
+			const resolved = resolveFilterTokens({ row: def.row, column: def.column }, this.chartTokenCtx())
+			const want = (v) => (v === null || v === undefined || v === '' ? null : String(v))
+			const row = want(resolved.row)
+			const column = want(resolved.column)
+			if (row === null || column === null) {
+				return null
+			}
+			const series = Array.isArray(this.plottedSeries) ? this.plottedSeries : []
+			const rowIndex = series.findIndex((entry, i) => entry && (String(entry.key ?? '') === row || String(entry.name ?? '') === row || String(i + 1) === row))
+			const columns = Array.isArray(this.resolvedCategories) ? this.resolvedCategories.map((c) => String(c)) : []
+			const declared = Array.isArray(def.columnKeys) ? def.columnKeys : (this.cellData ? this.cellData.columnKeys : [])
+			const keys = declared.map((k) => String(k))
+			let columnIndex = keys.indexOf(column)
+			if (columnIndex < 0) {
+				columnIndex = columns.findIndex((c, i) => c === column || String(i + 1) === column)
+			}
+			return rowIndex >= 0 && columnIndex >= 0 ? { row: rowIndex, column: columnIndex } : null
+		},
+
+		/** @return {string} The matrix table's accessible name. */
+		matrixLabel() {
+			return this.footnote ? this.hostTranslate(this.footnote) : t('nextcloud-vue', 'Chart data')
+		},
+
+		/**
+		 * The x-axis categories as shown: with `categoryFormat`, date
+		 * categories as short months in the user's language.
+		 *
+		 * @return {Array<string|number>} The categories.
+		 */
+		displayCategories() {
+			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			if (this.categoryFormat === 'week') {
+				return categories.map((category) => {
+					const week = /^\d{4}-W(\d{1,2})$/.exec(String(category))
+					return week ? t('nextcloud-vue', 'w{week}', { week: Number(week[1]) }) : category
+				})
+			}
+			if (this.categoryFormat !== 'month' && this.categoryFormat !== 'month-year') {
+				return categories
+			}
+			const options = this.categoryFormat === 'month' ? { month: 'short' } : { month: 'short', year: 'numeric' }
+			return categories.map((category) => {
+				// A year bucket ("2026") names no month, so it stays as written.
+				if (/^\d{4}$/.test(String(category))) {
+					return category
+				}
+				const date = typeof category === 'string' || typeof category === 'number' ? parseBucketKey(category) : null
+				return date ? date.toLocaleDateString(userLocale(), options) : category
+			})
+		},
+
+		/**
+		 * The `referenceLines` as ApexCharts annotations: dashed, labelled,
+		 * in the theme's error colour unless a line names its own.
+		 *
+		 * @return {Array<object>} The annotations, possibly empty.
+		 */
+		referenceAnnotations() {
+			// A line with `valuePath` reads its value from the endpoint answer
+			// (DqDoorlooptijd's norm); one without a usable value is not drawn.
+			const valueOf = (line) => {
+				if (typeof line.valuePath === 'string' && line.valuePath !== '') {
+					const raw = this.epData ? getByPath(this.epData, line.valuePath) : null
+					return raw === null || raw === undefined || raw === '' ? NaN : Number(raw)
+				}
+				return Number(line.value)
+			}
+			const lines = (Array.isArray(this.referenceLines) ? this.referenceLines : [])
+				.filter((line) => line && Number.isFinite(valueOf(line)))
+			if (lines.length === 0) {
+				return []
+			}
+			const fallback = themeColor('--color-error', '#e04224')
+			return lines.map((line) => {
+				const color = line.color || fallback
+				const value = valueOf(line)
+				return {
+					y: value,
+					x: value,
+					borderColor: color,
+					strokeDashArray: 6,
+					label: line.label
+						? { text: this.hostTranslate(line.label).replace(/\{value\}/g, String(value)), borderColor: color, style: { color: '#fff', background: color } }
+						: { text: '' },
+				}
+			})
+		},
+
+		/**
+		 * The options and series the chart draws, as one value, so a data
+		 * change that moves both reaches the chart as one update.
+		 *
+		 * @return {Array} `[mergedOptions, plottedSeries]`.
+		 */
+		chartPayload() {
+			return [this.mergedOptions, this.plottedSeries]
+		},
+
+		/**
+		 * The ApexCharts options: the component's defaults deep-merged with `options`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -1220,6 +2001,16 @@ export default {
 				},
 			}
 
+			if (isPieType && this.legendValues) {
+				defaults.legend.formatter = (name, opts) => {
+					const value = opts?.w?.globals?.series?.[opts.seriesIndex]
+					const text = String(name ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+					return value === undefined || value === null
+						? text
+						: `${text} <strong class="cn-chart-widget__legend-value">${this.formatPlain(value)}</strong>`
+				}
+			}
+
 			// Named value formatter (currency / currency-compact / percent) —
 			// applied to the tooltip and, below, to the VALUE axis so both read
 			// identically. An explicit `options.tooltip/xaxis/yaxis` formatter
@@ -1234,7 +2025,7 @@ export default {
 			// works identically for pie slices and (distributed) bars; the
 			// cursor hint makes the affordance visible. An explicit
 			// `options.chart.events` still wins through the deep-merge.
-			if (this.drilldownDef && this.$router) {
+			if ((this.drilldownDef && this.$router) || this.selectable) {
 				defaults.chart.events = {
 					dataPointSelection: this.onDataPointSelection,
 					dataPointMouseEnter: (event) => {
@@ -1242,14 +2033,17 @@ export default {
 							event.target.style.cursor = 'pointer'
 						}
 					},
+
+					...redrawHooks(this.markSelection),
 				}
+				Object.assign(defaults, hostSelectionOptions(isPieType))
 			}
 
 			// Add categories for cartesian charts
 			if (!isPieType) {
 				if (this.resolvedCategories.length > 0) {
 					defaults.xaxis = {
-						categories: this.resolvedCategories,
+						categories: this.displayCategories,
 						labels: {
 							style: {
 								colors: 'var(--color-text-maxcontrast, #767676)',
@@ -1291,6 +2085,12 @@ export default {
 				}
 			}
 
+			// Reference lines, such as a norm, on the value axis.
+			if (!isPieType && this.referenceAnnotations.length > 0) {
+				const axisKey = (this.type === 'bar' && this.horizontal) ? 'xaxis' : 'yaxis'
+				defaults.annotations = { [axisKey]: this.referenceAnnotations }
+			}
+
 			// Add labels for pie/donut
 			if (isPieType && this.resolvedLabels.length > 0) {
 				defaults.labels = this.resolvedLabels
@@ -1315,6 +2115,12 @@ export default {
 	},
 
 	watch: {
+		selectedIndices: 'markSelection',
+
+		chartPayload() {
+			this.updateChart()
+		},
+
 		groupByKey() {
 			this.fetchGroupBy()
 		},
@@ -1326,17 +2132,37 @@ export default {
 		aggregateKey() {
 			this.fetchAggregateSource()
 		},
+
+		cellSourceKey() {
+			this.fetchCells()
+		},
 	},
 
 	created() {
-		// markRaw: `data()` is deeply reactive and would proxy the component.
-		this.chartComponent = markRaw(VueApexCharts)
+		// ApexCharts is loaded with the first chart, not with the bundle that
+		// imports the widget. markRaw: `data()` is deeply reactive and would
+		// proxy the component.
+		const apexCharts = loadedApexCharts()
+		if (apexCharts) {
+			this.chartComponent = markRaw(apexCharts)
+		} else {
+			loadApexCharts().then((component) => {
+				if (component) {
+					this.chartComponent = markRaw(component)
+				}
+			})
+		}
+		const container = createChartContainer()
+		this.chartTarget = container ? markRaw(container) : null
+		keepSvgMeasurerInShadow()
+		this.syncChartBinding()
 	},
 
 	mounted() {
 		this.fetchGroupBy()
 		this.fetchTimeBucket()
 		this.fetchAggregateSource()
+		this.fetchCells()
 		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
@@ -1358,12 +2184,12 @@ export default {
 		// bucket / group-by / aggregate REST paths) silently ignored it.
 		//
 		// It deliberately skips the endpoint half rather than calling refresh():
-		// the composable already force-refetches on this same channel, and a
-		// second forced fetch is a real duplicate request, not a no-op —
-		// `fetchSharedResponse()` DELETES the in-flight dedup entry when
-		// `force` is set, so two back-to-back forces cannot collapse into one.
-		this._onPageRefresh = () => {
-			this.refreshLocalSources()
+		// the composable already force-refetches on this same channel. A forced
+		// fetch joins an in-flight one only when both carry the same refresh
+		// payload, and refresh() carries none, so it would send a real duplicate.
+		this._onPageRefresh = (payload) => {
+			const done = this.refreshLocalSources()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 
@@ -1417,6 +2243,37 @@ export default {
 
 	methods: {
 		/**
+		 * A manifest-authored label through the host translate function.
+		 *
+		 * @spec openspec/changes/screens-dashboard-i18n/specs/dashboard-page/spec.md#requirement-chart-view-labels-and-series-names-are-translated
+		 * @param {string} key The label.
+		 * @return {string} The translated label.
+		 */
+		/**
+		 * The name of an endpoint series: the text at its `namePath` in the
+		 * whole response (so an endpoint can name what its numbers measure),
+		 * else its `name`, else its `path`.
+		 *
+		 * @param {{name?: string, namePath?: string, path: string}} def The series definition.
+		 * @return {string} The name.
+		 */
+		endpointSeriesName(def) {
+			if (def.namePath) {
+				const named = getByPath(this.epBody, def.namePath)
+				if (typeof named === 'string' && named !== '') {
+					return named
+				}
+			}
+			return def.name || def.path
+		},
+
+		hostTranslate(key) {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : null
+			const out = translate ? translate(key) : key
+			return (typeof out === 'string' && out !== '') ? out : key
+		},
+
+		/**
 		 * Re-query the chart's dataSource / endpointSource. Exposed as a
 		 * ref-callable method (B3 canonical refresh mode) AND invoked by the
 		 * `cn:widget:refresh` bus subscription. No-op when the chart has
@@ -1430,6 +2287,55 @@ export default {
 			if (typeof this.epRefetch === 'function') {
 				this.epRefetch()
 			}
+		},
+
+		/**
+		 * Move the chart's container into the canvas box's shadow root when the
+		 * box enters the DOM.
+		 *
+		 * @param {HTMLElement|null} el The canvas box, or null when it unmounts.
+		 * @return {void}
+		 */
+		setCanvasBox(el) {
+			if (el) {
+				attachChartShadow(el, this.chartTarget)
+			}
+		},
+
+		/**
+		 * Fill the wrapper's bound options and series with the current ones,
+		 * in place, so a chart the wrapper (re)builds starts from them.
+		 *
+		 * @return {void}
+		 */
+		syncChartBinding() {
+			const options = this.apexOptions
+			for (const key of Object.keys(options)) {
+				delete options[key]
+			}
+			Object.assign(options, this.mergedOptions)
+			const series = this.plottedSeries
+			this.apexSeries.splice(0, this.apexSeries.length, ...(Array.isArray(series) ? series : []))
+		},
+
+		/**
+		 * Show new options and series in the live chart as one in-place,
+		 * unanimated `updateOptions`, instead of the wrapper's
+		 * `updateOptions` + `updateSeries` pair: every ApexCharts update clears
+		 * and redraws the whole SVG and measures each label again, which on a
+		 * full dashboard page costs far more than the data change itself. The
+		 * entry animation on first draw is unaffected. ApexCharts skips a
+		 * payload identical to the last one.
+		 *
+		 * @return {void}
+		 */
+		updateChart() {
+			this.syncChartBinding()
+			const apex = this.$refs.chart?.chart
+			if (typeof apex?.updateOptions !== 'function') {
+				return
+			}
+			apex.updateOptions({ ...this.mergedOptions, series: this.plottedSeries }, false, false)
 		},
 
 		/**
@@ -1472,15 +2378,16 @@ export default {
 		 * and refetches on its own event-bus subscriptions — see the
 		 * page-refresh handler in `mounted()`.
 		 *
-		 * @return {void}
+		 * @return {Promise<unknown[]>} Settles when every re-query has.
 		 */
 		refreshLocalSources() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
-			this.fetchGroupBy()
-			this.fetchTimeBucket()
-			this.fetchAggregateSource()
+			return Promise.all([
+				typeof this.dsRefetch === 'function' ? this.dsRefetch() : null,
+				this.fetchGroupBy(),
+				this.fetchTimeBucket(),
+				this.fetchAggregateSource(),
+				this.fetchCells(),
+			])
 		},
 
 		/**
@@ -1598,16 +2505,16 @@ export default {
 			const year = d.getFullYear() === thisYear ? {} : { year: 'numeric' }
 			switch (String(interval || '').toLowerCase()) {
 				case 'minute':
-					return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+					return d.toLocaleString(userLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 				case 'hour':
-					return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
+					return d.toLocaleString(userLocale(), { month: 'short', day: 'numeric', hour: '2-digit' })
 				case 'day':
 				case 'week':
-					return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...year })
+					return d.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short', ...year })
 				case 'year':
-					return d.toLocaleDateString(undefined, { year: 'numeric' })
+					return d.toLocaleDateString(userLocale(), { year: 'numeric' })
 				default:
-					return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+					return d.toLocaleDateString(userLocale(), { month: 'short', year: '2-digit' })
 			}
 		},
 
@@ -1672,7 +2579,13 @@ export default {
 				if (gb.sort === 'asc' || gb.sort === 'desc') {
 					groups = [...groups].sort((a, b) => (gb.sort === 'desc' ? b.value - a.value : a.value - b.value))
 				}
+				// `otherBucket`: what falls past `limit` is one "Other" slice, as
+				// `aggregate.otherBucket` does, so a donut keeps its total.
+				let other = null
 				if (gb.limit) {
+					if (gb.otherBucket === true && groups.length > gb.limit) {
+						other = groups.slice(gb.limit).reduce((sum, g) => sum + (Number(g.value) || 0), 0)
+					}
 					groups = groups.slice(0, gb.limit)
 				}
 				let keys = groups.map((g) => (g.key === null || g.key === undefined ? '—' : String(g.key)))
@@ -1688,6 +2601,17 @@ export default {
 						return
 					}
 				}
+				// `labels`: words for an enum's raw values ({ in_progress: 'In
+				// progress' }), through the app's catalogue; a value without one
+				// keeps its key.
+				if (gb.labels && typeof gb.labels === 'object') {
+					keys = keys.map((key, i) => (typeof gb.labels[rawKeys[i]] === 'string' ? this.cnTranslate(gb.labels[rawKeys[i]]) : key))
+				}
+				if (other !== null) {
+					keys = [...keys, t('nextcloud-vue', 'Other')]
+					rawKeys.push(OTHER_BUCKET_KEY)
+					values.push(other)
+				}
 				if (['pie', 'donut', 'radialBar'].includes(this.type)) {
 					this.groupByData = { series: values, labels: keys, categories: keys, rawKeys }
 				} else {
@@ -1698,6 +2622,40 @@ export default {
 					this.groupByData = null
 				}
 			}
+		},
+
+		/**
+		 * Read the `cellSource` records and lay them out as the matrix: one
+		 * record per cell, or with `cellsPath` the cells inside one record. A
+		 * failed read leaves the matrix empty rather than showing stale
+		 * cells; an answer to an older request is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-records
+		 * @spec openspec/changes/matrix-cell-records/specs/matrix-cell-records/spec.md#requirement-a-matrix-can-read-its-cells-from-one-record
+		 */
+		async fetchCells() {
+			const key = this.cellSourceKey
+			if (key === null) {
+				this.cellData = null
+				return
+			}
+			const { register, schema, filter, fallbackFilter, cellFilter, limit } = JSON.parse(key)
+			this._cellRequest = key
+			let records = await fetchReferenceObjects({ register, schema, filter, limit }).catch(() => [])
+			if (this.cellSource.cellsPath && records.length === 0 && fallbackFilter) {
+				records = await fetchReferenceObjects({ register, schema, filter: fallbackFilter, limit }).catch(() => [])
+			}
+			if (this._cellRequest !== key) {
+				return
+			}
+			this.cellRecord = this.cellSource.cellsPath ? (records[0] || null) : null
+			if (this.cellSource.cellsPath) {
+				const { cells, config } = cellsFromRecord(records[0] || null, this.cellSource, cellFilter)
+				this.cellData = pivotCells(cells, config)
+				return
+			}
+			this.cellData = pivotCells(records, this.cellSource)
 		},
 
 		/**
@@ -1843,6 +2801,15 @@ export default {
 		 */
 		async buildAggregateData(groups, agg) {
 			let sorted = [...groups].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0))
+			if (agg.mergeByLabel) {
+				// Merging needs every group's label before the top N is cut,
+				// so resolve them all and fold same-label groups first.
+				const keys = sorted.map((g) => aggregateKeyOf(g))
+				const resolved = agg.labelResolve && agg.labelResolve.schema
+					? await this.resolveAggregateLabels(agg, keys)
+					: { labels: keys.map(aggregateLabelOf), colors: [] }
+				sorted = mergeGroupsByLabel(sorted, resolved.labels, resolved.colors)
+			}
 			const topN = Number(agg.topN)
 			let other = null
 			if (Number.isFinite(topN) && topN > 0 && sorted.length > topN) {
@@ -1856,66 +2823,31 @@ export default {
 					}
 				}
 			}
-			let rawKeys = sorted.map((g) => (g.key === null || g.key === undefined ? '' : String(g.key)))
-			let labels = rawKeys.map((k) => (k === '' ? '—' : k))
+			const rawKeys = sorted.map((g) => (Array.isArray(g.keys) && g.keys.length > 1 ? g.keys : aggregateKeyOf(g)))
+			let labels = sorted.map((g) => (typeof g.label === 'string' ? g.label : aggregateLabelOf(aggregateKeyOf(g))))
 			let colorMap = null
-			if (agg.labelResolve && agg.labelResolve.schema) {
-				const resolved = await this.resolveAggregateRefs(
-					(this.dataSource && this.dataSource.register) || '',
-					agg.labelResolve,
-					rawKeys,
-				)
-				// A configured `labelResolve` means the groupBy value IS an
-				// opaque reference id, so the raw key is never a usable label —
-				// falling back to it renders a bare UUID in the chart. The
-				// usual cause is a DANGLING reference (the target object was
-				// deleted, or never existed), which resolves to an empty label.
-				// Empty keys keep their existing '—' placeholder.
-				labels = resolved.map((r, i) => {
-					if (r.label) {
-						return r.label
-					}
-					return rawKeys[i] === '' ? labels[i] : t('nextcloud-vue', 'Unknown')
-				})
-				const withColor = resolved.filter((r) => r.color)
+			if (agg.mergeByLabel) {
+				const withColor = sorted.filter((g) => g.color)
 				if (withColor.length > 0) {
 					colorMap = {}
-					resolved.forEach((r, i) => {
-						if (r.color) {
-							colorMap[labels[i]] = r.color
+					withColor.forEach((g) => {
+						colorMap[g.label] = g.color
+					})
+				}
+			} else if (agg.labelResolve && agg.labelResolve.schema) {
+				const resolved = await this.resolveAggregateLabels(agg, rawKeys)
+				labels = resolved.labels
+				const colors = resolved.colors
+				if (colors.some(Boolean)) {
+					colorMap = {}
+					colors.forEach((color, i) => {
+						if (color) {
+							colorMap[labels[i]] = color
 						}
 					})
 				}
 			}
-			let values = sorted.map((g) => Number(g.value) || 0)
-			// Optional: collapse groups that resolve to the SAME label into one
-			// bucket (summing their values). Useful when the groupBy field is a
-			// per-parent reference — e.g. status types defined per case type, so
-			// several distinct "Received" ids should read as a single "Received"
-			// category. Drilldown keeps the first contributing key.
-			if (agg.mergeByLabel) {
-				const order = []
-				const acc = {}
-				labels.forEach((lab, i) => {
-					if (!Object.hasOwn(acc, lab)) {
-						acc[lab] = { value: 0, key: rawKeys[i] }
-						order.push(lab)
-					}
-					acc[lab].value += values[i]
-				})
-				labels = order
-				values = order.map((l) => acc[l].value)
-				rawKeys = order.map((l) => acc[l].key)
-				if (colorMap) {
-					const merged = {}
-					order.forEach((l) => {
-						if (colorMap[l]) {
-							merged[l] = colorMap[l]
-						}
-					})
-					colorMap = merged
-				}
-			}
+			const values = sorted.map((g) => Number(g.value) || 0)
 			if (other) {
 				rawKeys.push(other.key)
 				labels.push(other.label)
@@ -1930,6 +2862,35 @@ export default {
 			}
 			const name = agg.sumField || agg.metric || 'count'
 			return { ...base, series: [{ name, data: values }] }
+		},
+
+		/**
+		 * The display labels and colours of aggregate keys through
+		 * `labelResolve`. A configured `labelResolve` means a key IS an
+		 * opaque reference id, so a key that resolves to nothing (a deleted
+		 * or never-existing target) reads "Unknown", never the raw id; an
+		 * empty key keeps its '—' placeholder.
+		 *
+		 * @param {object} agg The aggregate block.
+		 * @param {string[]} keys The raw keys ('' for an empty one).
+		 * @return {Promise<{labels: string[], colors: Array<string|undefined>}>}
+		 */
+		async resolveAggregateLabels(agg, keys) {
+			const resolved = await this.resolveAggregateRefs(
+				(this.dataSource && this.dataSource.register) || '',
+				agg.labelResolve,
+				keys,
+			)
+			return {
+				labels: resolved.map((r, i) => {
+					if (r.label) {
+						return r.label
+					}
+					return keys[i] === '' ? '—' : t('nextcloud-vue', 'Unknown')
+				}),
+
+				colors: resolved.map((r) => r.color || undefined),
+			}
 		},
 
 		/**
@@ -1994,6 +2955,69 @@ export default {
 		},
 
 		/**
+		 * A value as a `bar-list` or `matrix` cell reads it: through
+		 * `valueFormat` when set, else as a localised number.
+		 *
+		 * @param {number} value The value.
+		 * @return {string} The text.
+		 */
+		formatPlain(value) {
+			if (this.valueFormatterFn) {
+				return String(this.valueFormatterFn(value))
+			}
+			return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)
+		},
+
+		/**
+		 * Map an endpoint payload whose `rowsPath` names an array of rows:
+		 * each row is a series (name at `rowLabelPath`, values at
+		 * `rowValuesPath`), the categories are at `labelsPath`.
+		 * A missing value stays null; a `matrix` keeps a text value ("none")
+		 * as text, other types read it as 0.
+		 *
+		 * @param {unknown} payload The plucked payload.
+		 * @param {object} es The `endpointSource` block.
+		 * @return {{series: Array, categories: Array<string>, labels: Array<string>}} The chart data.
+		 * @spec openspec/changes/chart-bar-list-and-matrix/specs/chart-bar-list-and-matrix/spec.md#requirement-a-chart-can-draw-a-matrix
+		 */
+		endpointRows(payload, es) {
+			const rows = getByPath(payload, es.rowsPath)
+			const rawLabels = es.labelsPath ? getByPath(payload, es.labelsPath) : undefined
+			const labels = Array.isArray(rawLabels) ? rawLabels.map((v) => ((v === null || v === undefined) ? '' : String(v))) : []
+			const keepText = this.type === 'matrix'
+			const cellOf = (v) => {
+				if (v === null || v === undefined) {
+					return null
+				}
+				const num = typeof v === 'string' && v.trim() === '' ? NaN : Number(v)
+				if (Number.isFinite(num)) {
+					return num
+				}
+				return keepText && typeof v === 'string' ? v : 0
+			}
+			const series = (Array.isArray(rows) ? rows : []).map((row) => {
+				const name = getByPath(row, es.rowLabelPath || 'label')
+				const values = getByPath(row, es.rowValuesPath || 'values')
+				return {
+					name: (name === null || name === undefined) ? '' : String(name),
+					data: Array.isArray(values) ? values.map(cellOf) : [],
+				}
+			})
+			return { series, categories: labels, labels }
+		},
+
+		/**
+		 * Mark the drawn bars and slices of the `selected` categories with
+		 * `data-cn-selected`, which the chart's shadow rules outline.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		markSelection() {
+			markSelectedMarks(this.chartTarget, this.selectedIndices)
+		},
+
+		/**
 		 * ApexCharts `dataPointSelection` handler backing the declarative
 		 * `dataSource.drilldown` (Wave 3, #91): navigate to the configured
 		 * route with the clicked category's RAW key in the query
@@ -2008,16 +3032,27 @@ export default {
 		 * @return {void}
 		 */
 		onDataPointSelection(_event, _chartContext, config) {
-			const drill = this.drilldownDef
-			if (!drill || !this.$router) {
-				return
-			}
 			const idx = config && config.dataPointIndex
 			if (typeof idx !== 'number' || idx < 0) {
 				return
 			}
 			const key = this.drilldownKeys[idx]
 			if (key === undefined || key === OTHER_BUCKET_KEY) {
+				return
+			}
+			if (this.selectable) {
+				const labels = ['pie', 'donut', 'radialBar'].includes(this.type) ? this.resolvedLabels : this.resolvedCategories
+				/**
+				 * A reader picked a category (`selectable`): the field the
+				 * chart groups by, the category's raw key and its label.
+				 *
+				 * @event select
+				 * @type {{field: string, value: string, label: string, index: number}}
+				 */
+				this.$emit('select', { field: this.selectionField, value: key, label: String((labels || [])[idx] ?? key), index: idx })
+			}
+			const drill = this.drilldownDef
+			if (!drill || !this.$router) {
 				return
 			}
 			const query = { [drill.filterParam]: key }
@@ -2163,15 +3198,11 @@ export default {
 .cn-chart-widget__canvas {
 	min-width: 0;
 	max-width: 100%;
-	overflow-x: hidden;
-}
-
-/* apexcharts writes an inline `width` onto its own wrapper from its measured
-   minimum, which beats the container when the container is narrower. Cap the
-   painted box so the inline width cannot push past the widget's border. */
-.cn-chart-widget :deep(.apexcharts-canvas),
-.cn-chart-widget :deep(.apexcharts-canvas svg) {
-	max-width: 100%;
+	/* Never a scroll region (see the root). `overflow-x: hidden` alone made
+	   the other axis `auto`, and the chart's inline SVG sat on a text line:
+	   its descender gap made the box 4 to 7px taller than the chart and drew a
+	   vertical scrollbar (pipelinq Rapportage). */
+	overflow: hidden;
 }
 
 /* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box
@@ -2190,6 +3221,224 @@ export default {
 	justify-content: center;
 	min-height: 150px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-chart-widget__html {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-chart-widget__bar-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-chart-widget__bar-line {
+	align-items: center;
+	background: none;
+	border: 0;
+	color: var(--color-main-text);
+	display: grid;
+	font: inherit;
+	gap: 12px;
+	grid-template-columns: minmax(80px, 170px) minmax(0, 1fr) minmax(36px, max-content);
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	text-align: start;
+	width: 100%;
+}
+
+.cn-chart-widget__bar-line--drill {
+	border-radius: var(--border-radius-small, 4px);
+	cursor: pointer;
+}
+
+.cn-chart-widget__bar-line--drill:hover .cn-chart-widget__bar-label,
+.cn-chart-widget__bar-line--drill:focus-visible .cn-chart-widget__bar-label {
+	text-decoration: underline;
+}
+
+.cn-chart-widget__bar-line--selected {
+	border-radius: var(--border-radius-small, 4px);
+	box-shadow: 0 0 0 2px var(--color-main-text);
+}
+
+.cn-chart-widget__bar-line--selected .cn-chart-widget__bar-label {
+	font-weight: 700;
+}
+
+.cn-chart-widget__bar-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-chart-widget__bar-track {
+	background: var(--color-background-dark);
+	border-radius: 4px;
+	display: block;
+	height: 14px;
+	overflow: hidden;
+}
+
+.cn-chart-widget__bar-fill {
+	background: var(--color-primary-element);
+	display: block;
+	height: 100%;
+}
+
+.cn-chart-widget__bar-value {
+	font-weight: 600;
+	text-align: end;
+	white-space: nowrap;
+}
+
+/* `barListWide`: the boards' wide share list (DqTermijnen "Op tijd beslist
+   per zaaktype"). */
+.cn-chart-widget__bar-list--wide {
+	gap: 12px;
+}
+
+.cn-chart-widget__bar-list--wide .cn-chart-widget__bar-line {
+	grid-template-columns: 220px minmax(0, 1fr) 90px;
+}
+
+.cn-chart-widget__bar-list--wide .cn-chart-widget__bar-track {
+	height: 12px;
+	border-radius: 6px;
+}
+
+/* `barValueAtEnd`: no track; the bar takes its share of the row and gives way
+   to the value right after its end, so the longest bar still fits. */
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-line {
+	grid-template-columns: minmax(80px, 130px) minmax(0, 1fr);
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-track {
+	align-items: center;
+	background: none;
+	display: flex;
+	gap: 6px;
+	height: auto;
+	overflow: visible;
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-fill {
+	border-radius: 4px;
+	flex: 0 1 auto;
+	height: 18px;
+	min-width: 2px;
+}
+
+.cn-chart-widget__bar-list--value-at-end .cn-chart-widget__bar-value {
+	flex: none;
+	text-align: start;
+}
+
+.cn-chart-widget__footnote {
+	color: var(--color-text-maxcontrast);
+	margin: 0;
+}
+
+.cn-chart-widget__notice {
+	margin: 12px 0 0;
+}
+
+.cn-chart-widget__notice-text {
+	margin: 0;
+}
+
+/* Under an ApexCharts plot the footnote is a sibling of the canvas, so it keeps
+   its own line height while the canvas takes the rest of a fitted column. */
+.cn-chart-widget > .cn-chart-widget__footnote {
+	flex: 0 0 auto;
+	margin-top: 8px;
+}
+
+.cn-chart-widget__matrix {
+	display: grid;
+	gap: 4px;
+}
+
+.cn-chart-widget__matrix-row {
+	display: contents;
+}
+
+/* A column takes its share of the width (minmax(0, 1fr)), so a long phase
+   name breaks inside its own column instead of running into the next. */
+.cn-chart-widget__matrix-head {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	color: var(--color-text-maxcontrast);
+	padding: 6px;
+	hyphens: auto;
+	overflow-wrap: anywhere;
+}
+
+.cn-chart-widget__matrix-label {
+	padding: 10px 6px;
+}
+
+.cn-chart-widget__matrix-cell {
+	border-radius: 6px;
+	padding: 10px;
+	text-align: center;
+}
+
+.cn-chart-widget__matrix-cell--success {
+	background: var(--color-success-light, color-mix(in srgb, var(--color-success) 15%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--warning {
+	background: var(--color-warning-light, color-mix(in srgb, var(--color-warning) 15%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--error {
+	background: var(--color-error-light, color-mix(in srgb, var(--color-error) 12%, var(--color-main-background)));
+}
+
+.cn-chart-widget__matrix-cell--danger {
+	background: color-mix(in srgb, var(--color-error) 25%, var(--color-main-background));
+}
+
+.cn-chart-widget__matrix-cell--current {
+	font-weight: 700;
+	outline: 3px solid var(--color-primary-element);
+	outline-offset: -3px;
+}
+
+/* A cell is a span: its ink also goes to --nldesign-color-on-surface, which a
+   theme that forces the body ink onto every span (thematiq) reads. The four
+   levels are the boards' tones (DqProcesanalyse): the light primary, the
+   primary at 35% and at 70%, and level 1 inverted. Levels 1 to 3 take a dark
+   ink; the board's white on level 3 is about 3.1:1, and 70% is as deep as the
+   dark ink stays at 4.5:1 in Nextcloud's dark theme. */
+.cn-chart-widget__matrix-cell--1 {
+	--nldesign-color-on-surface: var(--color-primary-element-light-text);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+.cn-chart-widget__matrix-cell--2 {
+	background: color-mix(in srgb, var(--color-primary-element) 35%, var(--color-main-background));
+	color: var(--color-main-text);
+}
+
+.cn-chart-widget__matrix-cell--3 {
+	--nldesign-color-on-surface: var(--color-main-text);
+	background: color-mix(in srgb, var(--color-primary-element) 70%, var(--color-main-background));
+	color: var(--color-main-text);
+}
+
+.cn-chart-widget__matrix-cell--4 {
+	--nldesign-color-on-surface: var(--color-primary-element-light);
+	background: var(--color-primary-element-light-text);
+	color: var(--color-primary-element-light);
 }
 
 .cn-chart-widget__empty {
@@ -2243,113 +3492,6 @@ export default {
 	border-color: var(--color-primary-element, #0082c9);
 }
 
-/* ─── ApexCharts HTML chrome ───────────────────────────────────────────────
-   Everything apexcharts draws INSIDE the SVG takes its colour from
-   `mergedOptions` (foreColor, grid.borderColor, legend.labels.colors, axis
-   label styles), so it already follows the Nextcloud theme. Its HTML chrome —
-   the hover tooltip, the crosshair axis tooltips, the toolbar menu — does not:
-   apexcharts styles those from a stylesheet it injects itself at chart-create
-   time (`<style id="apexcharts-css">`) using hardcoded hex values. In dark mode
-   the hover tooltip stayed a white box while its text inherited the near-white
-   `--color-main-text` — white on white, unreadable.
-
-   `tooltip.theme` is not the fix: both apexcharts themes are hardcoded
-   palettes, neither of them Nextcloud's, and choosing between them would need
-   JS theme detection that a themed or nldesign install would still get wrong.
-   Restyling with tokens means ONE rule set that is correct in light, dark,
-   high-contrast and custom themes, because the tokens flip themselves. Both
-   theme classes are listed so an `options.tooltip.theme` override cannot drop
-   a consumer back onto a hardcoded palette.
-
-   The specificity is deliberate. apexcharts injects its stylesheet when the
-   first chart is created, so it lands AFTER the app's CSS and wins every tie —
-   each override below therefore carries one more class than the apexcharts rule
-   it replaces, and holds even without the scope attribute this block compiles
-   with. */
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light),
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-	box-shadow: 0 1px 5px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
-}
-
-/* The title row is the date/category header ("Aug 26"). Its own background is
-   what made it unreadable rather than merely off-theme. */
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title),
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title) {
-	background: var(--color-background-hover);
-	border-bottom: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-/* Crosshair axis tooltips. apexcharts puts light hex values on the BASE class
-   here and only overrides them for its dark theme, so the base rule has to be
-   replaced too — not just the theme variants. */
-.cn-chart-widget :deep(.apexcharts-xaxistooltip),
-.cn-chart-widget :deep(.apexcharts-yaxistooltip) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-/* Their pointer arrows are two stacked triangles: `::before` paints the border
-   edge, `::after` the fill. Both need the tokens the box above uses, or the
-   arrow keeps the old palette and reads as a stray light wedge. */
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::after,
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::after {
-	border-bottom-color: var(--color-main-background);
-	border-top-color: var(--color-main-background);
-}
-
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::before,
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::before {
-	border-bottom-color: var(--color-border);
-	border-top-color: var(--color-border);
-}
-
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::after,
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::after {
-	border-left-color: var(--color-main-background);
-	border-right-color: var(--color-main-background);
-}
-
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::before,
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::before {
-	border-left-color: var(--color-border);
-	border-right-color: var(--color-border);
-}
-
-/* Toolbar menu — only reachable with `toolbar: true`, but the same defect: a
-   hardcoded `#fff` panel under inherited near-white text. */
-.cn-chart-widget :deep(.apexcharts-menu) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-.cn-chart-widget :deep(.apexcharts-menu .apexcharts-menu-item:hover) {
-	background: var(--color-background-hover);
-}
-
-/* Toolbar icons: `#6e8192` at rest and `#333` on hover, i.e. the hover state
-   vanishes against a dark background. One selector per icon class, matching
-   apexcharts' own list, to clear its (0,3,1) hover rules. */
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon svg) {
-	fill: var(--color-text-maxcontrast);
-}
-
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon:hover svg) {
-	fill: var(--color-main-text);
-}
+/* ApexCharts' own markup is styled inside the chart's shadow root: see
+   chartShadow.js. */
 </style>

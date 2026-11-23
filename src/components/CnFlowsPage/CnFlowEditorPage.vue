@@ -1,16 +1,64 @@
 <!-- SPDX-License-Identifier: EUPL-1.2 -->
 <!-- Copyright (C) 2026 Conduction B.V. -->
 <template>
-	<CnFlowDetail :id="flowId"
+	<CnFlowBoard v-if="isBoard"
+		:id="flowId"
 		:app="app"
 		:run="runUuid"
+		:detailRoute="detailRoute"
+		:listLabel="listLabel ? cnTranslate(listLabel) : ''"
+		:breadcrumb="(breadcrumb || []).map((crumb) => ({ ...crumb, label: cnTranslate(crumb.label) }))"
+		:palette="palette"
+		:paletteFootnote="paletteFootnote ? cnTranslate(paletteFootnote) : ''"
+		:paletteGroups="translatedPaletteGroups"
+		:flowDirection="flowDirection"
+		:layout="layout"
+		:toggleLabel="toggleLabel"
+		:nodeLook="nodeLook"
+		:edgeConditions="edgeConditions"
+		:listMode="listMode"
+		:view="arrivalView"
+		:notice="notice ? cnTranslate(notice) : ''"
+		:noticeLevel="noticeLevel"
+		:adminSteps="adminSteps"
+		:saveAsVersion="saveAsVersion"
+		:metaParts="metaParts"
+		:metaNote="metaNote ? cnTranslate(metaNote) : ''"
+		:pill="pill ? cnTranslate(pill) : ''"
+		:pillVariant="pillVariant"
+		:testSubject="testSubject ? { ...testSubject, label: testSubject.label ? cnTranslate(testSubject.label) : '' } : null"
+		:testPayload="testPayload"
 		@save="onSave"
-		@run="onRun" />
+		@run="onRun">
+		<template v-if="$slots.notice" #notice>
+			<!-- @slot notice A notice under the path, such as a drift warning (board look). -->
+			<slot name="notice" />
+		</template>
+		<template v-if="$slots['step-notice']" #step-notice="scope">
+			<!-- @slot step-notice A notice on the selected step, `{ node }` (board look). -->
+			<slot name="step-notice" v-bind="scope" />
+		</template>
+	</CnFlowBoard>
+	<CnFlowDetail v-else
+		:id="flowId"
+		:app="app"
+		:run="runUuid"
+		:edgeConditions="edgeConditions"
+		:view="activeView"
+		@save="onSave"
+		@run="onRun">
+		<template v-if="listMode" #toolbar-start>
+			<CnFlowViewSwitch v-model="activeView" />
+		</template>
+	</CnFlowDetail>
 </template>
 
 <script>
 import CnFlowDetail from '../CnFlowDetail/CnFlowDetail.vue'
+import CnFlowViewSwitch from '../CnFlowDetail/CnFlowViewSwitch.vue'
+import CnFlowBoard from './CnFlowBoard.vue'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { useLook } from '../../composables/useLook.js'
 
 /**
  * The flow canvas — manifest page type `flow-detail`.
@@ -32,7 +80,11 @@ import { useFlowStore } from '../../composables/useFlowStore.js'
 export default {
 	name: 'CnFlowEditorPage',
 
-	components: { CnFlowDetail },
+	components: { CnFlowBoard, CnFlowDetail, CnFlowViewSwitch },
+
+	inject: {
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/**
@@ -73,18 +125,263 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Draw this page in the `board` look (or `nextcloud`) whatever the app
+		 * does. Empty follows the app's look. Manifest key `config.look`.
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: where steps come from. `picker` (default) keeps "Add a
+		 * step" in the canvas toolbar; `column` draws the palette as a card
+		 * beside the canvas, grouped by the app that provides each step.
+		 * Manifest key `config.palette`.
+		 */
+		palette: {
+			type: String,
+			default: 'picker',
+		},
+
+		/**
+		 * Board look: a line under the palette card. Manifest key
+		 * `config.paletteFootnote`, translated with the app's catalogue.
+		 */
+		paletteFootnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the palette's groups as the page curates them,
+		 * `[{ app?, label?, pill?, tone?, entries: [{ type, label?, short? }] }]`;
+		 * every other step stays behind "More steps". Labels are translated
+		 * with the app's catalogue. Manifest key `config.paletteGroups`.
+		 */
+		paletteGroups: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: `card` draws each step as a card with its name and the
+		 * pill of the app that does it; `type` (default) keeps the type line
+		 * over the name. Manifest key `config.nodeLook`.
+		 */
+		nodeLook: {
+			type: String,
+			default: 'type',
+		},
+
+		/**
+		 * Board look: `down` lays the steps out top to bottom and opens them
+		 * at their own size instead of zoomed to fit; `right` (default) lays
+		 * them left to right. Manifest key `config.flowDirection`.
+		 */
+		flowDirection: {
+			type: String,
+			default: 'right',
+		},
+
+		/**
+		 * Board look: the records a test run can take as its subject,
+		 * `{ register, schema, labelField?, label? }`. Manifest key
+		 * `config.testSubject`; `label` is translated with the app's catalogue.
+		 */
+		testSubject: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Board look: test the flow on an example payload. `true` opens an
+		 * empty field, text opens it with that JSON. Manifest key
+		 * `config.testPayload`.
+		 */
+		testPayload: {
+			type: [Boolean, String],
+			default: false,
+		},
+
+		/**
+		 * Board look: an info notice under the path. Manifest key
+		 * `config.notice`, translated with the app's catalogue; `{name}` is
+		 * the flow's name.
+		 */
+		notice: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the look of `notice`, `info`, `warning` or `error`.
+		 * Manifest key `config.noticeLevel`.
+		 */
+		noticeLevel: {
+			type: String,
+			default: 'info',
+		},
+
+		/**
+		 * Board look: steps only an admin may change, by node id or step type.
+		 * Anyone else reads them. The server decides what is saved; this is
+		 * the screen's side. Manifest key `config.adminSteps`.
+		 */
+		adminSteps: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: edit a published flow in place; Save publishes the edits
+		 * as the next version and runs already started keep theirs. Manifest
+		 * key `config.saveAsVersion`.
+		 */
+		saveAsVersion: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Board look: which of `trigger`, `steps`, `version` and `saved` the
+		 * path names after the flow, in that order. Manifest key
+		 * `config.metaParts`.
+		 */
+		metaParts: {
+			type: Array,
+			default: () => ['trigger', 'steps', 'version'],
+		},
+
+		/**
+		 * Board look: a closing note after the path's meta ("changes apply to
+		 * new cases"), translated. Manifest key `config.metaNote`.
+		 */
+		metaNote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the pill beside the flow's name ("Case type flow").
+		 * Empty shows the lifecycle for a draft or retired flow. Manifest key
+		 * `config.pill`.
+		 */
+		pill: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the tone of `pill` (a CnStatusBadge variant, "teal" on
+		 * DqFlow). Manifest key `config.pillVariant`.
+		 */
+		pillVariant: {
+			type: String,
+			default: 'default',
+		},
+
+		/**
+		 * Board look: the list's name at the start of the path ("Settings /
+		 * Flows"). Empty reads "Flows". Manifest key `config.listLabel`.
+		 */
+		listLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Board look: the levels before the flow, each its own link
+		 * (`[{ label, href? }]`, "Settings" / "Flows"); a crumb without an
+		 * href links to the flow list. Labels are translated with the app's
+		 * catalogue. Manifest key `config.breadcrumb`; wins over `listLabel`.
+		 */
+		breadcrumb: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: `canvas` lays the page out as boards PqFlow and PqFlowRun
+		 * draw it (actions under the title, the canvas without a frame, a
+		 * floating inspector); `cards` keeps the DqFlow grid. Manifest key
+		 * `config.layout`.
+		 */
+		layout: {
+			type: String,
+			default: 'cards',
+		},
+
+		/**
+		 * Board look: how the Active switch is named. `state` names it
+		 * Active or Paused after the flow; `fixed` always names it Active
+		 * and the switch shows the state (DqFlow). Manifest key
+		 * `config.toggleLabel`.
+		 */
+		toggleLabel: {
+			type: String,
+			default: 'state',
+		},
+
+		/**
+		 * Write a line's condition on the line when it has no name of its
+		 * own ("amount is more than 1000"). Manifest key
+		 * `config.edgeConditions`.
+		 */
+		edgeConditions: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Offer the list view beside the canvas, with the Canvas / List switch:
+		 * the trigger and the steps in order, editing the same flow. Manifest
+		 * key `config.listMode`.
+		 */
+		listMode: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The view on arrival when `listMode` is on: `canvas` or `list`.
+		 * Defaults to the `view` query parameter, so a link can open the list.
+		 * Manifest key `config.view`.
+		 */
+		view: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
-	 * Share the one flow store with the toolbar's save/run handlers.
+	 * Share the one flow store with the toolbar's save/run handlers, and
+	 * resolve the look (`look` is read here, through `useLook`).
 	 *
+	 * @param {object} props The component props.
 	 * @return {object} The setup bindings.
 	 */
-	setup() {
-		return { store: useFlowStore() }
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { store: useFlowStore(), isBoard }
+	},
+
+	data() {
+		return { activeView: 'canvas' }
 	},
 
 	computed: {
+		/**
+		 * @return {string} The view asked for on arrival.
+		 */
+		arrivalView() {
+			const asked = this.view || this.$route?.query?.view
+
+			return this.listMode && asked === 'list' ? 'list' : 'canvas'
+		},
+
 		/**
 		 * @return {string} The flow id being edited.
 		 */
@@ -93,11 +390,28 @@ export default {
 		},
 
 		/**
+		 * @return {Array<object>} The curated palette groups with their labels translated.
+		 */
+		translatedPaletteGroups() {
+			const tr = (text) => (text ? this.cnTranslate(text) : text)
+			return (this.paletteGroups || []).map((group) => ({
+				...group,
+				label: tr(group?.label),
+				pill: tr(group?.pill),
+				entries: (group?.entries || []).map((step) => ({ ...step, label: tr(step?.label), short: tr(step?.short) })),
+			}))
+		},
+
+		/**
 		 * @return {string} The run to open on arrival, or an empty string.
 		 */
 		runUuid() {
 			return this.run || this.$route?.query?.run || ''
 		},
+	},
+
+	created() {
+		this.activeView = this.arrivalView
 	},
 
 	methods: {

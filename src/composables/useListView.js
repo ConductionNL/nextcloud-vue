@@ -1,5 +1,6 @@
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, isRef, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useObjectStore } from '../store/index.js'
+import { facetFilterParams } from '../utils/facets.js'
 
 /**
  * Composable for managing list view state with full objectStore integration.
@@ -12,7 +13,7 @@ import { useObjectStore } from '../store/index.js'
  * Backward-compatible: existing `useListView(options)` and `useListView()` calls
  * continue to work without modification.
  *
- * @param {string|object} [objectTypeOrOptions] Object type slug (new API) or legacy options object
+ * @param {string|Function|object} [objectTypeOrOptions] Object type slug (new API), a getter or ref returning one (the list follows it when it changes), or a legacy options object
  * @param {object} [options] Options (new API only)
  * @param {object|null} [options.objectStore] Custom object store instance (from createObjectStore). When provided, uses this store instead of the default useObjectStore(). Required when the app uses createObjectStore with a custom store ID.
  * @param {object|null} [options.sidebarState] Sidebar state object from `inject('sidebarState')`. When provided, the composable wires and unwires the sidebar automatically on mount/unmount.
@@ -21,8 +22,11 @@ import { useObjectStore } from '../store/index.js'
  * @param {object} [options.defaultSort] Default sort applied on mount e.g. `{ key: 'createdAt', order: 'desc' }`
  * @param {Array<{key: string, order: 'asc'|'desc'}>} [options.defaultSortKeys] Default MULTI-column sort applied on mount (ordered priority list). Takes precedence over `defaultSort` when both are given; used e.g. to restore a sort persisted in the route query.
  * @param {Array<string>|null} [options.defaultVisibleColumns] Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible.
+ * @param {object} [options.defaultActiveFilters] Initial facet-filter map, e.g. to restore filters persisted in the route query on mount.
+ * @param {string} [options.defaultSearchTerm] Initial search term, e.g. to restore `_search` from the route query on mount.
  * @param {object|(() => object)} [options.fixedFilters] A filter map (or getter returning one) merged into every fetch AFTER the user's facet filters, so the fixed entries always win. Used e.g. by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. Default `{}` — omitting it is behaviourally identical to before.
  * @param {Array<string>|(() => Array<string>)} [options.extend] OpenRegister `_extend[]` values (or a getter returning them) forwarded on every fetch, e.g. `['calculations']` so a schema's `materialise: false` calculations are evaluated and can be shown as columns. Default `[]` — omitting it sends no `_extend` at all, exactly as before.
+ * @param {(term: string) => (SearchReading|null|Promise<SearchReading|null>)} [options.searchInterpreter] Reads a typed search before it is sent, e.g. a phone number becomes a filter on a normalised field. Its answer `{ search?, filters?, note? }` replaces `_search` with `search` (none when empty), adds `filters` and gives the page `searchNote`; `null` (or a throw) sends the term as typed.
  * @return {object} Reactive state and event handlers
  *
  * @example
@@ -45,12 +49,16 @@ import { useObjectStore } from '../store/index.js'
  */
 export function useListView(objectTypeOrOptions, options) {
 	// Backward compat: if first arg is an object or absent, delegate to legacy implementation
-	if (!objectTypeOrOptions || typeof objectTypeOrOptions === 'object') {
+	if (!objectTypeOrOptions || (typeof objectTypeOrOptions === 'object' && !isRef(objectTypeOrOptions))) {
 		return useLegacyListView(objectTypeOrOptions || {})
 	}
 
 	// ── New API ──────────────────────────────────────────────────────────
-	const objectType = objectTypeOrOptions
+	// A string, a ref or a getter: a getter lets the page switch object type
+	// (a folder carrying its own schema) without re-creating the list.
+	const typeSource = objectTypeOrOptions
+	const isDynamicType = typeof typeSource !== 'string'
+	const getType = () => (isRef(typeSource) ? typeSource.value : (typeof typeSource === 'function' ? typeSource() : typeSource))
 	const opts = options || {}
 	const sidebarState = opts.sidebarState || null
 
@@ -58,7 +66,7 @@ export function useListView(objectTypeOrOptions, options) {
 
 	// ── State refs ───────────────────────────────────────────────────────
 	const schema = ref(null)
-	const searchTerm = ref('')
+	const searchTerm = ref(opts.defaultSearchTerm || '')
 	// `sortKeys` is the source of truth (ordered multi-column priority list);
 	// `sortKey`/`sortOrder` are kept as a primary-entry mirror so every
 	// existing reader of the pre-multi-sort refs keeps working unchanged.
@@ -68,7 +76,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const sortKeys = ref(initialSortKeys)
 	const sortKey = ref(initialSortKeys[0]?.key || null)
 	const sortOrder = ref(initialSortKeys[0]?.order || 'asc')
-	const activeFilters = ref({})
+	const activeFilters = ref((opts.defaultActiveFilters && typeof opts.defaultActiveFilters === 'object') ? opts.defaultActiveFilters : {})
 	// Seed the visible-column set to the configured columns so the sidebar's
 	// Columns tab reflects the curated default and toggles add/remove from it.
 	// `null` (no seed) means "all columns visible" (schema-driven tables).
@@ -76,7 +84,7 @@ export function useListView(objectTypeOrOptions, options) {
 	const pageSize = ref(opts.defaultPageSize || 20)
 
 	// ── Computed refs from the store ─────────────────────────────────────
-	const objects = computed(() => objectStore.collections[objectType] || [])
+	const objects = computed(() => objectStore.collections[getType()] || [])
 	// True from creation until the mount sequence below has issued its first
 	// fetch. The store's own flag only goes up once `fetchCollection` runs, and
 	// `onMounted` awaits `fetchSchema()` first — so for the length of that round
@@ -85,15 +93,32 @@ export function useListView(objectTypeOrOptions, options) {
 	// been asked for. Folded into `loading` rather than exposed separately so
 	// existing consumers get the fix without touching their templates.
 	const bootstrapping = ref(true)
-	const loading = computed(() => bootstrapping.value || objectStore.loading[objectType] || false)
-	const pagination = computed(() => objectStore.pagination[objectType] || { total: 0, page: 1, pages: 1, limit: 20 })
+	const loading = computed(() => bootstrapping.value || objectStore.loading[getType()] || false)
+	const pagination = computed(() => objectStore.pagination[getType()] || { total: 0, page: 1, pages: 1, limit: 20 })
 	// Facets are computed by the platform over the whole query rather than the
 	// loaded page, so anything that needs the complete set of values for a
 	// field (a folder pane grouping by it, say) reads them here rather than
 	// deriving them from `objects`, which is only the current page.
-	const facets = computed(() => objectStore.facets[objectType] || {})
+	const facets = computed(() => objectStore.facets[getType()] || {})
+	// Personal-lens reports of the latest response (`{ recent: { available, reason } }`).
+	// @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-a-list-response-carries-the-report-of-the-lenses-it-was-asked-for
+	const lenses = computed(() => (objectStore.lenses && objectStore.lenses[getType()]) || {})
+	// Outcome of the latest `refresh()`: the store's error for it, or null once
+	// it succeeded or a later fetch stored new rows. The store keeps the previous
+	// rows on a failed fetch, so this is how a consumer tells stale rows from
+	// current ones.
+	const error = ref(null)
+	let refreshSeq = 0
+	// The mount's schema request, and whether it is still in flight.
+	let schemaLoading = null
+	let schemaPending = false
+	let pendingRefreshes = 0
 
 	let searchTimeout = null
+
+	// The interpreter's answer for the last term it read: `{ term, reading }`.
+	const searchReading = ref(null)
+	let pendingReading = null
 
 	// ── Param construction ───────────────────────────────────────────────
 
@@ -133,8 +158,13 @@ export function useListView(objectTypeOrOptions, options) {
 	 */
 	function buildParams(page) {
 		const params = { _limit: pageSize.value, _page: page }
+		const reading = currentReading()
 
-		if (searchTerm.value) {
+		if (reading) {
+			if (typeof reading.search === 'string' && reading.search !== '') {
+				params._search = reading.search
+			}
+		} else if (searchTerm.value) {
 			params._search = searchTerm.value
 		}
 
@@ -147,10 +177,9 @@ export function useListView(objectTypeOrOptions, options) {
 		}
 
 		for (const [key, values] of Object.entries(activeFilters.value)) {
-			if (values && values.length > 0) {
-				// Single-value arrays are unwrapped to scalar params
-				params[key] = values.length === 1 ? values[0] : values
-			}
+			// Single-value arrays are unwrapped to scalar params; the
+			// missing-value option becomes `<key>_isnull=true`.
+			Object.assign(params, facetFilterParams(key, values))
 		}
 
 		// Fixed filters (e.g. a route-param-scoped `pages[].config.filter`) are
@@ -163,6 +192,10 @@ export function useListView(objectTypeOrOptions, options) {
 			params._extend = extend
 		}
 
+		if (reading && reading.filters && typeof reading.filters === 'object') {
+			Object.assign(params, reading.filters)
+		}
+
 		for (const [key, value] of Object.entries(resolveFixedFilters())) {
 			if (value !== undefined && value !== null && value !== '') {
 				params[key] = value
@@ -172,17 +205,108 @@ export function useListView(objectTypeOrOptions, options) {
 		return params
 	}
 
+	/**
+	 * The interpreter's reading of the current term, or null when there is
+	 * none, it is for another term, or the term goes as typed.
+	 *
+	 * @return {SearchReading|null} The reading.
+	 */
+	function currentReading() {
+		const held = searchReading.value
+		if (!held || !searchTerm.value || held.term !== searchTerm.value) {
+			return null
+		}
+		return held.reading
+	}
+
+	/**
+	 * Ask `opts.searchInterpreter` about the current term once per term.
+	 *
+	 * @return {Promise<void>}
+	 */
+	async function interpretSearch() {
+		const term = searchTerm.value
+		if (typeof opts.searchInterpreter !== 'function' || !term) {
+			searchReading.value = null
+			return
+		}
+		if (searchReading.value && searchReading.value.term === term) {
+			return
+		}
+		// Fetches started while the term is being read wait for the same answer.
+		if (!pendingReading || pendingReading.term !== term) {
+			const promise = (async () => {
+				try {
+					return await opts.searchInterpreter(term)
+				} catch {
+					return null
+				}
+			})()
+			pendingReading = { term, promise }
+		}
+		const reading = await pendingReading.promise
+		if (searchTerm.value === term) {
+			searchReading.value = { term, reading: (reading && typeof reading === 'object') ? reading : null }
+		}
+	}
+
 	// ── Fetch ────────────────────────────────────────────────────────────
 
 	/**
 	 * Fetch the collection using current state params and update sidebar facet data.
+	 * Only the most recently started refresh sets `error`, so an older response
+	 * settling late cannot override a newer one's outcome.
 	 *
 	 * @param {number} [page] Page to fetch
 	 * @return {Promise<void>}
+	 * @spec openspec/changes/list-waits-for-its-schema/specs/list-waits-for-its-schema/spec.md#requirement-a-list-fetch-waits-for-the-schema-the-mount-is-loading
 	 */
 	async function refresh(page = 1) {
-		await objectStore.fetchCollection(objectType, buildParams(page))
+		// The store asks for facets only once it holds the schema, so a refresh
+		// that starts while the mount is still loading it (a watcher applying
+		// default filters, say) waits for it.
+		if (schemaPending) {
+			await schemaLoading.catch(() => null)
+		}
+		const seq = ++refreshSeq
+		// Only a page with an interpreter waits; every other fetch starts in
+		// the same tick as before.
+		if (typeof opts.searchInterpreter === 'function') {
+			await interpretSearch()
+		}
+		// This call's own result. `errors[getType()]` is shared by every call
+		// for the type and is not cleared on success, so it cannot say which
+		// request failed; it is only the fallback for a store that ignores
+		// `options.outcome`.
+		const outcome = {}
+		pendingRefreshes++
+		try {
+			await objectStore.fetchCollection(getType(), buildParams(page), { outcome })
+		} catch (e) {
+			if (seq === refreshSeq) {
+				error.value = e
+			}
+			throw e
+		} finally {
+			pendingRefreshes--
+		}
+		if (seq === refreshSeq) {
+			error.value = ('error' in outcome) ? outcome.error : (objectStore.errors?.[getType()] || null)
+		}
 	}
+
+	// A fetch outside `refresh()` (e.g. the live-updates refetch) that stores
+	// new rows recovers the list from an earlier failure. Rows written while
+	// a refresh is pending are left to that refresh, which decides `error`.
+	watch(
+		() => objectStore.collections[getType()],
+		() => {
+			if (pendingRefreshes === 0) {
+				error.value = null
+			}
+		},
+		{ flush: 'sync' },
+	)
 
 	// ── Event handlers ───────────────────────────────────────────────────
 
@@ -242,6 +366,26 @@ export function useListView(objectTypeOrOptions, options) {
 	}
 
 	/**
+	 * Add the next page after the rows already loaded, for a view that shows
+	 * every row at once (the board). Does nothing on the last page. A refresh
+	 * started while the page is in flight drops it.
+	 *
+	 * @return {Promise<void>}
+	 */
+	async function loadMore() {
+		const current = pagination.value
+		const next = Number(current.page || 1) + 1
+		if (next > Number(current.pages || 1)) {
+			return
+		}
+		const seq = refreshSeq
+		await objectStore.fetchCollection(getType(), buildParams(next), {
+			append: true,
+			isCurrent: () => seq === refreshSeq,
+		})
+	}
+
+	/**
 	 * Handle page-size change. Resets to page 1.
 	 *
 	 * @param {number} size New page size
@@ -284,18 +428,37 @@ export function useListView(objectTypeOrOptions, options) {
 	// Push facet data to sidebar after each store update
 	if (sidebarState) {
 		watch(
-			() => objectStore.facets[objectType],
+			() => objectStore.facets[getType()],
 			(facets) => {
 				sidebarState.facetData = facets || {}
 			},
 		)
 	}
 
+	// A dynamic object type that changes starts that type's list from page 1
+	// with its own schema.
+	if (isDynamicType) {
+		watch(getType, async (next, prev) => {
+			if (!next || next === prev) {
+				return
+			}
+			schema.value = null
+			schema.value = await objectStore.fetchSchema(next)
+			await refresh(1)
+		})
+	}
+
 	// ── Lifecycle ────────────────────────────────────────────────────────
 
 	onMounted(async () => {
 		try {
-			schema.value = await objectStore.fetchSchema(objectType)
+			schemaPending = true
+			schemaLoading = Promise.resolve(objectStore.fetchSchema(getType()))
+			try {
+				schema.value = await schemaLoading
+			} finally {
+				schemaPending = false
+			}
 			if (sidebarState) {
 				setupSidebar()
 			}
@@ -321,6 +484,8 @@ export function useListView(objectTypeOrOptions, options) {
 		loading,
 		pagination,
 		facets,
+		lenses,
+		error,
 		// Local state
 		searchTerm,
 		sortKey,
@@ -337,8 +502,25 @@ export function useListView(objectTypeOrOptions, options) {
 		onPageSizeChange,
 		// Explicit fetch
 		refresh,
+		loadMore,
+		// The query the list sends (search, sort, facet filters, fixed filters),
+		// built from the current state, for an export that must follow the list.
+		buildParams,
+		// What the search interpreter says about the term, e.g. "Searching by
+		// phone number"; '' when it read nothing.
+		searchNote: computed(() => {
+			const note = currentReading()?.note
+			return typeof note === 'string' ? note : ''
+		}),
 	}
 }
+
+/**
+ * @typedef {object} SearchReading
+ * @property {string} [search] The text sent as `_search`; empty or absent sends none.
+ * @property {object} [filters] Query parameters added to the fetch.
+ * @property {string} [note] A line the page shows while this reading applies.
+ */
 
 // ── Legacy implementation ─────────────────────────────────────────────────────
 

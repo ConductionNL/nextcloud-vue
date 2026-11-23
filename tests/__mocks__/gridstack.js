@@ -16,6 +16,9 @@
 const GridStack = {
 	init: jest.fn((opts = {}) => {
 		const handlers = {}
+		// CnDashboardGrid wraps `resizeToContent` on init; keep the original
+		// reachable so a spec can see what the wrapper hands on to GridStack.
+		const resizeToContent = jest.fn()
 
 		const instance = {
 			/** Registered event handlers, keyed by event name. */
@@ -51,6 +54,9 @@ const GridStack = {
 			save: jest.fn(() => []),
 			load: jest.fn(),
 			batchUpdate: jest.fn(),
+			resizeToContent,
+			/** The unwrapped `resizeToContent`, whatever the grid installs over it. */
+			_resizeToContent: resizeToContent,
 			commit: jest.fn(),
 			getColumn: jest.fn(() => (typeof opts.column === 'number' ? opts.column : 12)),
 			update: jest.fn((el, patch = {}) => {

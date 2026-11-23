@@ -39,10 +39,34 @@ import { canonicalWidgetType } from './widgetTypeAliases.js'
  * because a run is started by a flow, never by a person clicking Add.
  * `tasks` follows for the same two reasons: a bare row list, and a task is
  * created by a flow, never by a person clicking Add.
+ * `facts` is a bare list of label/value rows about one object: on a side
+ * card it needs the same titled wrapper, and there is nothing to Add.
+ * `field-list` draws rows of one object field and carries its own add form,
+ * so it takes the titled wrapper and not the catalog Add action.
+ * `record-list` draws bare rows of another schema's objects; the card and its
+ * header (link, note) come from the host, and it has no Add.
+ * `parties` draws a record's parties by role and `map` a bare Leaflet map:
+ * on a card surface both need the titled wrapper, and neither has an Add.
+ * `object-translations` is a bare per-language editor that takes the titled
+ * wrapper and has no Add.
+ * `row-mark-list` draws bare rows with their marks and one Save; the card and
+ * its title come from the host, and it has no Add.
+ * `slot-grid` draws a bare table with its own add buttons per cell; the card
+ * and its title come from the host, and the catalog Add does not apply.
+ * `handoff` is one action on one record; the card and title come from the host.
+ * `macros` lists a record's macros with their buttons; the card and title come from the host.
+ * `record-notes` edits a text field of the record in view, with no card of its own.
+ * `field-groups` draws several list fields of the record as label and value pairs, and
+ * `object-links` the record's links to other records; both take the titled wrapper
+ * and report their own Add for its title row, so the catalog Add does not apply.
+ * `grouped-cards` draws groups of cards (DqZaaktype "Fasen en taken") with no card of
+ * its own; the card, title and subtitle come from the host, and it has no Add.
+ * `kb-search` draws a bare search field and its results; on a side card it
+ * needs the titled wrapper (PqKlant "Kennisbank"), and it has no Add.
  *
  * @type {string[]}
  */
-export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks'])
+export const CONTENT_ONLY_TYPES = Object.freeze(['object-list', 'table', 'files', 'flow-runs', 'tasks', 'events', 'facts', 'linked', 'field-list', 'record-list', 'parties', 'map', 'settings-form', 'switch-rows', 'radio-cards', 'chips-field', 'toggle-table', 'choice-picker', 'checklist', 'object-translations', 'row-mark-list', 'slot-grid', 'handoff', 'macros', 'ai-chat', 'grouped-cards', 'plan', 'record-notes', 'field-groups', 'object-links', 'kb-search', 'share-list', 'task-form'])
 
 /**
  * The stored content/config blob for a widget definition.
@@ -135,11 +159,17 @@ export function isCardWidgetDef(def) {
  * other, and the surface rendered nothing while saying nothing about why. On
  * hrmq that was 101 of 236 detail widgets.
  *
+ * With `typeAsWritten`, a type registered in its own right wins over its
+ * alias, as on CnDashboardPage: there `object-table` is the host adapter that
+ * reads `content.source`, not the `table` widget its alias names. A detail
+ * page keeps the alias first, as its manifests were written against it.
+ *
  * @param {object} def The widget definition.
  * @param {object} [cnRegistry] The consumer's component registry, if any.
+ * @param {{typeAsWritten?: boolean}} [options] Resolution options.
  * @return {object|null} The renderer component, or null.
  */
-export function resolveRegistryRenderer(def, cnRegistry = {}) {
+export function resolveRegistryRenderer(def, cnRegistry = {}, options = {}) {
 	if (!def || !def.type || def.type === 'integration' || def.type === 'data') {
 		return null
 	}
@@ -149,7 +179,7 @@ export function resolveRegistryRenderer(def, cnRegistry = {}) {
 	if (consumer) {
 		return consumer.component ?? consumer
 	}
-	const entry = getWidgetTypeEntry(canonicalWidgetType(def.type))
+	const entry = (options.typeAsWritten === true && getWidgetTypeEntry(def.type)) || getWidgetTypeEntry(canonicalWidgetType(def.type))
 	if (entry && entry.renderer) {
 		return entry.renderer
 	}
@@ -162,7 +192,8 @@ export function resolveRegistryRenderer(def, cnRegistry = {}) {
  * A title-owning type (registry `ownsTitle`, e.g. `related`) keeps its editable
  * title in `content.title`, and that MUST win over the chrome `def.title`.
  * Otherwise a non-empty seed title permanently shadows the user's edit and the
- * title can never be changed. Every other type reads `def.title` first.
+ * title can never be changed. Without a `content.title` it falls back to
+ * `def.title`. Every other type reads `def.title` first.
  *
  * @param {object} def The widget definition.
  * @return {string|undefined} The title, or undefined to let the widget default.
@@ -174,6 +205,10 @@ export function widgetTitleOf(def) {
 	const content = widgetContentOf(def)
 	const entry = getWidgetTypeEntry(def.type)
 	if (entry && entry.ownsTitle) {
+		// A manifest that never set content.title keeps its def.title.
+		if (typeof content.title !== 'string') {
+			return def.title || undefined
+		}
 		return content.title || undefined
 	}
 	return def.title || content.title || undefined

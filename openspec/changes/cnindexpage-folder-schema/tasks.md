@@ -9,7 +9,7 @@
 ### Task 1: A folder entry may declare `schema` and `register`
 - **spec_ref**: `openspec/changes/cnindexpage-folder-schema/specs/index-page/spec.md#requirement-a-folder-may-declare-its-own-schema`
 - **files**: `src/components/CnIndexPage/CnIndexPage.vue` (JSDoc on the
-  `folderSidebar` prop), `docs/utilities/validate-manifest-v2.md`,
+  `folderSidebar` prop), `docs/components/cn-index-page.md`,
   `src/components/__tests__/CnIndexPageFolderSchema.spec.js`
 - **acceptance_criteria**:
   - A folder with `schema` (and optional `register`) is accepted with no
@@ -17,8 +17,8 @@
   - A folder without `schema` is documented as unaffected
   - JSDoc and the docs page list both keys and the default-to-page-register
     behaviour
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: `useSelfFetchList` resolves a reactive object type
 - **spec_ref**: `openspec/changes/cnindexpage-folder-schema/specs/index-page/spec.md#requirement-selecting-a-schema-folder-switches-the-loaded-object-type`
@@ -36,8 +36,8 @@
   - A page whose `folderSidebar` folders never declare `schema` fetches and
     subscribes exactly as before (regression coverage for every existing
     `source` today: `custom`, `field`, `register`, `files`)
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Selection and dialog state reset on schema switch
 - **spec_ref**: `openspec/changes/cnindexpage-folder-schema/specs/index-page/spec.md#requirement-switching-schema-clears-row-selection`
@@ -49,5 +49,5 @@
   - An open form/delete/copy dialog bound to a row of the previous schema is
     closed rather than left pointing at a row of the new one
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

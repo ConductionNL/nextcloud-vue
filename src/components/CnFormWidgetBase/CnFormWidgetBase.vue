@@ -74,6 +74,8 @@
 		</div>
 
 		<div class="cn-form-widget__actions" :class="blockClass ? blockClass + '__actions' : ''">
+			<!-- @slot actions-start Extra buttons in the action row, left of the submit button. -->
+			<slot name="actions-start" />
 			<!-- @slot actions Replace the submit row entirely (e.g. to add a
 			     secondary button beside the primary one). -->
 			<slot name="actions">

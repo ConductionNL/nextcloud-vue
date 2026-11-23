@@ -1,6 +1,10 @@
 <template>
 	<CnTabbedFormDialog
 		ref="dialog"
+		:look="look"
+		:width="width"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:tabs="dialogTabs"
 		:item="item"
 		:dialogTitle="dialogTitle"
@@ -53,11 +57,11 @@
 				</div>
 				<div v-if="schemaItem.created" class="cn-schema-form__detail-item">
 					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Created:') }}</span>
-					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString() }}</span>
+					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.created).toLocaleString(userLocale()) }}</span>
 				</div>
 				<div v-if="schemaItem.updated" class="cn-schema-form__detail-item">
 					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Updated:') }}</span>
-					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString() }}</span>
+					<span class="cn-schema-form__detail-value">{{ new Date(schemaItem.updated).toLocaleString(userLocale()) }}</span>
 				</div>
 				<div class="cn-schema-form__detail-item">
 					<span class="cn-schema-form__detail-label">{{ t('nextcloud-vue', 'Version:') }}</span>
@@ -199,6 +203,8 @@ import CnTabbedFormDialog from '../CnTabbedFormDialog/CnTabbedFormDialog.vue'
 import CnSchemaConfigurationTab from './CnSchemaConfigurationTab.vue'
 import CnSchemaPropertiesTab from './CnSchemaPropertiesTab.vue'
 import CnSchemaSecurityTab from './CnSchemaSecurityTab.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * CnSchemaFormDialog — Generic JSON Schema editor dialog.
@@ -237,6 +243,8 @@ export default {
 		DeleteSweep,
 		Upload,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Existing schema item for edit mode. Pass null for create mode. */
@@ -334,6 +342,8 @@ export default {
 					objectDescriptionField: '',
 					objectImageField: '',
 					objectSummaryField: '',
+					objectSlugField: '',
+					objectSlugSuffix: false,
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
@@ -545,6 +555,7 @@ export default {
 
 	methods: {
 		t,
+		userLocale,
 		findSchemaBySlug(schemaSlug) {
 			if (!schemaSlug) {
 				return undefined
@@ -597,6 +608,8 @@ export default {
 					objectDescriptionField: '',
 					objectImageField: '',
 					objectSummaryField: '',
+					objectSlugField: '',
+					objectSlugSuffix: false,
 					allowFiles: false,
 					allowedTags: [],
 					autoPublish: false,
@@ -630,6 +643,12 @@ export default {
 				}
 				if (!this.schemaItem.configuration.objectSummaryField) {
 					this.schemaItem.configuration.objectSummaryField = ''
+				}
+				if (!this.schemaItem.configuration.objectSlugField) {
+					this.schemaItem.configuration.objectSlugField = ''
+				}
+				if (this.schemaItem.configuration.objectSlugSuffix === undefined) {
+					this.schemaItem.configuration.objectSlugSuffix = false
 				}
 				if (this.schemaItem.configuration.allowFiles === undefined) {
 					this.schemaItem.configuration.allowFiles = false

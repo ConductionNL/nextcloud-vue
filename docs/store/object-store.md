@@ -47,16 +47,18 @@ Returns a `useObjectStore()` composable (Pinia `defineStore` result) with the fo
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `registerObjectType` | `(slug, schemaId, registerId)` | Register an entity type with its OpenRegister schema and register IDs |
+| `registerObjectType` | `(slug, schemaId, registerId, { registerSlug?, schemaSlug?, collectionUrl? })` | Register an entity type with its OpenRegister schema and register IDs. With `collectionUrl`, `fetchCollection` lists from that endpoint (`_order` sent as `_order[key]=dir`) while every other call keeps the register/schema URL |
 | `unregisterObjectType` | `(slug)` | Unregister a type and clear all its state |
 
 #### CRUD Operations
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `fetchCollection` | `(type, params?)` | Fetch paginated list for a type; results stored in state |
-| `fetchObject` | `(type, id)` | Fetch single object by type and ID; cached in state |
+| `fetchCollection` | `(type, params?, options?)` | Fetch paginated list for a type; results stored in state. A failure is recorded on `errors[type]`, which every call for the type shares: a call clears it when it starts and a success leaves it alone, so it does not say which request failed. Pass `options.outcome` (a plain object) to learn THIS call's result: the store sets `outcome.error` to the error it recorded, or `null` on success. Callers that join a deduplicated in-flight request (live updates) get that request's result. Without the option nothing changes |
+| `fetchCollectionForOptions` | `(type, params?)` | Fetch a collection WITHOUT writing `collections[type]`/`pagination[type]`/`loading[type]`/`errors[type]`. Use for reference-picker/search-option lookups on a type that may also be driving a mounted `CnIndexPage` (e.g. a self-referencing schema) — `fetchCollection` would otherwise overwrite that list's rows and count. |
+| `fetchObject` | `(type, id, options?)` | Fetch single object by type and ID; cached in state. `options.extend` is an array of `_extend[]` values (for example `["@self.can"]`) for markers OpenRegister returns only on request |
 | `saveObject` | `(type, objectData)` | Create (no `id`) or update (with `id`) an object |
+| `patchObject` | `(type, id, changes)` | Write only `changes` (a PATCH); every other key keeps its stored value |
 | `deleteObject` | `(type, id)` | Delete object by type and ID |
 | `deleteObjects` | `(type, ids)` | Delete multiple objects in parallel; returns `{ successfulIds, failedIds }` for partial success/failure |
 
@@ -153,3 +155,7 @@ const pagination = emptyPaginated()
 ```
 
 Useful for initializing component state before data loads. Accepts an optional `limit` argument (default 20).
+
+## Edits write only what changed
+
+A form shows some of an object's keys. Writing the whole form back with PUT drops every key the form does not show, such as a status's `capacity` saved from a form that has no such field. So the library's edit saves (an index page's edit dialog, the detail page's edit form, `CnObjectDataWidget` inline and dialog edits) go through `saveEdited(store, type, original, formData)` from `utils/saveEdited.js`. It PATCHes the keys whose value differs from the object as it was loaded, by content, and sends nothing when nothing changed. A key the form leaves out is not a change. A create, or a store without `patchObject`, still uses `saveObject`.

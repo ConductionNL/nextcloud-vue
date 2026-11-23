@@ -10,18 +10,42 @@
  * Supported tokens:
  *  - `@me`                → the current Nextcloud user id (`getCurrentUser()` from
  *                           `@nextcloud/auth`; `window.OC.currentUser` fallback)
+ *  - `@myGroups`          → the ids of the Nextcloud groups the current user is
+ *                           in, as an ARRAY (an IN filter). `ctx.myGroups` wins;
+ *                           otherwise a reactive peek over `getCurrentUserGroups`.
+ *                           Stays UNRESOLVED while loading and when the user is
+ *                           in no group, so the caller waits instead of sending
+ *                           an empty IN list (which OpenRegister reads as "no
+ *                           constraint"). Spread in place inside an IN-list array.
+ *  - `@myTeam`            → the current user's primary team, a Nextcloud group id,
+ *                           as the app answers it (`registerMyTeamSource`;
+ *                           `ctx.myTeam` wins). Stays UNRESOLVED while it is read;
+ *                           a user in no team gets `@myTeam?`, an optional token
+ *                           the caller drops, so the filter goes away rather than
+ *                           widening to all of the user's groups.
  *  - `@now`               → the current instant, ISO-8601
  *  - `@today`             → today at 00:00, `YYYY-MM-DD` (date-prefix comparable)
  *  - `@today±Nd`          → relative-date arithmetic at day granularity: N days
  *                           from today (e.g. `@today-30d`, `@today+7d`)
  *  - `@monthStart`        → first day of the current month, `YYYY-MM-DD`
+ *  - `@monthEnd`          → last day of the current month, `YYYY-MM-DD`; on a
+ *                           date-time field use `lt: '@nextMonthStart'` instead,
+ *                           since `lte` a date stops at that day's midnight
+ *  - `@nextMonthStart`    → first day of the next month, `YYYY-MM-DD`
  *  - `@quarterStart`      → first day of the current quarter, `YYYY-MM-DD`
  *  - `@yearStart`         → first day of the current year, `YYYY-MM-DD`
  *  - `@currentFiscalYear` → the current calendar year as a number string, e.g. `2026`
+ *  - `@range.from` / `@range.to` / `@range.preset` → the active date range a
+ *                           widget passes in `ctx.range` (CnStatWidget: its own
+ *                           picker, else the dashboard's). A trailing `?` marks it
+ *                           optional, as for `@workspace.<key>?`.
  *  - `@objectId`          → the current detail-page object's id (needs `ctx`)
  *  - `@object.<field>`    → a field off the current detail-page object (needs `ctx`)
  *  - `@workspace.<key>`   → a value off the page-level workspace context (needs `ctx.workspace`)
  *  - `@config.<key>`      → a value off the page-level app config (needs `ctx.config`)
+ *  - `@context.<name>.<path>` → a value off a record the detail page reads beside
+ *                           the loaded one (needs `ctx.context`); left as written
+ *                           while that record is not read
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -51,7 +75,59 @@
  */
 
 import { getCurrentUser } from '@nextcloud/auth'
+// userGroupsPeek, not widgetVisibility: that one imports @nextcloud/axios, and
+// this resolver runs on public pages and in node (see userGroupsPeek.js).
+import { peekMyTeam } from './myTeam.js'
+import { readPath } from './readPath.js'
 import { TODAY_DELTA_RE } from './sentinelTokens.js'
+import { peekCurrentUserGroups } from './userGroupsPeek.js'
+
+/** The filter token for the current user's group ids. */
+export const MY_GROUPS_TOKEN = '@myGroups'
+
+/** The filter token for the current user's primary team. */
+export const MY_TEAM_TOKEN = '@myTeam'
+
+/**
+ * Resolve `@myTeam`: the team's group id, or the ids of several teams when the
+ * app answers a list (an IN filter); `@myTeam` while it is being read (the
+ * caller waits); `@myTeam?` for a user in no team (the caller drops the key).
+ *
+ * @spec openspec/changes/saved-view-tokens-my-team/specs/schema-utilities/spec.md#requirement-myteam-resolves-to-the-current-users-primary-team
+ * @param {{myTeam?: (string|string[])}} [ctx] Optional context; `ctx.myTeam` wins.
+ * @return {string|string[]} The group id(s) or the token.
+ */
+function resolveMyTeam(ctx) {
+	const team = ctx && (typeof ctx.myTeam === 'string' || Array.isArray(ctx.myTeam)) ? ctx.myTeam : peekMyTeam()
+	if (team === null) {
+		return MY_TEAM_TOKEN
+	}
+	return team === '' ? `${MY_TEAM_TOKEN}?` : team
+}
+
+/**
+ * Resolve `@myGroups`: the current user's group ids, or the token itself while
+ * they are loading or when there are none (an empty IN list would match every
+ * row, so "no team" must mean "wait", never "everything").
+ *
+ * @spec openspec/changes/nextcloud-group-surfaces/specs/schema-utilities/spec.md#requirement-mygroups-resolves-to-the-current-users-group-ids
+ * @param {{myGroups?: string[]}} [ctx] Optional context; `ctx.myGroups` wins.
+ * @return {string[]|string} The group ids, or `'@myGroups'` when unresolved.
+ */
+function resolveMyGroups(ctx) {
+	let groups = ctx && Array.isArray(ctx.myGroups) ? ctx.myGroups : null
+	if (groups === null) {
+		try {
+			groups = peekCurrentUserGroups()
+		} catch {
+			groups = null
+		}
+	}
+	const ids = Array.isArray(groups)
+		? groups.filter((g) => typeof g === 'string' && g !== '')
+		: []
+	return ids.length > 0 ? [...ids] : MY_GROUPS_TOKEN
+}
 
 /**
  * Format a Date as `YYYY-MM-DD` (local).
@@ -66,10 +142,34 @@ function ymd(d) {
 }
 
 /**
+ * Fill each `{@config.<key>}` inside a token from `ctx.config`, so a token can
+ * take an admin setting (`@today-{@config.lead_stale_threshold_days}d`). The
+ * token comes back unchanged when any key is missing from the config.
+ *
+ * @param {string} token The token.
+ * @param {object} [ctx] The token context.
+ * @return {string} The token with the config values in.
+ * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-token-can-take-a-config-value
+ */
+function fillConfigInToken(token, ctx) {
+	const config = (ctx && ctx.config) || {}
+	let missing = false
+	const filled = token.replace(/\{@config\.([A-Za-z0-9_.-]+)\}/g, (whole, key) => {
+		const value = config[key]
+		if (value === undefined || value === null || value === '') {
+			missing = true
+			return whole
+		}
+		return String(value)
+	})
+	return missing ? token : filled
+}
+
+/**
  * Resolve a single filter value if it is a dynamic `@`-token, else pass through.
  *
  * @param {unknown} v The candidate value.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object, myGroups?: string[]}} [ctx] Optional
  *   context for `@objectId` / `@object.<field>` (detail page),
  *   `@workspace.<key>` (page-level workspace state), and `@config.<key>`
  *   (page-level app config) tokens.
@@ -79,7 +179,17 @@ export function resolveFilterValue(v, ctx) {
 	if (typeof v !== 'string' || v.charAt(0) !== '@') {
 		return v
 	}
+	if (v.includes('{@config.')) {
+		const filled = fillConfigInToken(v, ctx)
+		return filled === v ? v : resolveFilterValue(filled, ctx)
+	}
 	const now = new Date()
+	if (v === MY_GROUPS_TOKEN) {
+		return resolveMyGroups(ctx)
+	}
+	if (v === MY_TEAM_TOKEN) {
+		return resolveMyTeam(ctx)
+	}
 	if (v === '@objectId') {
 		return (ctx && ctx.objectId !== undefined && ctx.objectId !== null) ? String(ctx.objectId) : v
 	}
@@ -89,6 +199,11 @@ export function resolveFilterValue(v, ctx) {
 			return ctx.object[field]
 		}
 		return v
+	}
+	if (v.startsWith('@context.')) {
+		// @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-widget-props-can-read-the-detail-pages-context-records
+		const found = ctx && ctx.context ? readPath(ctx.context, v.slice('@context.'.length)) : undefined
+		return found === undefined ? v : found
 	}
 	if (v.startsWith('@workspace.')) {
 		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the
@@ -116,6 +231,39 @@ export function resolveFilterValue(v, ctx) {
 		}
 		return v
 	}
+	if (v.startsWith('@range.')) {
+		// `@range.from` / `@range.to` / `@range.preset`: the active date range the
+		// caller put in `ctx.range`. CnStatWidget documented these tokens and put
+		// `range` in its endpoint context, but nothing resolved them, so the
+		// literal token stayed in the params, hasUnresolvedTokens blocked the
+		// request, and a card that used its own period picker never loaded. A
+		// trailing `?` marks the token OPTIONAL, the same convention as
+		// `@workspace.<key>?`: unset, the caller drops the key.
+		const raw = v.slice('@range.'.length)
+		const key = raw.endsWith('?') ? raw.slice(0, -1) : raw
+		if (ctx && ctx.range && key && ctx.range[key] !== undefined
+			&& ctx.range[key] !== null && ctx.range[key] !== '') {
+			return ctx.range[key]
+		}
+		return v
+	}
+	if (v === '@me.displayName' || v === '@me.email') {
+		// The form's own context wins (`ctx.me`, e.g. an email fetched from the
+		// profile); @nextcloud/auth only knows the uid and display name.
+		const key = v.slice('@me.'.length)
+		if (ctx && ctx.me && ctx.me[key] !== undefined && ctx.me[key] !== null && ctx.me[key] !== '') {
+			return ctx.me[key]
+		}
+		try {
+			const user = getCurrentUser()
+			if (user && user[key]) {
+				return user[key]
+			}
+		} catch {
+			// not signed in: leave the token unresolved
+		}
+		return v
+	}
 	if (v === '@me') {
 		// Canonical source is @nextcloud/auth; window.OC is the fallback for
 		// environments where the auth package can't read the page state (jsdom).
@@ -138,6 +286,13 @@ export function resolveFilterValue(v, ctx) {
 	}
 	if (v === '@monthStart') {
 		return ymd(new Date(now.getFullYear(), now.getMonth(), 1))
+	}
+	if (v === '@monthEnd') {
+		// Day 0 of the next month is the last day of this one.
+		return ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+	}
+	if (v === '@nextMonthStart') {
+		return ymd(new Date(now.getFullYear(), now.getMonth() + 1, 1))
 	}
 	if (v === '@quarterStart') {
 		return ymd(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1))
@@ -169,7 +324,7 @@ export function resolveFilterValue(v, ctx) {
  */
 export function isOptionalUnresolved(v) {
 	return typeof v === 'string'
-		&& (v.startsWith('@workspace.') || v.startsWith('@config.'))
+		&& (v.startsWith('@workspace.') || v.startsWith('@config.') || v.startsWith('@range.') || v === `${MY_TEAM_TOKEN}?`)
 		&& v.endsWith('?')
 }
 
@@ -267,7 +422,7 @@ export function hasUnresolvedTokens(filter) {
  * tokens and literals (`{ assignee: ['@me', 'shared'] }`).
  *
  * @param {object} filter The filter map (`{ field: value | value[] | { op: value | value[] } }`).
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] Optional
  *   context forwarded to {@link resolveFilterValue} for `@objectId` /
  *   `@object.<field>` / `@workspace.<key>` / `@config.<key>` tokens.
  * @return {object} A new filter map with tokens resolved.
@@ -276,8 +431,13 @@ export function resolveFilterTokens(filter, ctx) {
 	if (!filter || typeof filter !== 'object') {
 		return filter
 	}
+	// An item that resolves to a list (`@myGroups`) is spread in place, so
+	// `['@myGroups', 'archive']` stays one flat IN list.
 	const resolveOne = (v) => (Array.isArray(v)
-		? v.map((item) => resolveFilterValue(item, ctx))
+		? v.flatMap((item) => {
+				const r = resolveFilterValue(item, ctx)
+				return Array.isArray(r) ? r : [r]
+			})
 		: resolveFilterValue(v, ctx))
 	const out = {}
 	for (const [k, v] of Object.entries(filter)) {
@@ -305,7 +465,7 @@ export function resolveFilterTokens(filter, ctx) {
  * shallow filter-map resolver can't reach.
  *
  * @param {unknown} value The value to resolve — object / array / primitive.
- * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Optional
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object, range?: object}} [ctx] Optional
  *   context forwarded to {@link resolveFilterValue}.
  * @return {unknown} A new value with every string leaf token-resolved (structure preserved).
  */

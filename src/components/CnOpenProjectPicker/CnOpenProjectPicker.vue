@@ -52,7 +52,7 @@
 					<Briefcase :size="32" />
 				</template>
 				<template #action>
-					<NcButton variant="primary" @click="openOpenconnectorAdmin">
+					<NcButton variant="primary" :href="openconnectorUrl" target="_blank">
 						<template #icon>
 							<CogOutline :size="20" />
 						</template>
@@ -283,12 +283,6 @@ export default {
 
 		pick(wp) {
 			this.selectedId = wp.workPackageId
-		},
-
-		openOpenconnectorAdmin() {
-			if (typeof window !== 'undefined' && this.openconnectorUrl) {
-				window.open(this.openconnectorUrl, '_blank', 'noopener')
-			}
 		},
 
 		confirm() {

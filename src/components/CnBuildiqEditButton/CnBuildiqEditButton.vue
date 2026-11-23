@@ -12,10 +12,32 @@
   Edit menu…, Edit sidebar…. Save emits `@save(delta)` with the minimal delta.
 -->
 <template>
-	<div v-if="isAvailable" class="cn-buildiq-edit">
+	<!-- `href` without an editor (an admin settings page has no CnAppRoot):
+	     the square is a link that opens the app in edit mode. -->
+	<div v-if="isAvailable && href && !activeEditor" class="cn-buildiq-edit">
+		<span class="cn-buildiq-edit__actions">
+			<NcButton
+				:href="href"
+				:aria-label="t('nextcloud-vue', 'Edit in Buildiq')"
+				:title="t('nextcloud-vue', 'Edit in Buildiq')"
+				data-testid="cn-buildiq-edit-link">
+				<template #icon>
+					<svg class="cn-buildiq-edit__glyph"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						aria-hidden="true">
+						<path d="M12 0L3 7L4.63 8.27L12 14L19.36 8.27L21 7L12 0M19.37 10.73L12 16.47L4.62 10.74L3 12L12 19L21 12L19.37 10.73M19.37 15.73L12 21.47L4.62 15.74L3 17L12 24L21 17L19.37 15.73Z" />
+					</svg>
+				</template>
+			</NcButton>
+		</span>
+	</div>
+	<div v-else-if="isAvailable" class="cn-buildiq-edit">
 		<NcActions
 			v-model:open="menuOpen"
-			:aria-label="t('nextcloud-vue', 'Edit with Buildiq')"
+			aria-label="buildiq"
 			class="cn-buildiq-edit__actions"
 			:class="[{ 'cn-buildiq-edit__actions--editing': isEditing }]">
 			<template #icon>
@@ -175,7 +197,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { defineAsyncComponent } from 'vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Database from 'vue-material-design-icons/Database.vue'
@@ -186,19 +209,20 @@ import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarR
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
-import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
-import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
-import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
-import CnEditMenuModal from '../../dialogs/CnEditMenuModal.vue'
-import CnEditPagesModal from '../../dialogs/CnEditPagesModal.vue'
-import CnEditSettingsModal from '../../dialogs/CnEditSettingsModal.vue'
-import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
-import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
-import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
-import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
-import CnFlowEditModal from '../../dialogs/CnFlowEditModal.vue'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+const CnAddWidgetModal = defineAsyncComponent(() => import('../../dialogs/CnAddWidgetModal.vue').then((m) => m.default))
+const CnEditActionsModal = defineAsyncComponent(() => import('../../dialogs/CnEditActionsModal.vue').then((m) => m.default))
+const CnEditDataModal = defineAsyncComponent(() => import('../../dialogs/CnEditDataModal.vue').then((m) => m.default))
+const CnEditMenuModal = defineAsyncComponent(() => import('../../dialogs/CnEditMenuModal.vue').then((m) => m.default))
+const CnEditPagesModal = defineAsyncComponent(() => import('../../dialogs/CnEditPagesModal.vue').then((m) => m.default))
+const CnEditSettingsModal = defineAsyncComponent(() => import('../../dialogs/CnEditSettingsModal.vue').then((m) => m.default))
+const CnEditSetupModal = defineAsyncComponent(() => import('../../dialogs/CnEditSetupModal.vue').then((m) => m.default))
+const CnEditSidebarModal = defineAsyncComponent(() => import('../../dialogs/CnEditSidebarModal.vue').then((m) => m.default))
+const CnEditSupportModal = defineAsyncComponent(() => import('../../dialogs/CnEditSupportModal.vue').then((m) => m.default))
+const CnEditWalkthroughModal = defineAsyncComponent(() => import('../../dialogs/CnEditWalkthroughModal.vue').then((m) => m.default))
+const CnFlowEditModal = defineAsyncComponent(() => import('../../dialogs/CnFlowEditModal.vue').then((m) => m.default))
 
 export default {
 	name: 'CnBuildiqEditButton',
@@ -206,6 +230,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcButton,
 		NcLoadingIcon,
 		Pencil,
 		ContentSave,
@@ -275,6 +300,18 @@ export default {
 		 * @type {string}
 		 */
 		pageId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Where the square leads when there is no manifest editor on the page
+		 * (an admin settings page): the app with `cn_edit=1`, which CnAppRoot
+		 * opens in edit mode. Ignored where an editor is available.
+		 *
+		 * @type {string}
+		 */
+		href: {
 			type: String,
 			default: '',
 		},
@@ -354,6 +391,13 @@ export default {
 		/** The working manifest copy (or null when not editing). */
 		workingManifest() {
 			return this.activeEditor ? this.unref(this.activeEditor.working) : null
+		},
+
+		/** @return {string} Where flows open in list mode, '' for an app without such a page. */
+		flowListRoute() {
+			const page = (this.effectiveManifest?.pages || []).find((candidate) => ['flow', 'flow-detail'].includes(candidate?.type) && candidate?.config?.listMode === true)
+
+			return page ? String(page.route || '').replace(':id', 'new') : ''
 		},
 
 		/** The manifest to read page metadata from: working copy, else the live one. */
@@ -731,7 +775,11 @@ export default {
 		 * store, and there is one editor for it.
 		 */
 		onEditFlows() {
-			this.showFlowsCanvasModal = true
+			if (this.flowListRoute !== '' && this.$router) {
+				this.$router.push({ path: this.flowListRoute, query: { view: 'list' } })
+			} else {
+				this.showFlowsCanvasModal = true
+			}
 			this.menuOpen = false
 			/**
 			 * @event edit-flows Emitted when the flows editor opens.
@@ -753,7 +801,7 @@ export default {
    `!important` beats the `button-vue--tertiary` transparent default. */
 .cn-buildiq-edit__actions :deep(.button-vue),
 .cn-buildiq-edit__actions :deep(.action-item__menutoggle) {
-	background-color: var(--c-orange-knvb, #f36c21) !important;
+	background-color: var(--cn-buildiq-color, var(--c-orange-knvb, #f36c21)) !important;
 	color: #fff !important;
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
 }

@@ -21,25 +21,34 @@
  * so they stay importable in a Node environment with no IndexedDB. Tests for
  * THIS module inject a fake-indexeddb-backed Dexie via `__setDexie`.
  *
- * Dexie is a REQUIRED peer dependency, not an optional one. It reads as though
- * only apps using the offline core need it, but the import below is static and
- * this module is reachable from the package root: `src/index.js` exports
- * `offlineCollection`, which reaches `integrations/builtin/field-inspection`,
- * which reaches here. Every consumer therefore has to resolve `dexie` at BUILD
- * time whether or not it ever collects a field inspection. Declaring it
- * optional told npm not to install it and not to warn, which is the shape that
- * fails as a bare "Module not found" in someone else's build. Making the import
- * dynamic is what would earn the optional marker back.
+ * Dexie is loaded LAZILY, on the first call that needs the database
+ * (`openDb()`), and never at import time. This module is reachable from the
+ * package root: `src/index.js` exports `offlineCollection`, which reaches
+ * `integrations/builtin/field-inspection`, which reaches here. With a static
+ * import every consuming app evaluated Dexie on every page, and Dexie throws
+ * "Two different versions of Dexie loaded in the same app" at module init
+ * when a second copy at another version is already on the page. Nextcloud
+ * loads several apps' every-page bundles at once (openregister's
+ * integration-global among them), so one app a patch release ahead of
+ * another blanked whole apps that never touch the offline core. Loaded on
+ * demand, Dexie is evaluated only on a page that actually opens the offline
+ * database.
+ *
+ * Dexie stays a REQUIRED peer dependency. The consumer's bundler still
+ * resolves `import('dexie')` at BUILD time (it becomes a separate chunk), so
+ * an app without it installed fails its build with "Module not found". The
+ * dependency is required; loading it is not.
  *
  * @module integrations/offline/offlineDb
  */
 
-import Dexie from 'dexie'
+import { resolveConflictChoice } from './syncQueueEngine.js'
 
 const DB_NAME = 'conduction-offline-collection'
 
 let dbInstance = null
-let DexieCtor = Dexie
+// Null until `openDb()` loads Dexie, or a test injects it via `__setDexie`.
+let DexieCtor = null
 
 /**
  * Build the composite cache key for an object.
@@ -58,7 +67,7 @@ export function cacheKey(register, schema, collection, objectId) {
 /**
  * Set the Dexie constructor explicitly (test seam / SSR override).
  *
- * Production code never calls this — `getDb()` lazy-imports `dexie`. Tests pass
+ * Production code never calls this: `openDb()` lazy-imports `dexie`. Tests pass
  * a fake-indexeddb-backed Dexie so the store can be exercised in Node.
  *
  * @param {new (name: string) => object} ctor The Dexie class.
@@ -71,15 +80,39 @@ export function __setDexie(ctor) {
 }
 
 /**
- * Open (and memoise) the Dexie database.
+ * Load Dexie on first use, then open (and memoise) the database.
+ *
+ * Every function in the offline core goes through this, so Dexie is only
+ * evaluated on a page that actually uses the offline database. A Dexie
+ * injected with `__setDexie` is used as is and nothing is imported.
+ *
+ * @return {Promise<object>} The opened database handle.
+ */
+export async function openDb() {
+	if (DexieCtor === null) {
+		const mod = await import('dexie')
+		DexieCtor = mod.default ?? mod.Dexie
+	}
+	return getDb()
+}
+
+/**
+ * The memoised database handle, synchronously.
+ *
+ * Works once Dexie is loaded: after any `openDb()` call, or after a test
+ * injected it with `__setDexie`. Call `await openDb()` when neither is
+ * certain; that is what every function in this module does.
  *
  * @return {object} The opened database handle.
  *
- * @throws {Error} When Dexie is not available and was not injected.
+ * @throws {Error} When Dexie has not been loaded yet.
  */
 export function getDb() {
 	if (dbInstance !== null) {
 		return dbInstance
+	}
+	if (DexieCtor === null) {
+		throw new Error('The offline database is not open yet: call `await openDb()` first. Dexie loads on first use, so a page that never opens the offline database never evaluates it.')
 	}
 
 	const db = new DexieCtor(DB_NAME)
@@ -125,7 +158,7 @@ export async function storePlanning({
 	manifest = null,
 	ttlMs = 24 * 60 * 60 * 1000,
 }) {
-	const db = getDb()
+	const db = await openDb()
 	const planned = Array.isArray(items) ? items : []
 	const refs = Array.isArray(references) ? references : []
 	const refSchema = referenceSchema || schema
@@ -181,7 +214,7 @@ export async function storePlanning({
  * @return {Promise<Array>} The cached objects (unwrapped from the envelope).
  */
 export async function getPlannedItems(register, schema, collection = 'planning') {
-	const db = getDb()
+	const db = await openDb()
 	const rows = await db.objectCache
 		.where('collection').equals(collection)
 		.and((row) => row.register === register && row.schema === schema)
@@ -200,7 +233,7 @@ export async function getPlannedItems(register, schema, collection = 'planning')
  * @return {Promise<object|null>} The cached object, or null.
  */
 export async function getCachedObject(register, schema, collection, objectId) {
-	const db = getDb()
+	const db = await openDb()
 	const row = await db.objectCache.get(cacheKey(register, schema, collection, objectId))
 	return row ? row.object : null
 }
@@ -215,7 +248,7 @@ export async function getCachedObject(register, schema, collection, objectId) {
  * @return {Promise<object|null>} The planning meta row.
  */
 export async function getPlanningMeta(register, schema, collection = 'planning') {
-	const db = getDb()
+	const db = await openDb()
 	return (await db.meta.get(`planning::${register}::${schema}::${collection}`)) ?? null
 }
 
@@ -224,16 +257,20 @@ export async function getPlanningMeta(register, schema, collection = 'planning')
  *
  * @param {object} operation                  The mutation operation.
  * @param {string} operation.deviceId         Owning device id (IDOR scope).
- * @param {string} operation.operationType    create / update / delete.
+ * @param {string} operation.operationType    create / update / delete / submit.
  * @param {string} operation.register         Target register slug or id.
  * @param {string} operation.schema           Target schema slug or id.
  * @param {string} [operation.targetId]       Existing object id (update/delete).
+ * @param {string} [operation.endpoint]       Path under the Nextcloud root a
+ *                                            `submit` row is POSTed to.
  * @param {object} [operation.payload]        The object body (create/update).
+ * @param {string} [operation.label]          What the change is about in words
+ *                                            ("Molenweg 4, checklist"), for the queue list.
  *
  * @return {Promise<string>} The queued operation id.
  */
 export async function enqueueMutation(operation) {
-	const db = getDb()
+	const db = await openDb()
 	const id = operation.id || `op-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 	await db.mutationQueue.put({
 		id,
@@ -242,7 +279,11 @@ export async function enqueueMutation(operation) {
 		register: operation.register,
 		schema: operation.schema,
 		targetId: operation.targetId ?? null,
+		// A `submit` operation replays to an app's own endpoint instead of the
+		// object API (see checklistSubmission.js); every other row has none.
+		endpoint: operation.endpoint ?? null,
 		payload: operation.payload ?? {},
+		label: typeof operation.label === 'string' ? operation.label : '',
 		queuedAt: operation.queuedAt || new Date().toISOString(),
 		attemptCount: 0,
 		status: 'pending',
@@ -258,12 +299,301 @@ export async function enqueueMutation(operation) {
  * @return {Promise<number>} The number of pending/conflict/syncing operations.
  */
 export async function countPending(deviceId) {
-	const db = getDb()
+	const db = await openDb()
 	let collection = db.mutationQueue.where('status').anyOf(['pending', 'conflict', 'syncing'])
 	if (typeof deviceId === 'string' && deviceId !== '') {
 		collection = collection.and((op) => op.deviceId === deviceId)
 	}
 	return await collection.count()
+}
+
+/**
+ * Every queued operation, in the order they will replay.
+ *
+ * 🔴 INCLUDING THE FAILED ONES, WHICH IS THE POINT. `countPending()` counts
+ * `pending`, `conflict` and `syncing` and leaves `failed` out, so an operation
+ * that exhausted its retries or lost its permission drops out of the badge
+ * entirely. The row is still on the device; nothing tells anybody. An
+ * inspection a citizen stood beside somebody to give is then stranded in one
+ * browser's IndexedDB with no reader, which is worse than having refused it at
+ * the door.
+ *
+ * FIFO by `queuedAt`, the same order the replay loop uses, so the list reads
+ * as what will happen next rather than as a set.
+ *
+ * @param {string} [deviceId] Optional device scope.
+ *
+ * @return {Promise<object[]>} Every operation, oldest first.
+ */
+export async function listQueue(deviceId) {
+	const db = await openDb()
+	let collection = db.mutationQueue.orderBy('queuedAt')
+	if (typeof deviceId === 'string' && deviceId !== '') {
+		collection = collection.and((op) => op.deviceId === deviceId)
+	}
+
+	return await collection.toArray()
+}
+
+/**
+ * How many operations will not replay again without somebody acting.
+ *
+ * Counted apart from `countPending()` rather than folded into it: "12 waiting"
+ * and "12 waiting, 1 stuck" are different sentences, and a surface that adds
+ * them together says neither. Nothing is ever dropped to make this number
+ * smaller.
+ *
+ * @param {string} [deviceId] Optional device scope.
+ *
+ * @return {Promise<number>} The number of failed operations.
+ */
+export async function countStuck(deviceId) {
+	const db = await openDb()
+	let collection = db.mutationQueue.where('status').equals('failed')
+	if (typeof deviceId === 'string' && deviceId !== '') {
+		collection = collection.and((op) => op.deviceId === deviceId)
+	}
+
+	return await collection.count()
+}
+
+/**
+ * Put a failed operation back in the queue, by hand.
+ *
+ * 🔴 BY HAND, AND NEVER AUTOMATICALLY. `failed` is terminal for the replay
+ * loop on purpose: an operation the server refused five times will be refused
+ * a sixth, and a queue that retries forever is a queue that never drains. But
+ * terminal must not mean forgotten, so somebody who has fixed whatever the
+ * server was complaining about can ask for it again, and the attempt count
+ * starts over.
+ *
+ * It does NOT reset a `permission_lost` row. The right to write is gone and
+ * retrying cannot bring it back; offering the button would be offering a
+ * gesture that fails every time.
+ *
+ * @param {string} operationId The operation to retry.
+ *
+ * @return {Promise<boolean>} True when it was re-queued.
+ */
+export async function requeueOperation(operationId) {
+	const db = await openDb()
+	const operation = await db.mutationQueue.get(operationId)
+	if (!operation || operation.status !== 'failed') {
+		return false
+	}
+
+	if (operation.lastError === 'permission_lost') {
+		return false
+	}
+
+	await db.mutationQueue.update(operationId, {
+		status: 'pending',
+		attemptCount: 0,
+		lastError: null,
+	})
+
+	return true
+}
+
+/**
+ * The prefix of a conflict-record operation's id.
+ *
+ * Derived from the id of the operation that conflicted, so the record is
+ * idempotent by construction: a second drain of the same conflicting row
+ * computes the same id and finds it already there.
+ */
+export const CONFLICT_RECORD_PREFIX = 'conflict-'
+
+/**
+ * Write a classified conflict to the register as an object of its own.
+ *
+ * A conflict kept only in this browser's IndexedDB is invisible to everyone who
+ * could act on it: the colleague whose edit collided, the supervisor who has to
+ * decide, the audit that has to show the decision was taken at all. So the
+ * conflict becomes an OpenRegister object, carrying both versions and a
+ * reference back to the queue row.
+ *
+ * The write goes through the queue rather than straight to the network, because
+ * the moment a conflict is classified is exactly the moment the connection is
+ * unreliable. It replays with everything else.
+ *
+ * It is written ONCE. The record's id is derived from the conflicting
+ * operation's id, so a second drain finds it and leaves it alone rather than
+ * filing the same collision twice under two ids.
+ *
+ * With no `conflictSchema` configured nothing is written, and the queue row is
+ * marked so the list can say plainly that this conflict is local to this
+ * device. Silently keeping it would be the worse half of both options.
+ *
+ * @param {object}      args               Recording arguments.
+ * @param {object}      args.operation     The queue row that conflicted.
+ * @param {string}      args.conflictType  concurrent_edit / deleted_remote / permission_lost.
+ * @param {object|null} [args.serverObject] The server's version, when it sent one.
+ * @param {string}      [args.register]    Register to write the record to (default: the operation's).
+ * @param {string}      [args.conflictSchema] Schema holding conflict records.
+ *
+ * @return {Promise<string|null>} The record operation id, or null when nothing was written.
+ */
+export async function recordConflict({
+	operation,
+	conflictType,
+	serverObject = null,
+	register = '',
+	conflictSchema = '',
+}) {
+	const db = await openDb()
+
+	if (typeof conflictSchema !== 'string' || conflictSchema === '') {
+		await db.mutationQueue.update(operation.id, { conflictScope: 'local', conflictType })
+		return null
+	}
+
+	const recordId = `${CONFLICT_RECORD_PREFIX}${operation.id}`
+	const existing = await db.mutationQueue.get(recordId)
+	if (existing !== undefined) {
+		return recordId
+	}
+
+	await enqueueMutation({
+		id: recordId,
+		deviceId: operation.deviceId,
+		operationType: 'create',
+		register: register || operation.register,
+		schema: conflictSchema,
+		payload: {
+			queueOperationId: operation.id,
+			conflictType,
+			deviceId: operation.deviceId,
+			targetRegister: operation.register,
+			targetSchema: operation.schema,
+			targetId: operation.targetId ?? null,
+			clientVersion: operation.payload ?? {},
+			serverVersion: serverObject ?? null,
+			detectedAt: new Date().toISOString(),
+		},
+	})
+
+	await db.mutationQueue.update(operation.id, {
+		conflictScope: 'register',
+		conflictType,
+		conflictRecordId: recordId,
+		serverVersion: serverObject ?? null,
+	})
+
+	return recordId
+}
+
+/**
+ * Write the resolution onto the conflict object, wherever it currently is.
+ *
+ * Still queued: its payload is amended in place, so it reaches the register
+ * already carrying the decision. Already sent: a follow-up `update` is queued
+ * against the id the server gave it. Never sent at all (no schema configured):
+ * there is nothing to write to, and the queue row keeps the decision.
+ *
+ * @param {object} db          The Dexie handle.
+ * @param {object} operation   The conflicting queue row.
+ * @param {string} resolution  The choice made.
+ * @param {string} resolvedBy  The uid settling it.
+ *
+ * @return {Promise<void>} Nothing.
+ */
+async function recordResolutionOnConflictObject(db, operation, resolution, resolvedBy) {
+	const recordId = operation.conflictRecordId
+	if (typeof recordId !== 'string' || recordId === '') {
+		return
+	}
+
+	const record = await db.mutationQueue.get(recordId)
+	if (record === undefined) {
+		return
+	}
+
+	const decision = { resolution, resolvedBy, resolvedAt: new Date().toISOString() }
+
+	if (record.status !== 'synced') {
+		await db.mutationQueue.update(recordId, { payload: { ...(record.payload ?? {}), ...decision } })
+		return
+	}
+
+	const serverId = String(record.serverObjectId ?? '')
+	if (serverId === '') {
+		return
+	}
+
+	await enqueueMutation({
+		id: `${recordId}-resolution`,
+		deviceId: record.deviceId,
+		operationType: 'update',
+		register: record.register,
+		schema: record.schema,
+		targetId: serverId,
+		payload: { ...(record.payload ?? {}), ...decision },
+	})
+}
+
+/**
+ * Apply a person's conflict resolution to the queue and to the record.
+ *
+ * The decision itself is the pure engine's (`resolveConflictChoice`); this puts
+ * the result where it has to live. Three things happen, and the third is the
+ * one that is easy to forget:
+ *
+ *  1. The queue row takes the engine's patch, so keep-mine replays and
+ *     keep-theirs stops.
+ *  2. Keep theirs leaves the local cache holding the SERVER's version. Marking
+ *     the row synced while the device still shows the abandoned local text is
+ *     how somebody reads their own discarded answer as the current record.
+ *  3. The resolution, who made it and when are written onto the conflict
+ *     object. A conflict record that says a collision happened and not how it
+ *     was settled cannot answer the only question anybody asks later.
+ *
+ * @param {object} args              Resolution arguments.
+ * @param {string} args.operationId  The conflicting queue row.
+ * @param {string} args.resolution   client_wins / server_wins / manual_merge.
+ * @param {object} [args.mergedPayload] The merged body, for a manual merge.
+ * @param {string} [args.resolvedBy] The uid settling it.
+ *
+ * @return {Promise<boolean>} True when a conflict was resolved.
+ */
+export async function applyConflictResolution({
+	operationId,
+	resolution,
+	mergedPayload = null,
+	resolvedBy = '',
+}) {
+	const db = await openDb()
+	const operation = await db.mutationQueue.get(operationId)
+
+	if (operation === undefined || operation.status !== 'conflict') {
+		return false
+	}
+
+	const { patch } = resolveConflictChoice(resolution, mergedPayload)
+	await db.mutationQueue.update(operationId, {
+		...patch,
+		resolution,
+		resolvedBy,
+		resolvedAt: new Date().toISOString(),
+	})
+
+	if (resolution === 'server_wins' && operation.serverVersion !== null && operation.serverVersion !== undefined) {
+		const objectId = String(operation.targetId ?? '')
+		if (objectId !== '') {
+			await db.objectCache.put({
+				key: cacheKey(operation.register, operation.schema, 'planning', objectId),
+				register: operation.register,
+				schema: operation.schema,
+				collection: 'planning',
+				objectId,
+				object: operation.serverVersion,
+			})
+		}
+	}
+
+	await recordResolutionOnConflictObject(db, operation, resolution, resolvedBy)
+
+	return true
 }
 
 /**

@@ -116,7 +116,77 @@ function withPublicPath(config, options = {}) {
 	}
 }
 
+/**
+ * The `appVersion` define, resolved in the browser from the INSTALLED app.
+ *
+ * THE PROBLEM
+ * -----------
+ * `@nextcloud/vue` prints `<app name> <appVersion>` in the footer of every
+ * NcAppSettingsDialog, and reads `appVersion` as a global the app's webpack
+ * config defines. Apps defined it from `package.json` (a `0.1.0` nobody bumps,
+ * so pipelinq read "pipelinq 0.1.0") or from `appinfo/info.xml` at build time.
+ * The second is still wrong on every release: the release workflow writes the
+ * release version into `info.xml` after the bundle is built, so dossiq
+ * 0.4.48-beta said "dossiq 0.4.47-unstable". A build cannot know the version
+ * it will be installed as.
+ *
+ * THE FIX
+ * -------
+ * Define `appVersion` as an EXPRESSION, not a literal. It runs once in the
+ * browser and reads the app's `version` initial state, which the app's page
+ * controller provides from what Nextcloud has installed
+ * (`IAppConfig::getValueString($appId, 'installed_version')`). It reads the
+ * same hidden input `@nextcloud/initial-state` `loadState()` reads; it cannot
+ * import that package because a define is pasted into every module as code.
+ * When the state is missing (a page that does not provide it, a test, a
+ * worker without a document) it falls back to the build-time version.
+ *
+ * USAGE
+ * -----
+ * ```js
+ * // webpack.config.js
+ * const { appVersionDefine } = require('@conduction/nextcloud-vue/webpack')
+ * new webpack.DefinePlugin({ appVersion: appVersionDefine('dossiq', readAppVersion()) })
+ * ```
+ * ```php
+ * // the controller that renders the app's page
+ * $this->initialState->provideInitialState('version', $this->appConfig->getValueString('dossiq', 'installed_version', ''));
+ * ```
+ *
+ * @param {string} appId The app id, as used for its initial state.
+ * @param {string} [fallback] The version to show when no initial state is
+ *   present, normally the build-time `info.xml` version.
+ * @param {object} [options] Options.
+ * @param {string} [options.key] The initial-state key. Defaults to `version`.
+ *
+ * @return {string} A JavaScript expression for `webpack.DefinePlugin`.
+ *
+ * @throws {TypeError} When `appId` is empty.
+ *
+ * @spec openspec/changes/notification-rule-labels-and-runtime-version/specs/notification-preferences/spec.md
+ */
+function appVersionDefine(appId, fallback = '', options = {}) {
+	const id = String(appId || '').trim()
+	if (id === '') {
+		throw new TypeError('appVersionDefine() needs the app id whose installed version it reads')
+	}
+	const key = String(options.key || 'version')
+	const elementId = JSON.stringify('initial-state-' + id + '-' + key)
+	const fallbackLiteral = JSON.stringify(String(fallback ?? ''))
+	return '(function () {'
+		+ ' try {'
+		+ ' var el = typeof document !== "undefined" && document.getElementById(' + elementId + ');'
+		+ ' if (el && el.value) {'
+		+ ' var v = JSON.parse(atob(el.value));'
+		+ ' if (typeof v === "string" && v !== "") { return v; }'
+		+ ' }'
+		+ ' } catch (e) {}'
+		+ ' return ' + fallbackLiteral + ';'
+		+ ' })()'
+}
+
 module.exports = {
 	AUTO_PUBLIC_PATH,
+	appVersionDefine,
 	withPublicPath,
 }

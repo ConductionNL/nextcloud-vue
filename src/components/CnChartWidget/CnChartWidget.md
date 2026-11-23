@@ -18,7 +18,7 @@ When `CnDashboardPage` resolves a widget definition with `type: "chart"`, it mou
 }
 ```
 
-Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueAxisBaseline`, `valueFormat`, `colorMap`, `emptyLabel`, `views`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
+Supported `props` keys forwarded by the dispatcher: `chartKind` (→ `type`), `series`, `categories`, `labels`, `options`, `colors`, `toolbar`, `legend`, `height`, `width`, `unavailableLabel`, plus the display passthrough `horizontal`, `legendPosition`, `valueAxisBaseline`, `valueFormat`, `colorMap`, `emptyLabel`, `views`, `endpointSource`, `barMax`, `matrixLabelWidth`, `footnote`, `highlight`, `cellSource`, `emptyCellLabel`. The `dataSource` field resolves declaratively: `aggregate: 'count'` / raw `graphql` via GraphQL, `bucket` / `groupBy` / the OBJECT-form `aggregate` (Wave 3: group-by + topN/Other + labelResolve) via OpenRegister's REST aggregation facets, with an optional sibling `drilldown: { route, filterParam }` that navigates on segment/bar click with the raw category key in the query.
 
 Area chart — time series data:
 
@@ -98,6 +98,8 @@ Fallback slot — shown when ApexCharts is not available:
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `selectable` | Boolean | `false` | A slice, bar or bar-list row click emits `select` `{ field, value, label, index }` with the grouped field and the category's raw key. |
+| `selected` | Array | `[]` | The raw keys of the categories to show as selected: a ringed, pressed bar-list row or an outlined bar or slice. |
 | `width` | Number\|String | `'100%'` | Chart width (fills container by default) |
 | `options` | Object | `{}` | Custom ApexCharts options deep-merged with the built-in defaults |
 | `colors` | Array | `[]` | Custom color palette (defaults to Nextcloud theme colors) |
@@ -106,6 +108,17 @@ Fallback slot — shown when ApexCharts is not available:
 | `unavailableLabel` | String | `'Chart library not available'` | Text shown when ApexCharts cannot be loaded |
 | `horizontal` | Boolean | `false` | Render `type: "bar"` charts horizontally (row bars); an explicit `options.plotOptions.bar.horizontal` still wins |
 | `legendPosition` | String | `''` | Legend placement override (`top`/`bottom`/`left`/`right`); empty keeps the automatic placement |
+| `legendValues` | Boolean | `false` | Write each slice's value after its name in a pie or donut legend ("Afval 18"), in the value format of the chart. |
+| `barListWide` | Boolean | `false` | The wide `bar-list` of a share per category: a 220px label column, a 90px value column and 12px bars 12px apart. False keeps the compact list. |
+| `barMax` | Number | `null` | `bar-list`: the value a full track stands for (100 for percentages); null takes the largest value |
+| `matrixLabelWidth` | Number | `null` | `matrix`: the row-label column's width in px; a long label wraps (DqProcesanalyse "Dagen per fase": 240). Null sizes the column to its longest label, at least 120px |
+| `footnote` | String | `''` | A line under the chart, through the host's translate: under the rows of a `bar-list` or `matrix`, under the plot of a `line`, `area` or `bar` chart |
+| `notice` | Object | `null` | A toned note card under the chart: `{ lead?, text?, values?, labels?, tone? }`. `{name}` in `lead` (bold) and `text` is filled from `values[name]`, a literal, a record token (`@object.<field>`) or a field of the record a `cellSource` with `cellsPath` read its cells from (`@source.<field>`, such as the matrix's name); `labels[name]` (`"rows"`, `"columns"`, `"values"` or a map) turns a key into words. `tone`: info, success, warning, error. Hidden while a value is missing |
+| `referenceLines` | Array | `[]` | Dashed horizontal reference lines on the value axis of a line, area or bar chart, such as a norm: `[{ value, label?, color? }]`. The label goes through the host's translate; the colour defaults to the theme's error colour (board DqDoorlooptijd). `valuePath` reads the value from the endpoint answer instead, `{value}` in the label writes it, and a line without a value is not drawn. |
+| `categoryFormat` | String | `''` | How date categories read on the x-axis: `month` ("jan") or `month-year` ("jan 2026"), in the user's language, or `week` for ISO week keys ("2026-W40" as "w40"). Categories that are not dates are left as is; a bare year key stays a year. |
+| `emptyCellLabel` | String | `''` | `matrix`: the text of a cell without a value ("geen"), through the host's translate. Empty leaves the cell blank |
+| `highlight` | Object | `null` | `matrix`: the cell to outline, `{ row, column, columnKeys? }`, tokens such as `@object.behaviour` resolved |
+| `cellSource` | Object | `null` | `matrix`: read the cells from records that each hold one cell (`{ register, schema, filter?, rowField, columnField, valueField, … }`), or with `cellsPath` from the cells inside one record, see [Bar list and matrix](#bar-list-and-matrix) |
 | `valueAxisBaseline` | String | `'auto'` | How the value axis picks its baseline, so a small difference cannot read as a dramatic one. `'auto'` anchors magnitude marks (bar/area) at zero and stops line charts zooming past a quarter of the data's magnitude; `'zero'` always anchors at zero; `'fit'` restores plain ApexCharts autoscaling — use it for series that live far from zero (a percentage hovering 95–99), where a zero baseline flattens the signal. Pie-family charts, negative series, empty data and stacked charts (`options.chart.stacked` — where the visible height is the per-category sum, not the largest datapoint) always autoscale; an explicit `options.yaxis.min`/`max` still wins. The ceiling rounds up to a nice number (7 → 8, 62 → 80). |
 | `valueFormat` | String\|Object | `null` | Named value formatter for the value axis + tooltip: `'currency'`, `'currency-compact'`, `'percent'`, or `{ name, currency?, decimals? }` |
 | `colorMap` | Object | `null` | Per-category colour map (`{ categoryLabel: cssColor }`) for pie-family slices and (distributed) bar categories |
@@ -114,6 +127,10 @@ Fallback slot — shown when ApexCharts is not available:
 | `views` | Array | `[]` | In-widget display switcher (Wave 3, #91): `[{ key, label?, series?, valueFormat? }]` — 2+ entries render a pill row; the active view's `series` names filter the rendered cartesian series and its `valueFormat` overrides the widget-level one. Pure display, no arithmetic. |
 
 The `dataSource` OBJECT-form `aggregate` (Wave 3, #91) — `{ groupBy, metric?: 'count'|'sum', sumField?, topN?, otherBucket?, labelResolve?: { register?, schema, labelField?, colorField? } }` — groups the schema's objects via OpenRegister's `/grouped` facet (client-side collection fallback when unavailable), folds the post-`topN` remainder into a translated "Other" slice when `otherBucket: true`, and resolves reference keys to labels/colours through the shared object store (fkResolve pattern). A sibling `drilldown: { route, filterParam }` navigates on segment/bar click with the RAW category key in the query (`/`-prefixed routes are paths, others route names; the Other bucket never navigates).
+
+## Styling the chart
+
+ApexCharts is drawn inside the canvas box's shadow root (`.cn-chart-widget__canvas`). Every ApexCharts redraw measures each label it writes, and in the light DOM each of those measurements also re-checked the page's `:has()` rules, which made a filter step on a full board-look dashboard take seconds. Theme tokens, fonts and text colour still inherit into the chart. Page stylesheets do not reach ApexCharts' own markup (`.apexcharts-*`): style the chart through its props and `options`. A test that queries chart internals with `document.querySelector` reads them through `box.shadowRoot`. Playwright locators pierce the shadow root by themselves.
 
 ## Slots
 
@@ -126,3 +143,4 @@ The `dataSource` OBJECT-form `aggregate` (Wave 3, #91) — `{ groupBy, metric?: 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `widgetId` | String | `''` | Matches `cn:widget:refresh` event-bus events; on a matching id the chart re-queries its `dataSource`. Also exposes a ref-callable `refresh()`. |
+| `barValueAtEnd` | Boolean | `false` | A `bar-list` without a track: each bar as long as its share and its value right after the bar's end (DqProcesanalyse "Doorlooptijd per status"). False keeps the track and the value column. |

@@ -11,6 +11,7 @@
 	     empty — so passing subtitle alone showed nothing. Same pair as
 	     name/title, and as CnIndexSidebar. -->
 	<NcAppSidebar
+		ref="appSidebar"
 		v-model:active="activeTab"
 		:name="sidebarTitle"
 		:title="sidebarTitle"
@@ -139,7 +140,8 @@
 						:objectId="objectId"
 						:register="register"
 						:schema="schema"
-						:apiBase="apiBase" />
+						:apiBase="apiBase"
+						:source="tasksSource" />
 				</slot>
 			</NcAppSidebarTab>
 
@@ -178,7 +180,8 @@
 				v-for="(tab, idx) in tabs"
 				:id="tab.id"
 				:key="tab.id"
-				:name="tab.label"
+				:name="shown(tab.label)"
+				:lang="langOf(tab.label)"
 				:order="tab.order != null ? tab.order : idx + 1"
 				:data-testid="`cn-object-sidebar-tab-${tab.id}`">
 				<template v-if="tab.icon" #icon>
@@ -199,8 +202,8 @@
 				<div v-else class="cn-object-sidebar__tab-widgets">
 					<template v-for="(w, wIdx) in tab.widgets || []">
 						<component
-							:is="resolveWidgetComponent(w.type)"
-							v-if="resolveWidgetComponent(w.type)"
+							:is="tabWidgetComponent(w)"
+							v-if="tabWidgetComponent(w)"
 							:key="wIdx"
 							v-bind="widgetBindings(w)" />
 					</template>
@@ -227,16 +230,25 @@ import CnTagsTab from './CnTagsTab.vue'
 import CnTasksTab from './CnTasksTab.vue'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
+import { labelSidePanelClose } from '../../utils/sidePanelCloseLabel.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { CnAiFeaturesWidget } from '../CnAiFeaturesWidget/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLeafMountHost } from '../CnLeafMountHost/index.js'
 import { CnObjectDataWidget } from '../CnObjectDataWidget/index.js'
 import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
+import { CnObjectPermissionsTab } from '../CnObjectPermissionsTab/index.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 /**
  * Built-in widget registry used by the open-enum `tabs` prop.
  * - `data`         → CnObjectDataWidget (schema-driven editable grid)
  * - `metadata`     → CnObjectMetadataWidget (read-only system metadata)
  * - `audit`        → CnAuditTrailTab (the object's change log / audit trail)
+ * - `object-permissions` → CnObjectPermissionsTab (read-only: who holds which
+ *   right on the object, where each grant came from, and on a past date)
  * - `object-table` → CnWidgetObjectTable (a declarative list scoped to the
  *   parent object — the full source / endpointSource / columns / actions
  *   contract). Resolves `@objectId` / `@object.<field>` filter tokens against
@@ -248,6 +260,8 @@ import { CnObjectMetadataWidget } from '../CnObjectMetadataWidget/index.js'
  * customComponents registry (prop, then injected `cnCustomComponents`).
  */
 const BUILTIN_WIDGETS = {
+	// The hermiq AI features a record's type switches on (CnAiFeaturesWidget).
+	'ai-features': CnAiFeaturesWidget,
 	data: CnObjectDataWidget,
 	metadata: CnObjectMetadataWidget,
 	audit: CnAuditTrailTab,
@@ -260,6 +274,7 @@ const BUILTIN_WIDGETS = {
 	// a sidebar tab can render a related-object list scoped to the parent
 	// object via `@objectId` / `@object.<field>` tokens in its `source.filter`.
 	'object-table': CnWidgetObjectTable,
+	'object-permissions': CnObjectPermissionsTab,
 }
 
 /**
@@ -323,6 +338,8 @@ export default {
 		// the registry (e.g. as `kind: 'page'`) still render. Empty default
 		// keeps the legacy `customComponents`-only path unchanged.
 		cnRegistry: { default: () => ({}) },
+		// The label lookup from CnAppRoot, so tab labels and the title show in the user's language.
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -487,6 +504,14 @@ export default {
 		tagsLabel: { type: String, default: () => t('nextcloud-vue', 'Tags') },
 		/** Label for the Tasks tab */
 		tasksLabel: { type: String, default: () => t('nextcloud-vue', 'Tasks') },
+		/**
+		 * Source of the Tasks tab: `vtodo` (default, the record's linked Nextcloud
+		 * tasks) or `flow-tasks` (the OpenRegister flow tasks anchored on the
+		 * record, with create and per-row verbs). Passed to `CnTasksTab`.
+		 *
+		 * @type {'vtodo'|'flow-tasks'}
+		 */
+		tasksSource: { type: String, default: 'vtodo', validator: (v) => ['vtodo', 'flow-tasks'].includes(v) },
 		/** Label for the Audit Trail tab */
 		auditTrailLabel: { type: String, default: () => t('nextcloud-vue', 'Audit trail') },
 
@@ -505,8 +530,10 @@ export default {
 		 *   `metadata` → CnObjectMetadataWidget, `audit` / `audit-trail` →
 		 *   CnAuditTrailTab, `object-table` → CnWidgetObjectTable (a declarative
 		 *   list scoped to the parent object via `@objectId` / `@object.<field>`
-		 *   filter tokens). Any other `type` resolves against the customComponents
-		 *   registry.
+		 *   filter tokens). `integration` with `integrationId` renders that
+		 *   integration's tab. Any other `type` resolves against the
+		 *   customComponents registry, then the library widget types, which
+		 *   render with the widget's `content` and the object.
 		 * - `component` (string, optional) — name resolved against the
 		 *   customComponents registry. Mutually exclusive with `widgets`
 		 *   (when both are set, `component` wins and a console.warn is logged).
@@ -652,7 +679,7 @@ export default {
 
 	computed: {
 		sidebarTitle() {
-			return this.title || this.objectType || 'Details'
+			return this.shown(this.title) || this.objectType || 'Details'
 		},
 
 		sidebarSubtitle() {
@@ -788,6 +815,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		labelSidePanelClose(this.$refs.appSidebar)
 		// Settle on arrival, so an address carrying no tab is corrected to
 		// its canonical form once rather than staying tabless until the
 		// reader happens to click something (ADR-052).
@@ -801,6 +829,27 @@ export default {
 	},
 
 	methods: {
+
+		/**
+		 * A manifest label through the injected lookup, or as written.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
 		isTabHidden(tabId) {
 			return this.hiddenTabs.includes(tabId)
 		},
@@ -931,13 +980,21 @@ export default {
 		 * widgets get the shared coordinate context plus the loaded object
 		 * (`objectData`); the prop-driven `data` built-in also gets the schema
 		 * OBJECT bound to its `schema` prop (the other tabs use the `schema`
-		 * slug string, so the override is scoped to `type: 'data'`). A widget's
-		 * own `props` win on overlap.
+		 * slug string, so the override is scoped to `type: 'data'`). Of a
+		 * widget's own `props`, the ones its component declares win on overlap;
+		 * an undeclared one would only fall through onto the component's root.
 		 *
+		 * @spec openspec/changes/declared-props-detail-index-sidebar/specs/widget-hosts/spec.md#requirement-a-widget-host-passes-only-the-keys-a-widget-declares
 		 * @param {{ type: string, props?: object }} w Widget spec
 		 * @return {object} Props to v-bind onto the resolved widget component
 		 */
 		widgetBindings(w) {
+			if (w.type === 'integration') {
+				return { ...this.sharedTabProps }
+			}
+			if (this.libraryWidgetRenderer(w.type)) {
+				return { content: (w.content && typeof w.content === 'object') ? w.content : {}, objectId: this.objectId, objectData: this.objectData }
+			}
 			const bindings = { ...this.sharedTabProps, objectData: this.objectData }
 			if (w.type === 'data') {
 				// CnObjectDataWidget wants the schema OBJECT, never the slug the
@@ -946,14 +1003,14 @@ export default {
 				// a String `schema`.
 				bindings.schema = this.objectSchema
 			}
-			return { ...bindings, ...(w.props || {}) }
+			return { ...bindings, ...pickDeclaredProps(this.resolveWidgetComponent(w.type), w.props || {}, w.type || '') }
 		},
 
 		/**
 		 * Resolve a widget type to a component. Built-in types (`data`,
 		 * `metadata`, `audit` / `audit-trail`, `object-table`) map to their
-		 * lib component; any other type falls back to the customComponents
-		 * registry. Logs a console.warn and returns null when nothing
+		 * lib component; any other type resolves against the v2 registry, then
+		 * the legacy customComponents map. Logs a console.warn and returns null when nothing
 		 * resolves.
 		 *
 		 * @param {string} type Widget type identifier
@@ -963,13 +1020,55 @@ export default {
 			if (BUILTIN_WIDGETS[type]) {
 				return BUILTIN_WIDGETS[type]
 			}
+			const registryEntry = this.effectiveRegistry[type]
+			if (registryEntry && registryEntry.component) {
+				return registryEntry.component
+			}
 			const reg = this.effectiveCustomComponents
 			if (reg && reg[type]) {
 				return reg[type]
 			}
+			const library = this.libraryWidgetRenderer(type)
+			if (library) {
+				return library
+			}
 			// eslint-disable-next-line no-console
-			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table) and not in customComponents registry.`)
+			console.warn(`[CnObjectSidebar] Unknown widget type "${type}" — not in built-ins (data, metadata, audit, audit-trail, object-table, object-permissions), the registry, customComponents or the library widgets.`)
 			return null
+		},
+
+		/**
+		 * The component for one widget of a declared tab. `integration` renders
+		 * the tab of the integration `integrationId` names (nothing when it is
+		 * not registered); every other type goes through resolveWidgetComponent.
+		 *
+		 * @spec openspec/changes/sidebar-tab-library-widgets/specs/object-sidebar/spec.md#requirement-a-sidebar-tab-holds-integrations-and-library-widgets
+		 * @param {{ type: string, integrationId?: string }} w Widget spec
+		 * @return {object|null} Vue component, or null when unresolved
+		 */
+		tabWidgetComponent(w) {
+			if (w && w.type === 'integration') {
+				return typeof w.integrationId === 'string' && w.integrationId !== ''
+					? this.resolveRegistryTabComponent(w.integrationId)
+					: null
+			}
+			return this.resolveWidgetComponent(w && w.type)
+		},
+
+		/**
+		 * The renderer of a library widget type that no built-in, app registry
+		 * entry or custom component claims, or null.
+		 *
+		 * @spec openspec/changes/sidebar-tab-library-widgets/specs/object-sidebar/spec.md#requirement-a-sidebar-tab-holds-integrations-and-library-widgets
+		 * @param {string} type Widget type identifier
+		 * @return {object|null} The renderer, or null
+		 */
+		libraryWidgetRenderer(type) {
+			if (typeof type !== 'string' || BUILTIN_WIDGETS[type] || this.effectiveRegistry[type] || (this.effectiveCustomComponents && this.effectiveCustomComponents[type])) {
+				return null
+			}
+			const entry = getWidgetTypeEntry(canonicalWidgetType(type))
+			return (entry && entry.renderer) || null
 		},
 
 		/**

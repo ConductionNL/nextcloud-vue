@@ -1,10 +1,13 @@
 import { defineStore } from 'pinia'
 import { toRaw } from 'vue'
+import { reportDiagnosticOnce, trackedFetch } from '../utils/diagnostics.js'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
 import { genericError, networkError, parseResponseError } from '../utils/errors.js'
 import { normalizeFacets } from '../utils/facets.js'
 import { buildHeaders, buildQueryString, capitalize, prefixUrl } from '../utils/headers.js'
 import { extractId } from '../utils/id.js'
+import { readLensReports } from '../utils/lensAvailability.js'
+import { dispatchObjectCreated } from '../utils/walkthroughSignals.js'
 import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
 import { liveUpdatesPlugin } from './plugins/liveUpdates.js'
 
@@ -84,6 +87,16 @@ function baseState(baseUrl = DEFAULT_BASE_URL) {
 		 * @type {{string: object}}
 		 */
 		facets: {},
+		/**
+		 * Personal-lens reports of the latest collection response per type:
+		 * the body's `@self.lenses` (`{ recent: { available, reason } }`),
+		 * `{}` when it carried none. Written with the rows, so it always
+		 * describes the page on screen.
+		 *
+		 * @type {{string: object}}
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-a-list-response-carries-the-report-of-the-lenses-it-was-asked-for
+		 */
+		lenses: {},
 		/** @type {{baseUrl: string, organisationUuidGetter: (() => string|null)|null, languageGetter: (() => string|null)|null, targetLanguageGetter: (() => string|null)|null}} */
 		_options: {
 			baseUrl: prefixedBaseUrl,
@@ -193,6 +206,7 @@ const baseGetters = {
 	 * @return {(type: string) => object}
 	 */
 	getFacets: (state) => (type) => state.facets[type] || {},
+	getLenses: (state) => (type) => state.lenses[type] || {},
 }
 
 // ── Base actions ────────────────────────────────────────────────────────
@@ -238,9 +252,10 @@ const baseActions = {
 	 * @param {object} [slugs] Optional slug hints for live-updates transport
 	 * @param {string|null} [slugs.registerSlug] Canonical register slug (e.g. 'zaken')
 	 * @param {string|null} [slugs.schemaSlug]   Canonical schema slug (e.g. 'meldingen')
+	 * @param {string} [slugs.collectionUrl] Endpoint `fetchCollection` lists from instead of `/register/schema`; every other call keeps the pair URL
 	 */
 	registerObjectType(slug, schemaId, registerId, slugs = {}) {
-		const { registerSlug = null, schemaSlug = null } = slugs
+		const { registerSlug = null, schemaSlug = null, collectionUrl = null } = slugs
 		// Replace entire objects so Vue 2 reactivity detects the change
 		// (Vue 2 cannot track new properties added to existing reactive objects)
 		this.objectTypeRegistry = {
@@ -250,6 +265,7 @@ const baseActions = {
 				register: registerId,
 				registerSlug,
 				schemaSlug,
+				...(collectionUrl ? { collectionUrl } : {}),
 			},
 		}
 		this.collections = { ...this.collections, [slug]: [] }
@@ -261,6 +277,28 @@ const baseActions = {
 		this.schemas = { ...this.schemas, [slug]: null }
 		this.registers = { ...this.registers, [slug]: null }
 		this.facets = { ...this.facets, [slug]: {} }
+		this.lenses = { ...this.lenses, [slug]: {} }
+	},
+
+	/**
+	 * Give a registered type a second schema path segment to try once when
+	 * its own answers 404 (see `_fetchWithSchemaFallback`). Set by
+	 * `resolveObjectOpType` for a schema title it kebab-cased, with the
+	 * title as written. A type that is not registered is left alone.
+	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
+	 * @param {string} slug The type slug
+	 * @param {string} schema The fallback schema path segment
+	 */
+	setSchemaFallback(slug, schema) {
+		const config = this.objectTypeRegistry[slug]
+		if (!config || typeof schema !== 'string' || schema === '') {
+			return
+		}
+		this.objectTypeRegistry = {
+			...this.objectTypeRegistry,
+			[slug]: { ...config, schemaFallback: schema },
+		}
 	},
 
 	/**
@@ -283,6 +321,7 @@ const baseActions = {
 		this.schemas = omit(this.schemas, slug)
 		this.registers = omit(this.registers, slug)
 		this.facets = omit(this.facets, slug)
+		this.lenses = omit(this.lenses, slug)
 	},
 
 	/**
@@ -416,6 +455,7 @@ const baseActions = {
 		this.collections = {}
 		this.objects = {}
 		this.facets = {}
+		this.lenses = {}
 		this.pagination = {}
 		// Errors + loading flags are per-fetch and don't need a reset.
 	},
@@ -432,11 +472,12 @@ const baseActions = {
 	 *
 	 * @param {string} type The type slug
 	 * @param {string|null} [id] Optional object ID
+	 * @param {string|null} [schema] Schema path segment to use instead of the type's own
 	 * @return {string} Full API URL path
 	 */
-	_buildUrl(type, id = null) {
+	_buildUrl(type, id = null, schema = null) {
 		const config = this._getTypeConfig(type)
-		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
+		let url = `${this._options.baseUrl}/${config.register}/${schema ?? config.schema}`
 		if (id) {
 			url += `/${id}`
 		}
@@ -457,11 +498,12 @@ const baseActions = {
 	 * @param {string} type The type slug
 	 * @param {object} [params] Extra query parameters
 	 * @param {string|null} [id] Optional object ID
+	 * @param {string|null} [schema] Schema path segment to use instead of the type's own
 	 * @return {string} Full API URL path including query string
 	 */
-	_buildUrlWithParams(type, params = {}, id = null) {
+	_buildUrlWithParams(type, params = {}, id = null, schema = null) {
 		const config = this._getTypeConfig(type)
-		let url = `${this._options.baseUrl}/${config.register}/${config.schema}`
+		let url = `${this._options.baseUrl}/${config.register}/${schema ?? config.schema}`
 		if (id) {
 			url += `/${id}`
 		}
@@ -469,6 +511,79 @@ const baseActions = {
 		const merged = lang ? { ...params, _lang: lang } : params
 		url += buildQueryString(merged)
 		return url
+	},
+
+	/**
+	 * Build the list URL for a type registered with a `collectionUrl`. `_order`
+	 * goes in the bracket form (`_order[key]=dir`) every PHP endpoint parses.
+	 *
+	 * @param {object} config The type config
+	 * @param {object} [params] Query parameters
+	 * @return {string} Full URL including query string
+	 */
+	_buildCollectionUrl(config, params = {}) {
+		const { _order: order, ...rest } = params
+		const merged = { ...rest }
+		if (order && typeof order === 'object') {
+			for (const [key, dir] of Object.entries(order)) {
+				merged[`_order[${key}]`] = dir
+			}
+		}
+		const lang = this._resolveLanguage()
+		if (lang) {
+			merged._lang = lang
+		}
+		const url = prefixUrl(config.collectionUrl)
+		const query = buildQueryString(merged)
+		return query && url.includes('?') ? url + '&' + query.slice(1) : url + query
+	},
+
+	/**
+	 * Fetch for a type, retrying ONCE with its `schemaFallback` when the
+	 * schema path segment answers 404. A type without a fallback (every type
+	 * not registered by `resolveObjectOpType` for a kebab-cased title) makes
+	 * exactly the one request it always made. When the retry succeeds the
+	 * fallback becomes the type's schema, so later calls go straight to it;
+	 * when it does not, the first answer is returned and nothing changes.
+	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
+	 * @param {string} type The type slug
+	 * @param {function((string|null)): string} makeUrl Builds the URL; called with
+	 *   null for the type's own schema, or with the fallback segment.
+	 * @param {object} init The fetch options.
+	 * @return {Promise<Response>} The response to use.
+	 */
+	async _fetchWithSchemaFallback(type, makeUrl, init) {
+		// `makeUrl` wraps `_buildUrl` / `_buildUrlWithParams`, so `url` is built
+		// from the prefixed `_options.baseUrl` like every other request here.
+		let url = makeUrl(null)
+		const response = await trackedFetch(url, init)
+		if (!response || response.status !== 404) {
+			return response
+		}
+		const config = this.objectTypeRegistry[type]
+		const fallback = config && config.schemaFallback
+		if (!fallback || String(fallback) === String(config.schema)) {
+			return response
+		}
+		let retry
+		try {
+			url = makeUrl(fallback)
+			retry = await trackedFetch(url, init)
+		} catch {
+			return response
+		}
+		if (!retry || !retry.ok) {
+			discardResponseBody(retry)
+			return response
+		}
+		discardResponseBody(response)
+		const { schemaFallback: _, ...rest } = config
+		this.objectTypeRegistry = {
+			...this.objectTypeRegistry,
+			[type]: { ...rest, schema: fallback },
+		}
+		return retry
 	},
 
 	/**
@@ -503,6 +618,7 @@ const baseActions = {
 	 * Fetch the schema definition for a registered type.
 	 * Uses cache — only fetches once per type per session.
 	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
 	 * @param {string} type The registered type slug
 	 * @return {Promise<object|null>} The schema object or null on error
 	 */
@@ -523,8 +639,12 @@ const baseActions = {
 			const registerScope = config.register
 				? `?register=${encodeURIComponent(config.register)}`
 				: ''
-			const response = await fetch(
-				prefixUrl(`/apps/openregister/api/schemas/${config.schema}${registerScope}`),
+			// Through the schema fallback like every objects-API call: a type
+			// resolveObjectOpType registered from a title (`APInvoice` ->
+			// `ap-invoice`) retries once with the title as written on a 404.
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => prefixUrl(`/apps/openregister/api/schemas/${schema ?? config.schema}${registerScope}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
 
@@ -534,6 +654,9 @@ const baseActions = {
 				// body leaves the request in flight for the life of the page and
 				// `networkidle` never arrives.
 				discardResponseBody(response)
+				if (response.status === 404) {
+					reportDiagnosticOnce(`binding|missing-schema|${type}`, { kind: 'binding', problem: 'missing-schema', register: String(config.register || ''), schema: String(config.schema || ''), property: null, where: null })
+				}
 				return null
 			}
 
@@ -560,7 +683,7 @@ const baseActions = {
 		}
 
 		try {
-			const response = await fetch(
+			const response = await trackedFetch(
 				prefixUrl(`/apps/openregister/api/registers/${config.register}`),
 				{ method: 'GET', headers: this._buildHeaders() },
 			)
@@ -568,6 +691,9 @@ const baseActions = {
 			if (!response.ok) {
 				// Same leak as fetchSchema above (#573) — same shape, same fix.
 				discardResponseBody(response)
+				if (response.status === 404) {
+					reportDiagnosticOnce(`binding|missing-register|${type}`, { kind: 'binding', problem: 'missing-register', register: String(config.register || ''), schema: String(config.schema || ''), property: null, where: null })
+				}
 				return null
 			}
 
@@ -584,9 +710,24 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {object} [params] Query parameters (_limit, _page, _search, _order, filters)
-	 * @return {Promise<Array>} The fetched collection (also stored in state)
+	 * @param {object} [options] Call options
+	 * @param {{error?: object|null}} [options.outcome] Opt-in sink for THIS call's own result: `error` is set to the error it records on `errors[type]`, or `null` on success. Unlike `errors[type]`, which every call for the type shares, a later call cannot overwrite it.
+	 * @param {boolean} [options.append] Add the fetched page after the rows already stored instead of replacing them. Dropped when the stored rows are no longer the page before it, or when `options.isCurrent()` returns false (the query changed meanwhile).
+	 * @param {() => boolean} [options.isCurrent] With `append`: asked once the page arrives; false drops it.
+	 * @return {Promise<Array>} The fetched collection (also stored in state, unless a newer non-append fetch for the type started meanwhile)
+	 * @spec openspec/changes/list-keeps-its-newest-query/specs/list-keeps-its-newest-query/spec.md#requirement-the-newest-list-query-decides-what-the-list-shows
 	 */
-	async fetchCollection(type, params = {}) {
+	async fetchCollection(type, params = {}, options = {}) {
+		const outcome = (options && typeof options.outcome === 'object' && options.outcome) || null
+		const append = options?.append === true
+		// Responses can arrive out of order; only the newest query for the
+		// type may write the list. An append page belongs to the query before it.
+		const currentQuery = this.__currentCollectionQuery || (this.__currentCollectionQuery = {})
+		if (!append) {
+			currentQuery[type] = JSON.stringify(params)
+		}
+		const query = currentQuery[type]
+		const superseded = () => currentQuery[type] !== query
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
@@ -603,28 +744,57 @@ const baseActions = {
 				}
 			}
 
-			const url = this._buildUrlWithParams(type, fetchParams)
-
-			const response = await fetch(url, {
-				method: 'GET',
-				headers: this._buildHeaders(),
-			})
+			const config = this._getTypeConfig(type)
+			const init = { method: 'GET', headers: this._buildHeaders() }
+			const response = config.collectionUrl
+				? await trackedFetch(this._buildCollectionUrl(config, fetchParams), init)
+				: await this._fetchWithSchemaFallback(
+						type,
+						(schema) => this._buildUrlWithParams(type, fetchParams, null, schema),
+						init,
+					)
 
 			if (!response.ok) {
-				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				const failure = await parseResponseError(response, type)
+				if (outcome) {
+					outcome.error = failure
+				}
+				if (superseded()) {
+					return []
+				}
+				this.errors = { ...this.errors, [type]: failure }
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
-				console.error(`Error fetching ${type} collection:`, this.errors[type])
+				console.error(`Error fetching ${type} collection:`, failure)
 				return []
 			}
 
 			const data = await response.json()
 			const results = data.results || data
 
-			this.collections = { ...this.collections, [type]: results }
+			if (superseded()) {
+				if (outcome) {
+					outcome.error = null
+				}
+				return append ? [] : results
+			}
+			const stale = append && (
+				Number(this.pagination[type]?.page || 1) !== Number(params._page || 1) - 1
+				|| (typeof options.isCurrent === 'function' && !options.isCurrent())
+			)
+			if (stale) {
+				return []
+			}
+
+			this.collections = {
+				...this.collections,
+				[type]: append ? [...(this.collections[type] || []), ...results] : results,
+			}
+			// Why a personal lens came back empty, if it says (openregister#4514).
+			this.lenses = { ...this.lenses, [type]: readLensReports(data) }
 			this.pagination = {
 				...this.pagination,
 				[type]: {
-					total: data.total || results.length,
+					total: data.total || (append ? this.collections[type].length : results.length),
 					page: data.page || 1,
 					pages: data.pages || 1,
 					limit: params._limit || 20,
@@ -637,19 +807,70 @@ const baseActions = {
 				this.facets = { ...this.facets, [type]: transformed }
 			}
 
+			if (outcome) {
+				outcome.error = null
+			}
 			return results
 		} catch (error) {
-			this.errors = {
-				...this.errors,
-				[type]: error.name === 'TypeError'
-					? networkError(error)
-					: genericError(error),
+			const failure = error.name === 'TypeError'
+				? networkError(error)
+				: genericError(error)
+			if (outcome) {
+				outcome.error = failure
 			}
+			if (superseded()) {
+				return []
+			}
+			this.errors = { ...this.errors, [type]: failure }
 			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 			console.error(`Error fetching ${type} collection:`, error)
 			return []
 		} finally {
-			this.loading = { ...this.loading, [type]: false }
+			if (!superseded()) {
+				this.loading = { ...this.loading, [type]: false }
+			}
+		}
+	},
+
+	/**
+	 * Fetch a collection of objects WITHOUT touching `collections[type]` /
+	 * `pagination[type]` / `loading[type]` / `errors[type]`.
+	 *
+	 * `fetchCollection` and this method share a `type` slug keyed only by
+	 * register+schema, not by query — so a caller fetching the SAME type
+	 * with different params (e.g. a reference-field picker loading option
+	 * results, unfiltered and unpaged) would otherwise clobber the state a
+	 * self-fetch `CnIndexPage` for that exact type is reactively bound to.
+	 * That collision is real whenever a schema references itself (a case's
+	 * "Parent case" field pointing back at `case`): opening the create
+	 * dialog silently overwrote the open list's rows and count with the
+	 * picker's own result set. Use this for any lookup whose results are
+	 * not meant to drive a list view.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {object} [params] Query parameters (_limit, _page, _search, _order, filters)
+	 * @return {Promise<Array>} The fetched results, never written to store state
+	 */
+	async fetchCollectionForOptions(type, params = {}) {
+		try {
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrlWithParams(type, params, null, schema),
+				{
+					method: 'GET',
+					headers: this._buildHeaders(),
+				},
+			)
+
+			if (!response.ok) {
+				discardResponseBody(response)
+				return []
+			}
+
+			const data = await response.json()
+			return data.results || data
+		} catch {
+			return []
 		}
 	},
 
@@ -658,20 +879,25 @@ const baseActions = {
 	 *
 	 * @param {string} type The registered type slug
 	 * @param {string} id The object ID or UUID
+	 * @param {object} [options] Read options
+	 * @param {string[]} [options.extend] Values for `_extend[]` (e.g. `['@self.can']`), for markers OpenRegister returns only on request
 	 * @return {Promise<object|null>} The fetched object (also cached in state)
 	 */
-	async fetchObject(type, id) {
-		const url = this._buildUrl(type, id)
+	async fetchObject(type, id, options = {}) {
+		const extend = Array.isArray(options && options.extend) ? options.extend.filter((e) => typeof e === 'string' && e !== '') : []
+		const url = extend.length > 0
+			? this._buildUrlWithParams(type, { _extend: extend }, id)
+			: this._buildUrl(type, id)
 		// Share a single in-flight request across concurrent callers asking
 		// for the same object on this store, instead of firing a duplicate
 		// network call. Scoped to (store, type, id) so it never starves a
 		// different store's cache — see `_inflightObjectFetches` above.
-		const key = `${this.$id}::${type}::${id}`
+		const key = `${this.$id}::${type}::${id}${extend.length > 0 ? '::' + extend.join(',') : ''}`
 		const existing = _inflightObjectFetches.get(key)
 		if (existing) {
 			return existing
 		}
-		const request = this._requestObject(type, id, url)
+		const request = this._requestObject(type, id, url, extend)
 		_inflightObjectFetches.set(key, request)
 		try {
 			return await request
@@ -687,17 +913,24 @@ const baseActions = {
 	 * @param {string} type The registered type slug
 	 * @param {string} id The object id
 	 * @param {string} url The pre-built request URL
+	 * @param {string[]} [extend] The `_extend[]` values the URL carries (kept on a schema-fallback retry)
 	 * @return {Promise<object|null>} The object or null on error
 	 */
-	async _requestObject(type, id, url) {
+	async _requestObject(type, id, url, extend = []) {
 		this.loading = { ...this.loading, [type]: true }
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const response = await fetch(url, {
-				method: 'GET',
-				headers: this._buildHeaders(),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => (schema === null
+					? url
+					: (extend.length > 0 ? this._buildUrlWithParams(type, { _extend: extend }, id, schema) : this._buildUrl(type, id, schema))),
+				{
+					method: 'GET',
+					headers: this._buildHeaders(),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
@@ -753,6 +986,61 @@ const baseActions = {
 	},
 
 	/**
+	 * Update only some keys of an object: a PATCH carrying `changes`, so every
+	 * key the caller did not send keeps its stored value. The saved object
+	 * replaces the cached one.
+	 *
+	 * @param {string} type The registered type slug
+	 * @param {string} id The object id
+	 * @param {object} changes The keys to write, with their new values
+	 * @return {Promise<object|null>} The saved object or null on error
+	 * @spec openspec/changes/forms-save-edited-keys/specs/object-store/spec.md#requirement-an-edit-writes-only-the-keys-it-changed
+	 */
+	async patchObject(type, id, changes) {
+		this.loading = { ...this.loading, [type]: true }
+		this.errors = { ...this.errors, [type]: null }
+
+		try {
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrl(type, id, schema),
+				{
+					method: 'PATCH',
+					headers: this._buildHeaders(),
+					body: JSON.stringify(changes || {}),
+				},
+			)
+
+			if (!response.ok) {
+				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
+				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+				console.error(`Error saving ${type}:`, this.errors[type])
+				return null
+			}
+
+			const data = await response.json()
+			const savedId = data.id || id
+			this.objects = {
+				...this.objects,
+				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
+			return data
+		} catch (error) {
+			this.errors = {
+				...this.errors,
+				[type]: error.name === 'TypeError'
+					? networkError(error)
+					: genericError(error),
+			}
+			// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
+			console.error(`Error saving ${type}:`, error)
+			return null
+		} finally {
+			this.loading = { ...this.loading, [type]: false }
+		}
+	},
+
+	/**
 	 * Create or update an object. Uses POST for new objects, PUT for updates.
 	 *
 	 * @param {string} type The registered type slug
@@ -765,16 +1053,19 @@ const baseActions = {
 
 		try {
 			const isUpdate = !!objectData.id
-			const url = isUpdate
-				? this._buildUrl(type, objectData.id)
-				: this._buildUrl(type)
 			const method = isUpdate ? 'PUT' : 'POST'
 
-			const response = await fetch(url, {
-				method,
-				headers: this._buildHeaders(),
-				body: JSON.stringify(objectData),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => (isUpdate
+					? this._buildUrl(type, objectData.id, schema)
+					: this._buildUrl(type, null, schema)),
+				{
+					method,
+					headers: this._buildHeaders(),
+					body: JSON.stringify(objectData),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
@@ -789,6 +1080,13 @@ const baseActions = {
 			this.objects = {
 				...this.objects,
 				[type]: { ...(this.objects[type] || {}), [savedId]: data },
+			}
+
+			// Every create through the store lets an `advanceOn:
+			// object-created` walkthrough step advance, whichever form made it.
+			if (!isUpdate) {
+				const config = this.objectTypeRegistry[type] || {}
+				dispatchObjectCreated({ register: config.registerSlug || config.register, schema: config.schemaSlug || config.schema, object: data })
 			}
 
 			return data
@@ -819,12 +1117,14 @@ const baseActions = {
 		this.errors = { ...this.errors, [type]: null }
 
 		try {
-			const url = this._buildUrl(type, id)
-
-			const response = await fetch(url, {
-				method: 'DELETE',
-				headers: this._buildHeaders(),
-			})
+			const response = await this._fetchWithSchemaFallback(
+				type,
+				(schema) => this._buildUrl(type, id, schema),
+				{
+					method: 'DELETE',
+					headers: this._buildHeaders(),
+				},
+			)
 
 			if (!response.ok) {
 				this.errors = { ...this.errors, [type]: await parseResponseError(response, type) }
@@ -885,7 +1185,7 @@ const baseActions = {
 			const runOne = async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -972,7 +1272,7 @@ const baseActions = {
 			const fetches = toFetch.map(async (id) => {
 				try {
 					const url = this._buildUrl(type, id)
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})

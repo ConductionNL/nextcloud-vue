@@ -3,6 +3,7 @@
 <template>
 	<div v-if="active"
 		class="cn-walkthrough"
+		:class="{ 'cn-walkthrough--board': isBoard }"
 		:style="{ zIndex }"
 		role="dialog"
 		aria-modal="true"
@@ -25,7 +26,12 @@
 		     the greyed-out area reaches the app, which is the point. A centered
 		     step spotlights nothing, so its backdrop stays interactive and
 		     dismisses the tour. -->
-		<template v-if="isCentered || !rect">
+		<!-- Quiet: an app dialog is open, or the step's target belongs to
+		     another page. No dim and no cutout, so the overlay never sits on
+		     top of the dialog and never invites a click on the wrong page.
+		     Only the docked coachmark stays. -->
+		<template v-if="quiet" />
+		<template v-else-if="isCentered || !rect">
 			<div v-if="isCentered"
 				class="cn-walkthrough__dim cn-walkthrough__dim--full"
 				@click.self="onBackdrop" />
@@ -50,7 +56,10 @@
 		<!-- Coachmark card -->
 		<div ref="card"
 			class="cn-walkthrough__card"
-			:class="`cn-walkthrough__card--${cardPlacement}`"
+			:class="[
+				`cn-walkthrough__card--${cardPlacement}`,
+				{ 'cn-walkthrough__card--docked': quiet, 'cn-walkthrough__card--centered': isCentered && !quiet },
+			]"
 			:style="cardStyle">
 			<NcButton class="cn-walkthrough__close"
 				variant="tertiary"
@@ -74,7 +83,7 @@
 				:skip="skip"
 				:skipLabel="skipLabel">
 				<div class="cn-walkthrough__counter">
-					{{ index + 1 }} / {{ total }}
+					{{ counterText }}
 				</div>
 				<h3 v-if="stepTitle" class="cn-walkthrough__title">
 					{{ stepTitle }}
@@ -83,9 +92,19 @@
 					{{ stepBody }}
 				</p>
 				<p v-if="stepTask" class="cn-walkthrough__task">
-					<span class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ stepTask }}
+					<ChevronRight v-if="isBoard" :size="16" class="cn-walkthrough__task-icon" />
+					<span v-else class="cn-walkthrough__task-icon" aria-hidden="true">👉</span> {{ stepTask }}
 				</p>
 				<div class="cn-walkthrough__actions">
+					<div v-if="isBoard"
+						class="cn-walkthrough__dots"
+						aria-hidden="true"
+						data-testid="cn-walkthrough-dots">
+						<span v-for="dot in total"
+							:key="dot"
+							class="cn-walkthrough__dot"
+							:class="{ 'cn-walkthrough__dot--current': dot === index + 1 }" />
+					</div>
 					<NcButton v-if="!isFirst" variant="secondary" @click="back">
 						<template #icon>
 							<ChevronLeft :size="20" />
@@ -125,6 +144,7 @@ import { NcButton } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import { useLook } from '../../composables/useLook.js'
 import { useWalkthrough } from '../../composables/useWalkthrough.js'
 
 /**
@@ -167,6 +187,12 @@ export default {
 		tourId: { type: String, default: '' },
 		/** Optional resume token `{ tourId, stepId }` (refresh / cross-app hand-off). */
 		resume: { type: Object, default: null },
+		/**
+		 * Whether a first-visit tour may start on its own. The host turns it
+		 * off while the user's tour is paused, so a paused tour stays hidden
+		 * across page loads until the user picks "Continue".
+		 */
+		autoStart: { type: Boolean, default: true },
 		/** Stacking order of the overlay. */
 		zIndex: { type: Number, default: 10000 },
 		/** Next button label. */
@@ -181,17 +207,21 @@ export default {
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close tour') },
 		/** Optional translate function applied to step title/body/task i18n keys. */
 		translate: { type: Function, default: null },
+		/** `board` draws the board coachmark; unset, the look comes from `cnLook`. */
+		look: { type: String, default: undefined },
 	},
 
-	emits: ['complete', 'dismiss', 'step-change', 'advance', 'handoff'],
+	emits: ['complete', 'dismiss', 'pause', 'progress', 'step-change', 'advance', 'handoff'],
 
+	/** @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look */
 	setup(props) {
 		const wt = useWalkthrough(props.appId, props.manifest, {
 			seenVersion: props.seenVersion,
 			resume: props.resume,
 			onComplete: undefined,
 		})
-		return { wt }
+		const { isBoard } = useLook(props)
+		return { wt, isBoard }
 	},
 
 	data() {
@@ -200,6 +230,10 @@ export default {
 			cardPos: { top: 0, left: 0 },
 			cardPlacement: 'bottom',
 			targetEl: null,
+			// An app dialog (NcModal / NcDialog) is open over the page.
+			appModalOpen: false,
+			// The step's target was found on another page than the current one.
+			offPage: false,
 		}
 	},
 
@@ -226,6 +260,31 @@ export default {
 
 		isLast() {
 			return this.wt.isLast.value
+		},
+
+		/**
+		 * Whether the overlay steps back: no dim, no cutout, a docked card.
+		 * True while an app dialog is open or the step's target is on
+		 * another page.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {boolean}
+		 */
+		quiet() {
+			return this.appModalOpen || this.offPage
+		},
+
+		/**
+		 * The step counter: in words under the board look.
+		 *
+		 * @return {string} The counter.
+		 * @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look
+		 */
+		counterText() {
+			const current = this.index + 1
+			return this.isBoard
+				? t('nextcloud-vue', 'Step {current} of {total}', { current, total: this.total })
+				: `${current} / ${this.total}`
 		},
 
 		isCentered() {
@@ -320,7 +379,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/changes/walkthrough-board-coachmark/specs/walkthrough-board-coachmark/spec.md#requirement-the-walkthrough-follows-the-board-look */
 		cardStyle() {
+			if (this.quiet) {
+				return {}
+			}
+			if (this.isCentered && this.isBoard) {
+				return { top: '88px', left: '50%', transform: 'translateX(-50%)' }
+			}
 			if (this.isCentered || !this.rect) {
 				return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
 			}
@@ -339,6 +405,18 @@ export default {
 				 * @type {{ stepId: string, index: number }}
 				 */
 				this.$emit('step-change', { stepId: newStep.id, index: this.index })
+				/**
+				 * @event progress Emitted on every step change so the host can remember where the user is.
+				 * @type {{ tourId: string, stepId: string, index: number }}
+				 */
+				this.$emit('progress', {
+					tourId: (this.wt.activeTour.value && this.wt.activeTour.value.id) || '',
+					stepId: newStep.id,
+					index: this.index,
+				})
+				// A new step finds its own page again.
+				this._homeRoute = null
+				this.offPage = false
 				this.$nextTick(() => this.locateTarget())
 			}
 		},
@@ -377,6 +455,9 @@ export default {
 		// A qualifying auto-start tour whose first-step page is NOT the current
 		// route — held here until the user navigates to that page (see hookRouter).
 		this._pendingAutoTour = null
+		// The route the active step's target was first found on (see locateTarget).
+		this._homeRoute = null
+		this._modalObs = null
 	},
 
 	mounted() {
@@ -386,12 +467,27 @@ export default {
 		window.addEventListener('scroll', this._onScroll, true)
 		window.addEventListener('resize', this._onScroll)
 		this._onKey = (e) => {
-			if (e.key === 'Escape') {
-				this.onBackdrop()
+			if (e.key !== 'Escape' || !this.active) {
+				return
 			}
+			// ESC while an app dialog is open belongs to that dialog. It used
+			// to dismiss the tour too, so closing a create form ended it.
+			if (this.isAppModalOpen()) {
+				return
+			}
+			this.onBackdrop()
 		}
 		window.addEventListener('keydown', this._onKey)
-		this._onObjectCreated = (e) => this.wt.notify({ kind: 'object-created', object: (e && e.detail) || {} })
+		this._onObjectCreated = (e) => {
+			const d = (e && e.detail) || {}
+			this.wt.notify({
+				kind: 'object-created',
+				register: d.register,
+				schema: d.schema,
+				object: d.object && typeof d.object === 'object' ? d.object : d,
+			})
+		}
+		this.watchAppModals()
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
 		this.hookRouter()
 		if (this.active) {
@@ -404,6 +500,10 @@ export default {
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)
 		window.removeEventListener('cn-walkthrough:object-created', this._onObjectCreated)
+		if (this._modalObs) {
+			this._modalObs.disconnect()
+			this._modalObs = null
+		}
 		if (typeof this._routeUnhook === 'function') {
 			this._routeUnhook()
 		}
@@ -411,6 +511,76 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an app dialog (NcModal / NcDialog, or any other modal
+		 * dialog that is not this overlay) is open. A mask that is in the DOM
+		 * but hidden (NcModal keeps a closed modal's mask with display:none)
+		 * does not count.
+		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @return {boolean}
+		 */
+		isAppModalOpen() {
+			if (typeof document === 'undefined') {
+				return false
+			}
+			const own = this.$el
+			const nodes = document.querySelectorAll('.modal-mask, [role="dialog"][aria-modal="true"]')
+			for (const node of nodes) {
+				if (own && typeof own.contains === 'function' && (own === node || own.contains(node))) {
+					continue
+				}
+				if (this.isHiddenNode(node)) {
+					continue
+				}
+				return true
+			}
+			return false
+		},
+
+		/**
+		 * Whether the node or one of its ancestors is hidden with
+		 * `display: none`, `visibility: hidden` or the `hidden` attribute.
+		 *
+		 * @param {Element} node The node.
+		 * @return {boolean}
+		 */
+		isHiddenNode(node) {
+			for (let el = node; el && el.nodeType === 1; el = el.parentElement) {
+				if (el.hasAttribute('hidden')) {
+					return true
+				}
+				const style = window.getComputedStyle(el)
+				if (style.display === 'none' || (el === node && style.visibility === 'hidden')) {
+					return true
+				}
+			}
+			return false
+		},
+
+		/**
+		 * Follow app dialogs opening and closing, so the overlay steps back
+		 * while one is open and comes back after.
+		 *
+		 * @return {void}
+		 */
+		watchAppModals() {
+			const update = () => {
+				const open = this.isAppModalOpen()
+				if (open !== this.appModalOpen) {
+					this.appModalOpen = open
+					if (!open && this.active) {
+						this.$nextTick(() => this.locateTarget())
+					}
+				}
+			}
+			update()
+			if (typeof window !== 'undefined' && window.MutationObserver) {
+				this._modalObs = new MutationObserver(update)
+				this._modalObs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden'] })
+			}
+		},
+
 		/**
 		 * Translate an i18n key/text via the `translate` prop when given.
 		 *
@@ -466,6 +636,9 @@ export default {
 			}
 			if (this.tourId) {
 				this.wt.start(this.tourId)
+				return
+			}
+			if (!this.autoStart) {
 				return
 			}
 			const auto = this.wt.autoStartTour.value
@@ -571,11 +744,27 @@ export default {
 		 * deferred tour) go through here — so a centered step cannot be
 		 * swallowed by either.
 		 *
+		 * A tour that declares `startOn` opens only on one of those route
+		 * names, whatever its first step looks like.
+		 *
 		 * @param {object} tour The tour definition.
 		 * @param {string} [routeName] The current route name.
 		 * @return {boolean} True when the tour may open on this route.
+		 * @spec openspec/changes/a-tour-starts-on-the-pages-it-names/specs/walkthrough/spec.md
 		 */
 		routeMatchesTour(tour, routeName) {
+			// A tour that names where it starts (`startOn`) opens only there.
+			// It wins over the centered-step rule below: a welcome card floats
+			// in the middle of the screen, but a user who opens a case from a
+			// mail link lands on that case, and the card then blocks the page
+			// they came for. Measured 13 October on dossiq: a staff user's first
+			// visit was a deep link to a Woo request, and "Welcome to Dossiq"
+			// opened over it. The tour waits in `_pendingAutoTour` and opens when
+			// the user reaches a named route.
+			const startOn = Array.isArray(tour && tour.startOn) ? tour.startOn.map(String) : []
+			if (startOn.length > 0) {
+				return !!routeName && startOn.includes(String(routeName))
+			}
 			const page = this.firstStepPage(tour)
 			if (!page) {
 				return true
@@ -598,6 +787,23 @@ export default {
 				return
 			}
 			const el = this.resolveTarget(this.step)
+			// A step's target belongs to the page it was first found on. The
+			// same `index-add` button exists on every list page, and a step
+			// left half-done on Products used to spotlight the Clients page's
+			// button too, inviting a click that belonged to another step.
+			const kind = (this.step.target && this.step.target.kind) || ''
+			const routeName = this.$route ? this.$route.name : null
+			if (el && kind !== 'page' && kind !== 'nav-item' && routeName) {
+				if (this._homeRoute === null) {
+					this._homeRoute = routeName
+				} else if (this._homeRoute !== routeName) {
+					this.offPage = true
+					this.targetEl = null
+					this.rect = null
+					return
+				}
+			}
+			this.offPage = false
 			this.targetEl = el
 			if (!el) {
 				// Optional step whose target is absent → skip; else wait for it.
@@ -605,14 +811,10 @@ export default {
 					this.wt.skip()
 					return
 				}
-				// A nav-item/page target may be absent because it lives in a
-				// collapsed nav group (children not rendered). Best-effort expand
-				// the group so the MutationObserver below catches the now-rendered
-				// target and re-locates it.
-				const tgtKind = (this.step.target && this.step.target.kind) || ''
-				if (tgtKind === 'nav-item' || tgtKind === 'page') {
-					this.revealTarget()
-				}
+				// Genuinely not in the DOM (nothing to reveal) — wait for it to
+				// appear. A target hidden by a collapsed nav group is handled by
+				// computeRect()'s zero-size check below instead, since `el` is
+				// resolvable there and revealTarget() can walk up from it.
 				this.observeForTarget()
 				this.rect = null
 				return
@@ -648,7 +850,7 @@ export default {
 					return null
 				}
 			}
-			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/"/g, '\\"'))
+			const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/["\\]/g, '\\$&'))
 			if (tgt.kind === 'selector' && tgt.selector) {
 				return q(tgt.selector)
 			}
@@ -672,85 +874,41 @@ export default {
 		},
 
 		/**
-		 * Best-effort expand collapsed NcAppNavigation groups so a target nested
-		 * inside one renders (and becomes measurable). A collapsed group keeps its
-		 * children in the DOM but `display:none`, so the target can't be located or
-		 * measured and the engine would otherwise fall back to a centered coachmark.
-		 *
-		 * Scoped to the app navigation. Robust across `@nextcloud/vue` markup
-		 * variants: it primarily clicks any `[aria-expanded="false"]` toggle that
-		 * is not a menu trigger (an NcActions button reports the same state and
-		 * would pop a menu over the navigation), then falls back to the collapse
-		 * button of any collapsible group that is not in the opened state. Attempted at most once per step (guarded by
-		 * `_revealAttempted`, reset in teardownStep) to avoid an expand/observe loop.
+		 * Expand only the collapsed nav groups that are actual ancestors of
+		 * `this.targetEl` (already resolved, just `display:none`'d by a
+		 * collapsed parent), instead of scanning the whole navigation.
+		 * Attempted at most once per step (`_revealAttempted`, reset in
+		 * teardownStep).
 		 *
 		 * @return {void}
 		 */
 		revealTarget() {
-			if (this._revealAttempted) {
+			if (this._revealAttempted || !this.targetEl) {
 				return
 			}
 			this._revealAttempted = true
-			const nav = document.querySelector('.app-navigation') || document.querySelector('#app-navigation')
-			if (!nav) {
-				return
+			const click = (btn) => {
+				if (btn && typeof btn.click === 'function') {
+					try {
+						btn.click()
+					} catch { /* jsdom / detached */ }
+				}
 			}
-			const clicked = new Set()
-			const click = (el) => {
-				if (!el || clicked.has(el) || typeof el.click !== 'function') {
-					return
+			// Walk every ancestor (not just .closest() jumps) since a nav group
+			// and the Settings foldout use different container markup and can
+			// nest either way.
+			let node = this.targetEl.parentElement
+			while (node) {
+				if (node.classList.contains('app-navigation-entry--collapsible')) {
+					click(node.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse'))
+				} else if (node.matches?.('[data-testid="cn-nav-settings"]')) {
+					// NcAppNavigationSettings: CSS-module classes are hashed at
+					// build time, so aria-expanded is the only stable handle on
+					// its own toggle button.
+					click(node.querySelector('button[aria-expanded]'))
 				}
-				clicked.add(el)
-				try {
-					el.click()
-				} catch { /* jsdom / detached */ }
+				node = node.parentElement
 			}
-			// A collapsed-looking control that is NOT a navigation-group or
-			// foldout toggle: an NcActions trigger carries
-			// `aria-expanded="false"` too, and clicking it pops a menu over the
-			// navigation at the moment the engine is trying to expose a target —
-			// covering the very row the spotlight is about to frame. Reveal must
-			// open containers, never menus. Two selectors are enough for the
-			// fleet: NcActions marks its own trigger `action-item__menutoggle`
-			// inside `.action-item`, and a per-entry menu sits in
-			// `.app-navigation-entry__actions`. A `.v-popper__reference` was
-			// listed here too and could never match — floating-vue emits
-			// `v-popper`, `v-popper__popper` and `v-popper__inner`, and no
-			// `__reference` class at all, so it only made the rule look wider
-			// than it was.
-			const isMenuTrigger = (el) => el.closest('.action-item, .app-navigation-entry__actions') !== null
-			// Primary signal: any collapse toggle reporting a collapsed state.
-			nav.querySelectorAll('[aria-expanded="false"]').forEach((el) => {
-				if (isMenuTrigger(el)) {
-					return
-				}
-				// Prefer a real button toggle inside the same COLLAPSIBLE GROUP over
-				// the link that carries the state. With no collapsible ancestor the
-				// element IS the toggle — an NcAppNavigationSettings foldout button
-				// is the fleet's case, and it is where `section: "settings"` menu
-				// items live. Falling back to `group = nav` there searched the whole
-				// navigation in document order and clicked the first
-				// collapsed-looking button anywhere in it (an unrelated NcActions
-				// trigger, say), leaving the real foldout shut — so the step's target
-				// never became measurable and the tour stalled on a full dim.
-				const group = el.closest('.app-navigation-entry--collapsible')
-				const btn = group
-					? group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse, button[aria-expanded="false"]')
-					: null
-				click(btn || el)
-			})
-			// Fallback: collapsible groups not yet opened (older markup without
-			// aria-expanded on the toggle — collapsed state is the absent
-			// `--opened` / `open` class on the wrapper).
-			nav.querySelectorAll('.app-navigation-entry--collapsible').forEach((group) => {
-				if (group.classList.contains('app-navigation-entry--opened') || group.classList.contains('open')) {
-					return
-				}
-				const btn = group.querySelector('button.icon-collapse, .app-navigation-entry__children-toggle, .app-navigation-entry__collapse')
-				if (btn) {
-					click(btn)
-				}
-			})
 		},
 
 		/**
@@ -910,6 +1068,10 @@ export default {
 		 * @return {void}
 		 */
 		focusCard() {
+			// Never take focus from an open app dialog.
+			if (this.appModalOpen) {
+				return
+			}
 			this.$nextTick(() => {
 				const btn = this.$refs.firstBtn && this.$refs.firstBtn.$el
 				if (btn && typeof btn.focus === 'function') {
@@ -1095,27 +1257,43 @@ export default {
 		},
 
 		/**
-		 * End the tour for good from the corner close button: mark it complete so
-		 * the seen-version is persisted and it does not auto-show again.
+		 * The corner close button PAUSES the tour, like ESC and the dim. It
+		 * used to complete it, and the host then wiped the saved step, so a
+		 * restart began at step 1 again. Only Finish on the last step (and a
+		 * host-supplied Skip) completes the tour; "Start over" in the user
+		 * settings stays the way back to step 1.
 		 *
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		close() {
-			this.wt.complete()
-			this.$emit('complete')
+			this.onBackdrop()
 		},
 
 		/**
-		 * Dismiss the tour from a backdrop click or ESC.
+		 * Pause the tour from the corner X, a backdrop click or ESC. The tour
+		 * hides and keeps its step; only Finish (or a host Skip) ends it.
+		 * Pressing ESC used to dismiss it, and the host recorded that as
+		 * "seen", so the tour never came back. The `pause` event carries
+		 * where the user was, so the host can keep a paused tour hidden on
+		 * the next page load.
 		 *
+		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
+		 * @spec openspec/changes/audit-round-lib-fixes/specs/cn-walkthrough/spec.md
 		 * @return {void}
 		 */
 		onBackdrop() {
-			this.wt.dismiss()
+			const where = {
+				tourId: (this.wt.activeTour.value && this.wt.activeTour.value.id) || '',
+				stepId: (this.step && this.step.id) || '',
+				index: this.index,
+			}
+			this.wt.pause()
 			/**
-			 * @event dismiss Emitted when the user dismisses the tour (backdrop / ESC).
+			 * @event pause Emitted when the user hides the tour (X, backdrop, ESC). The tour can continue later.
+			 * @type {{ tourId: string, stepId: string, index: number }}
 			 */
-			this.$emit('dismiss')
+			this.$emit('pause', where)
 		},
 	},
 }
@@ -1174,6 +1352,11 @@ export default {
 	pointer-events: auto;
 }
 
+.cn-walkthrough__card--docked {
+	inset-block-end: 16px;
+	inset-inline-start: 16px;
+}
+
 .cn-walkthrough__close {
 	/* !important beats NcButton's own `position: relative`, which would otherwise
 	   leave the close button in-flow at the card's top-left. */
@@ -1222,5 +1405,104 @@ export default {
 
 .cn-walkthrough__spacer {
 	flex: 1 1 auto;
+}
+
+/* Board look: the coachmark draws a footer of dots and buttons under a
+   hairline. A step without a target opens as a wide card near the top. */
+.cn-walkthrough--board {
+	--cn-walkthrough-inline: 16px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__dim {
+	background: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
+.cn-walkthrough--board .cn-walkthrough__card {
+	width: 300px;
+	padding: 14px var(--cn-walkthrough-inline);
+	border-radius: var(--cn-board-card-radius, 12px);
+	box-shadow: 0 16px 48px color-mix(in srgb, var(--color-main-text) 28%, transparent);
+}
+
+.cn-walkthrough--board .cn-walkthrough__card--centered {
+	--cn-walkthrough-inline: 24px;
+	width: 560px;
+	padding-block: 22px 20px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__close {
+	top: 14px;
+	inset-inline-end: 16px;
+	--default-clickable-area: 36px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__card--centered .cn-walkthrough__close {
+	top: 22px;
+	inset-inline-end: 24px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__counter {
+	margin-bottom: 4px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-walkthrough--board .cn-walkthrough__title {
+	margin: 0 0 16px;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.cn-walkthrough--board .cn-walkthrough__body {
+	margin: 0 0 18px;
+	font-size: 15px;
+	line-height: 1.55;
+}
+
+.cn-walkthrough--board .cn-walkthrough__task {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 12px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: var(--cn-board-notice-info-ground, var(--color-primary-element-light));
+	color: var(--cn-board-primary-light-ink, var(--color-primary-element-light-text));
+	font-size: 14px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__task-icon {
+	margin-inline-end: 0;
+}
+
+.cn-walkthrough--board .cn-walkthrough__actions {
+	gap: 10px;
+	margin: 0 calc(-1 * var(--cn-walkthrough-inline));
+	padding: 14px var(--cn-walkthrough-inline) 0;
+	border-top: 1px solid var(--cn-board-hairline, var(--color-border));
+	--default-clickable-area: 40px;
+}
+
+.cn-walkthrough--board .cn-walkthrough__dots {
+	display: flex;
+	gap: 6px;
+	order: -2;
+}
+
+.cn-walkthrough--board .cn-walkthrough__spacer {
+	order: -1;
+}
+
+.cn-walkthrough__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 4px;
+	background: var(--color-border-maxcontrast);
+}
+
+.cn-walkthrough__dot--current {
+	width: 18px;
+	background: var(--color-primary-element);
 }
 </style>

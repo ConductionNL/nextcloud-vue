@@ -131,6 +131,8 @@ Escape hatch for anything the typed views don't cover. Config carries a `compone
 
 </div>
 
+A `dashboard` or `detail` page can also declare `config.views`: a few views of the page, each its own `widgets` and `layout`, behind one segmented control ("My work | My team"). `config.defaultView` names the view that opens first and `config.viewsLabel` names the switch. The chosen view is in the address as `?view=<id>`. See [CnDashboardPage](/docs/components/cn-dashboard-page#views-behind-a-switch-views) and [CnDetailPage](/docs/components/cn-detail-page#views-behind-a-switch-views).
+
 Each type has a known `config` shape — the `index` config takes `register` + `schema`, the `dashboard` config takes a widget array, the `settings` config takes a sections array. The manifest's `$schema` validates these at build time, so a typo surfaces with a clear error path before runtime.
 
 ## Configuring the atoms
@@ -161,6 +163,17 @@ In v2, `$schema` is **required** at the top level:
 ```
 
 The validator reads this field to choose the right validation path: v2 schema ends with `/app-manifest-v2.schema.json`, anything else (including absent) uses the v1 hand-rolled validator. This means v1 and v2 manifests can coexist in the same monorepo — each file declares its own version.
+
+### The schema's own version
+
+The schema file carries a top-level `"version"` (2.44.0 at the time of writing). This is the version of the vocabulary, not of the npm package and not of your manifest. Tools that keep a copy of the schema, such as the fleet's manifest gates, compare this number to see whether their copy is behind.
+
+So the number has to move whenever the content does. A test holds that: `tests/schemas/app-manifest-v2.schema.hashes.json` records one content hash per version, and `tests/schemas/app-manifest-v2.schema-version.spec.js` fails when the schema no longer hashes to the value recorded for its version. When you change the schema:
+
+1. Bump `"version"` in `src/schemas/app-manifest-v2.schema.json`. Minor for an additive change.
+2. Run `npm run update:manifest-schema-hash` and commit the ledger with the schema.
+
+The script refuses to replace the hash of a version that is already recorded. Reformatting the file is not a content change; any key, value or order change is.
 
 ### Unified `widgets[]` model
 

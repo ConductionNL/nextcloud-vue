@@ -24,6 +24,14 @@ Set `subject` and the widget becomes a case page's view of the engine: the live 
 - `subject` takes a subject object uuid, or the token `@objectId` (or `@object.<field>`). On a detail page the token binds the current object through the injected object context, so a manifest never hardcodes a uuid. While the token cannot resolve, the widget shows its loading state and sends nothing.
 - Terminal rows (`completed`, `stopped`, `failed`, `dead_letter`) are marked by shape and text, never by colour alone: a hollow dot, a muted name, the section label and the status word.
 - Two empty states: a subject where nothing ever ran says "No flows have run yet"; a subject with history but nothing live keeps the nothing-running line above its history.
+
+## A header action
+
+`headerAction` is an action descriptor drawn in the card header, `{ label, icon?, ...action }` ("Flow uitvoeren" on DqZaak). The widget reports it through the `header` event, the way the facts card reports its own; the detail page draws it beside the title. It is dispatched with the page's action dispatcher, its tokens (`@objectId`, `@object.<field>`) resolved against the record, and the runs are read again after it.
+
+```json
+{ "type": "flow-runs", "content": { "subject": "@objectId", "headerAction": { "label": "Run flow", "icon": "Play", "type": "handler", "handler": "runCaseFlow" } } }
+```
 - Polling refetches both reads, so a run that finishes between polls moves to the history instead of vanishing.
 - Consumes the two reads of the openregister change `flow-runs-subject-scope`. Until that lands server-side, `subject` is ignored by the active read and the history read shows its quiet error line.
 
@@ -31,7 +39,7 @@ Set `subject` and the widget becomes a case page's view of the engine: the live 
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config blob (`limit`, `pollSeconds`, `rowRoute`, `runRoute`, `subject`, `emptyText`). |
+| `content` | `object` | `{}` | The widget config blob (`limit`, `pollSeconds`, `rowRoute`, `runRoute`, `subject`, `emptyText`, and for a ruled list with status pills: `statusPill`, `statusLabels`, `triggerLabels`, `age: 'datetime'`, `historyTitle: false`, `quietLineWithHistory: false`). |
 | `widgetId` | `string` | `''` | Placement id, so the per-widget Refresh action (`cn:widget:refresh`) reaches this instance. |
 | `translate` | `Function` | `null` | Translate function. Falls back to the injected `cnTranslate`. |
 
@@ -40,6 +48,6 @@ Set `subject` and the widget becomes a case page's view of the engine: the live 
 - **Which runs.** All NON-terminal statuses: `queued`, `running` and `suspended`. Filtering to literally `running` would show an empty widget almost always — a run holds that status only during a worker pass, while queued and suspended are where live runs actually wait.
 - **Scoping is server-side.** The endpoint returns only the caller's organisation's runs, and returns nothing when no organisation resolves. The widget never filters by tenant itself.
 - **It polls.** A widget titled "running flows" that only reflected the moment the dashboard mounted would be wrong within seconds and would look identical to being right. `pollSeconds` defaults to 15, is floored at 5, and `0` disables polling. Polling pauses while the browser tab is hidden and refetches once on return.
-- **Row clicks are opt-in.** With no `rowRoute` the rows are not clickable, which is correct for an app that has no flow page. When set, the route receives the run's FLOW id as `:id` — a click on a live run means "show me this flow". A configured `runRoute` wins on rows that carry a run uuid: the route receives the RUN's uuid as `:id`, the deep link a case page wants.
+- **Row clicks are opt-in.** With no `rowRoute` the rows are not clickable, which is correct for an app that has no flow page. When set, the route receives the run's FLOW id as `:id` — a click on a live run means "show me this flow". A configured `runRoute` wins on rows that carry a run uuid: the route receives the RUN's uuid as `:id`, the deep link a case page wants. A linked row is a real `<a href>` resolved through the router, so it can be middle-clicked, opened in a new tab or copied; a plain click still routes in-app.
 - **Empty is normal.** Nothing running renders one muted line, not an illustration and not an error.
 - Requires OpenRegister. Without it the endpoint 404s and the widget shows its error line.

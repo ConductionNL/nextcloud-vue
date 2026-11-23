@@ -54,6 +54,35 @@ Selection precedence on mount: an existing workspace value → `content.default`
 → (when no `allLabel`) the first option, so siblings always have a value to
 filter on.
 
+## Start card and object picker
+
+A dashboard often opens with a "start" card: a title and one line of guidance on the left, the control that puts something in focus on the right (PqDashboard's "Contact starten"). Declare it on the same widget:
+
+```json
+{
+  "id": "contact-start",
+  "type": "workspace-filter",
+  "showTitle": false,
+  "content": {
+    "layout": "start",
+    "title": "Contact starten",
+    "description": "Zoek de klant aan de lijn of aan de balie.",
+    "writes": "@workspace.selectedClient",
+    "objectSource": { "register": "pipelinq", "schema": "client", "labelField": "name", "placeholder": "Naam, telefoon, e-mail, postcode of klantnummer" },
+    "link": { "label": "Bekijk een voorbeeld", "route": { "name": "Help" } }
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `layout` | `"start"`: `title` and `description` left, the control and `link` right; they wrap below each other on a narrow cell. |
+| `title`, `description` | The card's heading (17px, bold) and guidance line (muted, at most 420px wide). Translated through `cnTranslate`. |
+| `objectSource` | `{ register, schema, labelField?, placeholder?, ariaLabel?, preload? }`: the control becomes an OpenRegister object picker (`CnResourceSelect`) that searches on the server, so it reaches every object and not only a fetched page, and writes the picked object's id. With no selection, no `default` and no `allLabel` it selects the first object the source lists (one `_limit=1` read), so the page always has one in focus. Its accessible name is `ariaLabel`, else the title. |
+| `link` | `{ label, route? }` or `{ label, href? }`, drawn after the control. |
+
+`objectSource` wins over `options`, `source` and `endpointSource`. Without these keys the widget renders exactly as before.
+
 ## Events
 
 | Event | Payload | Description |
@@ -65,3 +94,84 @@ filter on.
 import GeneratedRef from './_generated/CnWorkspaceFilterWidget.md'
 
 <GeneratedRef />
+
+## Chips and page lenses
+
+A dashboard can offer chips that show one kind of work at a time (PqMijnWerk: Alle 9, Tickets 7, Leads 1, Opvolgingen 1). Declare the chips on this widget and let each widget say which choices show it.
+
+```jsonc
+{
+  "id": "lens",
+  "type": "workspace-filter",
+  "content": {
+    "style": "chips",
+    "label": "Show",                 // the group's accessible name
+    "writes": "@workspace.lens",
+    "urlKey": "lens",                // ?lens=tickets, wins over default on load
+    "default": "all",
+    "options": [
+      { "value": "all", "label": "All",
+        "countFrom": [ { "register": "app", "schema": "ticket", "filter": { "assignee": "@me" } },
+                       { "register": "app", "schema": "lead", "filter": { "assignee": "@me" } } ] },
+      { "value": "tickets", "label": "Tickets",
+        "countFrom": { "register": "app", "schema": "ticket", "filter": { "assignee": "@me" } } }
+    ]
+  }
+}
+```
+
+`countFrom` is one list or several whose totals are added up (one list request each); an option whose count failed shows its label only. A static `count` works too.
+
+A widget (or a `kpiRow` tile) is shown by a choice with a WORKSPACE `visibleWhen`:
+
+```jsonc
+{ "id": "my-leads", "type": "record-list", "visibleWhen": { "workspace": "lens", "op": "in", "value": ["all", "leads"] } }
+```
+
+It is answered at once from the page workspace, with no request. A widget whose condition does not hold gives up its grid cell and the rows below close up; edit mode shows every widget. A widget that reads a key nobody wrote is hidden, so give the chips a `default`. The condition is a top-level one: inside `all` or `any` it is not honoured on a dashboard.
+
+Give the chips a full-width cell with `showTitle: false` to get the board's bar. The group is a radio group: the arrow keys move the choice and Tab leaves it in one step.
+
+On a phone, `chipsOnPhone: "pills"` draws the chips as separate pills in one row that scrolls sideways instead of a segmented group (PqMobiel). To drop the bar's card on a phone only, give the widget `borderless: "narrow"` (see CnDashboardPage).
+
+## Toggle, select and bar
+
+A switch and a select are page controls too. `style: "toggle"` draws a switch that writes `onValue` (default true) when on and `offValue` (default false) when off, and starts off; `control: "checkbox"` draws it as a checkbox instead. `layout: "bar"` with `controls` draws several controls in one row, each a workspace filter of its own; `align: "end"` pushes a control to the right edge.
+
+```jsonc
+{
+  "id": "my-bar", "type": "workspace-filter", "showTitle": false,
+  "content": {
+    "layout": "bar",
+    "controls": [
+      { "style": "chips", "label": "Show", "writes": "@workspace.lens", "urlKey": "lens", "default": "all", "options": [] },
+      { "style": "toggle", "label": "Show completed", "writes": "@workspace.showDone", "urlKey": "done", "align": "end" },
+      { "style": "select", "label": "Sort", "writes": "@workspace.sort", "default": "deadline",
+        "options": [ { "value": "deadline", "label": "Deadline first" }, { "value": "priority", "label": "Priority first" } ] }
+    ]
+  }
+}
+```
+
+A list says what the controls mean for it with `pageControls` (see the record list and object table pages).
+
+## Input with a load button
+
+`style: "input"` draws a labelled text field and a load button, the boards' in-card report form (DqTermijnen "Kwartaal (JJJJ-Qn)" with "Rapport laden"). The value goes to the workspace only when the reader loads it, and only when it has the right form; a wrong value is marked invalid and explained under the field.
+
+| Key | Meaning |
+|-----|---------|
+| `inputType` | `quarter` reads `YYYY-Qn`, `year` reads `YYYY`; both start with the current one. Any other value is free text. |
+| `pattern` | For free text: a regular expression the value must match. |
+| `submitLabel` | The button's label, through the host translate (default "Load"). |
+| `default` | The starting value, when the workspace holds none. |
+
+```json
+{
+  "id": "td-quarter-form",
+  "type": "workspace-filter",
+  "content": { "style": "input", "inputType": "quarter", "writes": "@workspace.quarter", "label": "Quarter (YYYY-Qn)", "submitLabel": "Load report" }
+}
+```
+
+A widget reads the loaded value through `@workspace.quarter`. Placed in a `sections` widget with the table it drives, the form and the table share one card.

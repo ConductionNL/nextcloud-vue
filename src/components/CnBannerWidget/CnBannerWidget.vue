@@ -4,29 +4,144 @@
 -->
 
 <template>
-	<div v-if="visible" class="cn-banner-widget">
-		<NcNoteCard :type="resolvedVariant" class="cn-banner-widget__card">
+	<section
+		v-if="visible && isAttention"
+		class="cn-banner-widget cn-banner-widget--attention"
+		:class="['cn-banner-widget--' + resolvedVariant, { 'cn-banner-widget--stacked': isStacked }]"
+		:aria-labelledby="headingId"
+		data-testid="cn-banner-widget-attention">
+		<div class="cn-banner-widget__body">
+			<p v-if="resolvedKicker" class="cn-banner-widget__kicker">
+				{{ resolvedKicker }}
+			</p>
+			<h3 :id="headingId" class="cn-banner-widget__title">
+				{{ displayTitle }}
+			</h3>
+			<p v-if="displayReason" class="cn-banner-widget__reason">
+				{{ displayReason }}
+			</p>
+		</div>
+		<div v-if="resolvedActions.length > 0" class="cn-banner-widget__actions">
 			<component
-				:is="clickable ? 'a' : 'span'"
-				class="cn-banner-widget__text"
-				:class="{ 'cn-banner-widget__text--clickable': clickable }"
-				:role="clickable ? 'button' : null"
-				:tabindex="clickable ? 0 : null"
-				data-testid="cn-banner-widget-text"
-				@click="onClick"
-				@keydown.enter="onClick">
-				{{ displayText }}
+				:is="action.href ? 'a' : 'button'"
+				v-for="action in resolvedActions"
+				:key="action.key"
+				class="cn-banner-widget__action"
+				:class="action.primary ? 'cn-banner-widget__action--primary' : 'cn-banner-widget__action--secondary'"
+				:href="action.href || null"
+				:type="action.href ? null : 'button'"
+				data-testid="cn-banner-widget-action"
+				@click="onActionClick($event, action)">
+				{{ action.label }}
 			</component>
+		</div>
+	</section>
+	<!-- The count could not be read. One quiet line, not the card and not an
+	     alarm: hidden would read as "nothing to report", which is not known. -->
+	<p
+		v-else-if="checkFailed"
+		class="cn-banner-widget cn-banner-widget--unchecked"
+		:title="failureTooltip"
+		data-testid="cn-banner-widget-unchecked">
+		<span class="cn-banner-widget__unchecked-text">{{ uncheckedText }}</span>
+		<span class="cn-banner-widget__unchecked-reason">{{ failureTooltip }}</span>
+	</p>
+	<div v-else-if="visible" class="cn-banner-widget">
+		<NcNoteCard :type="resolvedVariant" class="cn-banner-widget__card">
+			<!-- A named icon replaces the variant's own glyph. -->
+			<template v-if="resolvedIcon" #icon>
+				<CnIcon :name="resolvedIcon" :size="22" data-testid="cn-banner-widget-icon" />
+			</template>
+			<span class="cn-banner-widget__line">
+				<component
+					:is="clickable ? 'a' : 'span'"
+					class="cn-banner-widget__text"
+					:class="{ 'cn-banner-widget__text--clickable': clickable }"
+					:href="clickable ? routeHref : null"
+					data-testid="cn-banner-widget-text"
+					@click="onClick"><strong v-if="displayLead" class="cn-banner-widget__lead" data-testid="cn-banner-widget-lead">{{ displayLead }}</strong>{{ displayLead && displayText ? ' ' : '' }}{{ displayText }}</component>
+				<!-- Board look: the actions as links at the end of the line. -->
+				<a
+					v-for="action in noteActions"
+					:key="action.key"
+					class="cn-banner-widget__link"
+					:href="action.href || null"
+					data-testid="cn-banner-widget-link"
+					@click="onActionClick($event, action)">{{ action.label }}</a>
+			</span>
 		</NcNoteCard>
 	</div>
 </template>
 
 <script>
+import { translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
+import { readPath } from '../../utils/readPath.js'
+import { safeHref } from '../../utils/safeHref.js'
+import { nextUid } from '../../utils/uid.js'
 import { compareVisibleWhen, readVisibleWhenValue } from '../../utils/visibleWhen.js'
 
 /** Variants understood by NcNoteCard. */
 const VARIANTS = ['info', 'warning', 'error', 'success']
+
+/** Layouts: the note card (default) or the attention card. */
+const LAYOUTS = ['banner', 'attention']
+
+/** An attention card offers a primary and a secondary action, no more. */
+const MAX_ACTIONS = 2
+
+/**
+ * Under the board look the card takes what the boards draw: DqMijnWerk's
+ * "Vandaag eerst" has three secondary actions and the primary one.
+ */
+const MAX_ACTIONS_BOARD = 4
+
+/**
+ * Whether the record grants the action's `declaredAction` (`@self.can[name] === true`).
+ *
+ * @param {object} action A banner action.
+ * @param {object|null} record The page's record.
+ * @return {boolean}
+ */
+function declaredActionGranted(action, record) {
+	const can = record && record['@self'] ? record['@self'].can : null
+	return Boolean(can) && typeof can === 'object' && can[action.declaredAction] === true
+}
+
+/**
+ * The api-call that runs the action's `declaredAction` on the record through
+ * OpenRegister, with a page refresh after it. The page's register and schema
+ * win over the record's own `@self` ones.
+ *
+ * @param {object} action A banner action with `declaredAction`.
+ * @param {object} record The page's record.
+ * @param {{register?: string, schema?: string}} [page] The detail page's register and schema.
+ * @return {object} The manifest action to dispatch.
+ */
+function declaredActionCall(action, record, page = {}) {
+	const self = record['@self'] || {}
+	const path = [page.register || self.register, page.schema || self.schema, self.id || record.id, action.declaredAction]
+		.map((part) => encodeURIComponent(String(part ?? '')))
+	const call = { type: 'api-call', method: 'POST', url: `/apps/openregister/api/objects/${path.slice(0, 3).join('/')}/actions/${path[3]}`, refresh: true }
+	for (const key of ['successMessage', 'errorMessage']) {
+		if (typeof action[key] === 'string' && action[key] !== '') {
+			call[key] = action[key]
+		}
+	}
+	return call
+}
+
+/**
+ * @param {unknown} action A banner action.
+ * @return {boolean} Whether it names a declared action.
+ */
+function isDeclaredAction(action) {
+	return Boolean(action) && typeof action.declaredAction === 'string' && action.declaredAction !== ''
+}
 
 /**
  * CnBannerWidget — declarative notice banner for dashboards and v2 pages
@@ -57,11 +172,70 @@ const VARIANTS = ['info', 'warning', 'error', 'success']
  * Fail-safe: with a `visibleWhen`, the banner stays HIDDEN until the
  * condition evaluates true — a failed fetch never breaks (or spams) a
  * dashboard.
+ *
+ * An attention card (`layout: "attention"`) whose `visibleWhen` request
+ * FAILS renders one quiet line instead, "Could not check", with the reason as
+ * a tooltip. A hidden card reads as "nothing needs attention", and a failed
+ * count does not know that. A request that succeeds with a value that does
+ * not meet the condition still renders nothing.
+ *
+ * `layout: "attention"` turns the banner into an attention card: a card with
+ * a coloured edge by severity, a `kicker` label, a `title`, a `reason` line
+ * and up to two `actions` (the first is the primary one unless an action says
+ * `primary` itself). `visibleWhen` works the same way. Without `layout` the
+ * note card above renders, as it always did.
+ *
+ * An action with `declaredAction` runs that OpenRegister declared action on
+ * the page's record (`POST .../objects/{register}/{schema}/{id}/actions/{name}`)
+ * and refreshes the page. It shows only while the record's `@self.can` grants
+ * the action, and a banner whose every action is a declared action the record
+ * does not grant stays hidden.
+ *
+ * ```json
+ * {
+ *   "widgetKey": "banner",
+ *   "props": {
+ *     "layout": "attention",
+ *     "variant": "error",
+ *     "kicker": "First today",
+ *     "title": "Parking permits city centre",
+ *     "reason": "The deadline ends today.",
+ *     "actions": [
+ *       { "label": "Open case", "route": { "name": "CaseDetail", "params": { "id": "2026-0061" } } },
+ *       { "label": "Suspend deadline", "route": "CaseSuspend" }
+ *     ]
+ *   }
+ * }
+ * ```
  */
 export default {
 	name: 'CnBannerWidget',
 
-	components: { NcNoteCard },
+	components: { CnIcon, NcNoteCard },
+
+	inject: {
+		/**
+		 * The host's label lookup (CnAppRoot provides it); identity without one, so a
+		 * label that is not a key renders as written.
+		 */
+		cnTranslate: { default: () => (key) => key },
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
+		/**
+		 * The detail page's object context (`{ objectId, object }`), provided by
+		 * CnDetailPage: a `visibleWhen.source` filter's `@objectId` and
+		 * `@object.<field>` tokens read it, so a notice on a record's page can
+		 * count that record's related rows. Null elsewhere.
+		 */
+		cnObjectContext: { default: null },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for an action with a `type`. */
+		cnDispatchAction: { default: null },
+		/**
+		 * The app's named formatters (CnAppRoot), so a subject token can name
+		 * one: `{subject.channel|channelWord}`.
+		 */
+		cnFormatters: { default: () => ({}) },
+	},
 
 	props: {
 		/**
@@ -77,6 +251,27 @@ export default {
 
 		/** Pre-translated banner text. Empty falls back to the `content` blob. */
 		text: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A bold lead in front of the text ("2 aanmeldingen wachten op
+		 * goedkeuring." before the rest of the sentence). `{value}` is replaced
+		 * like in `text`, and it goes through the app's translate. Empty falls
+		 * back to the `content` blob.
+		 */
+		lead: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A named icon (`AccountPlus`, `AlertOutline`, ...) drawn before the
+		 * text instead of the variant's own glyph. Empty falls back to the
+		 * `content` blob, then to the variant glyph.
+		 */
+		icon: {
 			type: String,
 			default: '',
 		},
@@ -102,8 +297,8 @@ export default {
 
 		/**
 		 * Optional click-through route: a vue-router route NAME (string) or
-		 * a full location object. When set, the banner text is an accessible
-		 * button that navigates on click / Enter. `null` renders static text.
+		 * a full location object. When set, the banner text is a link to that
+		 * route. `null` renders static text.
 		 *
 		 * @type {string|object|null}
 		 */
@@ -113,9 +308,80 @@ export default {
 		},
 
 		/**
+		 * How the banner renders: `banner` (the note card, default) or
+		 * `attention` (a card with a severity edge, kicker, title, reason and
+		 * up to two actions). Empty falls back to the `content` blob, then
+		 * `banner`.
+		 *
+		 * @type {''|'banner'|'attention'}
+		 */
+		layout: {
+			type: String,
+			default: '',
+			validator: (v) => v === '' || LAYOUTS.includes(v),
+		},
+
+		/** Attention card: the small label above the title ("First today"). */
+		kicker: {
+			type: String,
+			default: '',
+		},
+
+		/** Attention card: the title. Falls back to `text` when empty. */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/** Attention card: the line under the title that says why this needs attention. `{value}` is replaced like in `text`. */
+		reason: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Attention card: its actions, two at most (four under the board look,
+		 * or `maxActions`). Each is `{ label, route?,
+		 * href?, primary?, id? }`: `route` is a route name or location,
+		 * `href` an URL. An action with neither renders a button that emits
+		 * `action`. The first action is the primary one unless one sets
+		 * `primary: true`.
+		 *
+		 * @type {Array<{label: string, route?: (string|object), href?: string, primary?: boolean, id?: string}>|null}
+		 */
+		actions: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Attention card: how many actions it shows at most. Null takes the
+		 * default: two, four under the board look.
+		 *
+		 * @spec openspec/changes/screens-banner-actions-parity/specs/banner-actions/spec.md#requirement-the-board-attention-card-shows-the-boards-actions
+		 */
+		maxActions: {
+			type: Number,
+			default: null,
+		},
+
+		/**
+		 * Attention card: stack the actions under the text instead of beside it,
+		 * the "Begin hier" card of PqMijnWerk (16px title, the action under the
+		 * reason). Falls back to the `content` blob.
+		 *
+		 * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-card-can-stack-its-action-under-the-text
+		 */
+		stacked: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Stored content blob (CnDashboardPage registry branch) carrying the
-		 * same keys as the flat props: `{ variant, text, visibleWhen, route }`.
-		 * Explicit flat props win on collision.
+		 * same keys as the flat props: `{ variant, text, visibleWhen, route,
+		 * layout, kicker, title, reason, actions }`. Explicit flat props win
+		 * on collision.
 		 */
 		content: {
 			type: Object,
@@ -129,7 +395,9 @@ export default {
 		 * the banner renders from this verdict instead of fetching again —
 		 * no duplicate request and no hidden-until-self-evaluated flash —
 		 * and `value` feeds the `{value}` text placeholder. `null` (the
-		 * default) keeps the banner self-evaluating.
+		 * default) keeps the banner self-evaluating. A host whose request
+		 * failed passes `{ met: false, value: null, failed: true, reason }`,
+		 * and an attention card then says it could not check.
 		 *
 		 * @type {object|null}
 		 */
@@ -137,10 +405,43 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The record of the page the banner sits on, as a detail-page host
+		 * binds it. A local `visibleWhen` (a `field` with no `endpoint` or
+		 * `source`) reads it when no `cnObjectContext` is provided, and it is
+		 * the card's subject: `{subject.@self.archived.by}` fills from it.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
+	emits: [
+		/**
+		 * Emitted when an attention-card action without a `route` or `href`
+		 * is clicked, so the host can run it.
+		 *
+		 * @event action
+		 * @type {{id: (string|undefined), label: string, index: number}}
+		 */
+		'action',
+	],
+
+	/**
+	 * The banner's own state: the evaluated condition, the value it read,
+	 * and whether the request for it failed.
+	 *
+	 * @return {object} The state.
+	 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+	 */
 	data() {
 		return {
+			/** Id that ties the attention card's region to its title. */
+			headingId: `cn-banner-title-${nextUid()}`,
 			/** Evaluated visibleWhen outcome (null = not yet evaluated). */
 			conditionMet: null,
 			/**
@@ -149,24 +450,119 @@ export default {
 			 * the text wherever it says `{value}`.
 			 */
 			conditionValue: null,
+			/**
+			 * The first row of the `visibleWhen` source query (its `order`
+			 * applied), the card's subject: `{subject.<field>}` in the texts
+			 * and `@subject.<field>` in an action route read it.
+			 */
+			conditionRow: null,
+			/** Whether the visibleWhen request itself failed (not: answered "no"). */
+			conditionFailed: false,
+			/** Why it failed, as the request reported it. */
+			conditionFailureReason: '',
+			/** Whether the browser says it is online, for `content.connection`. */
+			online: typeof navigator === 'undefined' || navigator.onLine !== false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The page record's id, so the condition is asked again once it is known.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		tokenContextKey() {
+			const ctx = this.tokenContext()
+			return ctx && ctx.objectId ? String(ctx.objectId) : ''
+		},
+
 		/** The effective variant (prop → content → 'info'). */
 		resolvedVariant() {
 			const v = this.variant || (this.content && this.content.variant) || 'info'
 			return VARIANTS.includes(v) ? v : 'info'
 		},
 
-		/** The effective banner text (prop → content → ''). */
+		/** The effective banner text (prop → content → ''), through the app's translate. */
 		resolvedText() {
-			return this.text || (this.content && this.content.text) || ''
+			const text = this.text || (this.content && this.content.text) || ''
+			return text ? this.tl(text) : ''
+		},
+
+		/** The effective bold lead (prop → content → ''), through the app's translate. */
+		resolvedLead() {
+			const lead = this.lead || (this.content && this.content.lead) || ''
+			return lead ? this.tl(lead) : ''
+		},
+
+		/** The lead with `{value}` filled in, else `content.fallbackLead`. */
+		displayLead() {
+			return this.withFallback(this.fillValue(this.resolvedLead), this.resolvedLead, 'fallbackLead')
+		},
+
+		/** The effective icon name (prop → content → ''). */
+		resolvedIcon() {
+			return this.icon || (this.content && this.content.icon) || ''
+		},
+
+		/**
+		 * The note card's actions as links, under the board look only: the
+		 * first resolved action of `actions`, as the board draws "Beleid
+		 * wijzigen" at the end of the line. Without the look the note card
+		 * ignores `actions`, as it always did.
+		 *
+		 * @return {Array<object>} The resolved actions (at most one).
+		 */
+		noteActions() {
+			return normalizeLook(this.cnLook) === 'board' ? this.resolvedActions.slice(0, 1) : []
+		},
+
+		/**
+		 * `content.connection`: `offline` shows the banner only while the
+		 * device is offline, `online` only while it is online (DqInspectie
+		 * "3 wijzigingen wachten op bereik"); unset shows it either way.
+		 *
+		 * @return {boolean}
+		 */
+		connectionAllows() {
+			const connection = this.content && this.content.connection
+			if (connection === 'offline') {
+				return !this.online
+			}
+			if (connection === 'online') {
+				return this.online
+			}
+			return true
 		},
 
 		/** The effective visibleWhen condition (prop → content → null). */
 		resolvedVisibleWhen() {
 			return this.visibleWhen || (this.content && this.content.visibleWhen) || null
+		},
+
+		/**
+		 * Whether the condition is decided on the page's own record (a `field`
+		 * with no `endpoint` or `source`), which is then the card's subject.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-banner-can-read-the-pages-record
+		 */
+		isLocalCondition() {
+			const cond = this.resolvedVisibleWhen
+			return Boolean(cond) && typeof cond === 'object' && !cond.endpoint && !cond.source && typeof cond.field === 'string' && cond.field !== ''
+		},
+
+		/**
+		 * The page's record, while the condition is a local one.
+		 *
+		 * @return {object|null}
+		 */
+		localSubject() {
+			if (!this.isLocalCondition) {
+				return null
+			}
+			const ctx = this.tokenContext()
+			return (ctx && ctx.object) || null
 		},
 
 		/** The effective injected outcome (prop → content → null). */
@@ -180,13 +576,11 @@ export default {
 		 * the text renders as written — a `{value}` placeholder only makes
 		 * sense on a conditional banner, which stays hidden until its
 		 * predicate (and therefore its value) resolves.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayText() {
-			const text = this.resolvedText
-			if (this.conditionValue === null || !text.includes('{value}')) {
-				return text
-			}
-			return text.replaceAll('{value}', String(this.conditionValue))
+			return this.withFallback(this.fillValue(this.resolvedText), this.resolvedText, 'fallbackText')
 		},
 
 		/** The effective click-through route (prop → content → null). */
@@ -194,9 +588,187 @@ export default {
 			return this.route || (this.content && this.content.route) || null
 		},
 
-		/** Whether the banner renders: no condition = always; else the evaluated outcome. */
+		/**
+		 * Whether the attention card renders instead of the note card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		isAttention() {
+			return (this.layout || (this.content && this.content.layout) || 'banner') === 'attention'
+		},
+
+		/**
+		 * Whether the actions sit under the text.
+		 *
+		 * @return {boolean}
+		 */
+		isStacked() {
+			return this.stacked || Boolean(this.content && this.content.stacked)
+		},
+
+		/**
+		 * The attention card's kicker (prop, else content).
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		resolvedKicker() {
+			const kicker = this.kicker || (this.content && this.content.kicker) || ''
+			return kicker ? this.fillValue(this.tl(kicker)) : ''
+		},
+
+		/**
+		 * The title as written: the `title` prop, else `content.title`, else ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		rawTitle() {
+			return this.title || (this.content && this.content.title) || ''
+		},
+
+		/**
+		 * The attention card's title: `title`, else `text`, with `{value}` filled in.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		displayTitle() {
+			const title = this.rawTitle
+			return title ? this.withFallback(this.fillValue(this.tl(title)), title, 'fallbackTitle') : this.displayText
+		},
+
+		/**
+		 * The attention card's reason line. When the title already used
+		 * `text`, the text is not repeated here.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		displayReason() {
+			const reason = this.reason || (this.content && this.content.reason) || ''
+			if (reason) {
+				return this.withFallback(this.fillValue(this.tl(reason)), reason, 'fallbackReason')
+			}
+			const title = this.rawTitle
+			// A card that sets `text` to the same words as its `title` says
+			// them once.
+			return title && this.displayText !== this.displayTitle ? this.displayText : ''
+		},
+
+		/**
+		 * The attention card's actions: the first `actionCap` that have a label, each
+		 * with its href and whether it is the primary one.
+		 *
+		 * @return {Array<{key: string, id: (string|undefined), label: string, href: string, target: (object|null), primary: boolean, index: number}>}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		/**
+		 * How many actions the attention card shows: `maxActions` (prop, then
+		 * content), else four under the board look and two without it.
+		 *
+		 * @return {number} The cap.
+		 * @spec openspec/changes/screens-banner-actions-parity/specs/banner-actions/spec.md#requirement-the-board-attention-card-shows-the-boards-actions
+		 */
+		actionCap() {
+			const explicit = this.maxActions ?? (this.content ? this.content.maxActions : undefined)
+			if (Number.isInteger(explicit) && explicit > 0) {
+				return explicit
+			}
+			return normalizeLook(this.cnLook) === 'board' ? MAX_ACTIONS_BOARD : MAX_ACTIONS
+		},
+
+		/**
+		 * The actions that have a label, as written.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		labelledActions() {
+			const raw = this.actions || (this.content && this.content.actions) || []
+			return Array.isArray(raw)
+				? raw.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				: []
+		},
+
+		/**
+		 * The page's record, for a declared action.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		actionRecord() {
+			const ctx = this.tokenContext()
+			return (ctx && ctx.object) || null
+		},
+
+		/**
+		 * Whether every action is a declared action the record does not grant,
+		 * so the banner has nothing the reader can do.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		declaredActionsWithheld() {
+			const all = this.labelledActions
+			return all.length > 0 && all.every(isDeclaredAction) && !all.some((action) => declaredActionGranted(action, this.actionRecord))
+		},
+
+		/**
+		 * The actions the banner shows: labelled, a declared action only while the
+		 * record grants it, at most `actionCap`, each with its target or dispatch.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		resolvedActions() {
+			const usable = this.labelledActions
+				.filter((action) => !isDeclaredAction(action) || declaredActionGranted(action, this.actionRecord))
+				.slice(0, this.actionCap)
+			const declaredPrimary = usable.findIndex((action) => action.primary === true)
+			const primaryIndex = declaredPrimary === -1 ? 0 : declaredPrimary
+			return usable.map((action, index) => {
+				let target = null
+				let href = ''
+				if (action.route) {
+					target = typeof action.route === 'string' ? { name: action.route } : this.resolveSubject(action.route)
+					href = resolveHref(target, this.$router)
+				} else if (typeof action.href === 'string' && action.href !== '') {
+					const safe = safeHref(action.href)
+					href = safe === '#' ? '' : safe
+				}
+				return {
+					key: `${index}-${action.id || action.label}`,
+					id: action.id,
+					label: this.tl(action.label),
+					href,
+					target,
+					dispatch: this.actionDispatch(action, target, href),
+					primary: index === primaryIndex,
+					index,
+				}
+			})
+		},
+
+		/**
+		 * Whether the banner renders: no condition = always; else the evaluated outcome.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
 		visible() {
-			if (this.resolvedText === '') {
+			if (!this.connectionAllows) {
+				return false
+			}
+			const title = this.rawTitle
+			if (this.resolvedText === '' && this.resolvedLead === '' && !(this.isAttention && title !== '')) {
+				return false
+			}
+			// Every line emptied by a subject token with no value: nothing to say.
+			if (!this.isAttention && this.displayText === '' && this.displayLead === '') {
+				return false
+			}
+			if (this.declaredActionsWithheld) {
 				return false
 			}
 			if (!this.resolvedVisibleWhen) {
@@ -205,9 +777,66 @@ export default {
 			return this.conditionMet === true
 		},
 
+		/**
+		 * Whether to say the check failed: an attention card, with words to
+		 * show, whose `visibleWhen` request failed. A plain banner stays
+		 * hidden on failure, as it always did.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 */
+		checkFailed() {
+			const title = this.rawTitle
+			return this.isAttention
+				&& !!this.resolvedVisibleWhen
+				&& this.conditionFailed
+				&& (title !== '' || this.resolvedText !== '')
+		},
+
+		/**
+		 * The one line shown when the check failed. It names the card by its
+		 * title, unless the title needs the value that could not be read.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 */
+		uncheckedText() {
+			const title = this.title || (this.content && this.content.title) || this.resolvedText
+			if (!title || title.includes('{value}') || title.includes('{subject.')) {
+				return t('nextcloud-vue', 'Could not check')
+			}
+			// `escape: false`: the result is rendered through `{{ }}`, which escapes.
+			return t('nextcloud-vue', 'Could not check: {subject}', { subject: title }, undefined, { escape: false })
+		},
+
+		/**
+		 * The reason the check failed, for the tooltip and for assistive
+		 * technology.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
+		 */
+		failureTooltip() {
+			if (!this.conditionFailureReason) {
+				return t('nextcloud-vue', 'The check failed.')
+			}
+			return t('nextcloud-vue', 'The check failed: {reason}', { reason: this.conditionFailureReason }, undefined, { escape: false })
+		},
+
 		/** Whether the banner navigates on click (route set + router present). */
 		clickable() {
 			return !!this.resolvedRoute && !!this.$router
+		},
+
+		/** The click-through route as a router location (a string is a route name). */
+		routeLocation() {
+			const route = this.resolvedRoute
+			return typeof route === 'string' ? { name: route } : route
+		},
+
+		/** The href of the click-through link. */
+		routeHref() {
+			return resolveHref(this.routeLocation, this.$router)
 		},
 	},
 
@@ -222,9 +851,203 @@ export default {
 		resolvedConditionOutcome() {
 			this.evaluateCondition()
 		},
+
+		/** The page's record arrived or changed: a token-scoped source asks again. */
+		tokenContextKey() {
+			this.evaluateCondition()
+		},
+
+		/** A local condition reads the record itself, so a new record is a new answer. */
+		localSubject() {
+			if (this.isLocalCondition) {
+				this.evaluateCondition()
+			}
+		},
+	},
+
+	mounted() {
+		window.addEventListener('online', this.onConnection)
+		window.addEventListener('offline', this.onConnection)
+	},
+
+	beforeUnmount() {
+		window.removeEventListener('online', this.onConnection)
+		window.removeEventListener('offline', this.onConnection)
 	},
 
 	methods: {
+		/**
+		 * The injected object context, unwrapped when it is a ref.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		pageObjectContext() {
+			const raw = this.cnObjectContext
+			return raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+		},
+
+		/** Follow the browser's connection, for `content.connection`. */
+		onConnection() {
+			this.online = typeof navigator === 'undefined' || navigator.onLine !== false
+		},
+
+		/**
+		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
+		 * such as "Mine" reads in the user's language.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Replace `{value}` in a text by the value the predicate read, once
+		 * one is known.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The text with the value filled in.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		fillValue(text) {
+			let out = text
+			if (this.conditionValue !== null && out.includes('{value}')) {
+				out = out.replaceAll('{value}', String(this.conditionValue))
+			}
+			return this.fillSubject(out)
+		},
+
+		/**
+		 * The filled text, or the content's fallback when a subject token left
+		 * the written text empty ("filed it on {subject.@self.archived.at|date}"
+		 * on a record that carries no date). The fallback is filled too.
+		 *
+		 * @param {string} filled The filled text.
+		 * @param {string} written The text as written.
+		 * @param {string} key The content key holding the fallback.
+		 * @return {string} The text to show.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-banner-can-read-the-pages-record
+		 */
+		withFallback(filled, written, key) {
+			if (filled !== '' || !written) {
+				return filled
+			}
+			const fallback = this.content && typeof this.content[key] === 'string' ? this.content[key] : ''
+			return fallback ? this.fillValue(this.tl(fallback)) : ''
+		},
+
+		/**
+		 * Fill `{subject.<field>}` (and `{subject.<field>|date}`, `|days`, or an
+		 * app formatter `|<name>`) from the card's subject row. A token with no value empties the whole text,
+		 * as in a record list. Text without a subject token is untouched.
+		 *
+		 * @param {string} text The text.
+		 * @return {string} The filled text.
+		 * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
+		 */
+		fillSubject(text) {
+			if (typeof text !== 'string' || !text.includes('{subject.')) {
+				return text
+			}
+			// `{value}` is not a subject token: keep it out of the template fill.
+			const guard = '\u0000value\u0000'
+			const filled = fillTemplate(text.replaceAll('{value}', guard), { subject: this.conditionRow || {} }, new Date(), { formatters: this.cnFormatters })
+			return filled.replaceAll(guard, '{value}')
+		},
+
+		/**
+		 * Replace `@subject.<field>` strings anywhere in an action route
+		 * (params, query) by the subject's value.
+		 *
+		 * @param {unknown} node A route name, location or any nested part of one.
+		 * @return {unknown} The same shape with the tokens resolved.
+		 * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
+		 */
+		resolveSubject(node) {
+			if (typeof node === 'string') {
+				if (!node.startsWith('@subject.')) {
+					return node
+				}
+				const value = this.conditionRow ? readPath(this.conditionRow, node.slice('@subject.'.length)) : undefined
+				return value === undefined || value === null ? '' : String(value)
+			}
+			if (Array.isArray(node)) {
+				return node.map((item) => this.resolveSubject(item))
+			}
+			if (node && typeof node === 'object') {
+				return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, this.resolveSubject(value)]))
+			}
+			return node
+		},
+
+		/**
+		 * The manifest action a button dispatches: the declared-action call,
+		 * an action with a `type`, or null for a link or a plain button.
+		 *
+		 * @param {object} action The action as written.
+		 * @param {object|null} target Its route target.
+		 * @param {string} href Its href.
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		actionDispatch(action, target, href) {
+			if (target || href) {
+				return null
+			}
+			if (isDeclaredAction(action)) {
+				return declaredActionCall(action, this.actionRecord || {}, this.pageObjectContext() || {})
+			}
+			return typeof action.type === 'string' && action.type !== '' ? action : null
+		},
+
+		/**
+		 * Run an attention-card action: route an in-app link, leave an
+		 * external link to the browser, dispatch a manifest action (one with a
+		 * `type`) through the page with its `@subject.` tokens filled, and
+		 * emit `action` for any other button.
+		 *
+		 * @param {MouseEvent} event The click.
+		 * @param {object} action The resolved action.
+		 * @return {void}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 * @spec openspec/changes/banner-action-dispatch/specs/banner-action-dispatch/spec.md#requirement-a-banner-action-can-be-a-manifest-action-on-the-subject
+		 */
+		onActionClick(event, action) {
+			if (action.target) {
+				followLinkClick(event, action.target, this.$router)
+				return
+			}
+			if (action.dispatch && typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(this.resolveSubject(action.dispatch))
+				return
+			}
+			if (!action.href) {
+				this.$emit('action', { id: action.id, label: action.label, index: action.index })
+			}
+		},
+
+		/**
+		 * The token context a `visibleWhen.source` filter resolves against: the
+		 * detail page's record, when the banner sits on one.
+		 *
+		 * @return {{objectId?: string, object?: object}|undefined}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		tokenContext() {
+			const ctx = this.pageObjectContext()
+			if (ctx && typeof ctx === 'object' && ctx.objectId) {
+				return { objectId: ctx.objectId, object: ctx.object || this.objectData || undefined }
+			}
+			const own = this.objectData
+			if (own && typeof own === 'object') {
+				const id = own.id || (own['@self'] && own['@self'].id) || ''
+				return { objectId: id, object: own }
+			}
+			return undefined
+		},
+
 		/**
 		 * Resolve the `visibleWhen` verdict. A host-injected
 		 * `conditionOutcome` wins outright — the host already ran the
@@ -234,45 +1057,67 @@ export default {
 		 * modes — the Wave-1 banner shape is the canonical one, extracted to
 		 * `utils/visibleWhen.js` in Wave 3 so manifest actions reuse it),
 		 * keeping the read VALUE for the `{value}` text placeholder.
-		 * Fail-safe: any fetch/shape error leaves the banner hidden.
+		 * Fail-safe: any fetch/shape error leaves the banner hidden. The
+		 * failure is kept (`conditionFailed`, with its reason) so an
+		 * attention card can say it could not check.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		async evaluateCondition() {
 			const outcome = this.resolvedConditionOutcome
 			if (outcome) {
 				this.conditionMet = outcome.met === true
 				this.conditionValue = outcome.value !== undefined ? outcome.value : null
+				this.conditionRow = outcome.row && typeof outcome.row === 'object' ? outcome.row : null
+				this.conditionFailed = outcome.failed === true
+				this.conditionFailureReason = outcome.failed === true && typeof outcome.reason === 'string' ? outcome.reason : ''
 				return
 			}
 			const cond = this.resolvedVisibleWhen
 			if (!cond) {
 				this.conditionMet = null
 				this.conditionValue = null
+				this.conditionRow = null
+				this.conditionFailed = false
+				this.conditionFailureReason = ''
 				return
 			}
 			try {
-				const value = await readVisibleWhenValue(cond)
+				const sink = {}
+				const ctx = this.tokenContext()
+				const value = await readVisibleWhenValue(cond, ctx, sink)
+				this.conditionRow = sink.row || (this.isLocalCondition && ctx ? ctx.object : null) || null
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
-			} catch {
+				this.conditionFailed = false
+				this.conditionFailureReason = ''
+			} catch (error) {
+				// Still hidden: a banner that cannot tell whether it applies
+				// should not claim attention. But not silently, because a
+				// failed count and "nothing to report" look the same on screen.
+				// eslint-disable-next-line no-console
+				console.warn('[CnBannerWidget] visibleWhen could not be evaluated, banner hidden:', error?.message || error)
 				this.conditionMet = false
 				this.conditionValue = null
+				this.conditionRow = null
+				this.conditionFailed = true
+				this.conditionFailureReason = typeof error?.message === 'string' ? error.message : String(error ?? '')
 			}
 		},
 
 		/**
-		 * Navigate the click-through route (string name or location object).
+		 * Route a plain click on the link; a modified click opens the href
+		 * in the browser.
 		 *
+		 * @param {MouseEvent} event The click event.
 		 * @return {void}
 		 */
-		onClick() {
+		onClick(event) {
 			if (!this.clickable) {
 				return
 			}
-			const route = this.resolvedRoute
-			const location = typeof route === 'string' ? { name: route } : route
-			this.$router.push(location).catch(() => {})
+			followLinkClick(event, this.routeLocation, this.$router)
 		},
 	},
 }
@@ -283,13 +1128,192 @@ export default {
 	width: 100%;
 }
 
-.cn-banner-widget__card {
+/* Doubled: NcNoteCard's own `.notecard` margin (15px above and below) is as
+   strong as one scoped class and loads later, so the card kept it and stood
+   15px under its grid cell's top (DqDashboard info line, r33).
+   @spec openspec/changes/banner-card-no-margin/specs/banner-card-no-margin/spec.md#requirement-a-banner-card-draws-no-margin-of-its-own */
+.cn-banner-widget__card.cn-banner-widget__card {
 	margin: 0;
+}
+
+.cn-banner-widget__line {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 20px;
+}
+
+.cn-banner-widget__lead {
+	font-weight: 700;
+}
+
+.cn-banner-widget__link {
+	margin-inline-start: auto;
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .cn-banner-widget__text--clickable {
 	cursor: pointer;
 	text-decoration: underline;
 	color: inherit;
+}
+
+/* The check failed. Muted text, no fill, no severity colour: it is a note
+   that something is not known, not a warning. */
+.cn-banner-widget--unchecked {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 8px 12px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+	cursor: help;
+}
+
+/* The reason, for assistive technology; sighted readers get the tooltip. */
+.cn-banner-widget__unchecked-reason {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Attention card. The severity edge is an inset shadow, so it takes no width. */
+.cn-banner-widget--attention {
+	--cn-banner-accent: var(--color-primary-element);
+	--cn-banner-accent-text: var(--color-primary-element);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 24px;
+	box-sizing: border-box;
+	padding: 20px 24px 20px 28px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-container, var(--border-radius-large, 12px));
+	background: var(--color-main-background);
+	box-shadow: inset 4px 0 0 0 var(--cn-banner-accent);
+}
+
+.cn-banner-widget--attention.cn-banner-widget--warning {
+	--cn-banner-accent: var(--color-element-warning, var(--color-warning));
+	--cn-banner-accent-text: var(--color-text-warning, var(--color-warning-text, var(--color-main-text)));
+}
+
+.cn-banner-widget--attention.cn-banner-widget--error {
+	--cn-banner-accent: var(--color-element-error, var(--color-error));
+	--cn-banner-accent-text: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-banner-widget--attention.cn-banner-widget--success {
+	--cn-banner-accent: var(--color-element-success, var(--color-success));
+	--cn-banner-accent-text: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-banner-widget__body {
+	display: flex;
+	flex: 1 1 320px;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+.cn-banner-widget__kicker {
+	margin: 0;
+	font-size: 0.85em;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--cn-banner-accent-text);
+}
+
+.cn-banner-widget__title {
+	margin: 0;
+	font-size: 1.3em;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--color-main-text);
+}
+
+.cn-banner-widget__reason {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Stacked (PqMijnWerk "Begin hier"): the text, then the action under it. */
+.cn-banner-widget--stacked {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__body {
+	flex: 0 0 auto;
+	gap: 10px;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__title {
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__reason {
+	font-size: 14px;
+}
+
+.cn-banner-widget--stacked .cn-banner-widget__action {
+	min-height: var(--cn-board-control-height, 40px);
+	font-size: 14px;
+}
+
+.cn-banner-widget__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.cn-banner-widget__action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-height: var(--default-clickable-area, 40px);
+	margin: 0;
+	padding: 0 16px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
+	font: inherit;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.cn-banner-widget__action--secondary {
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.cn-banner-widget__action--secondary:hover {
+	background: var(--color-background-hover);
+}
+
+.cn-banner-widget__action--primary {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+.cn-banner-widget__action--primary:hover {
+	border-color: var(--color-primary-element-hover);
+	background: var(--color-primary-element-hover);
+}
+
+.cn-banner-widget__action:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
 }
 </style>

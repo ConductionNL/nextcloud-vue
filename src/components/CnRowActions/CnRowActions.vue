@@ -1,28 +1,94 @@
 <template>
-	<NcActions :forceMenu="visibleActions.length > 3"
-		:primary="primary"
-		:menuName="menuName"
-		data-testid="cn-row-actions">
-		<NcActionButton
-			v-for="action in visibleActions"
-			:key="action.label"
-			:title="getTitle(action)"
+	<!-- `inline`: the first actions as buttons beside the menu, the first a tonal
+	     pill, an `iconOnly` one an icon named by its label (board PqWachtrij). -->
+	<div v-if="inlineActions.length > 0" class="cn-row-actions-inline" @click.stop>
+		<NcButton
+			v-for="{ action, link } in inlineActions"
+			:key="actionKey(action)"
+			:class="{ 'cn-button--tonal': !action.iconOnly }"
+			:variant="action.iconOnly ? 'tertiary' : 'secondary'"
+			:aria-label="action.iconOnly ? shownLabel(action) : undefined"
+			:title="getTitle(action) || (action.iconOnly ? shownLabel(action) : undefined)"
+			:href="link ? link.href : undefined"
 			:disabled="isDisabled(action)"
-			:class="{ 'cn-row-action--destructive': action.destructive }"
-			:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-			closeAfterClick
-			@click="onAction(action)">
-			<template v-if="action.icon" #icon>
+			data-testid="cn-row-action-inline"
+			@click="link ? onLinkAction(action, link, $event) : onAction(action)">
+			<template v-if="action.iconOnly && action.icon" #icon>
 				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
 				<component :is="action.icon" v-else :size="20" />
 			</template>
-			{{ action.label }}
-		</NcActionButton>
+			<template v-if="!action.iconOnly">
+				{{ shownLabel(action) }}
+			</template>
+		</NcButton>
+		<CnRowActions
+			v-if="menuActions.length > 0"
+			:actions="menuActions"
+			:row="row"
+			:primary="primary"
+			:rowLabel="rowLabel"
+			:triggerLabel="triggerLabel"
+			:menuName="menuName"
+			@action="$emit('action', $event)" />
+	</div>
+	<NcActions v-else
+		:forceMenu="isBoardLook || visibleActions.length > 3"
+		:primary="primary"
+		:variant="isBoardLook ? 'secondary' : undefined"
+		:class="{ 'cn-row-actions--board': isBoardLook }"
+		:menuName="menuName"
+		:ariaLabel="isBoardLook ? boardMenuLabel : undefined"
+		data-testid="cn-row-actions">
+		<!-- Board look: one 34px menu button per row, three dots, named after the row. -->
+		<template v-if="isBoardLook" #icon>
+			<DotsHorizontal :size="18" />
+		</template>
+		<template v-for="{ action, link } in renderedActions" :key="actionKey(action)">
+			<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
+			<NcActionLink
+				v-if="link"
+				:href="link.href"
+				:target="link.target"
+				:title="getTitle(action)"
+				:lang="langOf(action) || undefined"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="actionTestId(action)"
+				closeAfterClick
+				@click="onLinkAction(action, link, $event)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ shownLabel(action) }}
+			</NcActionLink>
+			<NcActionButton
+				v-else
+				:title="getTitle(action)"
+				:disabled="isDisabled(action)"
+				:lang="langOf(action) || undefined"
+				:class="{ 'cn-row-action--destructive': action.destructive }"
+				:data-testid="actionTestId(action)"
+				closeAfterClick
+				@click="onAction(action)">
+				<template v-if="action.icon" #icon>
+					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+					<component :is="action.icon" v-else :size="20" />
+				</template>
+				{{ shownLabel(action) }}
+			</NcActionButton>
+		</template>
 	</NcActions>
 </template>
 
 <script>
-import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
+import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
+import { isModifiedClick } from '../../utils/linkNavigation.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
+import { isRowActionVisible, rowActionKey, rowActionPayload, rowActionTestId, slugifyActionLabel } from '../../utils/rowActionItem.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -39,6 +105,19 @@ import { CnIcon } from '../CnIcon/index.js'
  *   ]"
  *   :row="row" />
  * ```
+ *
+ * An action whose only job is to go somewhere carries `href` (a URL) or `to`
+ * (a vue-router location) instead of a navigating `handler`, and renders as a
+ * real link — middle-click, "open in new tab" and "copy link" all work:
+ *
+ * ```vue
+ * <CnRowActions
+ *   :actions="[
+ *     { label: 'View', icon: 'Eye', to: (row) => ({ name: 'LeadDetail', params: { id: row.id } }) },
+ *     { label: 'Website', icon: 'Web', href: (row) => row.url, linkTarget: '_blank' },
+ *   ]"
+ *   :row="row" />
+ * ```
  */
 export default {
 	name: 'CnRowActions',
@@ -46,7 +125,17 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
+		NcButton,
 		CnIcon,
+		DotsHorizontal,
+	},
+
+	inject: {
+		/** The look CnAppRoot provides; `board` draws one menu button per row. */
+		cnLook: { default: 'nextcloud' },
+		/** The label lookup from CnAppRoot, so manifest action labels show in the user's language. */
+		cnTranslate: { default: null },
 	},
 
 	props: {
@@ -65,8 +154,17 @@ export default {
 		 * - `visible` (boolean | (row) => boolean) — when `false`, hide the entry from the menu (default: shown)
 		 * - `title` (string | (row) => string) — native tooltip shown on hover (useful to explain why an entry is disabled)
 		 * - `destructive` (boolean) — apply error color styling
+		 * - `href` (string | (row) => string) — render the entry as a link to this URL
+		 * - `to` (string | object | (row) => string | object) — render the entry as a link to this
+		 *   vue-router location; a plain click routes in place. Ignored when the router cannot resolve it.
+		 * - `linkTarget` (string) — the link's `target`, e.g. `_blank`
+		 * - `id` (string) — the action's id, passed in the `action` payload
+		 * - `builtin` (boolean) — set by CnIndexPage on its built-in View / Edit / Copy / Delete; a built-in's testid is `cn-action-item-<id>` in every locale and its key `builtin:<id>`
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean}>}
+		 * A link entry still emits `action`, but its `handler` is not called: the link is the
+		 * navigation. A disabled entry, or a `to` without a resolvable route, stays a button.
+		 *
+		 * @type {Array<{label: string, id: string, builtin: boolean, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
 		 */
 		actions: {
 			type: Array,
@@ -85,10 +183,42 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * The row's own name, for the board look's menu button: "Actions for
+		 * <name>". Without it the button is named "Actions".
+		 */
+		rowLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The board look's menu button name, whole ("More actions for Sanne")
+		 * and already translated. Wins over the "Actions for <rowLabel>" the
+		 * button is named after otherwise.
+		 */
+		triggerLabel: {
+			type: String,
+			default: '',
+		},
+
 		/** Label shown on the action menu trigger button */
 		menuName: {
 			type: String,
 			default: undefined,
+		},
+
+		/**
+		 * How many of the visible actions show as buttons beside the menu
+		 * (0, the default: all in the menu). The first is a tonal pill; an
+		 * action with `iconOnly: true` is its icon, named by its label. The
+		 * menu holds the rest and is left out when nothing is left.
+		 *
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		inline: {
+			type: Number,
+			default: 0,
 		},
 	},
 
@@ -96,21 +226,69 @@ export default {
 
 	computed: {
 		/**
-		 * Filter actions by their `visible` predicate. An action without a
-		 * `visible` field is always shown (backwards compatible).
+		 * Whether the row menu is the board look's single menu button.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The board look's menu button name.
+		 *
+		 * @return {string}
+		 */
+		boardMenuLabel() {
+			if (this.triggerLabel) {
+				return this.triggerLabel
+			}
+			return this.rowLabel
+				? t('nextcloud-vue', 'Actions for {name}', { name: this.rowLabel })
+				: t('nextcloud-vue', 'Actions')
+		},
+
+		/**
+		 * Filter actions by their `visibleWhen` and `visible` gates, with the same rule CnContextMenu uses.
+		 * An action without either always shows.
 		 *
 		 * @return {Array} Visible actions for the current row.
 		 */
 		visibleActions() {
-			return this.actions.filter((action) => {
-				if (action.visible === undefined) {
-					return true
-				}
-				if (typeof action.visible === 'function') {
-					return !!action.visible(this.row)
-				}
-				return !!action.visible
-			})
+			return this.actions.filter((action) => isRowActionVisible(action, this.row))
+		},
+
+		/**
+		 * The first `inline` visible actions, each with its link, drawn as buttons.
+		 *
+		 * @return {Array<{action: object, link: object|null}>}
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		inlineActions() {
+			const count = Number.isFinite(this.inline) ? Math.max(0, Math.floor(this.inline)) : 0
+			return this.renderedActions.slice(0, count)
+		},
+
+		/**
+		 * The visible actions the inline buttons leave for the menu.
+		 *
+		 * @return {Array} Actions for the menu.
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		menuActions() {
+			return this.visibleActions.slice(this.inlineActions.length)
+		},
+
+		/**
+		 * Visible actions paired with the link each renders as (null for a button).
+		 *
+		 * @return {Array<{action: object, link: object|null}>}
+		 */
+		renderedActions() {
+			return this.visibleActions.map((action) => ({
+				action,
+				link: this.isDisabled(action) ? null : resolveItemActionLink(action, this.row, this.$router),
+			}))
 		},
 	},
 
@@ -140,30 +318,94 @@ export default {
 			if (typeof action.title === 'function') {
 				return action.title(this.row) || undefined
 			}
-			return action.title || undefined
+			return action.title ? this.shownText(action.title) : undefined
+		},
+
+		/**
+		 * A manifest label through the injected lookup. The written label stays
+		 * the action's identity (its test id and the emitted payload).
+		 *
+		 * @param {string} text The text as written.
+		 * @return {string} The text in the user's language, or as written.
+		 */
+		shownText(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * @param {object} action The action definition.
+		 * @return {string|null} The source language when the label fell back to its written text in another language.
+		 */
+		langOf(action) {
+			return labelLang(this.cnTranslate, action.label)
+		},
+
+		/**
+		 * @param {object} action The action definition.
+		 * @return {string} Its label for display.
+		 */
+		shownLabel(action) {
+			return typeof action.label === 'string' ? this.shownText(action.label) : action.label
 		},
 
 		onAction(action) {
 			if (action.handler && typeof action.handler === 'function') {
 				action.handler(this.row)
 			}
-			this.$emit('action', { action: action.label, row: this.row })
+			this.$emit('action', rowActionPayload(action, this.row))
+		},
+
+		/**
+		 * A link entry was clicked: route a plain in-app click, leave the rest to
+		 * the browser, and emit `action` as a button would. The `handler` is not
+		 * called, since navigating is what the link already does. A modified
+		 * click opens a new tab, so nothing is emitted in this one.
+		 *
+		 * @param {object} action The action definition.
+		 * @param {object} link The resolved link.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onLinkAction(action, link, event) {
+			if (isModifiedClick(event)) {
+				return
+			}
+			followItemActionLink(event, link, this.$router)
+			/**
+			 * @event action User picked an entry. Payload: `action` (the label), the row, the action's `id` when it has one, and `builtin: true` for a CnIndexPage built-in. A button entry has already run its `handler`; a link entry navigates instead, and a modified (new-tab) click on a link emits nothing.
+			 * @type {{ action: string, row: object|null, id?: string, builtin?: boolean }}
+			 */
+			this.$emit('action', rowActionPayload(action, this.row))
 		},
 
 		/**
 		 * Slugify an action label for use in stable `data-testid` selectors.
-		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
-		 * `:data-testid` binding on NcActionButton — does not affect runtime
-		 * behaviour or rendered text.
+		 * Lowercase, kebab-case, strip non-alphanumeric.
 		 *
 		 * @param {string} label - The action's display label
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
-			return String(label || '')
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '')
+			return slugifyActionLabel(label)
+		},
+
+		/**
+		 * The entry's `data-testid`: `cn-action-item-<id>` for a built-in, the label slug otherwise.
+		 *
+		 * @param {object} action The action definition.
+		 * @return {string} The testid.
+		 */
+		actionTestId(action) {
+			return rowActionTestId(action)
+		},
+
+		/**
+		 * The entry's render key: `builtin:<id>` for a built-in, the label otherwise.
+		 *
+		 * @param {object} action The action definition.
+		 * @return {string} The key.
+		 */
+		actionKey(action) {
+			return rowActionKey(action)
 		},
 	},
 }
@@ -172,5 +414,11 @@ export default {
 <style scoped>
 .cn-row-action--destructive {
 	color: var(--color-error) !important;
+}
+
+.cn-row-actions-inline {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
 }
 </style>

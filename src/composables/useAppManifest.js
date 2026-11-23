@@ -205,6 +205,7 @@ function loadInMemory(input) {
  * @param {object} options Configuration options (endpoint / fetcher /
  *   getAppConfigValue overrides).
  * @return {{ manifest: import('vue').Ref<object>, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, unresolvedSentinels: import('vue').Ref<string[]> }}
+ * @spec openspec/changes/manifest-validator-self-contained/specs/manifest-validator-self-contained/spec.md#requirement-a-backend-manifest-delta-reaches-the-navigation
  */
 function loadFromBackend(appId, bundledManifest, options) {
 	// Shallow by default (manifest-shallow-reactivity-by-default) — see
@@ -284,9 +285,13 @@ function loadFromBackend(appId, bundledManifest, options) {
 			// The shallowRef reassignment is what re-renders consumers; the new
 			// object stays shallow (not deep-observed) unless CnAppRoot upgrades it.
 			manifest.value = resolved
-		} catch {
-			// Defensive: any unexpected error leaves the bundled manifest in
-			// place. Apps without a backend endpoint keep working.
+		} catch (error) {
+			// Any unexpected error leaves the bundled manifest in place, so
+			// apps keep working. Say so: a silent catch here once hid a
+			// validator that threw on every manifest, and the backend delta
+			// never reached the navigation.
+			// eslint-disable-next-line no-console
+			console.warn('[useAppManifest] Could not resolve the manifest; keeping the bundled manifest.', error)
 		} finally {
 			isLoading.value = false
 		}

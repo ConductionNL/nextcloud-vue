@@ -1,0 +1,3 @@
+- [x] utils/libraryTranslate.js
+- [x] CnAi* parts default cnTranslate to libraryTranslate
+- [x] Spec tests/components/AiCompanionLibraryTranslate.spec.js

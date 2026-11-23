@@ -19,7 +19,10 @@ dispatcher — with a confirm gate first when the action asks for it.
 | `toggle` | Two-way state button: GETs `stateSource` on mount, renders `labelOn` / `labelOff`, and on click writes the flipped value **optimistically** (reverting on failure). |
 | `api-call` | POST/PUT `url` + success/error toast + page refresh — via `dispatchAction`. `payload` (preferred, deep @-token resolution) or `params` (legacy, shallow) supplies the JSON body; `download: true` requests a blob response and triggers a browser file download instead (no auto-refresh unless `refresh: true`). See [dispatchAction](../utilities/dispatch-action.md#api-call-wave-3-91). |
 | `agent` | Run a governed hermiq agent against the page object (hermiq#41). POSTs `{ register, schema, objectId, resultField?, skill?, prompt? }` to `/apps/hermiq/api/agents/{agent}/run-on-object` — `register` / `schema` / `objectId` default to the page's `@register` / `@schema` / `@objectId` context. A first-class companion to `api-call` (still the fallback for a bespoke body); hermiq is not hard-required — an app-level 404 toasts "Agent runtime unavailable". See [dispatchAction](../utilities/dispatch-action.md#agent-hermiq41). |
-| `navigate` / `open-page` / `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`). |
+| `navigate` / `open-page` | Rendered as a real link, so it can be middle-clicked, opened in a new tab or copied: an external `navigate` target opens in a new tab, an in-app target (or `open-page` route name) gets the router-resolved `href` and a plain click routes in place. A `confirm: true` action, one carrying an `onSelect` function, or one whose route the router cannot resolve stays a button routed through `dispatchAction`. In `display: "menu"` an in-app link is published as a `run()` entry, not an `href`. |
+| `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`). |
+
+An entry with **`href`** (any type) is a real link and is never dispatched: an anchor button in the bar, an `NcActionLink` in a menu, with `target` as its anchor target. This component uses `href` as given, so it must be a finished URL. A manifest `headerActions[]` entry on a detail or dashboard page may carry `href` too; the page resolves an instance path through `generateUrl()` and sets `target` (`_self` unless the manifest says `_blank`) before handing it over — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href).
 
 Every action may carry a **`visibleWhen`** predicate (the shared banner
 shape — `{ endpoint \| source \| field, op, value }`) evaluated against the
@@ -154,8 +157,17 @@ current record without extra wiring.
 | `actions` | `Array` | `[]` | The declarative `headerActions[]` entries. |
 | `inline` | `Number` | `0` | How many collapsible actions stay as buttons; the rest fall into one `···` menu. `0` renders every action as a button (the pre-existing behaviour). |
 | `overflowLabel` | `String` | `''` | Name for the overflow menu. Empty falls back to a translated "Actions". |
+| `overflowOnly` | `Boolean` | `false` | Every collapsible action in the overflow menu and none as a button; the trigger is icon only. |
+| `overflowAriaLabel` | `String` | `''` | The accessible name of that icon-only trigger; empty falls back to the overflow label. |
 | `router` | `Object` | `null` | Explicit Vue Router for `navigate` / `onSuccessRoute` (falls back to `this.$router`). |
 | `display` | `String` | `'buttons'` | Where the actions are drawn. `buttons` puts one `NcButton` per action in the host's header. `menu` draws none and emits `entries` instead, so the host can render them inside an overflow menu while this component keeps owning the dialogs. |
+
+## Variants
+
+`variant` styles a button: `primary`, `secondary` (the default), `tertiary`,
+`error` (filled red, for the button that confirms a destructive step) and
+`error-outline` (white with a red border and red text, for a red action that
+is not the main one, such as reversing a payment).
 
 ## Overflow and sub-actions
 
@@ -234,3 +246,16 @@ This is what `CnDetailPage` does with a page's manifest `headerActions`.
   declare on any page.
 - `toggle` is intentionally **not** dispatchable through `dispatchAction`
   (it needs mounted state); dispatching one warns and no-ops.
+
+## Disabled, with the reason why
+
+An action with `disabledWhen` stays drawn but is disabled while that condition holds, in the `visibleWhen` shape (an endpoint, a source, reader groups, an installed app or a field of the record). `disabledReason`, translated, says why: as the button's tooltip, or as the line under the entry in a menu. A disabled action does not run.
+
+```json
+{ "id": "send-link", "label": "Send payment link", "type": "api-call", "url": "/apps/shillinq/api/payment-links",
+  "disabledWhen": { "endpoint": "/apps/shillinq/api/payment-adapter", "field": "active", "op": "eq", "value": false },
+  "disabledReason": "The payment provider is not connected." }
+```
+
+Index page header actions take the same two keys.
+

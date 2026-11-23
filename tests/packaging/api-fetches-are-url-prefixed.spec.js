@@ -19,8 +19,9 @@
  *
  * The fix is one rule, and this test is that rule: the URL argument of a
  * `fetch()` / `axios.<verb>()` call is wrapped in a URL helper —
- * `prefixUrl()` (this library's own, applied at the call site or inside
- * `cnFetch`), or `generateUrl()` / `generateOcsUrl()` from
+ * `prefixUrl()` (this library's own, which takes its prefix from
+ * `generateUrl()`; applied at the call site or inside `cnFetch`), or
+ * `generateUrl()` / `generateOcsUrl()` from
  * `@nextcloud/router`. The check resolves ONE level of indirection, so the
  * two shapes the codebase actually uses both pass:
  *
@@ -50,13 +51,14 @@ const URL_HELPERS = [
 	'getRegisterApiUrl',
 	'getSchemaApiUrl',
 	// Every builder in `src/composables/aiChatConfig.js` composes
-	// `chatApiBase()`, which returns an `/index.php`-rooted path.
+	// `chatApiBase()`, which builds its path with `prefixUrl()`.
 	'chatApiBase',
 	'chatStreamUrl',
 	'chatSendUrl',
 	'chatHealthUrl',
 	'attachmentsUrl',
 	'conversationsUrl',
+	'sessionsUrl',
 	'conversationMessagesUrl',
 	'conversationUrl',
 	'agentsUrl',
@@ -65,6 +67,12 @@ const URL_HELPERS = [
 	'speechCapabilitiesUrl',
 	// Module-local builders that wrap `generateUrl()` themselves.
 	'objectsUrl',
+	// useObjectCopy's object address, built by `generateUrl()`.
+	'objectUrl',
+	// useObjectPresence's beat/depart/list URL, built by `generateUrl()`.
+	'presenceUrl',
+	// useObjectStore's collection URL, built by `prefixUrl()`.
+	'_buildCollectionUrl',
 ]
 
 /**
@@ -75,36 +83,27 @@ const URL_HELPERS = [
  * expression in the same file stays exempt.
  */
 const ALLOWED = new Map([
-	// ── OCS entry points are real files on disk (`/ocs/v2.php`), reachable
-	//    without mod_rewrite. Prefixing them would be wrong, not merely
-	//    unnecessary.
-	["src/components/CnObjectSidebar/CnTasksTab.vue:'/ocs/v2.php/cloud/users/details?format=json&limit=50'", 'OCS entry point is a real file'],
-	["src/components/CnUserActionMenu/CnUserActionMenu.vue:'/ocs/v2.php/cloud/capabilities?format=json'", 'OCS entry point is a real file'],
-	['src/components/CnUserActionMenu/CnUserActionMenu.vue:`/ocs/v2.php/cloud/users/${encodeURIComponent(this.userId)}?format=json`', 'OCS entry point is a real file'],
-	["src/components/CnUserActionMenu/CnUserActionMenu.vue:'/ocs/v2.php/apps/spreed/api/v4/room'", 'OCS entry point is a real file'],
-	['src/components/CnContactPicker/CnContactPicker.vue:url', "userSearchUrl defaults to the sharees OCS entry point ('/ocs/v2.php/apps/files_sharing/api/v1/sharees'), a real file, and is caller-overridable"],
-
-	// ── DAV entry points (`remote.php/dav`) are real files on disk, same
-	//    reasoning as the OCS entries above.
+	// ── DAV entry points (`remote.php/dav`) are real files on disk, reached
+	//    through a helper that already carries the webroot.
 	['src/components/CnFilesBrowser/CnFilesBrowser.vue:`${getRemoteURL()}${this.davPath(joinPath(this.currentPath, upload.name))}`', 'getRemoteURL() resolves the DAV entry point, a real file'],
-	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${remoteUrl.replace(/\\/+$/, '')}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
-
-	// ── Literals that already carry the `/index.php` prefix.
-	['src/components/CnDeckCardPicker/CnDeckCardPicker.vue:url', "literal already starts with '/index.php'"],
-	['src/components/CnWidgetRefItem/CnWidgetRefItem.vue:url', "literal already starts with '/index.php'"],
+	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${stripTrailingSlashes(remoteUrl)}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
 
 	// ── Caller- or config-supplied endpoints. The value arrives from the host
 	//    app, a widget config or a server payload and may be absolute, so the
 	//    library must pass it through untouched.
-	['src/components/CnSettingsPage/CnSettingsPage.vue:this.saveEndpoint', 'endpoint prop comes from the host app'],
-	['src/components/CnLogsPage/CnLogsPage.vue:this.source', 'log source URL comes from the page config'],
-	['src/components/CnMapWidget/CnMapWidget.vue:url', 'GeoJSON endpoint is a widget-config value (often absolute)'],
-	['src/components/CnMapWidget/CnMapWidget.vue:ds.url', 'GeoJSON endpoint is a widget-config value (often absolute)'],
 	['src/components/CnObjectGeoWidget/CnObjectGeoWidget.vue:url', 'Nominatim is an absolute third-party URL'],
 	['src/components/CnAiCompanion/CnAiChatPanel.vue:approval.resolveUrl', 'approval URL comes from the server payload'],
 	['src/components/CnAdminSettingsShell/CnAdminSettingsShell.vue:this.resolvedReimportUrl', 'falls back to generateUrl(); an explicit reimportUrl prop wins'],
+	['src/offline/serviceWorker.js:request', "the worker re-issues the browser's own intercepted Request, whose URL the browser already resolved to an absolute one"],
 	['src/composables/useAppManifest.js:url', 'the fetcher receives a caller-resolved endpoint'],
+	['src/utils/diagnostics.js:url', 'trackedFetch wraps the caller\'s URL, which the caller already prefixed'],
+	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
+	['src/integrations/builtin/calendar/calendarEventLink.js:`${eventsUrl}/link`', 'every caller passes a prefixUrl()-built events address (CnEventsCard, CnCalendarCard, CnCalendarTab)'],
+
+	// ── Built by a computed that wraps `prefixUrl()` itself.
+	['src/components/CnTimelineWidget/CnTimelineManage.vue:this.timelineUrl', 'the timelineUrl computed returns prefixUrl(...)'],
+	['src/components/CnTimelineWidget/CnTimelineManage.vue:`${this.timelineUrl}/${entry.id}`', 'the timelineUrl computed returns prefixUrl(...)'],
 
 	// ── Built from a store base that is prefixed once, at store creation:
 	//    `baseState()` in useObjectStore.js and `prefixUrl(...)` in
@@ -481,7 +480,7 @@ function unprefixedCallSites() {
 	for (const file of sourceFiles(SRC)) {
 		const relative = path.relative(ROOT, file).split(path.sep).join('/')
 		const source = blankComments(scriptRegion(fs.readFileSync(file, 'utf8'), file))
-		const calls = /(?<![.\w$])(fetch|axios\.(?:get|post|put|patch|delete|request))\s*\(/g
+		const calls = /(?<![.\w$])(trackedFetch|fetch|axios\.(?:get|post|put|patch|delete|request))\s*\(/g
 		let match
 		while ((match = calls.exec(source)) !== null) {
 			const start = match.index + match[0].length

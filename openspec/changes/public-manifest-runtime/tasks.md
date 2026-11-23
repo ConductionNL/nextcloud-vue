@@ -12,8 +12,8 @@
   - `host` defaults to `'nextcloud'`; an app calling without it boots byte-identically to before — asserted against a recorded pre-change boot, not by inspection
   - `'public'` mounts the caller-supplied element and never looks for `#app-content`
   - An unrecognised value throws naming the accepted set; it does NOT fall back to either mode
-- [ ] Implement
-- [ ] Test
+- [ ] Implement — not run: `bootstrapCnApp()` is not in this repository (apps boot themselves from `main.js`); the host choice is available on the transport as `configureCnFetch({ host })`, which refuses an unrecognised value
+- [ ] Test — the host validation is tested in `tests/utils/cnFetch.public.spec.js`; the boot tests are not run: needs the repo that owns `bootstrapCnApp`
 
 ### Task 2: Public transport in cnFetch
 - **spec_ref**: `openspec/changes/public-manifest-runtime/specs/public-manifest-runtime/spec.md#requirement-public-transport-must-use-a-bearer-credential-and-must-not-leak-it`
@@ -22,8 +22,8 @@
   - Public mode sends the bearer credential and NO `requesttoken`; nextcloud mode is unchanged
   - URLs resolve from the configured base; `generateUrl` is not called in public mode
   - The credential appears in no URL, log line or error payload — asserted on a deliberately failing request, since that is the path that serialises context
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Globals-free integration test with a positive control
 - **spec_ref**: `openspec/changes/public-manifest-runtime/specs/public-manifest-runtime/spec.md#requirement-a-manifest-must-render-with-no-nextcloud-globals-present`
@@ -33,5 +33,5 @@
   - The control runs FIRST: the same manifest booted with `host: 'nextcloud'` in that environment must FAIL, and that failure is asserted — otherwise a green public-mode test proves only that the environment supplied the globals anyway
   - A component reaching for a Nextcloud global fails the test by name; the fix goes into the component, and a `host` prop is not added
   - The test covers at least one page of each type the portal will serve, so the pass is not a single-page result generalised
-- [ ] Implement
-- [ ] Test
+- [ ] Implement — not run: needs `bootstrapCnApp` and a decision on which page types the portal serves
+- [ ] Test — not run: same reason; no Cn* component was changed

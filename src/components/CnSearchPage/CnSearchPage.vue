@@ -1,8 +1,8 @@
 <template>
 	<div class="cn-search-page" data-testid="cn-search-page">
 		<header class="cn-search-page__header">
-			<h2 v-if="title" class="cn-search-page__title">
-				{{ title }}
+			<h2 v-if="title" class="cn-search-page__title" :lang="langOf(title)">
+				{{ shown(title) }}
 			</h2>
 			<form class="cn-search-page__query" @submit.prevent="onQuerySubmit">
 				<input
@@ -17,17 +17,24 @@
 					{{ searchLabel }}
 				</button>
 			</form>
+			<!-- A term the server could not read: said under the field, the
+			     results of the last readable term kept. -->
+			<CnCardNotices
+				v-if="refusalNotice"
+				class="cn-search-page__refusal"
+				:notices="[refusalNotice]"
+				data-testid="cn-search-page-refusal" />
 		</header>
 
 		<div class="cn-search-page__body">
 			<!-- Facet sidebar. -->
-			<aside v-if="facets.length > 0" class="cn-search-page__facets" data-testid="cn-search-page-facets">
+			<aside v-if="shownFacets.length > 0" class="cn-search-page__facets" data-testid="cn-search-page-facets">
 				<h3 class="cn-search-page__facets-title">
 					{{ facetsTitle }}
 				</h3>
-				<div v-for="facet in facets" :key="facet.key" class="cn-search-page__facet">
+				<div v-for="facet in shownFacets" :key="facet.key" class="cn-search-page__facet">
 					<h4 class="cn-search-page__facet-title">
-						{{ facet.label || facet.key }}
+						{{ shown(facet.label) || facet.key }}
 					</h4>
 					<ul class="cn-search-page__facet-options">
 						<li v-for="opt in facet.options"
@@ -39,7 +46,7 @@
 									:type="facet.multiple ? 'checkbox' : 'radio'"
 									:name="'facet-' + facet.key"
 									@change="toggleFacet(facet.key, opt.value, $event.target.checked, facet.multiple)">
-								<span>{{ opt.label || opt.value }}</span>
+								<span>{{ shown(opt.label) || opt.value }}</span>
 								<small v-if="typeof opt.count === 'number'" class="cn-search-page__facet-count">{{ opt.count }}</small>
 							</label>
 						</li>
@@ -55,11 +62,11 @@
 
 			<!-- Results pane. -->
 			<section class="cn-search-page__results" data-testid="cn-search-page-results">
-				<div v-if="loading" class="cn-search-page__loading">
+				<div v-if="shownLoading" class="cn-search-page__loading">
 					{{ loadingLabel }}
 				</div>
-				<ol v-else-if="results.length > 0" class="cn-search-page__list">
-					<li v-for="result in results"
+				<ol v-else-if="shownResults.length > 0" class="cn-search-page__list">
+					<li v-for="result in shownResults"
 						:key="result.id || (result.schema + ':' + (result.title || ''))"
 						class="cn-search-page__result"
 						:data-result-id="result.id"
@@ -86,8 +93,8 @@
 					{{ idleLabel }}
 				</p>
 
-				<div v-if="totalCount > 0 && totalCount > results.length" class="cn-search-page__more">
-					{{ totalCountLabel(totalCount, results.length) }}
+				<div v-if="shownTotal > 0 && shownTotal > shownResults.length" class="cn-search-page__more">
+					{{ totalCountLabel(shownTotal, shownResults.length) }}
 				</div>
 			</section>
 		</div>
@@ -95,6 +102,10 @@
 </template>
 
 <script>
+import { parseAxiosError } from '../../utils/errors.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
+import { readSearchRefusal, searchRefusalNotice } from '../../utils/searchRefusal.js'
+import { CnCardNotices } from '../CnCardNotices/index.js'
 /**
  * CnSearchPage — Search surface with a query input, a facet
  * sidebar, and a results list. Mounted by CnPageRenderer when a
@@ -120,6 +131,14 @@
  */
 export default {
 	name: 'CnSearchPage',
+
+	components: { CnCardNotices },
+
+	inject: {
+		/** The label lookup from CnAppRoot, so manifest labels show in the user's language. */
+		cnTranslate: { default: null },
+	},
+
 	props: {
 		/** Optional title rendered above the query input. */
 		title: { type: String, default: 'Search' },
@@ -185,6 +204,33 @@ export default {
 			type: Function,
 			default: (total, shown) => `Showing ${shown} of ${total} results.`,
 		},
+
+		/**
+		 * The words of a refused search (manifest `config.searchRefusal`):
+		 * `{ title?, after? }`, the title with `{position}`. A `sources` search
+		 * the server refuses for its grammar keeps the results it had and says
+		 * so under the search field.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-the-search-page-says-a-refused-term-under-its-field
+		 */
+		searchRefusal: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The lists the page searches itself (manifest `config.sources`). Each
+		 * `{ id?, label, register, schema, route?, titleField?, snippetField?,
+		 * limit? }`: one request per list with `_search`, results in the order
+		 * of the lists, and the lists offered as a Type filter with their
+		 * totals. `route` names the page a result opens, with its id. Empty
+		 * keeps the page controlled: `results` and `facets` come from props.
+		 *
+		 * @type {Array<object>}
+		 */
+		sources: { type: Array, default: () => [] },
+		/** The Type filter's heading when the page searches `sources`. */
+		typeLabel: { type: String, default: 'Type' },
 	},
 
 	emits: ['facets-change', 'query-change', 'result-click', 'search', 'update:query'],
@@ -192,18 +238,100 @@ export default {
 		return {
 			localQuery: this.query,
 			hasSearched: false,
+			// What a `sources` search found, per list, and the filter it keeps.
+			sourceRows: {},
+			sourceTotals: {},
+			sourceFacets: {},
+			sourceLoading: false,
+			sourceRun: 0,
+			// The latest `sources` search the server refused for its grammar.
+			refusal: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * The refused search as a notice under the field, or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-the-search-page-says-a-refused-term-under-its-field
+		 */
+		refusalNotice() {
+			return this.refusal ? searchRefusalNotice(this.refusal, this.searchRefusal, (text) => this.shown(text)) : null
+		},
+
+		/** @return {boolean} Whether the page searches its own `sources`. */
+		searchesSources() {
+			return Array.isArray(this.sources) && this.sources.some((source) => source && source.register && source.schema)
+		},
+
+		/** @return {Array<object>} The lists searched, each with its key. */
+		sourceList() {
+			return (this.sources || [])
+				.filter((source) => source && source.register && source.schema)
+				.map((source) => ({ ...source, key: source.id || source.schema }))
+		},
+
+		/** @return {Record<string, Array<string>>} The active filter, the page's own when it searches `sources`. */
+		effectiveFacets() {
+			return this.searchesSources ? this.sourceFacets : (this.activeFacets || {})
+		},
+
+		/** @return {Array<object>} The facets shown: the Type filter of the lists, else the `facets` prop. */
+		shownFacets() {
+			if (!this.searchesSources) {
+				return this.facets
+			}
+			if (!this.hasSearched) {
+				return []
+			}
+			return [{
+				key: 'type',
+				label: this.typeLabel,
+				multiple: true,
+				options: this.sourceList.map((source) => ({
+					value: source.key,
+					label: source.label,
+					...(typeof this.sourceTotals[source.key] === 'number' ? { count: this.sourceTotals[source.key] } : {}),
+				})),
+			}]
+		},
+
+		/** @return {Array<object>} The results shown. */
+		shownResults() {
+			if (!this.searchesSources) {
+				return this.results
+			}
+			return this.activeSources.flatMap((source) => this.sourceRows[source.key] || [])
+		},
+
+		/** @return {number} The total of the results shown. */
+		shownTotal() {
+			if (!this.searchesSources) {
+				return this.totalCount
+			}
+			return this.activeSources.reduce((sum, source) => sum + (this.sourceTotals[source.key] || 0), 0)
+		},
+
+		/** @return {boolean} Whether a search is running. */
+		shownLoading() {
+			return this.searchesSources ? this.sourceLoading : this.loading
+		},
+
+		/** @return {Array<object>} The lists the Type filter leaves in, all when none is picked. */
+		activeSources() {
+			const picked = Array.isArray(this.effectiveFacets.type) ? this.effectiveFacets.type : []
+			return picked.length === 0 ? this.sourceList : this.sourceList.filter((source) => picked.includes(source.key))
+		},
+
 		/**
 		 * Whether any facet has at least one active value.
 		 *
 		 * @return {boolean}
 		 */
 		hasActiveFacets() {
-			for (const k of Object.keys(this.activeFacets || {})) {
-				if (Array.isArray(this.activeFacets[k]) && this.activeFacets[k].length > 0) {
+			for (const k of Object.keys(this.effectiveFacets)) {
+				if (Array.isArray(this.effectiveFacets[k]) && this.effectiveFacets[k].length > 0) {
 					return true
 				}
 			}
@@ -221,6 +349,26 @@ export default {
 
 	methods: {
 		/**
+		 * A manifest label through the injected lookup, or as written.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
+		/**
 		 * Whether a (facetKey, value) is currently active.
 		 *
 		 * @param {string} key Facet key.
@@ -228,7 +376,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isFacetActive(key, value) {
-			const arr = this.activeFacets[key]
+			const arr = this.effectiveFacets[key]
 			return Array.isArray(arr) && arr.includes(value)
 		},
 
@@ -242,7 +390,7 @@ export default {
 		 * @return {void}
 		 */
 		toggleFacet(key, value, checked, multiple) {
-			const next = { ...this.activeFacets }
+			const next = { ...this.effectiveFacets }
 			if (!multiple) {
 				next[key] = checked ? [value] : []
 			} else {
@@ -273,6 +421,9 @@ export default {
 			 * @type {Record<string,Array<string>>}
 			 */
 			this.$emit('facets-change', next)
+			if (this.searchesSources) {
+				this.sourceFacets = next
+			}
 			this.emitSearch()
 		},
 
@@ -313,7 +464,81 @@ export default {
 			 *   Combines query + active facets.
 			 * @type {{ query: string, facets: Record<string,Array<string>> }}
 			 */
-			this.$emit('search', { query: this.localQuery, facets: { ...this.activeFacets } })
+			this.$emit('search', { query: this.localQuery, facets: { ...this.effectiveFacets } })
+			if (this.searchesSources) {
+				this.searchSources()
+			}
+		},
+
+		/**
+		 * Search the lists the Type filter leaves in, one request each, and
+		 * keep what each found. A search started later wins over this one.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-the-search-page-says-a-refused-term-under-its-field
+		 */
+		async searchSources() {
+			const run = this.sourceRun + 1
+			this.sourceRun = run
+			this.sourceLoading = true
+			const [{ default: axios }, { generateUrl }] = await Promise.all([
+				import('@nextcloud/axios'),
+				import('@nextcloud/router'),
+			])
+			const found = await Promise.all(this.activeSources.map(async (source) => {
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: source.register, schema: source.schema })
+				const limit = Number(source.limit) > 0 ? Math.floor(Number(source.limit)) : 10
+				try {
+					const response = await axios.get(url, { params: { _search: this.localQuery, _limit: limit } })
+					const data = response && response.data ? response.data : {}
+					const rows = Array.isArray(data.results) ? data.results : []
+					return { source, rows, total: typeof data.total === 'number' ? data.total : rows.length }
+				} catch (e) {
+					const { status, message, data } = parseAxiosError(e)
+					const refused = readSearchRefusal({ status, message, position: data && data.position }, this.localQuery)
+					if (refused) {
+						return { source, refused }
+					}
+					// eslint-disable-next-line no-console
+					console.warn('[CnSearchPage] could not search', source.schema, e)
+					return { source, rows: [], total: 0 }
+				}
+			}))
+			if (run !== this.sourceRun) {
+				return
+			}
+			const refusedRun = found.find((entry) => entry.refused)
+			this.refusal = refusedRun ? refusedRun.refused : null
+			const rows = { ...this.sourceRows }
+			const totals = { ...this.sourceTotals }
+			for (const { source, rows: list, total } of found.filter((entry) => !entry.refused)) {
+				rows[source.key] = list.map((row) => this.resultOf(source, row))
+				totals[source.key] = total
+			}
+			this.sourceRows = rows
+			this.sourceTotals = totals
+			this.sourceLoading = false
+		},
+
+		/**
+		 * One found object as a result row.
+		 *
+		 * @param {object} source The list it came from.
+		 * @param {object} row The object.
+		 * @return {object} `{ id, title, snippet, schema, route }`.
+		 */
+		resultOf(source, row) {
+			const id = row && (row.id || row['@self']?.id)
+			const titleField = source.titleField || ''
+			const title = (titleField && row[titleField]) || row.title || row.name || id
+			const snippet = source.snippetField ? row[source.snippetField] : undefined
+			return {
+				id,
+				title: typeof title === 'string' ? title : String(title ?? ''),
+				...(typeof snippet === 'string' && snippet !== '' ? { snippet } : {}),
+				schema: this.shown(source.label) || source.schema,
+				route: source.route || '',
+			}
 		},
 
 		/**
@@ -328,6 +553,9 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('result-click', result)
+			if (this.searchesSources && result && result.route && result.id && this.$router) {
+				this.$router.push({ name: result.route, params: { id: result.id } })
+			}
 		},
 	},
 }
@@ -344,6 +572,10 @@ export default {
 /* Reserve room for NcAppNavigationToggle (matches CnPageRenderer / CnPageHeader). */
 .cn-search-page__header {
 	padding-inline-start: 56px;
+}
+
+.cn-search-page__refusal {
+	margin-block-start: 8px;
 }
 
 .cn-search-page__title {

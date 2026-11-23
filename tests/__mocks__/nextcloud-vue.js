@@ -105,6 +105,7 @@ export const NcDialog = createStub('NcDialog')
 export const NcModal = createStub('NcModal')
 export const NcButton = createStub('NcButton')
 export const NcNoteCard = createStub('NcNoteCard')
+export const NcProgressBar = createStub('NcProgressBar')
 export const NcLoadingIcon = createStub('NcLoadingIcon')
 export const NcTextField = createStub('NcTextField')
 export const NcTextArea = createStub('NcTextArea')
@@ -266,6 +267,7 @@ export const NcRichContenteditable = {
 	},
 }
 export const NcSelect = createStub('NcSelect')
+export const NcSelectUsers = createStub('NcSelectUsers')
 export const NcSettingsSection = createStub('NcSettingsSection')
 export const NcAppSidebar = createStub('NcAppSidebar')
 export const NcAppSidebarTab = createStub('NcAppSidebarTab')
@@ -395,6 +397,7 @@ export default {
 	NcActionCheckbox,
 	NcActionSeparator,
 	NcSelect,
+	NcSelectUsers,
 	NcSettingsSection,
 	NcAppSidebar,
 	NcAppSidebarTab,

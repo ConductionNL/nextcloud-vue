@@ -12,15 +12,15 @@
 		<div v-else-if="localColumns.length === 0" class="cn-object-kanban__empty">
 			<!-- @slot empty Custom empty state shown when there are no columns to render. -->
 			<slot name="empty">
-				<NcEmptyContent :name="emptyText">
+				<CnEmptyContent :name="emptyText">
 					<template #icon>
 						<ViewColumn :size="64" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</slot>
 		</div>
 
-		<div v-else class="cn-object-kanban__board">
+		<div v-else class="cn-object-kanban__board" :class="{ 'cn-object-kanban__board--board': isBoardLook }">
 			<div
 				v-for="column in localColumns"
 				:key="columnKey(column.value)"
@@ -50,11 +50,27 @@
 					<template #item="{ element: card }">
 						<div
 							class="cn-object-kanban__card"
-							:class="{ 'cn-object-kanban__card--pending': isPending(card) }">
+							:class="{
+								'cn-object-kanban__card--pending': isPending(card),
+								'cn-object-kanban__card--overdue': dueState(card) === 'overdue',
+								'cn-object-kanban__card--soon': dueState(card) === 'soon',
+							}">
 							<!-- @slot card Fully replace the default card rendering. -->
 							<!-- @binding {object} object The card's object. -->
 							<!-- @binding {object} column The column the card currently sits in. -->
-							<slot name="card" :object="card" :column="column">
+							<!-- @binding {string|null} dueState The card's due state under `dueRule`: `overdue`, `soon`, `ok`, or null without a rule. -->
+							<slot
+								name="card"
+								:object="card"
+								:column="column"
+								:dueState="dueState(card)">
+								<span
+									v-if="dueLabel(card)"
+									class="cn-object-kanban__due"
+									:class="`cn-object-kanban__due--${dueState(card)}`"
+									data-testid="cn-kanban-due">
+									{{ dueLabel(card) }}
+								</span>
 								<div class="cn-object-kanban__card-title" @click="onCardClick(card)">
 									{{ cardTitle(card) }}
 								</div>
@@ -89,9 +105,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import draggable from 'vuedraggable'
 import ViewColumn from 'vue-material-design-icons/ViewColumn.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { dueStateForRow } from '../../utils/dueRule.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 
 /**
@@ -152,9 +171,14 @@ export default {
 		Draggable: draggable,
 		NcButton,
 		NcLoadingIcon,
-		NcEmptyContent,
+		CnEmptyContent,
 		ViewColumn,
 		CnCellRenderer,
+	},
+
+	inject: {
+		/** The look the app is drawn in; the board look takes the board column tokens. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -225,6 +249,22 @@ export default {
 			type: String,
 			default: 'id',
 		},
+
+		/**
+		 * Marks late cards: `{ field, soonDays? }`. `field` is the dot-path to
+		 * a card's due date. A date before today gets an error edge and the
+		 * label "Overdue"; a date within `soonDays` (default 3) gets "Due
+		 * soon" in the warning colour. `null` (the default) marks nothing.
+		 *
+		 * The same rule shape the table's date cell uses, so a list and its
+		 * board agree on what late means.
+		 *
+		 * @type {{field: string, soonDays?: number}|null}
+		 */
+		dueRule: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: ['card-click', 'load-more', 'move', 'move-rejected'],
@@ -240,10 +280,17 @@ export default {
 			// objectId -> { fromValue, toValue, card, originIndex }
 			pendingMoves: {},
 			dragOriginValue: null,
+			// The day late marking measures from.
+			today: new Date(),
 		}
 	},
 
 	computed: {
+		/** @return {boolean} Whether the app takes the board look. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		emptyText() {
 			return t('nextcloud-vue', 'No columns to show')
 		},
@@ -293,6 +340,33 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * A card's due state under `dueRule`.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {'overdue'|'soon'|'ok'|null} The state, or null when no rule applies.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-late-marking-on-board-cards
+		 */
+		dueState(card) {
+			return dueStateForRow(card, this.dueRule, this.today)
+		},
+
+		/**
+		 * The words a late card carries. Colour alone would not reach a reader
+		 * who cannot see it, or cannot tell red from amber.
+		 *
+		 * @param {object} card The card's row.
+		 * @return {string} "Overdue", "Due soon", or '' for a card that is fine.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-late-marking-on-board-cards
+		 */
+		dueLabel(card) {
+			const state = this.dueState(card)
+			if (state === 'overdue') {
+				return t('nextcloud-vue', 'Overdue')
+			}
+			return state === 'soon' ? t('nextcloud-vue', 'Due soon') : ''
+		},
 
 		/**
 		 * Rebuild `localColumns` from either the `columns` prop (backend-paginated
@@ -703,6 +777,28 @@ export default {
 	opacity: 0.6;
 }
 
+/* A late card. The label carries the meaning; the edge helps a sighted
+   reader find it. An inset shadow, so the card keeps its size. */
+.cn-object-kanban__card--overdue {
+	border-color: var(--color-error);
+	box-shadow: inset 3px 0 0 var(--color-error);
+}
+
+.cn-object-kanban__due {
+	display: block;
+	font-size: 0.85em;
+	font-weight: 700;
+}
+
+.cn-object-kanban__due--overdue {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-object-kanban__due--soon {
+	color: var(--color-warning-text, var(--color-main-text));
+	font-weight: 600;
+}
+
 .cn-object-kanban__card-title {
 	font-weight: 500;
 	cursor: pointer;
@@ -721,5 +817,22 @@ export default {
 	display: flex;
 	justify-content: center;
 	padding-top: 8px;
+}
+
+/* Board look (screens-kanban-parity): the same column tokens as CnBoardView. */
+.cn-object-kanban__board--board {
+	gap: 16px;
+}
+
+.cn-object-kanban__board--board .cn-object-kanban__column {
+	flex: 1 0 240px;
+	min-width: 240px;
+	padding: 12px;
+	border-radius: 12px;
+}
+
+.cn-object-kanban__board--board .cn-object-kanban__card {
+	padding: 14px;
+	border-radius: 10px;
 }
 </style>

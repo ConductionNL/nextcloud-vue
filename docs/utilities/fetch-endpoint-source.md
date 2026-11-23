@@ -16,6 +16,7 @@ Behaviour (shared with the composable):
 
 - `params` values resolve through the SAME `@`-token grammar widget filters use; optional (`…?`) tokens drop when unresolved, an unresolved REQUIRED token returns `null` without a request.
 - Requests dedupe + short-TTL cache per `(method, url, resolved params)` — module-wide, so concurrent callers share ONE http call.
+- `{ fresh: true }` joins a request still in flight but never serves a settled cache entry. `{ force: true, refresh }` bypasses the cache and joins only a request of the same `refresh` token (the refresh event's payload object), so the widgets of one refresh share a request and a later refresh never gets an earlier one's answer.
 - The response is plucked at `responsePath` (dot-path); `undefined` plucks return `null`.
 - App-relative URLs route through `generateUrl`; absolute (`http`/`https`) URLs pass untouched.
 - `method: 'POST'` sends the resolved params as the JSON body.

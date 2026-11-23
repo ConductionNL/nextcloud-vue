@@ -126,7 +126,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -263,8 +263,9 @@ export default {
 			return typeof emoji === 'string' ? emoji.trim() : ''
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		pageUrl(page) {
-			if (typeof page.url === 'string' && page.url !== '') {
+			if (typeof page.url === 'string' && page.url !== '' && safeHref(page.url) !== '#') {
 				return page.url
 			}
 			const d = this.dataOf(page)

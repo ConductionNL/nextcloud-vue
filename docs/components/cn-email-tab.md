@@ -40,4 +40,5 @@ With a custom page size and translated labels:
 |---|---|---|---|
 | `pageSize` (`page-size`) | Number | `25` | Page size for paged fetches. The load-more button stays visible until `messages.length === total`. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL for the OR registry endpoint. |
+| `showActions` (`show-actions`) | Boolean | `true` | Draw the tab's own Link existing email and Compose in Mail buttons. Off when a host draws them, as [CnMailTab](./cn-mail-tab.md) `headerActions` does; the host opens the picker with `openPicker()`. |
 

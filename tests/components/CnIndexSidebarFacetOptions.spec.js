@@ -11,6 +11,7 @@
 const { shallowMount } = require('@vue/test-utils')
 const CnIndexSidebar = require('../../src/components/CnIndexSidebar/CnIndexSidebar.vue').default
 const CnFacetSidebar = require('../../src/components/CnFacetSidebar/CnFacetSidebar.vue').default
+const { MISSING_VALUE } = require('../../src/utils/facets.js')
 
 const TEAM_ALPHA = '9d3f2b1a-4c5e-4a71-b8d2-1e6f0a7c3b45'
 
@@ -62,5 +63,14 @@ describe.each([
 		expect(optionsFor(component, {
 			team: { values: [{ value: 'open', count: 4 }] },
 		})).toEqual([{ id: 'open', label: 'open (4)' }])
+	})
+
+	it('offers the objects with no value when the facet counts them (#1176)', () => {
+		const options = optionsFor(component, {
+			team: { values: [{ value: 'open', count: 4 }], missing: 12 },
+		})
+		expect(options).toHaveLength(2)
+		expect(options[1].id).toBe(MISSING_VALUE)
+		expect(options[1].label).toContain('12')
 	})
 })

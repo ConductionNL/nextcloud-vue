@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { trackedFetch } from '../utils/diagnostics.js'
 import { parseResponseError } from '../utils/errors.js'
 import { buildHeaders, prefixUrl } from '../utils/headers.js'
 import { mergePluginActions, mergePluginGetters, mergePluginState } from './pluginMerge.js'
@@ -291,7 +292,7 @@ export function createCrudStore(name, config = {}) {
 					if (search) {
 						url += '?_search=' + encodeURIComponent(search)
 					}
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -328,7 +329,7 @@ export function createCrudStore(name, config = {}) {
 					// Encode the id so a path-traversal payload (`../other-schema/uuid`)
 					// is confined to a single URL path segment and cannot reach a
 					// sibling resource (C3).
-					const response = await fetch(`${this._options.baseApiUrl}/${encodeURIComponent(id)}`, {
+					const response = await trackedFetch(`${this._options.baseApiUrl}/${encodeURIComponent(id)}`, {
 						method: 'GET',
 						headers: this._buildHeaders(),
 					})
@@ -364,7 +365,7 @@ export function createCrudStore(name, config = {}) {
 					this.loading = true
 				}
 				try {
-					const response = await fetch(`${this._options.baseApiUrl}/${encodeURIComponent(item.id)}`, {
+					const response = await trackedFetch(`${this._options.baseApiUrl}/${encodeURIComponent(item.id)}`, {
 						method: 'DELETE',
 						headers: this._buildHeaders(),
 					})
@@ -423,7 +424,7 @@ export function createCrudStore(name, config = {}) {
 				const body = this.cleanForSave(item)
 
 				try {
-					const response = await fetch(url, {
+					const response = await trackedFetch(url, {
 						method,
 						headers: this._buildHeaders(),
 						body: JSON.stringify(body),

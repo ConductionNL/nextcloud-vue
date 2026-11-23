@@ -18,6 +18,22 @@
 			:placeholder="t('nextcloud-vue', 'Optional subtitle')"
 			@update:modelValue="updateField('subtitle', $event)" />
 
+		<NcCheckboxRadioSwitch
+			:modelValue="greeting"
+			@update:modelValue="updateField('greeting', $event)">
+			{{ t('nextcloud-vue', 'Greet the user by name instead of showing the title') }}
+		</NcCheckboxRadioSwitch>
+		<NcCheckboxRadioSwitch
+			:modelValue="showDate"
+			@update:modelValue="updateField('showDate', $event)">
+			{{ t('nextcloud-vue', 'Show the date of today above the heading') }}
+		</NcCheckboxRadioSwitch>
+		<NcCheckboxRadioSwitch
+			:modelValue="plain"
+			@update:modelValue="updateField('plain', $event)">
+			{{ t('nextcloud-vue', 'Plain header without a coloured background') }}
+		</NcCheckboxRadioSwitch>
+
 		<!-- Pick a background image. Selection does NOT upload — the file is held
 		     and only uploaded when the host modal calls commit() on submit, so
 		     re-picking or cancelling writes nothing. Uploads are the reliable
@@ -68,7 +84,7 @@
 		</label>
 
 		<NcSelect
-			:modelValue="overlayMode"
+			:modelValue="effectiveOverlayMode"
 			:options="overlayModeOptions"
 			:inputLabel="t('nextcloud-vue', 'Overlay mode')"
 			:reduce="(option) => option.value"
@@ -76,7 +92,7 @@
 			:clearable="false"
 			@update:modelValue="updateField('overlayMode', $event)" />
 
-		<label v-if="overlayMode !== 'none'" class="cn-header-widget-form__color-label">
+		<label v-if="effectiveOverlayMode !== 'none'" class="cn-header-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Overlay color') }}
 			<CnColorPicker
 				:value="overlayColor"
@@ -85,7 +101,7 @@
 				@clear="updateField('overlayColor', '')" />
 		</label>
 
-		<label v-if="overlayMode === 'tint'" class="cn-header-widget-form__field">
+		<label v-if="effectiveOverlayMode === 'tint'" class="cn-header-widget-form__field">
 			<span class="cn-header-widget-form__label">
 				{{ t('nextcloud-vue', 'Overlay opacity') }} ({{ overlayOpacity.toFixed(2) }})
 			</span>
@@ -126,10 +142,21 @@
 			:clearable="false"
 			@update:modelValue="updateField('verticalAlign', $event)" />
 
-		<!-- The banner fills its dashboard grid cell, so a fixed Height preset
-		     no longer changes anything — resize the widget on the grid instead.
-		     (The `height` field is kept in the saved content for back-compat
-		     but is no longer surfaced as a control.) -->
+		<!-- The banner fills its grid cell, so the preset only sets the
+		     starting height of a new header; afterwards it is resized on the
+		     grid, and the control is not offered when editing. -->
+		<NcSelect
+			v-if="!editingWidget"
+			:modelValue="height"
+			:options="heightOptions"
+			:inputLabel="t('nextcloud-vue', 'Height')"
+			:reduce="(option) => option.value"
+			label="label"
+			:clearable="false"
+			@update:modelValue="updateField('height', $event)" />
+		<p v-if="!editingWidget" class="cn-header-widget-form__hint">
+			{{ t('nextcloud-vue', 'The starting height. Resize the header on the dashboard afterwards.') }}
+		</p>
 
 		<fieldset class="cn-header-widget-form__fieldset">
 			<legend class="cn-header-widget-form__legend">
@@ -162,7 +189,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import { embedAsDataUrl, extractTransportUrl, readFileAsDataUrl, warnUploadFnDeprecated } from '../../utils/widgetUpload.js'
 
@@ -178,7 +205,6 @@ const DEFAULT_CONTENT = Object.freeze({
 	backgroundImageUrl: '',
 	backgroundImageFileId: null,
 	backgroundColor: '',
-	overlayMode: 'none',
 	overlayColor: '',
 	overlayOpacity: 0.4,
 	textColor: '',
@@ -206,6 +232,7 @@ export default {
 		NcTextField,
 		NcSelect,
 		NcButton,
+		NcCheckboxRadioSwitch,
 		CnColorPicker,
 	},
 
@@ -282,6 +309,11 @@ export default {
 		return {
 			title: typeof initial.title === 'string' ? initial.title : DEFAULT_CONTENT.title,
 			subtitle: typeof initial.subtitle === 'string' ? initial.subtitle : DEFAULT_CONTENT.subtitle,
+			greeting: initial.greeting === true || initial.greeting === 'full' || initial.greeting === 'first',
+			// `"full"` (whole display name) is a manifest choice; kept as written.
+			greetingMode: initial.greeting === 'full' ? 'full' : true,
+			showDate: initial.showDate === true,
+			plain: initial.plain === true,
 			backgroundImageUrl: typeof initial.backgroundImageUrl === 'string'
 				? initial.backgroundImageUrl
 				: DEFAULT_CONTENT.backgroundImageUrl,
@@ -294,9 +326,11 @@ export default {
 				? initial.backgroundColor
 				: DEFAULT_CONTENT.backgroundColor,
 
+			// Empty until chosen: an unset mode is stored as no value, so the
+			// renderer keeps its default (`tint` over an image, else `none`).
 			overlayMode: ALLOWED_OVERLAY_MODES.includes(initial.overlayMode)
 				? initial.overlayMode
-				: DEFAULT_CONTENT.overlayMode,
+				: '',
 
 			overlayColor: typeof initial.overlayColor === 'string'
 				? initial.overlayColor
@@ -334,6 +368,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The overlay mode the select shows and the overlay fields follow: the
+		 * chosen one, else the renderer's default (`tint` over an image).
+		 *
+		 * @return {string} `none`, `tint` or `gradient-bottom`.
+		 */
+		effectiveOverlayMode() {
+			if (this.overlayMode) {
+				return this.overlayMode
+			}
+			return this.backgroundImageUrl || this.backgroundImageFileId !== null || this.pendingFile ? 'tint' : 'none'
+		},
+
 		/** Overlay-mode select options. */
 		overlayModeOptions() {
 			return [
@@ -394,15 +441,41 @@ export default {
 			}
 		},
 
-		/** The full content blob assembled from the current field values. */
+		/**
+		 * The greeting keys, written only when they are on, so a header that
+		 * never used them keeps the content blob it always had.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
+		greetingContent() {
+			const content = {}
+			if (this.greeting) {
+				content.greeting = this.greetingMode
+			}
+			if (this.showDate) {
+				content.showDate = true
+			}
+			if (this.plain) {
+				content.plain = true
+			}
+			return content
+		},
+
+		/**
+		 * The full content blob assembled from the current field values.
+		 *
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
+		 */
 		assembledContent() {
 			return {
+				...this.greetingContent,
 				title: this.title,
 				subtitle: this.subtitle,
 				backgroundImageUrl: this.backgroundImageUrl,
 				backgroundImageFileId: this.backgroundImageFileId,
 				backgroundColor: this.backgroundColor,
-				overlayMode: this.overlayMode,
+				...(this.overlayMode ? { overlayMode: this.overlayMode } : {}),
 				overlayColor: this.overlayColor,
 				overlayOpacity: this.overlayOpacity,
 				textColor: this.textColor,
@@ -538,10 +611,12 @@ export default {
 		 * when either CTA field is filled.
 		 *
 		 * @return {string[]} the validation errors.
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-greeting-header
 		 */
 		validate() {
 			const errors = []
-			if (typeof this.title !== 'string' || this.title.trim() === '') {
+			// A greeting is the heading, so a greeting header needs no title.
+			if (!this.greeting && (typeof this.title !== 'string' || this.title.trim() === '')) {
 				errors.push(t('nextcloud-vue', 'Title is required'))
 			}
 			if (typeof this.backgroundImageUrl === 'string'
@@ -637,6 +712,12 @@ export default {
 
 .cn-header-widget-form__range {
 	width: 100%;
+}
+
+.cn-header-widget-form__hint {
+	margin: -4px 0 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-header-widget-form__fieldset {

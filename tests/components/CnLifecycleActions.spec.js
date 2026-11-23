@@ -78,8 +78,57 @@ describe('CnLifecycleActions', () => {
 			const buttons = wrapper.findAll('[data-testid^="cn-lifecycle-action-"]')
 			expect(buttons.length).toBe(2)
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close')
-			// description wins over derived label
-			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').text()).toBe('Void shift')
+			// The action name labels the button; the description is its tooltip.
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').text()).toBe('Void')
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-void"]').attributes('title')).toBe('Void shift')
+		})
+
+		// learniq's EnrolmentDetail: the approve transition's description is a
+		// sentence for the person deciding, and it used to BE the button.
+		it('labels a button with its action, not its description, and keeps the description as tooltip and accessible description', async () => {
+			const description = 'A teacher, HR officer, team lead or the learner\'s manager approves a sign-up request from the catalogue.'
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'approve', to: 'active', requires: null, description }] },
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'enrolment-1', config: { field: 'lifecycle' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			const button = wrapper.find('[data-testid="cn-lifecycle-action-approve"]')
+			expect(button.text()).toBe('Approve')
+			expect(button.attributes('title')).toBe(description)
+			expect(button.attributes('aria-description')).toBe(description)
+		})
+
+		it('uses a server-provided label when the action carries one', async () => {
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'approve', to: 'active', label: 'Approve sign-up', description: 'Long sentence.' }] },
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'enrolment-1', config: { field: 'lifecycle' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-approve"]').text()).toBe('Approve sign-up')
+		})
+
+		it('renders no tooltip for an action without a description', async () => {
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'close', to: 'closed', requires: null, description: null }] },
+			})
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'shift-1', config: { field: 'status' } },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').attributes('title')).toBeUndefined()
 		})
 
 		// CONFIRMED, NOT ASSUMED. `visibleTransitions` names the keys it maps,
@@ -102,7 +151,7 @@ describe('CnLifecycleActions', () => {
 			await flush()
 			await wrapper.vm.$nextTick()
 
-			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close shift')
+			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close')
 			expect(wrapper.vm.visibleTransitions[0].blocked).toBeUndefined()
 		})
 
@@ -115,6 +164,32 @@ describe('CnLifecycleActions', () => {
 			await flush()
 			await wrapper.vm.$nextTick()
 			expect(wrapper.find('[data-testid="cn-lifecycle-actions"]').exists()).toBe(false)
+		})
+	})
+
+	describe('display: menu', () => {
+		it('draws no buttons and emits one menu entry per transition', async () => {
+			axios.get.mockResolvedValue({
+				data: { actions: [{ action: 'pickup', to: 'assigned', description: 'Pick up the task' }] },
+			})
+			axios.post.mockResolvedValue({ data: { id: 'task-1' } })
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: { objectId: 'task-1', config: { field: 'status' }, display: 'menu' },
+				stubs,
+			})
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.find('[data-testid="cn-lifecycle-actions"]').exists()).toBe(false)
+			const entries = wrapper.emitted('entries').at(-1)[0]
+			expect(entries).toHaveLength(1)
+			expect(entries[0]).toMatchObject({ label: 'Pickup', iconName: 'PlayCircleOutline', testid: 'cn-lifecycle-action-pickup', disabled: false })
+
+			await entries[0].run()
+			expect(axios.post).toHaveBeenCalledWith(
+				'/nc/apps/openregister/api/objects/task-1/transition',
+				{ action: 'pickup' },
+			)
 		})
 	})
 
@@ -139,6 +214,26 @@ describe('CnLifecycleActions', () => {
 			const buttons = wrapper.findAll('[data-testid^="cn-lifecycle-action-"]')
 			expect(buttons.length).toBe(1)
 			expect(wrapper.find('[data-testid="cn-lifecycle-action-close"]').text()).toBe('Close shift')
+		})
+
+		it('puts a declared description on the tooltip, never on the button', async () => {
+			const wrapper = mount(CnLifecycleActions, {
+				propsData: {
+					objectId: 's1',
+					object: { status: 'open' },
+					config: {
+						field: 'status',
+						transitions: [
+							{ from: 'open', to: 'closed', action: 'close', description: 'Closing ends sign-up for everyone.' },
+						],
+					},
+				},
+				stubs,
+			})
+			await wrapper.vm.$nextTick()
+			const button = wrapper.find('[data-testid="cn-lifecycle-action-close"]')
+			expect(button.text()).toBe('Close')
+			expect(button.attributes('title')).toBe('Closing ends sign-up for everyone.')
 		})
 
 		it('treats a missing `from` as "any state"', async () => {
@@ -302,6 +397,78 @@ describe('CnLifecycleActions', () => {
 			expect(wrapper.findComponent({ name: 'CnTransitionInputDialog' }).exists()).toBe(false)
 			expect(wrapper.emitted('transitioned')[0][0]).toMatchObject({ action: 'reject', to: 'rejected' })
 			expect(wrapper.emitted('reload')).toBeTruthy()
+		})
+
+		it('a refused completion keeps the dialog open with what was typed still in it', async () => {
+			axios.post.mockRejectedValue({
+				response: {
+					status: 400,
+					data: {
+						error: 'Transition "reject" is missing required input field(s): "reason".',
+						fields: ['reason'],
+					},
+				},
+			})
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'No budget')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.exists()).toBe(true)
+			// What was typed survived the refusal: the person does not retype it.
+			expect(dialog.vm.values.reason).toBe('No budget')
+			expect(dialog.props('error')).toContain('missing required input')
+			expect(dialog.props('fieldErrors')).toEqual(['reason'])
+			// And the refusal is not ALSO left on the page behind the dialog.
+			expect(wrapper.find('[data-testid="cn-lifecycle-actions-error"]').exists()).toBe(false)
+			expect(wrapper.emitted('transitioned')).toBeFalsy()
+		})
+
+		it('a refusal that names no fields still reports its sentence', async () => {
+			axios.post.mockRejectedValue({
+				response: { status: 403, data: { error: 'You may not reject this request.' } },
+			})
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'No budget')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.props('error')).toBe('You may not reject this request.')
+			expect(dialog.props('fieldErrors')).toEqual([])
+		})
+
+		it('reopening the dialog forgets the refusal it showed last time', async () => {
+			axios.post.mockRejectedValue({
+				response: { status: 400, data: { error: 'refused', fields: ['reason'] } },
+			})
+			const wrapper = await openServerDialog()
+
+			wrapper.find('[data-testid="cn-transition-input-reason"]')
+				.findComponent({ name: 'NcTextField' }).vm.$emit('update:model-value', 'x')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-transition-input-confirm"]').trigger('click')
+			await flush()
+			await wrapper.vm.$nextTick()
+			expect(wrapper.findComponent({ name: 'CnTransitionInputDialog' }).props('error')).toBe('refused')
+
+			await wrapper.find('[data-testid="cn-transition-input-cancel"]').trigger('click')
+			await wrapper.vm.$nextTick()
+			await wrapper.find('[data-testid="cn-lifecycle-action-reject"]').trigger('click')
+			await wrapper.vm.$nextTick()
+
+			const dialog = wrapper.findComponent({ name: 'CnTransitionInputDialog' })
+			expect(dialog.props('error')).toBe('')
+			expect(dialog.props('fieldErrors')).toEqual([])
 		})
 
 		it('cancelling the dialog POSTs nothing', async () => {

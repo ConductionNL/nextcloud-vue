@@ -14,7 +14,7 @@
  *   - `beforeDestroy` resets `active = false` AND clears `tabs`.
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 // Arrays published into reactive state are Proxies in Vue 3; `toRaw` keeps the
 // identity assertion meaningful (see useRuntimeManifest.spec.js).
 import { toRaw } from 'vue'
@@ -98,7 +98,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 				'openbuilt',
 				{ registerSlug: 'openbuilt', schemaSlug: 'application' },
 			)
-			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1', { extend: ['@self.can'] })
 			expect(store.fetchSchema).toHaveBeenCalledWith('openbuilt-application')
 		})
 
@@ -122,7 +122,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 			// Type already registered → NOT re-registered (cache preserved),
 			// but the object IS re-fetched in place.
 			expect(store.registerObjectType).toHaveBeenCalledTimes(1)
-			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+			expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1', { extend: ['@self.can'] })
 		})
 
 		it('enters create mode (schema only, no object fetch) when register+schema are set without objectId', () => {
@@ -153,15 +153,15 @@ describe('CnDetailPage — schema-driven mode', () => {
 				},
 			})
 			await Promise.resolve()
-			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'first')
+			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'first', { extend: ['@self.can'] })
 
 			await wrapper.setProps({ objectId: 'second' })
-			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'second')
+			expect(store.fetchObject).toHaveBeenLastCalledWith('r-s', 'second', { extend: ['@self.can'] })
 		})
 	})
 
 	describe('sidebarTabs publish', () => {
-		it('top-level sidebarTabs prop propagates into objectSidebarState.tabs', () => {
+		it('top-level sidebarTabs prop propagates into objectSidebarState.tabs', async () => {
 			const state = makeState()
 			const store = makeFakeStore()
 			const tabs = [
@@ -179,12 +179,14 @@ describe('CnDetailPage — schema-driven mode', () => {
 				},
 				provide: { objectSidebarState: state },
 			})
+			// The sidebar activates once the record fetch has answered.
+			await flushPromises()
 			expect(state.active).toBe(true)
 			expect(toRaw(state.tabs)).toBe(tabs)
 			expect(state.objectType).toBe('openbuilt-application')
 		})
 
-		it('beforeDestroy resets active=false and clears tabs', () => {
+		it('beforeDestroy resets active=false and clears tabs', async () => {
 			const state = makeState()
 			const store = makeFakeStore()
 			const wrapper = mount(CnDetailPage, {
@@ -198,6 +200,7 @@ describe('CnDetailPage — schema-driven mode', () => {
 				},
 				provide: { objectSidebarState: state },
 			})
+			await flushPromises()
 			expect(state.active).toBe(true)
 			wrapper.unmount()
 			expect(state.active).toBe(false)

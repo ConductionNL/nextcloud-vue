@@ -1,0 +1,521 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ */
+
+/**
+ * Per-column sorting and filtering for table headers.
+ *
+ * Pure helpers: which column can sort, which can filter and how, and the
+ * translation between a header filter's state and the OpenRegister query
+ * parameters the facet sidebar already sends. A header filter writes into the
+ * SAME active-filter map (`{ paramKey: values[] }`) the sidebar uses, so the
+ * fetch, the route query and saved views need nothing new.
+ *
+ * Parameter shapes, as OpenRegister reads them:
+ * - equality and "any of": `key=value`, `key[]=a&key[]=b`
+ * - ranges: `key[gte]=from`, `key[lte]=to`
+ * - contains (text): `key[like]=term`, case-insensitive (openregister#4430);
+ *   the server escapes `%`, `_` and `\`, so the raw term goes out as typed
+ *
+ * @module utils/columnFilters
+ * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md
+ * @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
+ */
+
+import { schemaRefSlug } from './schemaRefSlug.js'
+
+/** OpenRegister's case-insensitive contains operator, used by the text filter. */
+export const CONTAINS_OPERATOR = 'like'
+
+/** Column keys that mark a value computed on the client, never stored. */
+const COMPUTED_MARKERS = ['aggregate', 'compute', 'computed', 'virtual']
+
+/**
+ * Normalise a `$ref` to the referenced schema slug, or null.
+ *
+ * @param {unknown} ref A `$ref` value.
+ * @return {string|number|null} The slug.
+ */
+function refSlug(ref) {
+	if (typeof ref === 'number' && !Number.isNaN(ref)) {
+		return ref
+	}
+	if (typeof ref !== 'string' || ref === '') {
+		return null
+	}
+	const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
+	const slug = tail === '' ? '' : schemaRefSlug(tail)
+	return slug !== '' ? slug : null
+}
+
+/**
+ * The schema property behind a column, or null when the column has none.
+ *
+ * @param {object} column The column definition.
+ * @param {object|null} schema The table's schema.
+ * @return {object|null} The property.
+ */
+export function columnProperty(column, schema) {
+	if (!column || !schema || !schema.properties || typeof column.key !== 'string') {
+		return null
+	}
+	const prop = schema.properties[column.key]
+	return (prop && typeof prop === 'object') ? prop : null
+}
+
+/**
+ * The schema property a field names, reading a dotted field (`address.place`)
+ * through the `properties` of each object property on the way.
+ *
+ * @param {string} field The field.
+ * @param {object|null} schema The table's schema.
+ * @return {object|null} The property.
+ */
+function fieldProperty(field, schema) {
+	if (!hasProperties(schema) || typeof field !== 'string' || field === '') {
+		return null
+	}
+	let properties = schema.properties
+	let prop = null
+	for (const segment of field.split('.')) {
+		prop = (properties && typeof properties === 'object') ? properties[segment] : null
+		if (!prop || typeof prop !== 'object') {
+			return null
+		}
+		properties = prop.properties
+	}
+	return prop
+}
+
+/** A schema or property name that may sit inside a `_related` block. */
+const RELATED_SEGMENT = /^[A-Za-z0-9_-]+$/
+
+/**
+ * The filter of an `aggregate` column that sets `aggregate.filterable`,
+ * spelled as OpenRegister's related-row filter `_related[<schema>][<fk>]`:
+ * the rows of `aggregate.schema` whose `<fk>` points at the row. The `where`
+ * must link exactly one field to `@self.id`; its other entries become the
+ * block's fixed conditions. A count offers "Yes" (at least one such row; the
+ * server has no "none"), so it needs at least one fixed condition. A `max`
+ * over `field` filters a date range on a related row's `field`.
+ *
+ * @param {object} column The column definition.
+ * @return {object|null} The filter definition, with `fixed` holding the block's conditions as parameters.
+ * @spec openspec/changes/column-filter-nested-field/specs/cn-data-table/spec.md
+ */
+function relatedRowFilterDef(column) {
+	const agg = column.aggregate
+	if (!agg || typeof agg !== 'object' || agg.filterable !== true || !agg.where || typeof agg.where !== 'object') {
+		return null
+	}
+	if (typeof agg.schema !== 'string' || !RELATED_SEGMENT.test(agg.schema)) {
+		return null
+	}
+	let link = null
+	const conditions = []
+	for (const [name, value] of Object.entries(agg.where)) {
+		if (!RELATED_SEGMENT.test(name)) {
+			return null
+		}
+		if (typeof value === 'string' && value.startsWith('@self.')) {
+			if (value !== '@self.id' || link !== null) {
+				return null
+			}
+			link = name
+		} else if (value === null || value === undefined || typeof value === 'object') {
+			return null
+		} else {
+			conditions.push([name, String(value)])
+		}
+	}
+	if (link === null) {
+		return null
+	}
+	const block = `_related[${agg.schema}][${link}]`
+	const fixed = Object.fromEntries(conditions.map(([name, value]) => [`${block}[${name}]`, value]))
+	const base = { label: column.label || column.key, options: [], reference: null, dateTime: false, fixed }
+	if (agg.op === 'count' && conditions.length > 0) {
+		return { ...base, key: Object.keys(fixed)[0], kind: 'boolean', existsOnly: true }
+	}
+	if (agg.op === 'max' && typeof agg.field === 'string' && RELATED_SEGMENT.test(agg.field)) {
+		return { ...base, key: `${block}[${agg.field}]`, kind: 'date', dateTime: true }
+	}
+	return null
+}
+
+/**
+ * The fixed conditions of a related-row filter, each set to its value, or
+ * each cleared.
+ *
+ * @param {object} def A filter definition.
+ * @param {boolean} on Whether the filter is set.
+ * @return {object} `{ paramKey: values[] }`.
+ */
+function fixedParams(def, on) {
+	return Object.fromEntries(Object.entries(def.fixed || {}).map(([key, value]) => [key, on ? [value] : []]))
+}
+
+/**
+ * Whether a column computes its value on the client, so the server cannot
+ * sort or filter on it.
+ *
+ * @param {object} column The column definition.
+ * @return {boolean} True for a computed column.
+ */
+function isComputedColumn(column) {
+	return COMPUTED_MARKERS.some((marker) => column[marker] !== undefined && column[marker] !== null && column[marker] !== false)
+}
+
+/**
+ * Whether a column header sorts.
+ *
+ * `sortable: false` always wins, and so does an explicit `sortable: true`.
+ * Otherwise, with a schema, a column sorts when a stored schema property backs
+ * it: OpenRegister orders on schema properties, so a widget or computed column
+ * with no property behind it stays unsortable. Without a schema nothing says
+ * the server can sort, so only an explicit flag makes the column sortable,
+ * which is how such tables behaved before.
+ *
+ * @param {object} column The column definition.
+ * @param {object|null} schema The table's schema.
+ * @return {boolean} True when the header sorts.
+ * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-every-backed-column-sorts-by-default
+ */
+export function isColumnSortable(column, schema) {
+	if (!column || typeof column !== 'object') {
+		return false
+	}
+	if (column.sortable === false) {
+		return false
+	}
+	if (column.sortable === true) {
+		return true
+	}
+	if (!schema || isComputedColumn(column)) {
+		return false
+	}
+	const prop = columnProperty(column, schema)
+	return !!prop && prop.type !== 'object'
+}
+
+/**
+ * Display options for an enum filter: schema `enum` (or `items.enum`) with
+ * `x-enum-labels`, else a column `enum` hint, else a badge column's colour
+ * map keys.
+ *
+ * @param {object} column The column definition.
+ * @param {object|null} prop The schema property.
+ * @return {Array<{value: string, label: string}>} The options, or [].
+ */
+function enumOptions(column, prop) {
+	const p = prop || {}
+	const labels = p.enumLabels || p['x-enum-labels'] || (p.items && (p.items.enumLabels || p.items['x-enum-labels'])) || {}
+	let values = null
+	if (Array.isArray(p.enum) && p.enum.length > 0) {
+		values = p.enum
+	} else if (p.items && Array.isArray(p.items.enum) && p.items.enum.length > 0) {
+		values = p.items.enum
+	} else if (Array.isArray(column.enum) && column.enum.length > 0) {
+		values = column.enum
+	} else if (column.widget === 'badge' && column.widgetProps && column.widgetProps.colorMap) {
+		values = Object.keys(column.widgetProps.colorMap)
+	}
+	if (!values) {
+		return []
+	}
+	return values
+		.filter((v) => v !== null && v !== undefined && v !== '')
+		.map((v) => ({ value: String(v), label: String(labels[v] !== undefined ? labels[v] : v) }))
+}
+
+/**
+ * The reference a column points at, for a searchable object filter: a schema
+ * `$ref` (or `items.$ref`), else an `fkResolve` cell widget's config.
+ *
+ * @param {object} column The column definition.
+ * @param {object|null} prop The schema property.
+ * @return {{schema: (string|number), register: string, labelField: string}|null} The reference.
+ */
+function referenceTarget(column, prop) {
+	const widgetProps = (column.widget === 'fkResolve' && column.widgetProps) || null
+	const p = prop || {}
+	const schemaRef = refSlug(p.$ref) ?? (p.items ? refSlug(p.items.$ref) : null)
+	const schema = schemaRef ?? (widgetProps && widgetProps.schema ? widgetProps.schema : null)
+	if (schema === null || schema === undefined || schema === '') {
+		return null
+	}
+	const register = (widgetProps && widgetProps.register)
+		|| p['x-external-register']
+		|| (p.items && p.items['x-external-register'])
+		|| ''
+	const labelField = (widgetProps && widgetProps.labelField) || ''
+	return { schema, register, labelField }
+}
+
+/**
+ * Whether a schema lists its properties. Without that the table knows its
+ * columns but not what backs them.
+ *
+ * @param {object|null} schema The table's schema.
+ * @return {boolean} True when the schema has a properties map.
+ */
+function hasProperties(schema) {
+	return !!(schema && typeof schema === 'object' && schema.properties && typeof schema.properties === 'object')
+}
+
+/**
+ * A filter for a column when the table has no schema to read (a manifest
+ * page whose schema did not resolve, a host-fed table). The column's own
+ * hints decide the kind: an `fkResolve` widget gives a reference filter, a
+ * `type` or `format` on the column gives number, date or yes/no, and every
+ * other plain stored key gets a text filter on contains (`[like]`). A key
+ * that is a path (`a.b`) or a metadata field (`@self`, `_id`) gets none,
+ * because OpenRegister does not filter those by that name.
+ *
+ * @spec openspec/changes/audit-round-lib-fixes/specs/cn-data-table/spec.md
+ * @param {object} column The column definition.
+ * @param {object} base The shared part of the definition.
+ * @return {object|null} The filter definition.
+ */
+function columnHintFilterDef(column, base) {
+	const key = column.key
+	if (key.includes('.') || key.charAt(0) === '@' || key.charAt(0) === '_') {
+		return null
+	}
+	const reference = referenceTarget(column, null)
+	if (reference) {
+		return { ...base, kind: 'reference', reference }
+	}
+	const type = String(column.type || '').toLowerCase()
+	const format = String(column.format || '').toLowerCase()
+	if (type === 'boolean') {
+		return { ...base, kind: 'boolean' }
+	}
+	if (type === 'number' || type === 'integer') {
+		return { ...base, kind: 'number' }
+	}
+	if (type === 'date' || type === 'date-time' || format === 'date' || format === 'date-time') {
+		return { ...base, kind: 'date', dateTime: type === 'date-time' || format === 'date-time' }
+	}
+	return { ...base, kind: 'string' }
+}
+
+/**
+ * How a column filters, or null when it does not.
+ *
+ * Kinds: `enum` (checkbox list), `boolean` (yes, no, any), `reference`
+ * (searchable list of the referenced objects), `number` and `date` (from and
+ * to), and `string` (contains, through OpenRegister's `[like]`). `filterable: false` on the column turns it
+ * off. When the schema lists its properties, a column with no property
+ * behind it only filters when it carries an enum hint (`enum`, or a badge
+ * widget's colour map), because the server cannot filter on a value it does
+ * not store. When there is no schema to read, the column's own hints decide
+ * (see `columnHintFilterDef`), falling back to a text filter on contains.
+ *
+ * A dotted key (`address.place`) filters the field inside an object property
+ * when the schema describes it; OpenRegister filters such a path by its
+ * dotted name. A column may name the stored field it filters on with
+ * `filterField`, which also gives a computed column a filter. An `aggregate`
+ * column with `aggregate.filterable` filters through its related rows (see
+ * `relatedRowFilterDef`).
+ *
+ * @param {object} column The column definition.
+ * @param {object|null} schema The table's schema.
+ * @return {{key: string, kind: string, label: string, options: Array<{value: string, label: string}>, reference: object|null, dateTime: boolean}|null} The filter definition.
+ * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-every-backed-column-filters-from-its-header
+ * @spec openspec/changes/column-filter-nested-field/specs/cn-data-table/spec.md
+ */
+export function columnFilterDef(column, schema) {
+	if (!column || typeof column !== 'object' || typeof column.key !== 'string' || column.key === '') {
+		return null
+	}
+	if (column.filterable === false) {
+		return null
+	}
+	const related = relatedRowFilterDef(column)
+	if (related) {
+		return related
+	}
+	const field = (typeof column.filterField === 'string' && column.filterField !== '') ? column.filterField : column.key
+	if (isComputedColumn(column) && field === column.key) {
+		return null
+	}
+	const prop = fieldProperty(field, schema)
+	const base = { key: field, label: column.label || (prop && prop.title) || column.key, options: [], reference: null, dateTime: false }
+
+	const options = enumOptions(column, prop)
+	if (options.length > 0) {
+		return { ...base, kind: 'enum', options }
+	}
+	if (!prop) {
+		return hasProperties(schema) ? null : columnHintFilterDef({ ...column, key: field }, base)
+	}
+	const reference = referenceTarget(column, prop)
+	if (reference) {
+		return { ...base, kind: 'reference', reference }
+	}
+	const type = Array.isArray(prop.type) ? prop.type.find((t) => t !== 'null') : prop.type
+	const format = prop.format || ''
+	if (type === 'boolean') {
+		return { ...base, kind: 'boolean' }
+	}
+	if (type === 'number' || type === 'integer') {
+		return { ...base, kind: 'number' }
+	}
+	if (type === 'string' && (format === 'date' || format === 'date-time')) {
+		return { ...base, kind: 'date', dateTime: format === 'date-time' }
+	}
+	if (type === 'string') {
+		return { ...base, kind: 'string' }
+	}
+	return null
+}
+
+/**
+ * Read one active-filter entry as a list of strings.
+ *
+ * @param {unknown} raw An active-filter value: an array, a scalar, or absent.
+ * @return {Array<string>} The values.
+ */
+function asList(raw) {
+	if (raw === undefined || raw === null || raw === '') {
+		return []
+	}
+	return (Array.isArray(raw) ? raw : [raw]).filter((v) => v !== undefined && v !== null && v !== '').map((v) => String(v))
+}
+
+/**
+ * The parameter keys one column filter owns.
+ *
+ * @param {object} def A filter definition from `columnFilterDef`.
+ * @return {Array<string>} The keys.
+ */
+export function columnFilterParamKeys(def) {
+	if (!def) {
+		return []
+	}
+	const fixed = Object.keys(def.fixed || {})
+	if (def.existsOnly) {
+		return fixed
+	}
+	if (def.kind === 'number' || def.kind === 'date') {
+		return [`${def.key}[gte]`, `${def.key}[lte]`, ...fixed]
+	}
+	if (def.kind === 'string') {
+		return [containsKey(def)]
+	}
+	return [def.key]
+}
+
+/**
+ * The parameter a text filter writes: `{key}[like]`. An exact `key=value`
+ * from the facet sidebar or a fixed filter is a different key, so the header
+ * neither shows nor clears it.
+ *
+ * @param {object} def A filter definition of kind `string`.
+ * @return {string} The parameter key.
+ * @spec openspec/changes/header-filter-contains/specs/cn-data-table/spec.md#requirement-a-text-header-filter-matches-on-contains
+ */
+function containsKey(def) {
+	return `${def.key}[${CONTAINS_OPERATOR}]`
+}
+
+/**
+ * A column filter's current state, read from the active-filter map.
+ *
+ * @param {object} def A filter definition.
+ * @param {object} activeFilters The active-filter map (`{ paramKey: values }`).
+ * @return {object} `{ values }` for enum and reference, `{ value }` for boolean and string, `{ from, to }` for number and date.
+ */
+export function columnFilterState(def, activeFilters) {
+	const filters = (activeFilters && typeof activeFilters === 'object') ? activeFilters : {}
+	if (!def) {
+		return {}
+	}
+	if (def.existsOnly) {
+		const keys = columnFilterParamKeys(def)
+		return { value: keys.length > 0 && keys.every((key) => asList(filters[key]).length > 0) ? 'true' : '' }
+	}
+	if (def.kind === 'enum' || def.kind === 'reference') {
+		return { values: asList(filters[def.key]) }
+	}
+	if (def.kind === 'number' || def.kind === 'date') {
+		const from = asList(filters[`${def.key}[gte]`])[0] || ''
+		const to = asList(filters[`${def.key}[lte]`])[0] || ''
+		// A date-time column is queried up to the end of the day; the input
+		// shows the date the person picked.
+		return {
+			from: def.kind === 'date' ? from.slice(0, 10) : from,
+			to: def.kind === 'date' ? to.slice(0, 10) : to,
+		}
+	}
+	if (def.kind === 'string') {
+		return { value: asList(filters[containsKey(def)])[0] || '' }
+	}
+	return { value: asList(filters[def.key])[0] || '' }
+}
+
+/**
+ * Whether a column filter is active.
+ *
+ * @param {object} def A filter definition.
+ * @param {object} activeFilters The active-filter map.
+ * @return {boolean} True when any of its parameters is set.
+ */
+export function isColumnFilterActive(def, activeFilters) {
+	const filters = (activeFilters && typeof activeFilters === 'object') ? activeFilters : {}
+	return columnFilterParamKeys(def).some((key) => asList(filters[key]).length > 0)
+}
+
+/**
+ * The active-filter entries a column filter state produces. Every key the
+ * column owns is present; an empty list clears that key, so changing a range
+ * from "from and to" to "from" drops the old upper bound.
+ *
+ * @param {object} def A filter definition.
+ * @param {object} state The column filter state (see `columnFilterState`).
+ * @return {object} `{ paramKey: values[] }`.
+ * @spec openspec/changes/table-header-sort-and-filter/specs/cn-data-table/spec.md#requirement-a-header-filter-speaks-the-sidebars-query-language
+ */
+export function columnFilterParams(def, state) {
+	const s = state || {}
+	if (!def) {
+		return {}
+	}
+	if (def.kind === 'enum' || def.kind === 'reference') {
+		return { [def.key]: asList(s.values) }
+	}
+	if (def.kind === 'number' || def.kind === 'date') {
+		const from = s.from === undefined || s.from === null ? '' : String(s.from).trim()
+		let to = s.to === undefined || s.to === null ? '' : String(s.to).trim()
+		if (def.kind === 'date' && def.dateTime && to !== '' && to.length === 10) {
+			to = `${to}T23:59:59`
+		}
+		return {
+			[`${def.key}[gte]`]: from === '' ? [] : [from],
+			[`${def.key}[lte]`]: to === '' ? [] : [to],
+			...fixedParams(def, from !== '' || to !== ''),
+		}
+	}
+	if (def.existsOnly) {
+		return fixedParams(def, s.value === 'true')
+	}
+	if (def.kind === 'boolean') {
+		return { [def.key]: (s.value === 'true' || s.value === 'false') ? [s.value] : [] }
+	}
+	// Text: the raw term under `[like]`. No wildcards: OpenRegister wraps
+	// the term itself and escapes `%`, `_` and `\` in it.
+	const value = s.value === undefined || s.value === null ? '' : String(s.value).trim()
+	return { [containsKey(def)]: value === '' ? [] : [value] }
+}
+
+/**
+ * Clear-all entries for one column: every key it owns, emptied.
+ *
+ * @param {object} def A filter definition.
+ * @return {object} `{ paramKey: [] }`.
+ */
+export function clearedColumnFilterParams(def) {
+	return Object.fromEntries(columnFilterParamKeys(def).map((key) => [key, []]))
+}

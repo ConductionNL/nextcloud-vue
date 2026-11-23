@@ -20,8 +20,7 @@
 		<CnPageTreeNode v-else
 			:list="pages"
 			:menu="working && Array.isArray(working.menu) ? working.menu : null"
-			:maxDepth="1"
-			@navigate="onNavigate" />
+			:maxDepth="1" />
 
 		<template #actions>
 			<NcButton variant="secondary" @click="add">
@@ -107,20 +106,6 @@ export default {
 			}
 			const id = `page-${n}`
 			this.pages.push({ id, route: `/${id}`, type: 'custom', title: '', config: {} })
-		},
-
-		/**
-		 * Navigate the app to a page's route (from a row's "Go to page" button)
-		 * and close the modal. Uses the host's vue-router when present.
-		 *
-		 * @param {string} route The route path to open.
-		 * @return {void}
-		 */
-		onNavigate(route) {
-			if (route && this.$router) {
-				this.$router.push(route).catch(() => {})
-			}
-			this.$emit('close')
 		},
 	},
 }

@@ -54,7 +54,7 @@ note rather than crashing.
 | Prop             | Type     | Default | Description                                                                                                   |
 | ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------- |
 | `appId`          | `String` | `''`    | The consuming Nextcloud app id. Seeds the allowed-apps picker and keeps the pane host-agnostic.               |
-| `appName`        | `String` | `''`    | A friendly app name for copy ("`{app}` may use this credential"). Falls back to the `appId`.                     |
+| `appName`        | `String` | `''`    | A friendly app name for copy ("`{app}` may use this credential"). Empty or equal to the `appId`: the name in Nextcloud's app menu, else the `appId` with a capital.                     |
 | `appCredentials` | `Array`  | `[]`    | The current app's manifest `credentials[]` declarations (`[{ provider, reason, scopes }]`), rendered read-only. |
 | `vaultUrl`       | `String` | `null`  | Optional link target explaining the Keepiq vault. Defaults to the route of the vault app this instance runs (`keepiq`, else `doriath`); pass `''` to hide the link. |
 | `providerMeta`   | `Object` | `{}`    | Per-provider presentation overrides, merged over the built-in catalogue. Keys: `title`, `colour`, `setupUrl`, `setupHelp`, `secretLabel`. |

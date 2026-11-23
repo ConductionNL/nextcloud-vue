@@ -39,10 +39,47 @@ Pass pre-translated labels when your app handles i18n:
 |---|---|---|---|
 | `title` | String | `''` | Override the card title (defaults to the translated label). |
 | `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
+| `layout` | String | `''` | `stacked` (DqTaak "Historie"): the action, then one muted line under it with the moment ("6 okt 09:05") and who, when the action does not already name them. Empty: the moment beside the action, who under it. |
+| `density` | String | `''` | `compact` (DqZaaktype "Historie"): the rows closer together, a stacked row 10px above and below in the board look instead of 12px. The audit-trail widget reads it from `content.density`. |
+| `excludeActions` (`exclude-actions`) | Array | `[]` | Actions left out, case-insensitive (`['read']` for a history of what changed). The card then reads up to ten times `maxDisplay` entries (at most 100), so the rows it leaves out do not crowd the rest away. |
+| `excludeActors` (`exclude-actors`) | Array | `[]` | Actors left out by user id, case-insensitive (`['System']` for a history of what people did): the bookkeeping a background job writes is not shown. |
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `actionLabel` (`action-label`) | String | `t('nextcloud-vue', 'Change')` | Pre-translated fallback action label. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
+| `refusedLabel` (`refused-label`) | String | `t('nextcloud-vue', '(refused)')` | Shown on an entry the server refused (`authorized: false`). |
+| `failedLabel` (`failed-label`) | String | `t('nextcloud-vue', 'The history could not be loaded')` | Shown when a `source` or `endpoint` read failed. |
+| `footnote` | String | `''` | A muted line under the trail, inside the card ("Kenmerk ZT-OMV-REG"). |
+
+## A flow task, or another source
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `source` | Object | `null` | `{ kind: 'flow-task', id }` reads `{apiBase}/flow-tasks/{id}/audit`, the task engine's own trail. `id` may be left out or written `@objectId`. |
+| `actionLabels` | Object | `null` | What happened, in words: by action (`claim`) or by action and the state it led to (`complete:completed`, tried first). `{actor}`, `{state}` and `{changed.<key>}` (a value the entry recorded, in the words of `valueLabels`) are filled in, and a label that names the actor leaves it off the line under it. An action without a label shows as written, with its state in brackets. DqTaak: `{ "claim": "Task picked up by {actor}" }`. |
+| `changeLabels` | Array | `[]` | Words for an entry by what it changed: `[{ action?, field, to?, label, values?, note? }]`, the first whose `field` the entry changed (to `to`, when given) wins over `actionLabels`. A label fills the same tokens, plus `{object.<path>}` from `object` ("Version \{object.version\} published" for `isDraft` set to false). |
+| `valueLabels` | Object | `null` | Words for the values a label quotes as `{changed.<key>}`: `{ "purpose": { "handling": "Handling" } }`. A value without words shows as written. |
+| `relatedSources` | Array | `[]` | Records beside the object whose events join its history: `[{ as, register, schema, filter, limit? }]`. The card lists the objects matching `filter` (`@objectId` is this object, at most `limit`, default 5), reads their trails and merges the entries with the object's own, newest first; a related entry is labelled by `actionLabels["<as>.<action>"]` first. A related read that fails leaves only its entries out. DqSociaalDomein: `{ as: "consent", schema: "toestemming", filter: { caseId: "@objectId" } }`. |
+| `endpoint` | String | `''` | A trail URL of its own; `{id}` is filled with the source's id or `objectId`. |
+| `order` | String | `''` | `newest` or `oldest` first. Empty reads a source oldest first and an object newest first. |
+
+A row shows the action with the state it led to (`stateAfter`), the actor, the kind of performer when it is not a person (`performerType`), on whose behalf (`onBehalfOf`), "(refused)" for `authorized: false`, and the entry's `reason`. A failed read says so instead of showing an empty trail.
+
+A change rule can also say from what to what. `{from}` and `{to}` in its label are the old and new value of the rule's `field`, in `valueLabels` words; with `values: "user"` or `"group"` they are the display name of the recorded id (the id while the name loads). `note` names a recorded key whose new value shows under the entry, such as the reason given with a handover:
+
+```json
+{ "field": "assignee", "values": "user", "note": "handoverNote", "label": "Passed to {to} by {actor}" }
+```
+
+The timeline widget fills `{from}` and `{to}` the same way.
 
 ## Reference
 
 <GeneratedRef />
+
+## The app-wide feed (`scope: "app"`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `scope` | `String` | `'object'` | `object` lists one object's trail and needs `register`, `schema` and `objectId`. `app` lists the reader's whole feed: the entries of every object the caller may read (OpenRegister's `/audit-trails/readable`), narrowed to `register` and `schema` when set, with no object. |
+
+The built-in `audit-trail` widget (`CnAuditTrailWidget`) takes the same `scope` as a prop or as `content.scope`, so a dashboard can declare `{ "widgetKey": "audit-trail", "props": { "content": { "scope": "app", "title": "Recent activity", "register": "dossiq" } } }`.

@@ -32,6 +32,10 @@ Use `type: "form"` when the entire route is "render this list of fields, send th
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `recoverDraft` | Boolean | `false` | Keep what the user typed in the browser and offer it back when the form reopens (local only; nothing reaches the server). Off by default because a public form can run on a shared kiosk. A footer indicator (`aria-live="polite"`) reads Saving, then Saved just now. The draft is cleared after a successful submit. |
+| `draftAppId` | String | `''` | The app the draft belongs to; part of the draft's storage key. |
+| `draftUserId` | String | `''` | Who is typing; part of the storage key so a shared browser profile never leaks a draft between users. Empty: the signed-in Nextcloud user. |
+| `draftScope` | String | `'form'` | Names this form in the draft's storage key (for example the form id), so two forms never share a draft. |
 | `fields` | Array | `[]` | Form fields. Each MUST conform to the `formField` `$def`; optionally carries `visibleWhen` and `validation` (see below) |
 | `steps` | Array | `[]` | Multi-step wizard groups: `{ id, title, description?, fields: string[] }[]`. `fields[]` entries are KEY REFERENCES into the `fields` prop. Empty (the default) renders today's single-step form unchanged — no step indicator, no Next/Back |
 | `submitHandler` | String | `''` | Registered handler name resolved against the customComponents registry |
@@ -39,8 +43,12 @@ Use `type: "form"` when the entire route is "render this list of fields, send th
 | `submitMethod` | String | `'POST'` | HTTP method for endpoint mode. Must be `POST | PUT | PATCH` |
 | `mode` | String | `'public'` | `edit | create | public`. `public` shows the success banner and hides the form on submit |
 | `submitLabel` | String | `'Submit'` | Submit button label (i18n key) |
+| `smartPaste` | Object | `null` | Fill the form from pasted text: `{ enabled, fields, hint?, handler }`. See [Paste to fill](#paste-to-fill). |
 | `successMessage` | String | `'Thank you!'` | Success banner copy (i18n key) |
 | `initialValue` | Object | `{}` | Pre-filled form state. Used by `mode: "edit"` |
+| `calculate` | Function | `null` | Host function `(fieldKey, answers) => Promise<value>` for fields declaring `calculate.inputs`. See [Live values](#live-values). |
+| `unmetConditions` | Array | `[]` | Conditions the host reports as unmet, `[{ message }]`, shown above the submit button. |
+| `blockSubmit` | Boolean | `false` | Disable submit while `unmetConditions` is not empty; the first message is the reason. |
 | `title` | String | `''` | Page title forwarded to `CnPageHeader` |
 | `description` | String | `''` | Page description forwarded to `CnPageHeader` |
 | `translate` | Function | `null` | Optional translator applied to field labels and i18n keys |
@@ -234,8 +242,90 @@ The field never holds a path or a URL. It cannot choose where the file ends up: 
 
 `type: "file"` is rejected on `type: "settings"` pages: those save to app config, which has no place for file content.
 
+## Live values
+
+A form can fill in what it can work out. All of it is additive: a field without these keys behaves as before.
+
+**`assign`.** A field lists `{ when, value }` rules. When an answer a rule reads changes, the first rule whose `when` holds (the same local condition `visibleWhen` takes) sets the field. `value` is a literal, `@answer.<field>` (another answer) or a sentinel token. Once the person edits the field by hand its rules stop until the form is reset (a new `initialValue`). A rule never reads its own output, so it cannot loop. The field says "Filled in from Country" so a screen reader learns why it changed.
+
+```json
+{ "key": "currency", "label": "Currency", "type": "string",
+  "assign": [
+    { "when": { "field": "country", "op": "eq", "value": "NL" }, "value": "EUR" },
+    { "when": { "field": "country", "op": "eq", "value": "US" }, "value": "USD" }
+  ] }
+```
+
+**Token defaults.** `default` accepts `@me`, `@me.displayName`, `@me.email`, `@today`, `@now` and `@object.<field>` (from `initialValue`), resolved once when the form opens. The e-mail comes from the user's profile and arrives a moment after open. A value in `initialValue` always wins, so an edit form never overwrites stored data.
+
+```json
+{ "key": "email", "label": "E-mail", "type": "string", "default": "@me.email" }
+```
+
+**`calculate`.** A field with `calculate.inputs` is the host's to compute. When one of those answers changes, `CnFormPage` calls the `calculate` prop after 400 ms of quiet and writes the result into the field, which renders read-only. A rejection keeps the last value and shows "Could not calculate". The library has no formula language: what `calculate` does (for buildiq, its rule engine in preview mode) belongs to the host.
+
+```json
+{ "key": "fee", "label": "Fee", "type": "string", "calculate": { "inputs": ["size", "type"] } }
+```
+
+**Unmet conditions.** `unmetConditions` lists what the host says is not yet satisfied, above the submit button. With `blockSubmit`, submit is disabled while the list is not empty and its title is the first message. The host decides what is unmet; the page only shows it.
+
+## Paste to fill
+
+A signed-in user can fill a form from pasted text, for example an email signature. The maker declares it in the page config:
+
+```json
+"smartPaste": { "enabled": true, "fields": ["naam", "adres", "telefoon"], "hint": "Paste the customer's email.", "handler": "fillCustomer" }
+```
+
+`handler` names an entry in the `customComponents` registry: a function `(text, fields) => Promise<{ values }>`, or `{ fill, available }` where `available()` resolves true when the service can be used. `fields` holds the allowed fields only, each as `{ key, label, type, options }` (`options` lists an enum's allowed values). No value already in the form is ever passed, and the form does not store the pasted text. The library calls no model; whatever the handler calls is governed where it lives.
+
+The "Paste to fill" button shows only when `enabled` is true, `mode` is not `public`, the handler resolves and `available()` (when given) resolves true; a missing, throwing or unavailable handler hides it and warns once. In the dialog the user pastes the text and clicks Fill. Returned values land only in allowed, visible fields that are empty (or in all allowed visible fields when the user ticks "Replace what I typed"), and only when the value fits the field's type (`string`, `number`, `boolean`, `enum`; other types are never filled) and passes the field's `validation`. A skipped proposal is counted in the notice ("3 fields filled, 1 skipped"). Each filled field carries a "Suggested" tag with an Accept button; editing the field, Accept or Accept all clears it. Nothing is submitted automatically. The validator rejects an undeclared field key, `enabled` without a `handler`, and `enabled` on a public form.
+
+## Board look
+
+With the board look the page draws the board field anatomy and, on a failed submit or Next, an error summary at the top: a heading ("There are 2 errors"), one sentence and a link per error that moves focus to its control. The summary takes focus. Without the board look the page keeps its single error line.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `optionalLabel` | `optional` | The word in "(optional)". Required fields carry no mark. |
+| `optionalNoticeLabel` | A field without (optional) must be filled in. | Shown once above the first field of a `mode: "public"` form that has a required field. |
+| `showOptionalNotice` | `true` | Set `false` to hide the sentence. |
+| `cancelRoute` | empty | Where the footer's Cancel goes. A `cancel` listener also shows Cancel. |
+
+A form with `steps` draws the board stepper, and the form sits in a white card (1px border, radius 12, padding 24) that ends in a hairline footer: Cancel or Previous on the left, Next (with a chevron) or the submit button on the right.
+
+Field sizes are tokens: `--cn-field-label-size` (14px), `--cn-field-height` (40px), `--cn-field-text-size` (15px), `--cn-field-hint-size` (13px) and `--cn-field-error-border` (2px). Portaliq's citizen theme sets the larger values (17px text, 48px inputs, 19px labels, 3px error borders).
+
 ## Why `type: "form"` is its own page type
 
 The settings page (`type: "settings"`) is admin-facing config persistence — it assumes `IAppConfig` is the destination and groups fields into sections. Forms have a different audience (end users), a different destination (consumer-defined endpoint or handler), and a flat shape (no sections). Sharing the field renderer keeps the duplication low without wedging end-user form rendering into a settings-shaped component.
 
 For form-builder authoring UIs (drag-drop question ordering, per-field validation panels, branching logic) keep using `type: "custom"` — the manifest's declarative shape doesn't fit a builder UI.
+
+## Device fields
+
+Four field types ask the device for something, and only when the person acts:
+
+| `type` | Renders | Value |
+|--------|---------|-------|
+| `signature` | `CnSignatureCapture`; `allowDrawn` (default true) and `allowTyped` (default false) | a drawn signature as a PNG `data:` URL (or the typed name), for a `file` property |
+| `audio` | [`CnAudioCapture`](./cn-audio-capture.md); `maxSeconds` (default 60) | the clip as a `data:` URL, for a `file` property |
+| `scan` | [`CnScanField`](./cn-scan-field.md); `formats` (`qr`, `code128`, `ean13`) | the code, typed or scanned |
+| `location` | `CnGeoCaptureField`; `latField`, `lngField`, optional `accuracyField`, `auto` | the latitude and longitude written into `latField` and `lngField` (and the accuracy into `accuracyField`); without them the place `{ lat, lng, accuracy, at }` under the field's own key |
+
+```json
+{ "key": "position", "label": "Where", "type": "location", "latField": "latitude", "lngField": "longitude" }
+```
+
+A required `location` field with `latField` and `lngField` is filled once both hold a number.
+
+## A list of objects
+
+A field of `type: "array"` whose `items` is an object schema, or any field with `widget: "sub-objects"`, is a table of rows, each added or edited in a dialog over the row schema (CnSubObjectsField). The value is an array of objects under the field's key, which is what a journey's repeating write names (`forEach`). `maxItems` caps the rows: at the limit Add and Duplicate are disabled and a line says so. `addLabel` and `itemLabel` name the button and a row. `validation.required` asks for at least one row.
+
+```json
+{ "key": "products", "label": "Products", "type": "array", "widget": "sub-objects", "maxItems": 10, "addLabel": "Add product",
+  "items": { "type": "object", "properties": { "product": { "type": "string", "title": "Product", "enum": ["parking", "waste"] }, "count": { "type": "integer", "title": "Count" } } } }
+```
+

@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="resolvedTitle"
 		size="large"
 		:noClose="loading"
@@ -92,6 +97,7 @@
 								:validationDisplay="validationDisplay"
 								:excludeFields="excludeFields"
 								:includeFields="includeFields"
+								:propertyOverrides="propertyOverrides"
 								@update:propertyValue="onPropertyValueUpdate"
 								@update:selectedProperty="selectedProperty = $event" />
 						</slot>
@@ -150,23 +156,21 @@
 			</NcButton>
 			<slot name="actions-right" />
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import {
-	NcButton,
-	NcDialog,
-	NcLoadingIcon,
-	NcNoteCard,
-} from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { computed } from 'vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
 import CnDataTab from './CnDataTab.vue'
 import CnMetadataTab from './CnMetadataTab.vue'
 import CnPropertiesTab from './CnPropertiesTab.vue'
 import { TENANT_CONTEXT_KEY } from '../../composables/useTenantContext.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
 /** Schema types for which we have built-in inline editing support in the properties table. */
@@ -187,7 +191,7 @@ export default {
 	name: 'CnAdvancedFormDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
@@ -197,6 +201,8 @@ export default {
 		CnMetadataTab,
 		CnDataTab,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	inject: {
 		_cnTenantContext: {
@@ -213,6 +219,12 @@ export default {
 		 * identity when used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+	},
+
+	provide() {
+		// The properties tab reads the dialog's own look, which a `look` prop
+		// can set apart from the app's.
+		return { cnLook: computed(() => (this.isBoardLook ? 'board' : 'nextcloud')) }
 	},
 
 	props: {
@@ -384,6 +396,24 @@ export default {
 				includeReadOnly: true,
 				translate: this.cnTranslate,
 			})
+		},
+
+		/**
+		 * Per-property cell settings for the Properties tab: a field whose
+		 * options come from a source (`fieldOverrides.<key>.optionsFrom`, or
+		 * the property's `x-options-from`) renders a select over them.
+		 *
+		 * @return {Record<string, {optionsFrom: object, widget: string, selectMultiple: boolean}>}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		propertyOverrides() {
+			const out = {}
+			for (const field of this.resolvedFields) {
+				if (field.optionsFrom) {
+					out[field.key] = { optionsFrom: field.optionsFrom, widget: 'select', selectMultiple: field.type === 'array' }
+				}
+			}
+			return out
 		},
 
 		/** objectProperties exposed to the #form and #tab-properties slot consumers */

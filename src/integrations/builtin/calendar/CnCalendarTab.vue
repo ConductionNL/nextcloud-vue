@@ -240,6 +240,9 @@ import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnC
 import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
+import { linkCalendarEvent } from './calendarEventLink.js'
+import { eventStatusLabel, eventStatusVariant } from './eventStatus.js'
 
 const MAX_AVATARS = 3
 
@@ -428,29 +431,12 @@ export default {
 			// payload: { calendarUri, eventUid }
 			this.closePicker()
 			this.error = ''
-			try {
-				const response = await fetch(`${this.baseObjectUrl()}/events/link`, {
-					method: 'POST',
-					headers: buildHeaders(),
-					body: JSON.stringify(payload),
-				})
-				if (response.ok) {
-					await this.fetchEvents()
-					this.$emit('linked', payload)
-				} else {
-					let message = t('nextcloud-vue', 'Could not link the meeting.')
-					try {
-						const body = await response.json()
-						if (body && typeof body.error === 'string') {
-							message = body.error
-						}
-					} catch { /* ignore */ }
-					this.error = message
-				}
-			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error('[CnCalendarTab] failed to link event', err)
-				this.error = t('nextcloud-vue', 'Could not link the meeting.')
+			const result = await linkCalendarEvent(`${this.baseObjectUrl()}/events`, payload)
+			if (result.ok) {
+				await this.fetchEvents()
+				this.$emit('linked', payload)
+			} else {
+				this.error = result.error
 			}
 		},
 
@@ -524,7 +510,7 @@ export default {
 			if (!d) {
 				return '—'
 			}
-			return d.toLocaleDateString(undefined, { month: 'short' })
+			return d.toLocaleDateString(userLocale(), { month: 'short' })
 		},
 
 		dayOf(ev) {
@@ -541,47 +527,27 @@ export default {
 				return ev.dtstart ? String(ev.dtstart) : t('nextcloud-vue', 'Time not set')
 			}
 			const end = this.parseDate(ev.dtend)
-			const dateLabel = start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+			const dateLabel = start.toLocaleDateString(userLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
 			const timeOpts = { hour: '2-digit', minute: '2-digit' }
-			const startTime = start.toLocaleTimeString(undefined, timeOpts)
+			const startTime = start.toLocaleTimeString(userLocale(), timeOpts)
 			if (end) {
 				const sameDay = start.toDateString() === end.toDateString()
-				const endTime = end.toLocaleTimeString(undefined, timeOpts)
+				const endTime = end.toLocaleTimeString(userLocale(), timeOpts)
 				if (sameDay) {
 					return `${dateLabel} · ${startTime} – ${endTime}`
 				}
-				const endDateLabel = end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+				const endDateLabel = end.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short' })
 				return `${dateLabel} ${startTime} – ${endDateLabel} ${endTime}`
 			}
 			return `${dateLabel} · ${startTime}`
 		},
 
 		statusLabel(ev) {
-			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') {
-				return t('nextcloud-vue', 'Confirmed')
-			}
-			if (status === 'tentative') {
-				return t('nextcloud-vue', 'Tentative')
-			}
-			if (status === 'cancelled') {
-				return t('nextcloud-vue', 'Cancelled')
-			}
-			return ''
+			return eventStatusLabel(ev)
 		},
 
 		statusVariant(ev) {
-			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') {
-				return 'success'
-			}
-			if (status === 'tentative') {
-				return 'warning'
-			}
-			if (status === 'cancelled') {
-				return 'error'
-			}
-			return 'default'
+			return eventStatusVariant(ev)
 		},
 
 		attendeeList(ev) {

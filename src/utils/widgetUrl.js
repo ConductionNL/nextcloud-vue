@@ -99,6 +99,24 @@ export function validateUrl(url) {
 }
 
 /**
+ * Whether a URL is a safe relative path: root-relative (`/apps/files`) with no
+ * `..` segment, or a single leading `../` step with no further `..`.
+ *
+ * @param {unknown} url the candidate URL.
+ * @return {boolean} `true` for an accepted relative path.
+ */
+export function isSafeRelativePath(url) {
+	if (typeof url !== 'string') {
+		return false
+	}
+	const trimmed = url.trim()
+	if (trimmed.startsWith('../')) {
+		return !trimmed.slice(3).includes('..')
+	}
+	return trimmed.startsWith('/') && !trimmed.includes('..')
+}
+
+/**
  * Whether a URL would open in a new tab by default (external http/https
  * schemes) when a link's explicit `openInNewTab` field is not set.
  *

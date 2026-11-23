@@ -7,7 +7,12 @@
 	<div
 		class="cn-menu-widget"
 		:class="rootClasses"
-		@keydown.esc.stop="closeAll">
+		@keydown.esc.stop="onEscape">
+		<!-- The card title a detail page's side column hands a self-titled
+		     widget (PqCampagne "In deze campagne"). -->
+		<h3 v-if="title" class="cn-menu-widget__title" data-testid="cn-menu-widget-title">
+			{{ title }}
+		</h3>
 		<!-- Empty state -->
 		<div
 			v-if="isEmpty"
@@ -38,7 +43,7 @@
 				:activeLeafKey="activeLeafKey"
 				:currentKey="`${idx}`"
 				:activeHighlight="activeItemHighlight"
-				@navigate="onNavigate" />
+				@navigate="onTreeNavigate" />
 		</ul>
 
 		<!-- Megamenu style -->
@@ -53,21 +58,22 @@
 					:key="`mega-top-${idx}`"
 					role="none"
 					class="cn-menu-widget__bar-item">
-					<button
+					<component
+						:is="isTopLink(item) ? 'a' : 'button'"
 						:ref="(el) => setTopRef(el, idx)"
-						type="button"
+						v-bind="isTopLink(item) ? linkAttrs(item) : { type: 'button' }"
 						role="menuitem"
 						class="cn-menu-widget__bar-button"
 						:class="topItemClass(`${idx}`)"
 						:aria-haspopup="hasChildren(item) ? 'menu' : null"
 						:aria-expanded="megaOpenIndex === idx ? 'true' : 'false'"
-						@click="onMegaTopClick(idx, item)"
+						@click="isTopLink(item) ? onLinkClick($event, item) : onMegaTopClick(idx, item)"
 						@keydown="onMegaTopKey($event, idx, item)">
 						<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !item.icon }">
 							<CnMenuItemIcon v-if="item.icon" :icon="item.icon" />
 						</span>
 						<span class="cn-menu-widget__label">{{ item.label }}</span>
-					</button>
+					</component>
 				</li>
 			</ul>
 			<div
@@ -79,17 +85,18 @@
 					v-for="(child, childIdx) in items[megaOpenIndex].children"
 					:key="`mega-group-${childIdx}`"
 					class="cn-menu-widget__mega-group">
-					<button
-						type="button"
+					<component
+						:is="isLink(child) ? 'a' : 'button'"
+						v-bind="itemAttrs(child)"
 						role="menuitem"
 						class="cn-menu-widget__mega-group-title"
 						:class="topItemClass(`${megaOpenIndex}.${childIdx}`)"
-						@click="onNavigate(child)">
+						@click="onLinkClick($event, child)">
 						<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !child.icon }">
 							<CnMenuItemIcon v-if="child.icon" :icon="child.icon" />
 						</span>
 						<span class="cn-menu-widget__label">{{ child.label }}</span>
-					</button>
+					</component>
 					<ul
 						v-if="hasChildren(child)"
 						class="cn-menu-widget__mega-leaves">
@@ -97,17 +104,18 @@
 							v-for="(leaf, leafIdx) in child.children"
 							:key="`mega-leaf-${leafIdx}`"
 							role="none">
-							<button
-								type="button"
+							<component
+								:is="isLink(leaf) ? 'a' : 'button'"
+								v-bind="itemAttrs(leaf)"
 								role="menuitem"
 								class="cn-menu-widget__mega-leaf"
 								:class="topItemClass(`${megaOpenIndex}.${childIdx}.${leafIdx}`)"
-								@click="onNavigate(leaf)">
+								@click="onLinkClick($event, leaf)">
 								<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !leaf.icon }">
 									<CnMenuItemIcon v-if="leaf.icon" :icon="leaf.icon" />
 								</span>
 								<span class="cn-menu-widget__label">{{ leaf.label }}</span>
-							</button>
+							</component>
 						</li>
 					</ul>
 				</div>
@@ -126,25 +134,26 @@
 				:ref="(el) => setBarItemRef(el, idx)"
 				role="none"
 				class="cn-menu-widget__bar-item">
-				<button
+				<component
+					:is="isTopLink(item) ? 'a' : 'button'"
 					:ref="(el) => setTopRef(el, idx)"
-					type="button"
+					v-bind="isTopLink(item) ? linkAttrs(item) : { type: 'button' }"
 					role="menuitem"
 					class="cn-menu-widget__bar-button"
 					:class="topItemClass(`${idx}`)"
 					:aria-haspopup="hasChildren(item) ? 'menu' : null"
 					:aria-expanded="dropOpenIndex === idx ? 'true' : 'false'"
-					@click="onDropdownTopClick(idx, item)"
-					@keydown.tab="closeAll"
-					@keydown.enter.prevent="onDropdownTopClick(idx, item)"
+					@click="isTopLink(item) ? onLinkClick($event, item) : onDropdownTopClick(idx, item)"
+					@keydown.tab="onDropdownTab($event, idx)"
+					@keydown.enter="onDropdownTopEnter($event, idx, item)"
 					@keydown.space.prevent="onDropdownTopClick(idx, item)"
-					@keydown.down.prevent="openDropdown(idx)">
+					@keydown.down.prevent="openDropdown(idx, true)">
 					<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !item.icon }">
 						<CnMenuItemIcon v-if="item.icon" :icon="item.icon" />
 					</span>
 					<span class="cn-menu-widget__label">{{ item.label }}</span>
 					<span v-if="hasChildren(item)" class="cn-menu-widget__caret" aria-hidden="true">▾</span>
-				</button>
+				</component>
 				<ul
 					v-if="dropOpenIndex === idx && hasChildren(item)"
 					class="cn-menu-widget__dropdown"
@@ -155,18 +164,20 @@
 						role="none"
 						class="cn-menu-widget__dropdown-item-wrap"
 						@mouseenter="hasChildren(child) && (flyoutOpenKey = `${idx}.${childIdx}`)">
-						<button
-							type="button"
+						<component
+							:is="isLink(child) ? 'a' : 'button'"
+							v-bind="itemAttrs(child)"
 							role="menuitem"
 							class="cn-menu-widget__dropdown-item"
 							:class="topItemClass(`${idx}.${childIdx}`)"
-							@click="onNavigate(child)">
+							@click="onLinkClick($event, child)"
+							@keydown.tab="onDropdownTab($event, idx)">
 							<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !child.icon }">
 								<CnMenuItemIcon v-if="child.icon" :icon="child.icon" />
 							</span>
 							<span class="cn-menu-widget__label">{{ child.label }}</span>
 							<span v-if="hasChildren(child)" class="cn-menu-widget__caret cn-menu-widget__caret--right" aria-hidden="true">▸</span>
-						</button>
+						</component>
 						<ul
 							v-if="flyoutOpenKey === `${idx}.${childIdx}` && hasChildren(child)"
 							class="cn-menu-widget__flyout"
@@ -175,17 +186,19 @@
 								v-for="(leaf, leafIdx) in child.children"
 								:key="`drop-leaf-${leafIdx}`"
 								role="none">
-								<button
-									type="button"
+								<component
+									:is="isLink(leaf) ? 'a' : 'button'"
+									v-bind="itemAttrs(leaf)"
 									role="menuitem"
 									class="cn-menu-widget__dropdown-item"
 									:class="topItemClass(`${idx}.${childIdx}.${leafIdx}`)"
-									@click="onNavigate(leaf)">
+									@click="onLinkClick($event, leaf)"
+									@keydown.tab="onDropdownTab($event, idx)">
 									<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !leaf.icon }">
 										<CnMenuItemIcon v-if="leaf.icon" :icon="leaf.icon" />
 									</span>
 									<span class="cn-menu-widget__label">{{ leaf.label }}</span>
-								</button>
+								</component>
 							</li>
 						</ul>
 					</li>
@@ -199,11 +212,61 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnMenuItemIcon from './CnMenuItemIcon.vue'
 import CnMenuTreeNode from './CnMenuTreeNode.vue'
-import { computeActivePath, isActiveItem } from './menuActive.js'
+import { cnFetchJson } from '../../utils/cnFetch.js'
+import { normalizeFacets } from '../../utils/facets.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { computeActivePath, isActiveItem, isRouterPath, menuLinkAttrs, routerBase, toRoutePath } from './menuActive.js'
 
 const VALID_STYLES = ['dropdown', 'megamenu', 'tree']
+
+/**
+ * An item's label with its count in it (`countLabel`): a string, or
+ * `{ one, other }` picked by the count, as a header pill's countLabel, with `{count}` filled in after
+ * the host translates it ("2 nieuwsbrieven", PqCampagne). '' when the item
+ * declares none, so the count shows as the badge at the row's end instead.
+ *
+ * @param {unknown} declared The item's `countLabel`.
+ * @param {number} count The count read through `countFrom`.
+ * @param {(key: string) => string} translate The host translate function.
+ * @return {string} The label, or ''.
+ */
+function countLabelOf(declared, count, translate) {
+	let text = ''
+	if (typeof declared === 'string') {
+		text = declared
+	} else if (declared && typeof declared === 'object') {
+		text = count === 1 ? declared.one : (declared.other || declared.one)
+	}
+	if (typeof text !== 'string' || text === '') {
+		return ''
+	}
+	return translate(text).replace(/\{count\}/g, String(count))
+}
 const VALID_ORIENTATIONS = ['horizontal', 'vertical']
 const VALID_HIGHLIGHTS = ['background', 'underline', 'left-bar', 'none']
+
+/**
+ * A filter map as the list endpoint takes it: an operator as `field[op]`
+ * (`{ supersededBy: { isnull: true } }` reads `supersededBy[isnull]=true`).
+ *
+ * @param {object|undefined} filter The filter map.
+ * @return {object} The query pairs.
+ */
+function listQueryOf(filter) {
+	const query = {}
+	for (const [key, value] of Object.entries(filter || {})) {
+		if (value && typeof value === 'object' && !Array.isArray(value)) {
+			for (const [op, operand] of Object.entries(value)) {
+				query[`${key}[${op}]`] = operand
+			}
+		} else {
+			query[key] = value
+		}
+	}
+	return query
+}
 
 /**
  * CnMenuWidget — renders a hierarchical navigation widget with three visual
@@ -232,6 +295,13 @@ export default {
 		CnMenuItemIcon,
 	},
 
+	inject: {
+		/** Host translate function provided by CnAppRoot, for the item labels. */
+		cnTranslate: { default: () => (key) => key },
+		/** Detail-page object context (`{ objectId, object }`), for `@objectId` in a `countFrom` filter. */
+		cnObjectContext: { default: null },
+	},
+
 	props: {
 		/**
 		 * Persisted widget content `{items, style, orientation, showIcons,
@@ -255,6 +325,24 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/** Card title, from the detail page host on the board look. */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/** The detail page's record id, for `@objectId` in a `countFrom` filter. */
+		objectId: {
+			type: [String, Number],
+			default: null,
+		},
+
+		/** The detail page's record, for an item's `visibleIf` on `object.<field>`. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -270,6 +358,10 @@ export default {
 			currentLocation: this.readLocation(),
 			topRefs: [],
 			barItemRefs: [],
+			/** Children read through `childrenFrom`, keyed by the item's dotted path. */
+			fetchedChildren: {},
+			/** Counts read through `countFrom`, keyed by the item's dotted path. */
+			fetchedCounts: {},
 		}
 	},
 
@@ -281,7 +373,47 @@ export default {
 		 */
 		items() {
 			const arr = this.content?.items
-			return Array.isArray(arr) ? arr : []
+			if (!Array.isArray(arr)) {
+				return []
+			}
+			// Labels are manifest strings: they go through the app's translate,
+			// children included, so "Case types" reads "Zaaktypen" (DqCatalogus).
+			// An item with `childrenFrom` adds the children read for it after
+			// its declared ones; those are data, not manifest strings.
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			// An item's `visibleIf` reads the detail page's record as `object.<field>`
+			// (PqCampagne's article line only while the campaign has page content).
+			const record = { object: this.objectContext().object ?? null }
+			const translated = (list, prefix) => list.map((item, idx) => {
+				if (!item || typeof item !== 'object') {
+					return item
+				}
+				if (item.visibleIf && typeof item.visibleIf === 'object' && !passesContextPredicates(item.visibleIf, record)) {
+					return null
+				}
+				const out = { ...item }
+				if (typeof item.label === 'string' && item.label !== '') {
+					out.label = translate(item.label)
+				}
+				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				if (typeof this.fetchedCounts[key] === 'number') {
+					const counted = countLabelOf(item.countLabel, this.fetchedCounts[key], translate)
+					if (counted !== '') {
+						out.label = counted
+					} else {
+						out.count = this.fetchedCounts[key]
+					}
+				}
+				const declared = Array.isArray(item.children) ? translated(item.children, key) : null
+				const fetched = this.fetchedChildren[key]
+				if (fetched && fetched.length > 0) {
+					out.children = [...(declared || []), ...fetched]
+				} else if (declared) {
+					out.children = declared
+				}
+				return out
+			}).filter((item) => item !== null)
+			return translated(arr, '')
 		},
 
 		/**
@@ -363,6 +495,7 @@ export default {
 				[`cn-menu-widget--style-${this.effectiveStyle}`]: true,
 				[`cn-menu-widget--highlight-${this.activeItemHighlight}`]: true,
 				[`cn-menu-widget--orientation-${this.orientation}`]: true,
+				'cn-menu-widget--expanded': this.expandedByDefault,
 			}
 		},
 
@@ -375,6 +508,7 @@ export default {
 			return computeActivePath({
 				items: this.items,
 				currentLocation: this.currentLocation,
+				base: routerBase(this.$router),
 			})
 		},
 
@@ -394,6 +528,32 @@ export default {
 		 */
 		activeLeafKey() {
 			return this.activePathMap.leafKey
+		},
+
+		/**
+		 * The detail page's record id, when the menu sits on one.
+		 *
+		 * @return {string|null} The id.
+		 */
+		recordId() {
+			return this.objectContext().objectId ?? null
+		},
+	},
+
+	watch: {
+		'content.items': {
+			handler() {
+				this.loadChildrenFrom()
+				this.loadCountsFrom()
+			},
+
+			immediate: true,
+		},
+
+		recordId(next, previous) {
+			if (next !== previous) {
+				this.loadCountsFrom()
+			}
 		},
 	},
 
@@ -422,6 +582,112 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the children of every item that declares `childrenFrom`
+		 * (`{ register, schema, field, url }`): one child per value the
+		 * field's facet holds, labelled by the facet, linking to `url` with
+		 * `{value}` filled in. A failed request leaves the item as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/menu-children-from-facet/specs/menu-widget/spec.md#requirement-a-menu-item-can-take-its-children-from-a-facet
+		 */
+		async loadChildrenFrom() {
+			const sources = []
+			const walk = (list, prefix) => (Array.isArray(list) ? list : []).forEach((item, idx) => {
+				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				const from = item && item.childrenFrom
+				if (from && from.register && from.schema && from.field) {
+					sources.push({ key, from })
+				}
+				walk(item && item.children, key)
+			})
+			walk(this.content?.items, '')
+			const entries = await Promise.all(sources.map(async ({ key, from }) => {
+				try {
+					const body = await cnFetchJson(
+						`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
+						{ query: { _limit: 1, _facets: 'extend' } },
+					)
+					const values = normalizeFacets(body?.facets)[from.field]?.values || []
+					const template = typeof from.url === 'string' ? from.url : ''
+					return [key, values
+						.filter((value) => value.value !== null && value.value !== undefined && value.value !== '')
+						.map((value) => ({
+							label: String(value.label ?? value.value),
+							url: template.replace('{value}', encodeURIComponent(String(value.value))),
+						}))]
+				} catch {
+					return [key, []]
+				}
+			}))
+			this.fetchedChildren = Object.fromEntries(entries)
+		},
+
+		/**
+		 * Read the count of every item that declares `countFrom`: the total
+		 * of a register schema (`{ register, schema, filter? }`, one row
+		 * asked, an operator sent as `field[op]` as the list sends it), or the rows of an endpoint (`{ url, responsePath? }`, its
+		 * `total` when it answers one). A failed read draws no count.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/menu-item-counts/specs/menu-widget/spec.md#requirement-a-menu-item-can-show-a-count
+		 */
+		async loadCountsFrom() {
+			const sources = []
+			const walk = (list, prefix) => (Array.isArray(list) ? list : []).forEach((item, idx) => {
+				const key = prefix === '' ? `${idx}` : `${prefix}.${idx}`
+				const from = item && item.countFrom
+				if (from && ((from.register && from.schema) || typeof from.url === 'string')) {
+					sources.push({ key, from })
+				}
+				walk(item && item.children, key)
+			})
+			walk(this.content?.items, '')
+			const ctx = this.objectContext()
+			const entries = await Promise.all(sources.map(async ({ key, from }) => {
+				try {
+					if (from.register && from.schema) {
+						const filter = resolveFilterTokens(from.filter || {}, ctx)
+						if (Object.values(filter).some((value) => typeof value === 'string' && value.startsWith('@'))) {
+							return [key, null]
+						}
+						const body = await cnFetchJson(
+							`/apps/openregister/api/objects/${encodeURIComponent(from.register)}/${encodeURIComponent(from.schema)}`,
+							{ query: { ...listQueryOf(filter), _limit: 1 } },
+						)
+						return [key, Number.isFinite(Number(body?.total)) ? Number(body.total) : null]
+					}
+					const body = await cnFetchJson(from.url)
+					if (Number.isFinite(Number(body?.total))) {
+						return [key, Number(body.total)]
+					}
+					const rows = from.responsePath
+						? String(from.responsePath).split('.').reduce((value, part) => (value ? value[part] : undefined), body)
+						: body
+					return [key, Array.isArray(rows) ? rows.length : null]
+				} catch {
+					return [key, null]
+				}
+			}))
+			this.fetchedCounts = Object.fromEntries(entries.filter(([, count]) => typeof count === 'number'))
+		},
+
+		/**
+		 * The injected detail-page object context, unwrapped from a ref.
+		 *
+		 * @return {{objectId?: string, object?: object}} The context, or {}.
+		 */
+		objectContext() {
+			const raw = this.cnObjectContext
+			const value = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+			const injected = value && typeof value === 'object' ? value : {}
+			return {
+				...injected,
+				objectId: this.objectId ?? injected.objectId ?? this.objectData?.id ?? null,
+				object: this.objectData || injected.object || null,
+			}
+		},
+
 		/**
 		 * Read the current browser location into a small bag.
 		 *
@@ -517,11 +783,83 @@ export default {
 		 * Open the dropdown at an index when it has children.
 		 *
 		 * @param {number} idx the item index.
+		 * @param {boolean} [focusFirst] also move focus to its first item.
 		 * @return {void}
 		 */
-		openDropdown(idx) {
-			if (this.hasChildren(this.items[idx])) {
-				this.dropOpenIndex = idx
+		openDropdown(idx, focusFirst = false) {
+			if (!this.hasChildren(this.items[idx])) {
+				return
+			}
+			this.dropOpenIndex = idx
+			this.flyoutOpenKey = null
+			if (focusFirst) {
+				this.focusFirstDropdownItem(idx)
+			}
+		},
+
+		/**
+		 * Focus the first item of the dropdown at an index once it rendered.
+		 *
+		 * @param {number} idx the item index.
+		 * @return {void}
+		 */
+		focusFirstDropdownItem(idx) {
+			this.$nextTick(() => {
+				const first = this.barItemRefs[idx]?.querySelector('.cn-menu-widget__dropdown .cn-menu-widget__dropdown-item')
+				if (first) {
+					first.focus()
+				}
+			})
+		},
+
+		/**
+		 * Tab on the button of an open dropdown, or on its last item, closes it
+		 * and moves focus to the next top-level item; past the last one, focus
+		 * leaves the menu as usual. Tab between earlier items walks the
+		 * dropdown; Shift+Tab from the button closes it.
+		 *
+		 * @param {KeyboardEvent} event the key event.
+		 * @param {number} idx the top-level item index.
+		 * @return {void}
+		 */
+		onDropdownTab(event, idx) {
+			const fromTop = event.currentTarget === this.topRefs[idx]
+			if (event.shiftKey) {
+				if (fromTop) {
+					this.closeAll()
+				}
+				return
+			}
+			if (this.dropOpenIndex !== idx) {
+				return
+			}
+			if (!fromTop) {
+				const items = this.barItemRefs[idx]?.querySelectorAll('.cn-menu-widget__dropdown-item') ?? []
+				if (items.length > 0 && event.currentTarget !== items[items.length - 1]) {
+					return
+				}
+			}
+			this.closeAll()
+			const next = this.topRefs[idx + 1]
+			if (next) {
+				event.preventDefault()
+				next.focus()
+			} else if (!fromTop && this.topRefs[idx]) {
+				this.topRefs[idx].focus()
+			}
+		},
+
+		/**
+		 * Escape closes every open panel and returns focus to the top-level
+		 * item that opened it.
+		 *
+		 * @return {void}
+		 */
+		onEscape() {
+			const idx = this.dropOpenIndex ?? this.megaOpenIndex
+			this.closeAll()
+			if (idx !== null && this.topRefs[idx]) {
+				this.topRefs[idx].focus()
 			}
 		},
 
@@ -549,6 +887,10 @@ export default {
 		 * @return {void}
 		 */
 		onMegaTopKey(event, idx, item) {
+			// Enter on a link clicks it natively.
+			if (event.key === 'Enter' && this.isTopLink(item)) {
+				return
+			}
 			if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
 				event.preventDefault()
 				this.onMegaTopClick(idx, item)
@@ -608,8 +950,105 @@ export default {
 		},
 
 		/**
+		 * Whether an item renders as a link (it has a URL).
+		 *
+		 * @param {object} item the menu item.
+		 * @return {boolean} true when the item carries a non-empty URL.
+		 */
+		isLink(item) {
+			return Boolean(item) && typeof item.url === 'string' && item.url !== ''
+		},
+
+		/**
+		 * Whether a top-level item renders as a link. One with children
+		 * stays a button, because its click toggles the panel.
+		 *
+		 * @param {object} item the menu item.
+		 * @return {boolean} true for a top-level leaf with a URL.
+		 */
+		isTopLink(item) {
+			return this.isLink(item) && !this.hasChildren(item)
+		},
+
+		/**
+		 * Anchor attributes for an item's URL: external URLs open in a new tab.
+		 *
+		 * @param {object} item the menu item.
+		 * @return {object} the `href` (plus `target` / `rel` for external URLs).
+		 */
+		linkAttrs(item) {
+			return menuLinkAttrs(item.url, this.$router)
+		},
+
+		/**
+		 * Attributes for a panel item: link attributes, or `type="button"`.
+		 *
+		 * @param {object} item the menu item.
+		 * @return {object} the element attributes.
+		 */
+		itemAttrs(item) {
+			return this.isLink(item) ? this.linkAttrs(item) : { type: 'button' }
+		},
+
+		/**
+		 * Click on an item link: close the menus, then let the browser open
+		 * an external URL or a modified click, and route a plain click on an
+		 * internal one. A no-op for an item without a URL.
+		 *
+		 * @param {MouseEvent} event the click event.
+		 * @param {object} item the menu item.
+		 * @return {void}
+		 */
+		onLinkClick(event, item) {
+			if (!this.isLink(item)) {
+				return
+			}
+			this.closeAll()
+			if (isRouterPath(item.url)) {
+				followLinkClick(event, toRoutePath(item.url, this.$router), this.$router)
+			}
+		},
+
+		/**
+		 * Enter on a dropdown top item: a link follows natively (Enter
+		 * clicks it); a button toggles or navigates.
+		 *
+		 * @param {KeyboardEvent} event the key event.
+		 * @param {number} idx the item index.
+		 * @param {object} item the menu item.
+		 * @return {void}
+		 */
+		onDropdownTopEnter(event, idx, item) {
+			if (this.isTopLink(item)) {
+				return
+			}
+			event.preventDefault()
+			this.onDropdownTopClick(idx, item)
+			if (this.dropOpenIndex === idx) {
+				this.focusFirstDropdownItem(idx)
+			}
+		},
+
+		/**
+		 * Navigation request from a tree node: a link click goes through the
+		 * link handler, a request without an event navigates directly.
+		 *
+		 * @param {object} item the menu item.
+		 * @param {MouseEvent} [event] the click event, when the node's link was clicked.
+		 * @return {void}
+		 */
+		onTreeNavigate(item, event) {
+			if (event) {
+				this.onLinkClick(event, item)
+				return
+			}
+			this.onNavigate(item)
+		},
+
+		/**
 		 * Navigate to an item's URL (router push for internal, new tab for
-		 * external), closing any open menus first.
+		 * external), closing any open menus first. Used where no link click
+		 * is involved (keyboard activation of a menu item).
 		 *
 		 * @param {object} item the menu item.
 		 * @return {void}
@@ -620,22 +1059,24 @@ export default {
 			}
 			this.closeAll()
 			const url = item.url
+			const { href } = menuLinkAttrs(url, this.$router)
 			if (this.isExternal(url)) {
 				if (typeof window !== 'undefined' && typeof window.open === 'function') {
-					window.open(url, '_blank', 'noopener,noreferrer')
+					window.open(href, '_blank', 'noopener,noreferrer')
 				}
 				return
 			}
-			if (this.$router && typeof this.$router.push === 'function') {
+			if (isRouterPath(url) && this.$router && typeof this.$router.push === 'function') {
 				try {
-					this.$router.push(url)
+					this.$router.push(toRoutePath(url, this.$router))
 					return
 				} catch {
 					// Fall through to location assignment.
 				}
 			}
-			if (typeof window !== 'undefined' && window.location) {
-				window.location.href = url
+			// href is safeHref-checked, so a javascript: URL never reaches location.
+			if (href !== '#' && typeof window !== 'undefined' && window.location) {
+				window.location.href = href
 			}
 		},
 
@@ -667,7 +1108,7 @@ export default {
 		 * @return {boolean} true when active.
 		 */
 		__isActive(itemUrl) {
-			return isActiveItem(itemUrl, this.currentLocation)
+			return isActiveItem(itemUrl, this.currentLocation, routerBase(this.$router))
 		},
 	},
 }
@@ -680,6 +1121,13 @@ export default {
 	padding: 4px;
 	color: var(--color-main-text);
 	font-size: 14px;
+}
+
+.cn-menu-widget__title {
+	margin: 0 0 8px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-menu-widget__empty {
@@ -734,6 +1182,8 @@ export default {
 	font-size: 14px;
 	cursor: pointer;
 	text-align: left;
+	text-decoration: none;
+	box-sizing: border-box;
 	width: 100%;
 }
 

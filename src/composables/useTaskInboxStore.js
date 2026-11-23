@@ -35,7 +35,69 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
 // All / Mine / Unclaimed / Closed / Overdue, and two of those are exactly
 // this filter. Boolean-ish, like `overdue`, so it is stringified on the way
 // out.
-const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
+// `kind` is in the list for the same reason `isTerminal` is: the server
+// accepts it (`TaskController`: "Restrict to one kind of work") and only this
+// allowlist would withhold it. A kind is what sort of work a task is, as the
+// creating app named it, so it is the one filter that lets a Tasks page say
+// "the reminders" without the engine learning what a reminder is. It widens
+// nothing: it narrows within the inbox the session already decides.
+// `openFirst` asks open tasks before finished ones, a sort the engine applies.
+const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'openFirst', 'limit', 'offset']
+
+/**
+ * The flat body `POST /api/flow-tasks` takes for a task on a record.
+ *
+ * Only the task entity's own keys are ever sent, and never `requester` or
+ * `state`: OpenRegister pins the requester to the caller and refuses a
+ * terminal state. A user task carries `assignee`; a group task carries
+ * `performerType: "group"` with `candidateGroups` (a pool until someone claims
+ * it), because the server defaults `performerType` to `user`.
+ *
+ * @param {object} data The task to create.
+ * @param {string} data.title Required title.
+ * @param {string} [data.description] Optional description.
+ * @param {string} [data.dueAt] Optional due date, ISO 8601.
+ * @param {{objectUuid: string, registerId: string, schemaId: string}} data.anchor The record the task hangs on.
+ * @param {{kind: ('user'|'group'), id: string}|null} [data.assignee] A user, or a group as a pool.
+ * @return {object} The request body.
+ * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+ */
+export function buildFlowTaskBody(data) {
+	const body = { title: String(data.title || '').trim() }
+	if (data.description) {
+		body.description = data.description
+	}
+	if (data.dueAt) {
+		body.dueAt = data.dueAt
+	}
+	const anchor = data.anchor || {}
+	body.objectUuid = anchor.objectUuid
+	body.registerId = anchor.registerId
+	body.schemaId = anchor.schemaId
+	if (data.assignee && data.assignee.id) {
+		if (data.assignee.kind === 'group') {
+			body.performerType = 'group'
+			body.candidateGroups = [data.assignee.id]
+		} else {
+			body.assignee = data.assignee.id
+		}
+	}
+	return body
+}
+
+/**
+ * Read the server's message off a failed axios call.
+ *
+ * @param {object} error The axios error.
+ * @return {string} The message, or ''.
+ */
+function serverMessage(error) {
+	const data = error && error.response && error.response.data
+	if (typeof data === 'string') {
+		return data
+	}
+	return (data && (data.error || data.message)) || (error && error.message) || ''
+}
 
 /**
  * Internal Pinia store for the `tasks` index source (cn-tasks-entity-source).
@@ -57,9 +119,220 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		loading: false,
 		/** @type {string|null} The last load failure, for the console trail. */
 		error: null,
+		/** @type {Object<string, object>} Single tasks read for a detail page, keyed on their uuid. */
+		records: {},
+		/** @type {Object<string, number|null>} The HTTP status of a failed single read, keyed on the uuid. */
+		recordErrors: {},
 	}),
 
 	actions: {
+		/**
+		 * Read one task into `records`, for a `type: "detail"` page on the
+		 * `tasks` source. A refusal (403) or a missing task (404) leaves no
+		 * record and keeps the status in `recordErrors`, so the page can tell
+		 * "not found" from "still loading". The engine decides what the caller
+		 * may read; nothing here widens that.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @return {Promise<object|null>} The task, or null when it could not be read.
+		 * @spec openspec/changes/tasks-record-source/specs/tasks-record-source/spec.md#requirement-the-tasks-source-reads-one-task
+		 */
+		async fetchRecord(uuid) {
+			const key = String(uuid || '').trim()
+			if (key === '') {
+				return null
+			}
+			try {
+				const response = await axios.get(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}`))
+				const data = response.data
+				const task = data && typeof data === 'object' && data.results && !Array.isArray(data.results) ? data.results : data
+				const { [key]: dropped, ...errors } = this.recordErrors
+				this.recordErrors = errors
+				if (!task || typeof task !== 'object' || Array.isArray(task)) {
+					return null
+				}
+				this.records = { ...this.records, [key]: task }
+				return task
+			} catch (error) {
+				const { [key]: dropped, ...records } = this.records
+				this.records = records
+				this.recordErrors = { ...this.recordErrors, [key]: error?.response?.status ?? null }
+				// eslint-disable-next-line no-console
+				console.error(`[useTaskInboxStore] Loading task "${key}" failed`, error)
+				return null
+			}
+		},
+
+		/**
+		 * Read one inbox page WITHOUT touching the store's state, so a surface
+		 * that lists a different slice (the Tasks tab of one record) cannot
+		 * overwrite what an inbox page on the same screen shows.
+		 *
+		 * @param {object} [config] Loader config, as for `load`.
+		 * @return {Promise<{results: Array<object>, total: number}>} The rows and the total.
+		 * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+		 */
+		async fetchFor(config = {}) {
+			const params = { scope: 'assigned', sort: '-dueAt' }
+			for (const key of ALLOWED_PARAMS) {
+				const value = config ? config[key] : undefined
+				if (value === undefined || value === null || value === '') {
+					continue
+				}
+				params[key] = (key === 'overdue' || key === 'isTerminal' || key === 'openFirst') ? String(value) : value
+			}
+			const response = await axios.get(generateUrl(FLOW_TASKS_URL), { params })
+			const results = response.data?.results || []
+			return { results, total: Number(response.data?.total ?? results.length) || 0 }
+		},
+
+		/**
+		 * Create a flow task. A refusal is returned, not thrown, with the
+		 * server's message and the HTTP status (404: the creator may not read
+		 * the record).
+		 *
+		 * @param {object} data See `buildFlowTaskBody`.
+		 * @return {Promise<{ok: boolean, status: (number|null), task: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+		 */
+		async createTask(data) {
+			try {
+				const response = await axios.post(generateUrl(FLOW_TASKS_URL), buildFlowTaskBody(data))
+				return { ok: true, status: response.status || 201, task: response.data?.task || response.data || null, message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, task: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Run one lifecycle verb on a task (`claim`, `unclaim`, `reassign`,
+		 * `complete`, `cancel`). A refusal is returned, not thrown, with the
+		 * server's message, so the row can show it and stay as it was.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} verb The verb.
+		 * @param {object} [body] Optional body (for `reassign`: `{ assignee }`).
+		 * @return {Promise<{ok: boolean, status: (number|null), task: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/tasks-tab-flow-task-source/tasks.md#task-1
+		 */
+		async runVerb(uuid, verb, body = {}) {
+			try {
+				const response = await axios.post(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(uuid)}/${encodeURIComponent(verb)}`), body || {})
+				return { ok: true, status: response.status || 200, task: response.data?.task || response.data || null, message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, task: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Run one lifecycle verb on a task read for a detail page, and keep
+		 * that record in step with the engine's answer.
+		 *
+		 * `url` replaces the engine's own verb route for an app that puts a
+		 * step of its own in front of the engine (dossiq completes a task
+		 * through its own endpoint, which checks the case type's form first).
+		 * `{id}` in it is the task uuid. A refusal is returned with the
+		 * server's message as-is and leaves the record as it was.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} verb The verb.
+		 * @param {{url?: string}} [options] An app route to post the verb to instead.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		async runRecordVerb(uuid, verb, options = {}) {
+			const key = String(uuid || '').trim()
+			const name = String(verb || '').trim()
+			if (key === '' || name === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			const route = typeof options.url === 'string' && options.url !== ''
+				? options.url.replace('{id}', encodeURIComponent(key))
+				: `${FLOW_TASKS_URL}/${encodeURIComponent(key)}/${encodeURIComponent(name)}`
+			try {
+				const response = await axios.post(generateUrl(route), {})
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Tick or untick one checklist item on a task read for a detail page
+		 * (`PATCH /flow-tasks/{uuid}/checklist/{itemId}?checked=`). The engine
+		 * answers with the whole task, which replaces the record, so a refused
+		 * tick leaves the item as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} itemId The checklist item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkRecordItem(uuid, itemId, checked) {
+			const key = String(uuid || '').trim()
+			const item = String(itemId || '').trim()
+			if (key === '' || item === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(
+					generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}/checklist/${encodeURIComponent(item)}`),
+					null,
+					{ params: { checked: checked === true ? 'true' : 'false' } },
+				)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Edit a task's own fields (`PATCH /flow-tasks/{uuid}` with the
+		 * changed `title`, `description`, `dueAt`, `priority`). The engine
+		 * decides who may; its answer replaces the record, so a refused edit
+		 * leaves the task as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {object} changes The new values by field.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+		 */
+		async editRecord(uuid, changes) {
+			const key = String(uuid || '').trim()
+			if (key === '' || !changes || typeof changes !== 'object') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}`), changes)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Store the task a write answered with as the detail record. An answer
+		 * that carries no task (an app route that returns only a status) is
+		 * followed by a fresh read, so the page never shows the state from
+		 * before the write.
+		 *
+		 * @param {string} key The task uuid.
+		 * @param {unknown} data The response body.
+		 * @return {Promise<object|null>} The task now held.
+		 */
+		async keepRecord(key, data) {
+			const body = data && typeof data === 'object' ? data : null
+			const task = body && (body.results || body.task) && typeof (body.results || body.task) === 'object' && !Array.isArray(body.results || body.task)
+				? (body.results || body.task)
+				: body
+			if (task && typeof task === 'object' && !Array.isArray(task) && String(task.uuid || '') === key) {
+				this.records = { ...this.records, [key]: task }
+				return task
+			}
+			return this.fetchRecord(key)
+		},
+
 		/**
 		 * Load one inbox page.
 		 *
@@ -70,7 +343,8 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		 *
 		 * @param {object} [config] Loader config from the page (`sourceConfig`
 		 *   merged with the active quick-filter tab): `scope`, `state`,
-		 *   `priority`, `overdue`, `objectUuid`, `sort`, `limit`, `offset`.
+		 *   `priority`, `kind`, `overdue`, `objectUuid`, `sort`, `limit`,
+		 *   `offset`.
 		 *
 		 * @return {Promise<void>} Resolves when the rows are in the store.
 		 *
@@ -85,7 +359,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				}
 				// The endpoint reads `overdue` as a boolean-ish string; a quick
 				// filter authors it as `true` for legibility.
-				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
+				params[key] = (key === 'overdue' || key === 'isTerminal' || key === 'openFirst') ? String(value) : value
 			}
 
 			this.loading = true

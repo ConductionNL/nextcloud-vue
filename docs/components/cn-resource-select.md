@@ -47,7 +47,8 @@ Three opt-in props cover what a plain object picker cannot do:
 |------|------|---------|-------------|
 | `register` | String | — (required) | OpenRegister register slug to search/create in. |
 | `schema` | String | — (required) | OpenRegister schema slug to search/create in. |
-| `modelValue` | String \| Number | `''` | Currently-selected object id (v-model). |
+| `modelValue` | String \| Number \| Array | `''` | Currently-selected object id (v-model), or an array of ids when `multiple`. |
+| `multiple` | Boolean | `false` | Pick several objects. `modelValue` is then an array of ids, and a create adds the new object to the selection. |
 | `labelField` | String | `'name'` | Object field used as the option label AND written on create. |
 | `inputLabel` | String | `''` | Accessible input label for the underlying `NcSelect`. |
 | `inputId` | String | `''` | DOM id for the input (a11y association). |
@@ -56,14 +57,18 @@ Three opt-in props cover what a plain object picker cannot do:
 | `allowCreate` | Boolean | `true` | Offer the inline "Create '&lt;term&gt;'" option when the search yields no exact match. Off → behaves like a plain async object select. |
 | `createDefaults` | Object | `{}` | Extra fields merged into the payload when creating a new object (e.g. a fixed `type`). `labelField` is always set to the term. |
 | `filters` | Object | `{}` | Field filters merged into the search query, scoping the options to a parent selection (the cascading-select case). Changing the scope reloads the options and clears a selection that no longer belongs to it. Empty values are dropped rather than sent as `field=`. |
+| `filter` | Object | `{}` | Field values the candidates must match (`{ lifecycle: 'active' }`), merged into the list query like `filters` (and winning on a clash). Use it for a fixed narrowing; `filters` is for a scope that follows another field. |
+| `exclude` | Array | `[]` | Ids to leave out of the options, for example the record a transition runs on when it must not be picked as its own target. |
 | `preload` | Boolean | `false` | Fetch a first page of options on mount (and on every `filters` change) so the field can be browsed without typing. Off by default so existing consumers issue no extra request. |
 | `disabled` | Boolean | `false` | Disable the input — e.g. a dependent select still waiting on its parent. |
 | `placeholder` | String | `''` | Placeholder text for the underlying `NcSelect`. |
+| `scope` | Object | `null` | A vocabulary scoped to an owner plus the rows every owner shares: `{ field, value, includeUnscoped?, dedupeOn? }`. The whole list is read once (up to 200 rows); the rows whose `field` equals `value` come first, then (with `includeUnscoped`) the rows that name no owner, an unscoped row dropped when an owned row already claims its `dedupeOn` key. An empty `value` offers every row. The list is searched in place and nothing is created. |
+| `failedText` | String | `''` | With `scope`: the sentence shown, in place of the picker, when the list could not be read. An empty picker would read as "there are none". |
 | `createHandler` | Function | `null` | Override how a new object is created from the typed term. Receives `(term, payload)` and must resolve to the created object, or a falsy value to abort (e.g. the user cancelled a dialog). Without it the payload goes straight to `objectStore.saveObject`, which fails for any schema requiring a field the term cannot supply. |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `update:modelValue` | `string` | The selected (or newly-created) object id. |
+| `update:modelValue` | `string` \| `string[]` | The selected (or newly-created) object id, or the array of ids when `multiple`. |
 | `create` | `object` | Emitted with the freshly-created OpenRegister object when the user chose "Create '&lt;term&gt;'". |

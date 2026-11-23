@@ -88,6 +88,7 @@
 								<span class="cn-activity-card__row-meta">
 									{{ actorFor(entry) }} · {{ relativeTime(entry) }}
 								</span>
+								<CnVisibilityChip v-if="showVisibility" :visibility="entry.visibility" />
 							</div>
 						</li>
 					</ul>
@@ -109,7 +110,9 @@ import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.v
 import TagOutline from 'vue-material-design-icons/TagOutline.vue'
 import Timeline from 'vue-material-design-icons/Timeline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import CnVisibilityChip from '../../../components/CnVisibilityChip/CnVisibilityChip.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 4
@@ -125,6 +128,7 @@ export default {
 
 	components: {
 		CnDetailCard,
+		CnVisibilityChip,
 		NcLoadingIcon,
 		CalendarOutline,
 		Timeline,
@@ -137,6 +141,8 @@ export default {
 	},
 
 	props: {
+		/** Show a visibility chip (internal or public) on each row of the detail-page feed. Off by default. */
+		showVisibility: { type: Boolean, default: false },
 		/** Stable integration id (forwarded from the registry — always `'activity'`). */
 		integrationId: { type: String, default: 'activity' },
 		/** OpenRegister register id (slug or uuid). */
@@ -292,7 +298,7 @@ export default {
 				return t('nextcloud-vue', 'Yesterday')
 			}
 			try {
-				return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+				return date.toLocaleDateString(userLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
 			} catch {
 				return date.toISOString().split('T')[0]
 			}
@@ -304,7 +310,7 @@ export default {
 				return ''
 			}
 			try {
-				return ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+				return ts.toLocaleTimeString(userLocale(), { hour: '2-digit', minute: '2-digit' })
 			} catch {
 				return ts.toISOString().split('T')[1].slice(0, 5)
 			}

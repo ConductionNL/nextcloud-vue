@@ -1,0 +1,2 @@
+- [x] src/css/dialog.css rule
+- [x] tests/css/dialogBoardChoiceRows10.spec.js (red first)

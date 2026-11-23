@@ -51,6 +51,9 @@ describe('CnSharesTab', () => {
 		await flushPromises()
 		expect(wrapper.text()).toContain('No shares on this object yet')
 		expect(wrapper.text()).toContain('Manage in Files')
+		const cta = wrapper.find('.cn-shares-tab__empty .stub.NcButton')
+		expect(cta.attributes('href')).toBe('/index.php/apps/files')
+		expect(cta.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 
@@ -79,6 +82,13 @@ describe('CnSharesTab', () => {
 		expect(names).toContain('Editors')
 		// Public link rows fall back to the generic "Share link" label.
 		expect(names).toContain('Share link')
+		// Row action and footer "Manage in Files" controls are real links.
+		const rowLink = wrapper.find('.cn-shares-tab__row .stub.NcActionLink')
+		expect(rowLink.attributes('href')).toBe('/index.php/apps/files')
+		expect(rowLink.attributes('target')).toBe('_blank')
+		const footer = wrapper.find('.cn-shares-tab__footer .stub.NcButton')
+		expect(footer.attributes('href')).toBe('/index.php/apps/files')
+		expect(footer.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 
@@ -203,7 +213,7 @@ describe('CnSharesTab', () => {
 		wrapper.unmount()
 	})
 
-	it('POSTs to the dedicated /shares endpoint on createShare and refetches', async () => {
+	it('POSTs to the dedicated /file-shares endpoint on createShare and refetches', async () => {
 		global.fetch = jest.fn()
 			.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }) // initial list
 			.mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve({ shareId: 's1' }) }) // create
@@ -216,7 +226,7 @@ describe('CnSharesTab', () => {
 		await wrapper.vm.$nextTick()
 
 		const createCall = global.fetch.mock.calls[1]
-		expect(createCall[0]).toContain('/objects/reg/schema/obj-1/shares')
+		expect(createCall[0]).toMatch(/\/objects\/reg\/schema\/obj-1\/file-shares$/)
 		expect(createCall[1].method).toBe('POST')
 		expect(JSON.parse(createCall[1].body)).toEqual(payload)
 		expect(wrapper.vm.showCreate).toBe(false)

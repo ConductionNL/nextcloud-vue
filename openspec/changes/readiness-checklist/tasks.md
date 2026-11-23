@@ -1,0 +1,2 @@
+- [x] CnReadinessChecklist component, export and docs
+- [x] Spec CnReadinessChecklist.spec.js

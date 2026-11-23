@@ -29,6 +29,15 @@ describe('resolveFilterTokens', () => {
 		expect(resolveFilterValue('@today-7d')).toBe(expected)
 	})
 
+	it('fills a config value inside a token before resolving it (pl4-cell-rules)', () => {
+		const ctx = { config: { lead_stale_threshold_days: 21 } }
+		expect(resolveFilterValue('@today-{@config.lead_stale_threshold_days}d', ctx)).toBe(resolveFilterValue('@today-21d'))
+		expect(resolveFilterValue('@today+{@config.days}d', { config: { days: '3' } })).toBe(resolveFilterValue('@today+3d'))
+		// A key the config does not hold leaves the token as written.
+		expect(resolveFilterValue('@today-{@config.missing}d', ctx)).toBe('@today-{@config.missing}d')
+		expect(resolveFilterValue('@today-{@config.missing}d')).toBe('@today-{@config.missing}d')
+	})
+
 	it('resolves tokens inside both equality and operator filter shapes', () => {
 		global.window.OC = { currentUser: 'admin' }
 		const out = resolveFilterTokens({ assignee: '@me', expectedCloseDate: { lt: '@today' } })
@@ -214,5 +223,48 @@ describe('resolveFilterTokens', () => {
 			const out2 = resolveFilterTokens({ client: '@workspace.selectedClient' }, { workspace: { selectedClient: 'c-1' } })
 			expect(hasUnresolvedTokens(out2)).toBe(false)
 		})
+	})
+})
+
+// CnStatWidget documented `@range.from` / `@range.to` / `@range.preset` and put
+// `range` in its endpoint context, but no resolver read it: the literal token
+// stayed in the params, hasUnresolvedTokens blocked the request, and a card
+// driven by its own period picker never loaded. Found by portaliq's KPI cards,
+// which had to work around it.
+describe('range-context tokens', () => {
+	const ctx = { range: { from: '2026-09-01', to: '2026-09-27', preset: '30' } }
+
+	it('resolves @range.from / @range.to / @range.preset from ctx.range', () => {
+		expect(resolveFilterValue('@range.from', ctx)).toBe('2026-09-01')
+		expect(resolveFilterValue('@range.to', ctx)).toBe('2026-09-27')
+		expect(resolveFilterValue('@range.preset', ctx)).toBe('30')
+	})
+
+	it('resolves the optional form @range.<key>? the same way when set', () => {
+		expect(resolveFilterValue('@range.preset?', ctx)).toBe('30')
+	})
+
+	it('passes an unset @range token through unchanged', () => {
+		expect(resolveFilterValue('@range.preset')).toBe('@range.preset')
+		expect(resolveFilterValue('@range.preset', { range: {} })).toBe('@range.preset')
+		expect(resolveFilterValue('@range.preset', { range: { preset: '' } })).toBe('@range.preset')
+	})
+
+	it('drops an unset optional @range token and does not block on it', () => {
+		const resolved = resolveFilterTokens({ portal: 'open-tilburg', days: '@range.preset?' }, { range: {} })
+		expect(isOptionalUnresolved(resolved.days)).toBe(true)
+		expect(dropOptionalUnresolved(resolved)).toEqual({ portal: 'open-tilburg' })
+		expect(hasUnresolvedTokens(dropOptionalUnresolved(resolved))).toBe(false)
+	})
+
+	it('still blocks on an unset REQUIRED @range token', () => {
+		const resolved = resolveFilterTokens({ days: '@range.preset' }, { range: {} })
+		expect(hasUnresolvedTokens(resolved)).toBe(true)
+	})
+
+	it('no longer blocks once the range is set', () => {
+		const resolved = resolveFilterTokens({ from: '@range.from', to: '@range.to', days: '@range.preset?' }, ctx)
+		expect(resolved).toEqual({ from: '2026-09-01', to: '2026-09-27', days: '30' })
+		expect(hasUnresolvedTokens(resolved)).toBe(false)
 	})
 })

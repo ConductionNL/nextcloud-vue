@@ -77,6 +77,35 @@ describe('useListNavigation — the list is in the address', () => {
 	})
 })
 
+describe('useListNavigation — the steps as links', () => {
+	it('exposes the neighbours as router locations that keep the list context', async () => {
+		const nav = useListNavigation({ route: routeWithContext(), currentId: 'b', fetchList: async () => QUEUE })
+		await nextTick()
+		await nextTick()
+
+		expect(nav.previousRoute.value).toEqual({ name: 'case-detail', params: { id: 'a' }, query: { _from: 'cases', status: 'open' } })
+		expect(nav.nextRoute.value).toEqual({ name: 'case-detail', params: { id: 'c' }, query: { _from: 'cases', status: 'open' } })
+	})
+
+	it('has no route past either end', async () => {
+		const nav = useListNavigation({ route: routeWithContext(), currentId: 'a', fetchList: async () => QUEUE })
+		await nextTick()
+		await nextTick()
+
+		expect(nav.previousRoute.value).toBeNull()
+	})
+
+	it('does not push again when a link already navigated', async () => {
+		const router = { push: jest.fn().mockResolvedValue(undefined) }
+		const nav = useListNavigation({ route: routeWithContext(), router, currentId: 'b', fetchList: async () => QUEUE })
+		await nextTick()
+		await nextTick()
+
+		expect(nav.goNext({ event: {}, to: nav.nextRoute.value })).toBe('c')
+		expect(router.push).not.toHaveBeenCalled()
+	})
+})
+
 describe('useListNavigation — the refusals', () => {
 	it('offers nothing on a link carrying no list context, and asks for nothing', async () => {
 		const fetchList = jest.fn()

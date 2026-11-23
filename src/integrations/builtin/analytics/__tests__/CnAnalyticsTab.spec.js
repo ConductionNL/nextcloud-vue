@@ -56,6 +56,9 @@ describe('CnAnalyticsTab', () => {
 		await flushPromises()
 		expect(wrapper.text()).toContain('No reports linked yet')
 		expect(wrapper.text()).toContain('Open Analytics')
+		const cta = wrapper.find('.cn-analytics-tab__empty .stub.NcButton')
+		expect(cta.attributes('href')).toBe('/index.php/apps/analytics')
+		expect(cta.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 
@@ -83,6 +86,10 @@ describe('CnAnalyticsTab', () => {
 		const hrefs = rows.map((r) => r.attributes('href'))
 		expect(hrefs).toContain('/index.php/apps/analytics/#/r/1')
 		expect(hrefs).toContain('/index.php/apps/analytics/#/r/2')
+		// The "Open in Analytics" row action is a real link.
+		const openLink = rows.at(0).find('.stub.NcActionLink')
+		expect(openLink.attributes('href')).toBe('/index.php/apps/analytics/#/r/1')
+		expect(openLink.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 

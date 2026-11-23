@@ -39,7 +39,7 @@ export function classifyGps(fix, available = true) {
 		return {
 			quality: 'poor',
 			source: 'sensor',
-			warning: t('nextcloud-vue', 'Location imprecise (±{m}m) — wait for a better signal or add the address manually', { m: rounded }),
+			warning: t('nextcloud-vue', 'Location imprecise (±{m}m). Wait for a better signal, or add the address by hand.', { m: rounded }),
 		}
 	}
 
@@ -47,10 +47,70 @@ export function classifyGps(fix, available = true) {
 }
 
 /**
+ * Read a checklist template into the leaf's flat item contract.
+ *
+ * A consuming app's template does not have to carry `items[]` with
+ * `questionId` / `text` / `type`. Its `offlineConfig` names where those live:
+ * `sectionsField` when the items sit inside ordered sections, and the
+ * `item*Field` keys for the item's key, text and type. `itemTypeMap` translates
+ * the app's own type words onto the leaf's (`yes_no`, `photo_required`, or any
+ * other word, which renders as free text). `photoRequiredField` and
+ * `photoRequiredValue` mark an item whose answer also needs a photo.
+ *
+ * The template's own keys are kept, so the id and version stay readable; only
+ * `items` is replaced by the normalised list.
+ *
+ * @param {object|null} template The template as cached.
+ * @param {object}      [config] The leaf's offline config.
+ *
+ * @return {object|null} The template with flat `items[]`, or null.
+ */
+export function normaliseChecklistTemplate(template, config = {}) {
+	if (template === null || typeof template !== 'object') {
+		return null
+	}
+
+	const keyField = config.itemKeyField || 'questionId'
+	const textField = config.itemTextField || 'text'
+	const typeField = config.itemTypeField || 'type'
+	const typeMap = (config.itemTypeMap && typeof config.itemTypeMap === 'object') ? config.itemTypeMap : {}
+
+	const sections = config.sectionsField ? template[config.sectionsField] : null
+	const raw = Array.isArray(sections)
+		? sections.flatMap((section) => (Array.isArray(section?.items) ? section.items : []))
+		: (Array.isArray(template.items) ? template.items : [])
+
+	const items = []
+	for (const item of raw) {
+		if (item === null || typeof item !== 'object') {
+			continue
+		}
+		const questionId = String(item[keyField] ?? '')
+		if (questionId === '') {
+			continue
+		}
+		const ownType = item[typeField]
+		const photoRequired = Boolean(config.photoRequiredField)
+			&& item[config.photoRequiredField] === config.photoRequiredValue
+		items.push({
+			...item,
+			questionId,
+			text: item[textField] ?? item.text ?? questionId,
+			type: typeMap[ownType] ?? ownType ?? 'text',
+			required: item.required === true,
+			photoRequired,
+		})
+	}
+
+	return { ...template, items }
+}
+
+/**
  * Validate a set of checklist answers against the template's required items.
  *
- * A `required` item must have a non-empty answer; a `photo_required` item must
- * additionally have at least one evidence reference. Returns the per-question
+ * A `required` item must have a non-empty answer; a `photo_required` item, and
+ * any item flagged `photoRequired` by {@link normaliseChecklistTemplate}, must
+ * have at least one evidence reference. Returns the per-question
  * blocking errors so the UI can prevent save (and the engine never queues an
  * invalid result).
  *
@@ -66,7 +126,7 @@ export function validateChecklistAnswers(template, answersByQuestion) {
 	const errors = []
 
 	for (const item of items) {
-		if (item?.required !== true) {
+		if (item?.required !== true && item?.photoRequired !== true) {
 			continue
 		}
 		const entry = answers[item.questionId] ?? {}
@@ -80,7 +140,12 @@ export function validateChecklistAnswers(template, answersByQuestion) {
 			continue
 		}
 
-		if (answer === undefined || answer === null || String(answer).trim() === '') {
+		if (item.photoRequired === true && evidenceRefs.length === 0) {
+			errors.push({ questionId: item.questionId, message: t('nextcloud-vue', 'Photo required for this question') })
+			continue
+		}
+
+		if (item.required === true && (answer === undefined || answer === null || String(answer).trim() === '')) {
 			errors.push({ questionId: item.questionId, message: t('nextcloud-vue', 'This question is required') })
 		}
 	}
@@ -118,12 +183,40 @@ export function checklistProgress(template, answersByQuestion) {
  *
  * @param {number}  pendingCount The number of pending operations.
  * @param {boolean} online       Whether the device is online.
+ * @param {number}  [stuckCount] How many will not send again without somebody acting.
  *
  * @return {{ tone: ('success'|'warning'|'error'), text: string }} Indicator state.
  */
-export function syncIndicator(pendingCount, online) {
+export function syncIndicator(pendingCount, online, stuckCount = 0) {
+	// 🔴 STUCK WORK IS NAMED BEFORE ANYTHING ELSE, INCLUDING BEFORE BEING
+	// OFFLINE. `pendingCount` counts pending, conflict and syncing; a `failed`
+	// operation is in none of them, so a device holding a stranded inspection
+	// used to reach the last line here and report "All changes synced" in
+	// green. The one surface that could have told an inspector their morning
+	// had not left the device said the opposite.
+	//
+	// Being offline is temporary and expected in the field. Being stuck is
+	// neither, so it outranks it.
+	if (stuckCount > 0) {
+		return {
+			tone: 'error',
+			text: t(
+				'nextcloud-vue',
+				'{n} changes are stuck and will not send on their own',
+				{ n: stuckCount },
+			),
+		}
+	}
+
+	// Being offline is not a fault. A field device spends its day out of
+	// signal by design, and red said something had gone wrong every hour of
+	// every working day, which is how a palette stops being read at all. Red
+	// is now reserved for the one state that needs somebody: stuck work.
 	if (online === false) {
-		return { tone: 'error', text: t('nextcloud-vue', 'Offline — {n} changes waiting for sync', { n: pendingCount }) }
+		return {
+			tone: 'warning',
+			text: t('nextcloud-vue', 'No connection. {n} changes are waiting and will send when you are back.', { n: pendingCount }),
+		}
 	}
 	if (pendingCount > 0) {
 		return { tone: 'warning', text: t('nextcloud-vue', '{n} changes waiting for sync', { n: pendingCount }) }

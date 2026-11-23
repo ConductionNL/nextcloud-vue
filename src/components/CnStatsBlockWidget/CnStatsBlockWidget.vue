@@ -17,10 +17,61 @@
 <template>
 	<div
 		class="cn-stats-block-widget"
-		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries }]">
+		:class="[iconClass, { 'cn-stats-block-widget--multi': hasEntries && !isRows && !isGrid, 'cn-stats-block-widget--rows': isRows, 'cn-stats-block-widget--grid': isGrid, 'cn-stats-block-widget--tiles-box': isGrid && tiles === 'box' }]">
+		<!-- Grid layout: the `stats` (each a stat tile's content, so every
+		     source kind a stat takes: ratio, elapsed, computed...) in `columns`
+		     columns, inside this one card (the board's "Je week tot nu toe"
+		     card). The card's title is the widget wrapper's, as on every other
+		     card (`showTitle: true` on the widget): a heading drawn here took
+		     the page's h2 size under a theme. -->
+		<template v-if="isGrid">
+			<div
+				class="cn-stats-block-widget__grid"
+				:style="{ '--cn-stats-block-columns': gridColumns }"
+				data-testid="cn-stats-block-grid">
+				<CnStatWidget
+					v-for="(stat, index) in stats"
+					:key="stat.id || index"
+					class="cn-stats-block-widget__grid-stat"
+					:content="stat"
+					data-testid="cn-stats-block-grid-stat" />
+			</div>
+		</template>
+		<!-- Rows layout: a title and one label-left, number-right row per entry
+		     (the board's "Mijn Zuiddrecht nu" card). -->
+		<template v-else-if="isRows">
+			<h2 v-if="title" class="cn-stats-block-widget__rows-title" data-testid="cn-stats-block-rows-title">
+				{{ tl(title) }}
+			</h2>
+			<dl class="cn-stats-block-widget__rows" data-testid="cn-stats-block-rows">
+				<div
+					v-for="view in rowViews"
+					:key="view.key"
+					class="cn-stats-block-widget__row"
+					data-testid="cn-stats-block-row">
+					<dt class="cn-stats-block-widget__row-label">
+						<a
+							v-if="view.href"
+							:href="view.href"
+							data-testid="cn-stats-block-row-link"
+							@click="onRowClick($event, view.route)">{{ view.label }}</a>
+						<template v-else>
+							{{ view.label }}
+						</template>
+					</dt>
+					<dd
+						class="cn-stats-block-widget__row-value"
+						:class="'cn-stats-block-widget__row-value--' + view.variant"
+						data-testid="cn-stats-block-row-value">
+						{{ view.display }}
+					</dd>
+				</div>
+			</dl>
+		</template>
+
 		<!-- Multi-entry mode: one KPI per entry, all inside this widget card.
 		     An entry with hideWhenZero whose resolved count is 0 is omitted. -->
-		<template v-if="hasEntries">
+		<template v-else-if="hasEntries">
 			<CnStatsBlock
 				v-for="view in entryViews"
 				:key="view.key"
@@ -32,9 +83,16 @@
 				:showZeroCount="showZeroCount"
 				:horizontal="horizontal"
 				:vertical="vertical"
+				:layout="layout"
 				:filled="filled"
 				:clickable="!!view.route"
-				:route="view.route || null" />
+				:route="view.route || null">
+				<!-- An entry with a `format` (or `currency` / `currencyField`)
+				     shows its value formatted, money in its own currency. -->
+				<template v-if="view.formatted !== null" #value>
+					{{ view.formatted }}
+				</template>
+			</CnStatsBlock>
 		</template>
 
 		<!-- Single-source mode (pre-existing interface, unchanged). -->
@@ -48,16 +106,26 @@
 			:showZeroCount="showZeroCount"
 			:horizontal="horizontal"
 			:vertical="vertical"
+			:layout="layout"
 			:filled="filled"
 			:clickable="!!route"
-			:route="route" />
+			:route="route">
+			<template v-if="formattedSingle !== null" #value>
+				{{ formattedSingle }}
+			</template>
+		</CnStatsBlock>
 	</div>
 </template>
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
+import CnStatWidget from '../CnStatWidget/CnStatWidget.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
+import widgetData from '../../mixins/widgetData.js'
+import { aggFilterParam } from '../../utils/fetchAggregate.js'
+import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 // The canonical KPI scale (`--cn-kpi-*`) lives in one stylesheet. Imported
@@ -85,6 +153,15 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
  * `field`, token-resolved `filter`) plus per-entry presentation
  * (`title`, `variant`, `countLabel`), an optional `route` deep link, and
  * `hideWhenZero` (the entry is omitted when its resolved count is 0).
+ *
+ * An entry formats its value with `format` (a style name such as
+ * `"currency"`, or `{ style, currency, currencyField, decimals, prefix,
+ * suffix }`), as a `type:"stat"` widget's `content.format` does. A money
+ * value takes the currency from `currencyField` (a field of the detail
+ * page's object, e.g. a contract's own `currency`), then `currency` (a code
+ * or `@config.currency`), then the app's reporting currency, then EUR, and
+ * is formatted in the user's locale. `currency` / `currencyField` may sit on
+ * the entry itself and imply `format: "currency"`.
  * Exactly one of `dataSource` / `entries` must be provided — when
  * `entries` is absent, the single-`dataSource` path renders exactly as
  * before.
@@ -125,7 +202,9 @@ const PAGE_REFRESH_BUS_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnStatsBlockWidget',
 
-	components: { CnStatsBlock },
+	components: { CnStatsBlock, CnStatWidget },
+
+	mixins: [widgetData],
 
 	inject: {
 		/**
@@ -140,6 +219,13 @@ export default {
 		 * `filter`. Null on pages that don't provide it.
 		 */
 		cnWorkspaceContext: { default: null },
+		/**
+		 * Page-level app config provided by the page — the reporting
+		 * currency (`currency`) and `@config.<key>` tokens in `format`.
+		 */
+		cnAppConfig: { default: () => ({}) },
+		/** The host's label lookup (CnAppRoot provides it); identity without one. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -177,6 +263,61 @@ export default {
 		entries: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The tiles of the grid layout (`layout: "grid"`): each is a stat
+		 * tile's `content` (`label`, `caption`, `format`, `source` with any
+		 * kind a `type: "stat"` widget takes: aggregate, `ratio`, `elapsed`,
+		 * `computed`, `weighted`, `endpoint`). They share this one card; its
+		 * title is the widget wrapper's (`showTitle: true` on the widget).
+		 * Used instead of `dataSource` / `entries`.
+		 *
+		 * @type {Array<object>}
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		stats: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Columns of the grid layout (1 to 4, default 2).
+		 *
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		columns: {
+			type: Number,
+			default: 2,
+		},
+
+		/**
+		 * How the grid layout draws its tiles: `'box'` gives each tile a
+		 * surface of its own (a grey ground, 10px radius, 14px 16px padding),
+		 * as board DcRapportages draws its efficiency figures. Empty (the
+		 * default) keeps the tiles as parts of the one card, without a box
+		 * (board PqMijnWerk "Je week tot nu toe").
+		 *
+		 * @type {'box'|null}
+		 * @spec openspec/changes/screens-stats-block-tile-box/specs/stats-block-grid/spec.md#requirement-a-stats-block-grid-can-box-its-tiles
+		 */
+		tiles: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * How the single-source value is shown: a style name (`'currency'`,
+		 * `'number'`, `'percent'`, `'decimal'`, `'duration-hours'`) or
+		 * `{ style, currency, currencyField, decimals, prefix, suffix }`.
+		 * Empty (the default) shows the plain localized count. Entries carry
+		 * their own `format`.
+		 *
+		 * @type {string|object|null}
+		 */
+		format: {
+			type: [String, Object],
+			default: null,
 		},
 
 		/** Block title (manifest `widgetDef.title`). */
@@ -219,6 +360,20 @@ export default {
 		vertical: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * `stacked` gives every block the board look (see CnStatsBlock
+		 * `layout`). `rows` draws the title and then one row per entry (or the
+		 * single source): the label on the left, the number on the right, the
+		 * label a link when the entry has a `route`. Empty (the default) keeps
+		 * the KPI card.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stats-block-can-take-the-stacked-board-look
+		 */
+		layout: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -302,6 +457,74 @@ export default {
 		},
 
 		/**
+		 * Whether the widget draws label/number rows (`layout: "rows"`).
+		 *
+		 * @return {boolean}
+		 */
+		isRows() {
+			return this.layout === 'rows'
+		},
+
+		/**
+		 * Whether the widget draws its `stats` as tiles in a grid
+		 * (`layout: "grid"` with at least one stat).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		isGrid() {
+			return this.layout === 'grid' && Array.isArray(this.stats) && this.stats.length > 0
+		},
+
+		/**
+		 * The grid's column count, clamped to 1-4.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/screens-stats-block-grid/specs/stats-block-grid/spec.md#requirement-a-stats-block-can-hold-stat-tiles-in-a-grid
+		 */
+		gridColumns() {
+			const n = Math.floor(Number(this.columns))
+			return Number.isFinite(n) ? Math.min(4, Math.max(1, n)) : 2
+		},
+
+		/**
+		 * The rows of the rows layout: one per entry, or a single row from the
+		 * `dataSource` (labelled by `countLabel`). A row is `{ key, label,
+		 * display, variant, route, href }`; `display` is the formatted value,
+		 * a dash while it loads or when the count could not be read.
+		 *
+		 * @return {Array<object>}
+		 */
+		rowViews() {
+			if (!this.hasEntries) {
+				const formatted = this.formattedSingle
+				return [{
+					key: 'single',
+					label: this.tl(this.countLabel),
+					display: this.loading ? '\u2014' : (formatted !== null ? formatted : this.formatCount(this.resolvedCount)),
+					variant: this.variant || 'default',
+					route: this.route,
+					href: this.route ? resolveHref(this.route, this.$router) : '',
+				}]
+			}
+			return this.entryViews.map((view) => {
+				const resolved = view.resolved === true
+				let display = '\u2014'
+				if (resolved) {
+					display = view.formatted !== null ? view.formatted : this.formatCount(view.count)
+				}
+				return {
+					key: view.key,
+					label: this.tl(view.entry.title || ''),
+					display,
+					variant: view.entry.variant || 'default',
+					route: view.route,
+					href: view.route ? resolveHref(view.route, this.$router) : '',
+				}
+			})
+		},
+
+		/**
 		 * The unwrapped detail-page object context for token resolution, or
 		 * null on surfaces (dashboards) that don't provide one.
 		 *
@@ -330,6 +553,41 @@ export default {
 		},
 
 		/**
+		 * The page-level app config map (reporting currency, `@config` keys).
+		 *
+		 * @return {object}
+		 */
+		configCtx() {
+			return unwrapAppConfig(this.cnAppConfig)
+		},
+
+		/**
+		 * The detail page's object, or null on a dashboard. Its fields feed
+		 * an entry's `currencyField`.
+		 *
+		 * @return {object|null}
+		 */
+		pageObject() {
+			const object = this.objectCtx && this.objectCtx.object
+			return object && typeof object === 'object' ? object : null
+		},
+
+		/**
+		 * The single-source value formatted per `format`, or null to keep
+		 * the plain count.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/stat-currency-from-object/specs/dashboard-page/spec.md#requirement-a-stats-block-entry-formats-its-value
+		 */
+		formattedSingle() {
+			const fmt = normalizeMetricFormat({ format: this.format })
+			if (!fmt || this.loading) {
+				return null
+			}
+			return formatMetricValue(this.resolvedCount, fmt, this.configCtx, this.pageObject, this.tl)
+		},
+
+		/**
 		 * Token-resolution context for entry filters, merged from the
 		 * detail-page object context and the page-level workspace bag.
 		 *
@@ -346,14 +604,19 @@ export default {
 		 * its fetched count and loading flag, with `hideWhenZero` entries
 		 * whose resolved count is 0 omitted.
 		 *
-		 * @return {Array<{entry: object, key: string, count: number, loading: boolean}>}
+		 * @return {Array<{entry: object, key: string, count: number, loading: boolean, formatted: (string|null)}>}
+		 * @spec openspec/changes/stat-currency-from-object/specs/dashboard-page/spec.md#requirement-a-stats-block-entry-formats-its-value
 		 */
 		entryViews() {
 			return (this.entries || [])
 				.map((entry, i) => {
 					const raw = this.entryCounts[i]
 					const resolved = typeof raw === 'number'
+					const fmt = normalizeMetricFormat(entry)
 					return {
+						// The value as the entry's `format` says, money in the
+						// currency the entry names; null keeps the plain count.
+						formatted: fmt && resolved ? formatMetricValue(raw, fmt, this.configCtx, this.pageObject, this.tl) : null,
 						entry: entry || {},
 						key: `${(entry && entry.register) || ''}/${(entry && entry.schema) || ''}/${i}`,
 						count: resolved ? raw : 0,
@@ -408,6 +671,23 @@ export default {
 			})))
 		},
 
+		/**
+		 * What the widget shows, for the `data` event: the count of a single
+		 * source, or every entry's count; null until a count is known.
+		 *
+		 * @return {{count: number}|{counts: Array<number|null>}|null}
+		 * @spec openspec/changes/widget-data-event/specs/widget-data-event/spec.md#requirement-a-self-fetching-widget-tells-its-host-what-it-shows
+		 */
+		widgetData() {
+			if (this.hasEntries) {
+				return this.entryFetching.some(Boolean) || this.entryCounts.length === 0 ? null : { counts: [...this.entryCounts] }
+			}
+			if (typeof this.restCount === 'number' || this.dsData?.count !== undefined) {
+				return { count: this.resolvedCount }
+			}
+			return null
+		},
+
 		resolvedCount() {
 			if (typeof this.restCount === 'number') {
 				return this.restCount
@@ -441,7 +721,8 @@ export default {
 		// the cross-prop rule lives here (and, for manifests, in
 		// validateManifestV2's post-schema check).
 		const hasDataSource = !!this.dataSource
-		if (hasDataSource === this.hasEntries) {
+		// A grid of stat tiles carries its sources in `stats`.
+		if (!this.isGrid && hasDataSource === this.hasEntries) {
 			// eslint-disable-next-line no-console
 			console.error('[CnStatsBlockWidget] Exactly one of `dataSource` / `entries` must be provided.')
 		}
@@ -459,8 +740,9 @@ export default {
 		// `fetchEntries` and the useDataSource GraphQL path, none of which
 		// subscribe on their own. No widgetId to match: a page refresh
 		// refreshes everything on the page.
-		this._onPageRefresh = () => {
-			this.refresh()
+		this._onPageRefresh = (payload) => {
+			const done = this.refresh()
+			payload?.waitUntil?.(done)
 		}
 		subscribe(PAGE_REFRESH_BUS_CHANNEL, this._onPageRefresh)
 	},
@@ -474,19 +756,50 @@ export default {
 
 	methods: {
 		/**
+		 * A manifest string through the host's label lookup.
+		 *
+		 * @param {string} text The text as written in the manifest.
+		 * @return {string} The translated text.
+		 */
+		tl(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A count in the user's locale.
+		 *
+		 * @param {number} count The count.
+		 * @return {string} The localized count.
+		 */
+		formatCount(count) {
+			return new Intl.NumberFormat().format(count)
+		},
+
+		/**
+		 * Follow a row label's link in the router, leaving a modified click to the browser.
+		 *
+		 * @param {MouseEvent} event The click.
+		 * @param {object} route The route location.
+		 * @return {void}
+		 */
+		onRowClick(event, route) {
+			followLinkClick(event, route, this.$router)
+		},
+
+		/**
 		 * Re-query the tile's counts — the REST `/value` aggregation, the
 		 * per-entry counts of multi-entry mode, and the `dataSource` GraphQL
 		 * path. Exposed as a ref-callable method for parity with the other data
 		 * widgets, and invoked by the page-level Refresh subscription.
 		 *
-		 * @return {void}
+		 * @return {Promise<unknown[]>} Settles when every re-query has.
 		 */
 		refresh() {
-			if (typeof this.dsRefetch === 'function') {
-				this.dsRefetch()
-			}
-			this.fetchRest()
-			this.fetchEntries()
+			return Promise.all([
+				typeof this.dsRefetch === 'function' ? this.dsRefetch() : null,
+				this.fetchRest(),
+				this.fetchEntries(),
+			])
 		},
 
 		/**
@@ -556,7 +869,8 @@ export default {
 							params[`filter[${k}][${op}]`] = ov
 						}
 					} else if (v !== '' && v !== null && v !== undefined) {
-						params[`filter[${k}]`] = v
+						// `field[gte]` goes out as `filter[field][gte]`, not `filter[field[gte]]`.
+						params[aggFilterParam(k)] = v
 					}
 				}
 				const res = await axios.get(url, { params })
@@ -664,5 +978,99 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: var(--cn-kpi-stack-gap, 12px);
+}
+
+/* Rows layout: the board's "label left, number right" card body. */
+.cn-stats-block-widget--rows {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-sizing: border-box;
+	padding: 20px 22px;
+}
+
+.cn-stats-block-widget__rows-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+/* `width: 100%` plus this padding overflowed the card by 48px: the last
+   column ran past the card's right edge (visible once the tiles have a box). */
+.cn-stats-block-widget--grid {
+	box-sizing: border-box;
+	padding: 4px 24px 20px;
+}
+
+.cn-stats-block-widget__grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cn-stats-block-columns, 2), minmax(0, 1fr));
+	gap: 16px 20px;
+}
+
+/* A tile in the grid is a part of the card, not a card: no box, no inset. */
+.cn-stats-block-widget__grid-stat {
+	padding: 0;
+	min-width: 0;
+}
+
+/* `tiles: "box"`: each tile on a grey ground of its own (board DcRapportages,
+   "Vergaderingen en efficiëntie"), 12px apart. */
+.cn-stats-block-widget--tiles-box .cn-stats-block-widget__grid {
+	gap: 12px;
+}
+
+.cn-stats-block-widget--tiles-box .cn-stats-block-widget__grid-stat {
+	box-sizing: border-box;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--color-background-hover);
+}
+
+.cn-stats-block-widget__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.cn-stats-block-widget__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.cn-stats-block-widget__row-label {
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-stats-block-widget__row-value {
+	flex: none;
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	text-align: right;
+}
+
+.cn-stats-block-widget__row-value--success {
+	color: var(--color-text-success, var(--color-success-text));
+}
+
+.cn-stats-block-widget__row-value--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+}
+
+.cn-stats-block-widget__row-value--error {
+	color: var(--color-text-error, var(--color-error-text));
+}
+
+.cn-stats-block-widget__row-value--primary {
+	color: var(--color-primary-element);
 }
 </style>

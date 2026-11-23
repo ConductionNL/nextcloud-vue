@@ -42,12 +42,47 @@ describe('registerTranslations', () => {
 		expect(n('nextcloud-vue', '%n day', '%n days', 1)).toBe('1 dag')
 	})
 
+	it('gives a Dutch reader every plural a catalog defines, none parked among the singulars', () => {
+		readAs('nl')
+
+		expect(n('nextcloud-vue', 'within %n day', 'within %n days', 7)).toBe('binnen 7 dagen')
+		expect(n('nextcloud-vue', '%n feature', '%n features', 2)).toBe('2 functies')
+		for (const lang of ['en', 'nl']) {
+			const bundle = require(`../../l10n/${lang}.json`)
+			const parked = Object.entries(bundle.translations).filter(([, value]) => Array.isArray(value)).map(([key]) => key)
+			expect(parked).toEqual([])
+		}
+	})
+
 	it('gives a Dutch reader the archival labels in Dutch', () => {
 		readAs('nl')
 
 		expect(t('nextcloud-vue', 'Archiving')).toBe('Archivering')
 		expect(t('nextcloud-vue', 'Retention period')).toBe('Bewaartermijn')
 		expect(t('nextcloud-vue', 'Keep permanently')).toBe('Blijvend bewaren')
+	})
+
+	it('gives a Dutch reader the capability table in Dutch, plural included', () => {
+		readAs('nl')
+
+		// The library already ships "Features" as "Functies", so a feature stays
+		// a `functie` and a capability becomes a `functionaliteit`. One word for
+		// both would have made "Group by feature" and "Search capabilities" the
+		// same string in Dutch.
+		expect(t('nextcloud-vue', 'Search capabilities')).toBe('Zoek functionaliteiten')
+		expect(t('nextcloud-vue', 'Group by feature')).toBe('Groepeer per functie')
+		expect(t('nextcloud-vue', 'Group by area')).toBe('Groepeer per gebied')
+		expect(t('nextcloud-vue', 'Provided by')).toBe('Geleverd door')
+		expect(t('nextcloud-vue', 'Not yet mapped to a feature')).toBe('Nog niet aan een functie gekoppeld')
+		expect(t('nextcloud-vue', 'Capability')).toBe('Functionaliteit')
+
+		// The count line is the one string with a plural, and a plural that was
+		// never registered stays English for every Dutch reader without failing
+		// anything. This is the assertion that would catch that.
+		expect(n('nextcloud-vue', 'You see {count} capability of {total}.', 'You see {count} capabilities of {total}.', 1))
+			.toBe('Je ziet {count} functionaliteit van {total}.')
+		expect(n('nextcloud-vue', 'You see {count} capability of {total}.', 'You see {count} capabilities of {total}.', 3))
+			.toBe('Je ziet {count} functionaliteiten van {total}.')
 	})
 
 	it('renders the metadata panel in Dutch for a Dutch reader', () => {

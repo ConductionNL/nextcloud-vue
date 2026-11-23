@@ -1,6 +1,11 @@
 <template>
-	<NcDialog
-		:name="dialogTitle"
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="boardEyebrow"
+		:subtitle="subtitle"
+		:name="shownTitle"
 		size="large"
 		:open="dialogOpen"
 		:noClose="loading || !cancellable"
@@ -28,31 +33,14 @@
 		<div v-else
 			class="cn-wizard-dialog__wizard"
 			data-testid-phase="form">
-			<!-- Progress indicator. Click jumps back to a completed
-			     step when allowJumpBack is true. -->
-			<ol class="cn-wizard-dialog__progress" role="tablist">
-				<li v-for="(step, idx) in steps"
-					:key="step.id"
-					class="cn-wizard-dialog__progress-item"
-					:class="{
-						'cn-wizard-dialog__progress-item--active': idx === currentIndex,
-						'cn-wizard-dialog__progress-item--done': idx < currentIndex,
-						'cn-wizard-dialog__progress-item--clickable': allowJumpBack && idx < currentIndex,
-					}"
-					role="tab"
-					:aria-selected="idx === currentIndex"
-					@click="allowJumpBack && idx < currentIndex ? jumpTo(step.id) : null">
-					<span class="cn-wizard-dialog__progress-dot">
-						<span v-if="idx < currentIndex" class="cn-wizard-dialog__progress-check" aria-hidden="true">✓</span>
-						<span v-else>{{ idx + 1 }}</span>
-					</span>
-					<span class="cn-wizard-dialog__progress-label">{{ step.label }}</span>
-					<span v-if="idx < steps.length - 1"
-						class="cn-wizard-dialog__progress-connector"
-						:class="{ 'cn-wizard-dialog__progress-connector--done': idx < currentIndex }"
-						aria-hidden="true" />
-				</li>
-			</ol>
+			<!-- Progress indicator: an ordered list with the current step marked.
+			     A finished step is a button when allowJumpBack is true. -->
+			<CnStepper
+				:steps="steps"
+				:currentIndex="currentIndex"
+				:allowJumpBack="allowJumpBack"
+				:look="look"
+				@jump="jumpTo" />
 
 			<!-- Validation error from the current step's validate() result. -->
 			<NcNoteCard v-if="validationError" type="error">
@@ -94,31 +82,55 @@
 			     Dutch one, reporting a broken dialog rather than a missing
 			     string. -->
 			<template v-else>
+				<!-- A step marked `skippable` moves on without validating or
+				     saving (PqInstellen "Deze stap overslaan"). -->
+				<NcButton v-if="currentStep && currentStep.skippable === true && !isLast"
+					variant="tertiary"
+					data-testid="cn-wizard-skip"
+					:disabled="loading"
+					@click="skip">
+					{{ skipLabel }}
+				</NcButton>
 				<NcButton v-if="cancellable" data-testid="cn-wizard-cancel" @click="onClose">
-					{{ cancelLabel }}
+					{{ (currentStep && currentStep.cancelLabel) || cancelLabel }}
 				</NcButton>
 				<NcButton v-if="!isFirst"
 					data-testid="cn-wizard-back"
 					:disabled="loading"
 					@click="back">
+					<template v-if="isBoardLook" #icon>
+						<ChevronLeft :size="20" />
+					</template>
 					{{ backLabel }}
 				</NcButton>
 				<NcButton variant="primary"
 					data-testid="cn-wizard-next"
-					:disabled="loading"
+					:alignment="isBoardLook && !isLast ? 'center-reverse' : 'center'"
+					:disabled="loading || nextDisabled"
 					@click="isLast ? submit() : next()">
 					<template #icon>
 						<NcLoadingIcon v-if="loading" :size="20" />
+						<template v-else-if="isBoardLook">
+							<ChevronRight v-if="!isLast" :size="20" />
+							<component :is="submitIcon || Check" v-else :size="20" />
+						</template>
 					</template>
-					{{ isLast ? submitLabel : nextLabel }}
+					{{ isLast ? (currentStep && currentStep.submitLabel) || submitLabel : nextLabel }}
 				</NcButton>
 			</template>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import CnStepper from '../CnStepper/CnStepper.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnWizardDialog — Multi-step modal with per-step slots,
@@ -180,14 +192,16 @@ import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
  */
 export default {
 	name: 'CnWizardDialog',
-	components: { NcDialog, NcButton, NcNoteCard, NcLoadingIcon },
+	components: { CnDialog, CnStepper, ChevronLeft, ChevronRight, NcButton, NcNoteCard, NcLoadingIcon },
+
+	mixins: [dialogBoardMixin],
 	props: {
 		/**
 		 * Step declarations. Order is significant — the wizard
 		 * navigates linearly between adjacent steps unless the
 		 * consumer calls `jumpTo()` from a slot scope.
 		 *
-		 * @type {Array<{ id: string, label: string, optional?: boolean, icon?: string }>}
+		 * @type {Array<{ id: string, label: string, optional?: boolean, icon?: string, skippable?: boolean }>}
 		 */
 		steps: {
 			type: Array,
@@ -203,7 +217,7 @@ export default {
 		 */
 		dialogTitle: {
 			type: String,
-			default: 'Wizard',
+			default: () => t('nextcloud-vue', 'Wizard'),
 		},
 
 		/**
@@ -255,18 +269,44 @@ export default {
 			default: () => ({}),
 		},
 
+		/**
+		 * The context in the board look's eyebrow ("<context>, step N of M").
+		 * Empty uses the dialog title.
+		 */
+		eyebrowContext: { type: String, default: '' },
+		/**
+		 * Board look: head the dialog with the current step's label, the
+		 * dialog title moving to the eyebrow's context. The result phase and
+		 * the Nextcloud look keep `dialogTitle`.
+		 */
+		stepHeading: { type: Boolean, default: false },
+		/**
+		 * The eyebrow sentence, with `{context}`, `{step}` and `{total}`
+		 * placeholders, so it can be translated.
+		 */
+		stepEyebrow: { type: String, default: () => t('nextcloud-vue', '{context}, step {step} of {total}') },
+		/**
+		 * Icon component on the finishing button of the last step (board look).
+		 * Empty draws a check.
+		 *
+		 * @type {object|Function|null}
+		 */
+		submitIcon: { type: [Object, Function], default: null },
+
 		/** Cancel-button label (wizard phase). */
-		cancelLabel: { type: String, default: 'Cancel' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Back-button label. */
-		backLabel: { type: String, default: 'Back' },
+		backLabel: { type: String, default: () => t('nextcloud-vue', 'Back') },
+		/** Skip-button label, on a step marked `skippable`. */
+		skipLabel: { type: String, default: () => t('nextcloud-vue', 'Skip this step') },
 		/** Next-button label (intermediate steps). */
-		nextLabel: { type: String, default: 'Next' },
+		nextLabel: { type: String, default: () => t('nextcloud-vue', 'Next') },
 		/** Submit-button label (last step). */
-		submitLabel: { type: String, default: 'Submit' },
+		submitLabel: { type: String, default: () => t('nextcloud-vue', 'Submit') },
 		/** Close-button label (result phase). */
-		closeLabel: { type: String, default: 'Close' },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Success banner default text when result.message is empty. */
-		successText: { type: String, default: 'Done.' },
+		successText: { type: String, default: () => t('nextcloud-vue', 'Done.') },
 		/**
 		 * Whether the dialog can be dismissed (Cancel button, ESC, backdrop
 		 * click) before reaching the result phase. `false` hides Cancel and
@@ -279,6 +319,19 @@ export default {
 		cancellable: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Disable the Next / Submit button, whatever the step's `validate`
+		 * would say. For a host that knows the wizard cannot go on yet, such as
+		 * `CnSetupWizard` while a required app is missing.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 */
+		nextDisabled: {
+			type: Boolean,
+			default: false,
 		},
 	},
 
@@ -304,6 +357,40 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The board look's eyebrow, "<context>, step N of M", updated on every step
+		 * change. Empty in the Nextcloud look and in the result phase.
+		 *
+		 * @return {string} The eyebrow.
+		 */
+		boardEyebrow() {
+			if (!this.isBoardLook || this.result !== null) {
+				return ''
+			}
+			return this.stepEyebrow
+				.replace('{context}', this.eyebrowContext || this.eyebrow || this.dialogTitle)
+				.replace('{step}', String(this.currentIndex + 1))
+				.replace('{total}', String(this.steps.length))
+		},
+
+		/**
+		 * The dialog's heading: the current step's label with `stepHeading`
+		 * in the board look, otherwise `dialogTitle`.
+		 *
+		 * @return {string} The heading.
+		 */
+		shownTitle() {
+			if (this.stepHeading && this.isBoardLook && this.result === null && this.currentStep && this.currentStep.label) {
+				return this.currentStep.label
+			}
+			return this.dialogTitle
+		},
+
+		/** @return {object} The check icon, the default finishing icon. */
+		Check() {
+			return Check
+		},
+
 		/**
 		 * The currently-active step object from `steps[]`.
 		 *
@@ -396,6 +483,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async next() {
+			if (this.nextDisabled) {
+				return
+			}
 			if (this.isLast) {
 				return this.submit()
 			}
@@ -409,6 +499,26 @@ export default {
 			 *   (next / back / jumpTo / submit).
 			 * @type {{ stepId: string, stepIndex: number, direction: 'next'|'back'|'jump' }}
 			 */
+			this.$emit('step-change', {
+				stepId: this.currentStep.id,
+				stepIndex: this.currentIndex,
+				direction: 'next',
+			})
+		},
+
+		/**
+		 * Move past a `skippable` step without validating it, so nothing
+		 * of it is saved.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-be-skipped
+		 */
+		skip() {
+			if (this.isLast || this.currentStep?.skippable !== true) {
+				return
+			}
+			this.validationError = ''
+			this.currentIndex += 1
 			this.$emit('step-change', {
 				stepId: this.currentStep.id,
 				stepIndex: this.currentIndex,
@@ -467,6 +577,9 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async submit() {
+			if (this.nextDisabled) {
+				return
+			}
 			const ok = await this.runValidation()
 			if (!ok) {
 				return
@@ -533,103 +646,6 @@ export default {
 </script>
 
 <style scoped>
-.cn-wizard-dialog__progress {
-	display: flex;
-	align-items: flex-start;
-	justify-content: center;
-	gap: 0;
-	padding: 8px 0 4px;
-	margin: 0 0 20px;
-	list-style: none;
-}
-
-.cn-wizard-dialog__progress-item {
-	position: relative;
-	flex: 1 1 0;
-	min-width: 0;
-	max-width: 180px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 6px;
-	text-align: center;
-	color: var(--color-text-maxcontrast);
-	font-size: 0.8125rem;
-}
-
-.cn-wizard-dialog__progress-item--clickable {
-	cursor: pointer;
-}
-
-/* Marker circle */
-.cn-wizard-dialog__progress-dot {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 34px;
-	height: 34px;
-	border-radius: 50%;
-	border: 2px solid var(--color-border-dark);
-	background: var(--color-main-background);
-	color: var(--color-text-maxcontrast);
-	font-size: 14px;
-	font-weight: 600;
-	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-	z-index: 1;
-}
-
-.cn-wizard-dialog__progress-check {
-	font-size: 16px;
-	line-height: 1;
-}
-
-.cn-wizard-dialog__progress-label {
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* Connector line between this marker and the next, centered on the marker. */
-.cn-wizard-dialog__progress-connector {
-	position: absolute;
-	top: 17px;
-	left: calc(50% + 21px);
-	right: calc(-50% + 21px);
-	height: 2px;
-	background: var(--color-border-dark);
-}
-
-.cn-wizard-dialog__progress-connector--done {
-	background: var(--color-primary-element);
-}
-
-/* States */
-.cn-wizard-dialog__progress-item--active .cn-wizard-dialog__progress-dot {
-	border-color: var(--color-primary-element);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text, #fff);
-}
-
-.cn-wizard-dialog__progress-item--active .cn-wizard-dialog__progress-label {
-	color: var(--color-main-text);
-	font-weight: 600;
-}
-
-.cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-dot {
-	border-color: var(--color-primary-element);
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text, #fff);
-}
-
-.cn-wizard-dialog__progress-item--done .cn-wizard-dialog__progress-label {
-	color: var(--color-main-text);
-}
-
-.cn-wizard-dialog__progress-item--clickable:hover .cn-wizard-dialog__progress-label {
-	color: var(--color-primary-element);
-}
-
 .cn-wizard-dialog__step-body {
 	min-height: 200px;
 }

@@ -172,6 +172,33 @@ describe('CnDetailPage — next and previous inside the list it came from', () =
 		wrapper.find('[data-testid="cn-detail-page-next"]').trigger('click')
 
 		expect(wrapper.emitted('next-record')).toHaveLength(1)
+		expect(wrapper.emitted('next-record')[0]).toEqual([])
+	})
+
+	it('renders the steps as links when the host passes their routes', () => {
+		const previousTo = { name: 'case-detail', params: { id: 'c' }, query: { _list: 'x' } }
+		const nextTo = { name: 'case-detail', params: { id: 'e' }, query: { _list: 'x' } }
+		const { wrapper, push } = mountPage({ listNavigation: walking, previousTo, nextTo })
+
+		const buttons = wrapper.findAllComponents({ name: 'NcButton' })
+		const previous = buttons.find((b) => b.attributes('data-testid') === 'cn-detail-page-previous')
+		const next = buttons.find((b) => b.attributes('data-testid') === 'cn-detail-page-next')
+		expect(previous.vm.$attrs.to).toEqual(previousTo)
+		expect(next.vm.$attrs.to).toEqual(nextTo)
+
+		// The link navigates; the event tells the host so it does not push again.
+		next.trigger('click')
+		expect(wrapper.emitted('next-record')[0][0]).toMatchObject({ to: nextTo })
+		expect(push).not.toHaveBeenCalled()
+	})
+
+	it('drops the link at the end of the list so the control stays disabled', () => {
+		const nextTo = { name: 'case-detail', params: { id: 'e' } }
+		const { wrapper } = mountPage({ listNavigation: { ...walking, isLast: true }, nextTo })
+
+		const next = wrapper.findAllComponents({ name: 'NcButton' })
+			.find((b) => b.attributes('data-testid') === 'cn-detail-page-next')
+		expect(next.vm.$attrs.to).toBeUndefined()
 	})
 
 	it('says the first and the last record are exactly that, rather than wrapping', () => {

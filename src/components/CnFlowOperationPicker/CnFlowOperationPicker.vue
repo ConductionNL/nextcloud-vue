@@ -64,7 +64,7 @@
 				:name="t('nextcloud-vue', 'No automations available')"
 				:description="t('nextcloud-vue', 'Create an automation in NC Workflow settings first.')">
 				<template #action>
-					<NcButton variant="primary" @click="openFlowSettings">
+					<NcButton variant="primary" :href="flowSettingsUrl" target="_blank">
 						{{ t('nextcloud-vue', 'Open Workflow settings') }}
 					</NcButton>
 				</template>
@@ -266,12 +266,6 @@ export default {
 			}
 			const parts = String(className).split('\\')
 			return parts[parts.length - 1] || className
-		},
-
-		openFlowSettings() {
-			if (typeof window !== 'undefined') {
-				window.open(this.flowSettingsUrl, '_blank', 'noopener')
-			}
 		},
 
 		confirm() {

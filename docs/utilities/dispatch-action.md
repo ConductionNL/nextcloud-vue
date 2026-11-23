@@ -22,7 +22,7 @@ function dispatchAction(
         handler?: string,           // type='handler'; type='export' — confirm handler name
         args?: any[],               // type='handler'
         target?: string,            // type='open-modal' | 'open-page' | 'navigate'
-        props?: object,             // type='open-modal'
+        props?: object,             // type='open-modal'; a prop that is exactly a token (`@objectId`) resolves against `context.tokenCtx`
         op?: 'patch' | 'delete' | 'create',  // type='object-op'
         values?: object,            // type='object-op' — patch merge / create payload
         confirm?: boolean,          // type='object-op' — confirm-gating intent (host-consumed)
@@ -30,10 +30,11 @@ function dispatchAction(
         formats?: (string | { id, label })[],  // type='export' — offered formats (optional)
         description?: string,       // type='export' — pre-translated dialog description
         url?: string,               // type='api-call' — app endpoint (token-interpolated, @objectId or {objectId})
-        method?: 'POST' | 'PUT',    // type='api-call' — default POST
+        method?: 'POST' | 'PUT' | 'PATCH' | 'GET' | 'DELETE', // type='api-call' — default POST; PATCH changes only the payload's fields; DELETE sends the payload as request data
         payload?: object,           // type='api-call' — JSON body, DEEP @-token resolution (preferred over params)
         params?: object,            // type='api-call' — legacy JSON body, shallow (1-level) @-token grammar
         download?: boolean,         // type='api-call' — request a blob response + trigger a file download (default false)
+        openResponse?: boolean | string | { field?: string, newTab?: boolean }, // type='api-call' — open the address the answer holds (default field url)
         filename?: string,          // type='api-call' download only — fallback filename (token-interpolated)
         successMessage?: string,    // type='api-call' — success toast text
         errorMessage?: string,      // type='api-call' — error toast text
@@ -61,12 +62,15 @@ function dispatchAction(
         source?: { register, schema },  // required for 'object-op' — the widget's source
         row?: object,               // required for 'object-op' patch/delete (row-scoped)
         tokenCtx?: object,          // 'api-call' | 'agent' | 'run-node' — { objectId?, object?, register?, schema?, workspace?, config? }
+        showNotice?: (notice: object) => void,  // 'api-call' | 'agent' | 'run-node' — draws the answer as a notice in the card the action ran from
     },
 ): void | Promise<object | boolean | null>  // object-op / api-call / agent / postRunNode return a promise
 ```
 
 When `action.type` is missing it's treated as `"handler"` for v1
 backward compatibility.
+
+`context.showNotice` is passed by a surface that can draw a notice in its card (a detail widget host, an index page). An `api-call`, `agent` or `run-node` answer that carries `notice`, or an action with `noticeInline: true` (`'error'`: only a failure), is drawn there instead of as a toast. Without it the toast is shown as before.
 
 ## Dispatch types
 
@@ -169,6 +173,25 @@ a dialog error — never a silent success.
 }
 ```
 
+Without a `handler`, an export can download OpenRegister objects itself: an
+entity (or the action, when it has no picker) that names a `register` and a
+`schema` is exported through OpenRegister's export endpoint in the chosen
+format, its optional `filter` applied, the same download an index page's
+Export menu starts. Entity labels go through the app's translate.
+
+```jsonc
+{
+  "id": "export-report",
+  "label": "Export",
+  "type": "export",
+  "entities": [
+    { "id": "leads", "label": "Leads", "register": "pipelinq", "schema": "lead" },
+    { "id": "requests", "label": "Requests", "register": "pipelinq", "schema": "ticket", "filter": { "ticketType": "request" } }
+  ],
+  "formats": ["excel", "csv"]
+}
+```
+
 ### `open-form` (Wave 3, #91)
 
 Opens the schema-driven create dialog via `context.openForm(action)` —
@@ -215,7 +238,7 @@ item broadcasts). No context is required.
 
 ### `api-call` (Wave 3, #91)
 
-POST/PUT a configured app endpoint, toast the outcome via
+POST/PUT/PATCH/DELETE a configured app endpoint, toast the outcome via
 `@nextcloud/dialogs` (`showSuccess` / `showError`), then — unless
 `refresh: false` (or, for a `download` call, unless `refresh: true`) —
 bump `cn:page:refresh`. The `url` interpolates `@objectId` /
@@ -249,6 +272,24 @@ treating the body as JSON. The filename comes from the response's
 else `'download.pdf'`. The success toast still shows; unlike a normal
 `api-call`, the page does **not** auto-refresh afterwards unless
 `refresh: true` is set explicitly.
+
+**`object-action`** runs an action OpenRegister declares on the object's schema (`x-openregister-action`): `action` names its key, and `inputs` holds fixed inputs (@-tokens resolve). It posts `{ inputs }` to `/apps/openregister/api/objects/{register}/{schema}/{id}/actions/{action}` for the page's object (or the action's own `register`, `schema` and `objectId`). It toasts the outcome, says when the run continues in the background (202), and refreshes the page. On a detail page, `config.actionsFrom: "openregister"` lists the declared actions by themselves, with an inputs dialog and disabled-with-reason (see [CnDetailPage](../components/cn-detail-page.md)).
+
+```jsonc
+{ "id": "claim", "label": "Claim", "type": "object-action", "action": "claim" }
+```
+
+**`openResponse`** opens what the call answered, after a successful call: a
+row's "Conversation in Talk" opens the room the endpoint just made. `true`
+reads the answer's `url`, a string names another field (a dot-path), and
+`{ field?, newTab? }` also opens it in a new tab. Only an http(s) URL or a
+server-relative path (`/index.php/call/abc`) opens; anything else, such as a
+`javascript:` URL or `//host`, is ignored. A failed call opens nothing.
+
+```jsonc
+{ "id": "talk", "label": "Conversation in Talk", "type": "api-call",
+  "url": "/apps/portaliq/api/submissions/@objectId/talk", "openResponse": { "field": "url", "newTab": true } }
+```
 
 ```jsonc
 {

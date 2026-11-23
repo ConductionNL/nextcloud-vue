@@ -37,4 +37,4 @@
       unknown-node skip, reduced-motion class output.
 - [ ] Live verification against openregister on :8080 — run a real multi-step
       flow from the editor and a replay of a stored run; confirm no polling
-      survives navigating away (network tab).
+      survives navigating away (network tab). — not run: needs a live instance

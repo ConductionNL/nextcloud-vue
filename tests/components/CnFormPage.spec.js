@@ -117,6 +117,62 @@ describe('CnFormPage', () => {
 		expect(axios.post).toHaveBeenCalledWith('/api/forms', expect.objectContaining({ email: 'a@b.c' }))
 	})
 
+	it('a 422 with findings marks each finding on its field and lists them in the summary', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.post.mockRejectedValueOnce({
+			response: {
+				status: 422,
+				data: {
+					message: 'Refused.',
+					findings: [
+						{ field: 'title', property: 'title', code: 'type-mismatch', message: 'Title cannot hold this.' },
+						{ property: 'startDate', code: 'format-mismatch', message: 'Not a date.' },
+						{ property: 'caseType', code: 'required-unmapped', message: 'caseType is required.' },
+					],
+				},
+			},
+		})
+		const fields = [
+			{ key: 'title', type: 'string', label: 'Title' },
+			{ key: 'startDate', type: 'string', label: 'Start' },
+		]
+		const wrapper = mountForm({ fields, submitEndpoint: '/api/forms' })
+		await wrapper.vm.submit()
+		await flushPromises()
+
+		expect(wrapper.vm.fieldErrors).toEqual({ title: 'Title cannot hold this.', startDate: 'Not a date.' })
+		expect(wrapper.vm.summaryKeys).toEqual(['title', 'startDate'])
+		expect(wrapper.vm.lastError).toBeTruthy()
+	})
+
+	it('a refusal without findings marks no field (control)', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.post.mockRejectedValueOnce({ response: { status: 400, data: { message: 'Nope.' } } })
+		const wrapper = mountForm({ fields: [{ key: 'title', type: 'string', label: 'Title' }], submitEndpoint: '/api/forms' })
+		await wrapper.vm.submit()
+		await flushPromises()
+
+		expect(wrapper.vm.fieldErrors).toEqual({})
+	})
+
+	it('honeypot: a filled honeypot sends nothing and looks submitted; an empty one submits', async () => {
+		const axios = require('@nextcloud/axios').default
+		axios.post.mockResolvedValue({ data: {} })
+		const fields = [{ key: 'title', type: 'string', label: 'Title' }]
+
+		const bot = mountForm({ fields, submitEndpoint: '/api/forms', honeypot: '_hp' })
+		expect(bot.find('[data-testid="cn-form-page-honeypot"]').exists()).toBe(true)
+		await bot.find('[data-testid="cn-form-page-honeypot"]').setValue('spam')
+		await bot.vm.submit()
+		expect(axios.post).not.toHaveBeenCalled()
+		expect(bot.vm.submitted).toBe(true)
+
+		const person = mountForm({ fields, submitEndpoint: '/api/forms', honeypot: '_hp' })
+		await person.vm.submit()
+		expect(axios.post).toHaveBeenCalledTimes(1)
+		expect(axios.post.mock.calls[0][1]).not.toHaveProperty('_hp')
+	})
+
 	it('endpoint mode: resolves :param segments from $route.params', async () => {
 		const axios = require('@nextcloud/axios').default
 		axios.post.mockResolvedValueOnce({ data: {} })

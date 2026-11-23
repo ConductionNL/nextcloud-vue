@@ -12,7 +12,7 @@
  * - absent router warns for open-page/navigate
  */
 
-const { dispatchAction, buildOnSuccessRoute, savedObjectId } = require('../../src/utils/actionsDispatcher.js')
+const { dispatchAction, buildOnSuccessRoute, hasActionTargetTokens, savedObjectId, resolveObjectOpType } = require('../../src/utils/actionsDispatcher.js')
 
 describe('dispatchAction — handler type', () => {
 	it('calls the handler function with spread args', () => {
@@ -138,6 +138,32 @@ describe('dispatchAction — navigate type', () => {
 		expect(push).toHaveBeenCalledWith('/apps/decidesk/settings')
 	})
 
+	// REGRESSION. A target is a URL exactly as `url` is, and it was the only
+	// one that did not run the token grammar — so dossiq's flow-runs button
+	// navigated to `?subjectUuid={objectId}`, those characters literally.
+	it('interpolates the token grammar into the target', () => {
+		const push = jest.fn()
+		const tokenCtx = { objectId: 'abc-123', object: { status: 'open' } }
+
+		dispatchAction(
+			{ type: 'navigate', target: '/flows/runs?subjectUuid={objectId}' },
+			{ router: { push }, tokenCtx },
+		)
+		expect(push).toHaveBeenCalledWith('/flows/runs?subjectUuid=abc-123')
+
+		dispatchAction(
+			{ type: 'navigate', target: '/flows/runs?subjectUuid=@objectId' },
+			{ router: { push }, tokenCtx },
+		)
+		expect(push).toHaveBeenCalledWith('/flows/runs?subjectUuid=abc-123')
+	})
+
+	it('leaves a target alone when it carries no token, object form included', () => {
+		const push = jest.fn()
+		dispatchAction({ type: 'navigate', target: '/plain' }, { router: { push }, tokenCtx: { objectId: 'x' } })
+		expect(push).toHaveBeenCalledWith('/plain')
+	})
+
 	it('calls router.push with route location object', () => {
 		const push = jest.fn()
 		const location = { path: '/custom', query: { tab: 'general' } }
@@ -209,6 +235,7 @@ describe('isExternalActionTarget', () => {
 		['//example.test', true],
 		['mailto:a@b.test', true],
 		['tel:+31', true],
+		['geo:0,0?q=Dorpsstraat%201', true],
 		['/dogs', false],
 		['dogs/1', false],
 		['', false],
@@ -274,6 +301,20 @@ describe('dispatchAction — object-op type', () => {
 			status: 'accepted',
 		})
 		expect(result).toEqual({ id: '42' })
+	})
+
+	it('patch fills the dynamic tokens in its values (`@now` stamps the moment)', async () => {
+		const store = makeStore({ patchObject: jest.fn().mockResolvedValue({ id: '42' }) })
+		const before = Date.now()
+		await dispatchAction(
+			{ type: 'object-op', op: 'patch', values: { checkedInAt: '@now', note: 'at the door' } },
+			{ objectStore: store, source, row: { id: '42' } },
+		)
+		const [, id, values] = store.patchObject.mock.calls[0]
+		expect(id).toBe('42')
+		expect(values.note).toBe('at the door')
+		expect(values.checkedInAt).not.toBe('@now')
+		expect(Date.parse(values.checkedInAt)).toBeGreaterThanOrEqual(before - 1000)
 	})
 
 	it('patch reuses an already-registered type whose config matches the source', async () => {
@@ -388,6 +429,25 @@ describe('dispatchAction — export (export launcher, Wave 1)', () => {
 	})
 })
 
+describe('hasActionTargetTokens', () => {
+	it.each([
+		['/items/@objectId', true],
+		['/items/{objectId}', true],
+		['/p/@object.slug', true],
+		['/q?period=@workspace.period', true],
+		['/q?x=@page.x', true],
+		['/q?c=@config.key', true],
+		['/q?f=@range.from', true],
+		['mailto:info@example.nl', false],
+		['https://social.example/@handle', false],
+		['/docs/{section}', false],
+		['', false],
+		[undefined, false],
+	])('%s → %s', (target, expected) => {
+		expect(hasActionTargetTokens(target)).toBe(expected)
+	})
+})
+
 describe('savedObjectId', () => {
 	it('prefers top-level id, then uuid, then @self.id', () => {
 		expect(savedObjectId({ id: '1', uuid: 'u', '@self': { id: 's' } })).toBe('1')
@@ -444,5 +504,51 @@ describe('buildOnSuccessRoute (#91)', () => {
 		expect(buildOnSuccessRoute('', { id: '1' })).toBeNull()
 		expect(buildOnSuccessRoute({}, { id: '1' })).toBeNull()
 		expect(buildOnSuccessRoute(null, { id: '1' })).toBeNull()
+	})
+})
+
+describe('resolveObjectOpType — schema-title-to-slug (defect 7)', () => {
+	function fakeStore(registry = {}) {
+		return {
+			objectTypeRegistry: registry,
+			registerObjectType: jest.fn(function(slug, schema, register) {
+				this.objectTypeRegistry[slug] = { schema, register }
+			}),
+		}
+	}
+
+	it('kebab-cases a PascalCase $ref schema title before registering/resolving', () => {
+		const store = fakeStore()
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 'ReportPeriod' })
+		expect(type).toBe('learniq/report-period')
+		expect(store.registerObjectType).toHaveBeenCalledWith('learniq/report-period', 'report-period', 'learniq')
+	})
+
+	it('leaves an already-kebab schema slug untouched', () => {
+		const store = fakeStore()
+		const type = resolveObjectOpType(store, { register: 'crm', schema: 'lead' })
+		expect(type).toBe('crm/lead')
+	})
+
+	it('matches an existing registration keyed by the raw register/schema pair', () => {
+		const store = fakeStore({ 'crm/lead': { register: 'crm', schema: 'lead' } })
+		const type = resolveObjectOpType(store, { register: 'crm', schema: 'lead' })
+		expect(type).toBe('crm/lead')
+		expect(store.registerObjectType).not.toHaveBeenCalled()
+	})
+
+	it('matches an existing registration via the canonical registerSlug/schemaSlug hint', () => {
+		const store = fakeStore({
+			'my-alias': { register: 99, schema: 42, registerSlug: 'learniq', schemaSlug: 'report-period' },
+		})
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 'ReportPeriod' })
+		expect(type).toBe('my-alias')
+		expect(store.registerObjectType).not.toHaveBeenCalled()
+	})
+
+	it('passes a numeric schema id through unchanged', () => {
+		const store = fakeStore()
+		const type = resolveObjectOpType(store, { register: 'learniq', schema: 85 })
+		expect(type).toBe('learniq/85')
 	})
 })

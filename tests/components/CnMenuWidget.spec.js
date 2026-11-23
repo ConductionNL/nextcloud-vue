@@ -7,6 +7,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { createRouter, createWebHistory } from 'vue-router'
 import CnMenuWidget from '@/components/CnMenuWidget/CnMenuWidget.vue'
 import CnMenuWidgetForm from '@/components/CnMenuWidgetForm/CnMenuWidgetForm.vue'
 
@@ -311,5 +312,124 @@ describe('menu registry registration', () => {
 			activeItemHighlight: 'underline',
 		})
 		expect(mod.listWidgetTypes()).toContain('menu')
+	})
+})
+
+describe('CnMenuWidget items with a URL are real links', () => {
+	it('renders a top-level leaf as an anchor; external URLs open in a new tab', () => {
+		const wrapper = mount(CnMenuWidget, {
+			propsData: {
+				content: {
+					style: 'dropdown',
+					items: [
+						{ label: 'Home', url: '/home', icon: '', children: [] },
+						{ label: 'Ext', url: 'https://example.test', icon: '', children: [] },
+					],
+				},
+			},
+		})
+		const [home, ext] = wrapper.findAll('.cn-menu-widget__bar-button')
+		expect(home.element.tagName).toBe('A')
+		expect(home.attributes('href')).toBe('/home')
+		expect(home.attributes('target')).toBeUndefined()
+		expect(ext.attributes('href')).toBe('https://example.test')
+		expect(ext.attributes('target')).toBe('_blank')
+		expect(ext.attributes('rel')).toBe('noopener noreferrer')
+	})
+
+	it('gives an internal link the router base, as a Nextcloud app mounts under one', async () => {
+		const router = createRouter({
+			history: createWebHistory('/index.php/apps/pipelinq'),
+			routes: [{ path: '/:rest(.*)*', component: { render: () => null } }],
+		})
+		const wrapper = mount(CnMenuWidget, {
+			propsData: {
+				content: {
+					style: 'tree',
+					items: [
+						{ label: 'Clients', url: '/clients', icon: '', children: [] },
+						{ label: 'Tree', url: '', icon: '', children: [{ label: 'Leads', url: '/leads?open=1', icon: '', children: [] }] },
+					],
+				},
+			},
+			global: { plugins: [router] },
+		})
+		const links = wrapper.findAll('a')
+		const clients = links.find((a) => a.text().includes('Clients'))
+		expect(clients.attributes('href')).toBe('/index.php/apps/pipelinq/clients')
+		expect(wrapper.vm.linkAttrs({ url: '/leads?open=1' }).href).toBe('/index.php/apps/pipelinq/leads?open=1')
+	})
+
+	it('never renders or follows a javascript: URL', () => {
+		const assign = jest.fn()
+		const wrapper = mount(CnMenuWidget, {
+			propsData: { content: { style: 'dropdown', items: [{ label: 'Bad', url: 'javascript:alert(1)', icon: '', children: [] }] } },
+			global: { mocks: { $router: { push: assign, resolve: jest.fn(() => ({ href: '/x' })) } } },
+		})
+		expect(wrapper.find('.cn-menu-widget__bar-button').attributes('href')).toBe('#')
+		wrapper.vm.onNavigate({ url: 'javascript:alert(1)' })
+		expect(assign).not.toHaveBeenCalled()
+	})
+
+	it('keeps a top-level item with children a toggle button', async () => {
+		const wrapper = mount(CnMenuWidget, {
+			propsData: { content: { style: 'dropdown', items: itemsWithOneChild() } },
+		})
+		const top = wrapper.find('.cn-menu-widget__bar-button')
+		expect(top.element.tagName).toBe('BUTTON')
+		await top.trigger('click')
+		const child = wrapper.find('.cn-menu-widget__dropdown-item')
+		expect(child.element.tagName).toBe('A')
+		expect(child.attributes('href')).toBe('/guide')
+	})
+
+	it('routes a plain click on an internal link and closes the menu', async () => {
+		const push = jest.fn().mockResolvedValue()
+		const wrapper = mount(CnMenuWidget, {
+			propsData: { content: { style: 'dropdown', items: itemsWithOneChild() } },
+			global: { mocks: { $router: { push } } },
+		})
+		await wrapper.find('.cn-menu-widget__bar-button').trigger('click')
+		await wrapper.find('.cn-menu-widget__dropdown-item').trigger('click')
+		expect(push).toHaveBeenCalledWith('/guide')
+		expect(wrapper.vm.dropOpenIndex).toBe(null)
+	})
+
+	it('leaves a ctrl-click to the browser', async () => {
+		const push = jest.fn().mockResolvedValue()
+		const wrapper = mount(CnMenuWidget, {
+			propsData: { content: { style: 'dropdown', items: [{ label: 'Home', url: '/home', icon: '', children: [] }] } },
+			global: { mocks: { $router: { push } } },
+		})
+		await wrapper.find('.cn-menu-widget__bar-button').trigger('click', { ctrlKey: true })
+		expect(push).not.toHaveBeenCalled()
+	})
+
+	it('does not window.open an external link; the anchor opens it', async () => {
+		const open = jest.spyOn(window, 'open').mockImplementation(() => {})
+		const wrapper = mount(CnMenuWidget, {
+			propsData: { content: { style: 'megamenu', items: [{ label: 'Ext', url: 'https://example.test', icon: '', children: [] }] } },
+		})
+		await wrapper.find('.cn-menu-widget__bar-button').trigger('click')
+		expect(open).not.toHaveBeenCalled()
+		open.mockRestore()
+	})
+
+	it('renders a tree node with a URL as a link and one without as a toggle', () => {
+		const wrapper = mount(CnMenuWidget, {
+			propsData: {
+				content: {
+					style: 'tree',
+					items: [
+						{ label: 'Docs', url: '', icon: '', children: [{ label: 'Guide', url: '/guide', icon: '', children: [] }] },
+						{ label: 'Home', url: '/home', icon: '', children: [] },
+					],
+				},
+			},
+		})
+		const labels = wrapper.findAll('.cn-menu-tree-node__label-button')
+		expect(labels.at(0).element.tagName).toBe('BUTTON')
+		expect(labels.at(1).element.tagName).toBe('A')
+		expect(labels.at(1).attributes('href')).toBe('/home')
 	})
 })

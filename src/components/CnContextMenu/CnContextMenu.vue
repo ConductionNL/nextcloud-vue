@@ -12,21 +12,38 @@
 			@close="onClose"
 			@closed="onClosed">
 			<!-- Dynamic actions from array prop -->
-			<NcActionButton
-				v-for="action in visibleActions"
-				:key="action.label"
-				:title="resolveTitle(action)"
-				:disabled="resolveDisabled(action)"
-				:class="{ 'cn-row-action--destructive': action.destructive }"
-				:data-testid="`cn-action-item-${slugifyLabel(action.label)}`"
-				closeAfterClick
-				@click="onAction(action)">
-				<template v-if="action.icon" #icon>
-					<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
-					<component :is="action.icon" v-else :size="20" />
-				</template>
-				{{ action.label }}
-			</NcActionButton>
+			<template v-for="{ action, link } in renderedActions" :key="actionKey(action)">
+				<!-- A navigate-only action is a real link, so it can be middle-clicked, opened in a new tab or copied. -->
+				<NcActionLink
+					v-if="link"
+					:href="link.href"
+					:target="link.target"
+					:title="resolveTitle(action)"
+					:class="{ 'cn-row-action--destructive': action.destructive }"
+					:data-testid="actionTestId(action)"
+					closeAfterClick
+					@click="onLinkAction(action, link, $event)">
+					<template v-if="action.icon" #icon>
+						<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+						<component :is="action.icon" v-else :size="20" />
+					</template>
+					{{ action.label }}
+				</NcActionLink>
+				<NcActionButton
+					v-else
+					:title="resolveTitle(action)"
+					:disabled="resolveDisabled(action)"
+					:class="{ 'cn-row-action--destructive': action.destructive }"
+					:data-testid="actionTestId(action)"
+					closeAfterClick
+					@click="onAction(action)">
+					<template v-if="action.icon" #icon>
+						<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+						<component :is="action.icon" v-else :size="20" />
+					</template>
+					{{ action.label }}
+				</NcActionButton>
+			</template>
 
 			<!--
 			@slot default
@@ -74,8 +91,11 @@
 </template>
 
 <script>
-import { NcActionButton, NcActions } from '@nextcloud/vue'
-import { clearContextMenuPositionDom, CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
+import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
+import { CTX_MENU_DATA_ATTR, CTX_MENU_POPPER_ATTR } from '../../composables/useContextMenu.js'
+import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
+import { isModifiedClick } from '../../utils/linkNavigation.js'
+import { isRowActionVisible, rowActionKey, rowActionPayload, rowActionTestId, slugifyActionLabel } from '../../utils/rowActionItem.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -90,12 +110,13 @@ import { CnIcon } from '../CnIcon/index.js'
  * cursor positioning). The composable handles the DOM attributes; this component
  * handles the NcActions template boilerplate.
  *
- * Dynamic actions (CnIndexPage pattern)
+ * Dynamic actions (CnIndexPage pattern).
+ * CnIndexPage passes the same per-row list its row actions menu renders, so the two menus always match.
  * ```vue
  * <CnContextMenu
  *   v-model:open="contextMenuOpen"
- *   :actions="mergedActions"
- *   :target-item="contextMenuRow"
+ *   :actions="rowActionsFor(contextMenuShownRow)"
+ *   :target-item="contextMenuShownRow"
  *   @action="$emit('action', $event)"
  *   @close="closeContextMenu" />
  * ```
@@ -118,6 +139,7 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
+		NcActionLink,
 		CnIcon,
 	},
 
@@ -141,10 +163,15 @@ export default {
 		 * `visible` (boolean | (targetItem) => boolean) hides the entry when falsy
 		 * (default: shown). `title` (string | (targetItem) => string) renders as
 		 * a native tooltip — useful for explaining why an entry is disabled.
-		 * When the entire array is empty (or all entries are filtered out), only
-		 * the default slot content is rendered.
+		 * A locally decidable `visibleWhen` that is false for the target hides the entry too, as in CnRowActions.
+		 * `id` is passed in the `action` payload; `builtin` marks a CnIndexPage built-in, whose testid is `cn-action-item-<id>` in every locale.
+		 * `href` (URL) or `to` (vue-router location), each a value or a
+		 * `(targetItem) => …` function, render the entry as a real link, with
+		 * `linkTarget` as its `target`; a link emits `action` but does not call
+		 * `handler`. When the entire array is empty (or all entries are filtered
+		 * out), only the default slot content is rendered.
 		 *
-		 * @type {Array<{label: string, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), title: string | ((targetItem: object) => string), destructive: boolean}>}
+		 * @type {Array<{label: string, id: string, builtin: boolean, icon: object | string, handler: (targetItem: object) => void, disabled: boolean | ((targetItem: object) => boolean), visible: boolean | ((targetItem: object) => boolean), visibleWhen: object, title: string | ((targetItem: object) => string), destructive: boolean, href: string | ((targetItem: object) => string), to: string | object | ((targetItem: object) => string | object), linkTarget: string}>}
 		 */
 		actions: {
 			type: Array,
@@ -186,21 +213,25 @@ export default {
 
 	computed: {
 		/**
-		 * Filter actions by their `visible` predicate. Entries without
-		 * `visible` are always shown (backwards compatible).
+		 * Filter actions by their `visibleWhen` and `visible` gates, with the same rule CnRowActions uses.
+		 * Entries without either always show.
 		 *
 		 * @return {Array} Visible actions for the current targetItem.
 		 */
 		visibleActions() {
-			return this.actions.filter((action) => {
-				if (action.visible === undefined) {
-					return true
-				}
-				if (typeof action.visible === 'function') {
-					return !!action.visible(this.targetItem)
-				}
-				return !!action.visible
-			})
+			return this.actions.filter((action) => isRowActionVisible(action, this.targetItem))
+		},
+
+		/**
+		 * Visible actions paired with the link each renders as (null for a button).
+		 *
+		 * @return {Array<{action: object, link: object|null}>}
+		 */
+		renderedActions() {
+			return this.visibleActions.map((action) => ({
+				action,
+				link: this.resolveDisabled(action) ? null : resolveItemActionLink(action, this.targetItem, this.$router),
+			}))
 		},
 	},
 
@@ -341,7 +372,11 @@ export default {
 			// propagating and would dismiss it again on the same gesture.
 			this.$nextTick(() => {
 				if (this.internalOpen) {
-					document.addEventListener('mousedown', this.onDocumentMouseDown)
+					// CAPTURE. A canvas that swallows its own mousedown never lets it
+					// bubble to document, so a menu opened over one could not be
+					// dismissed by clicking the canvas — Vue Flow's d3-zoom pane calls
+					// stopImmediatePropagation, which is exactly that shape.
+					document.addEventListener('mousedown', this.onDocumentMouseDown, true)
 				}
 			})
 		},
@@ -352,7 +387,7 @@ export default {
 		 * @return {void}
 		 */
 		stopOutsideWatch() {
-			document.removeEventListener('mousedown', this.onDocumentMouseDown)
+			document.removeEventListener('mousedown', this.onDocumentMouseDown, true)
 		},
 
 		/**
@@ -427,18 +462,33 @@ export default {
 
 		/**
 		 * Slugify an action label for use in stable `data-testid` selectors.
-		 * Lowercase, kebab-case, strip non-alphanumeric. Used solely by the
-		 * `:data-testid` binding on NcActionButton — does not affect runtime
-		 * behaviour or rendered text.
+		 * Lowercase, kebab-case, strip non-alphanumeric.
 		 *
 		 * @param {string} label The action's display label.
 		 * @return {string} kebab-case slug suitable for a testid suffix.
 		 */
 		slugifyLabel(label) {
-			return String(label || '')
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '')
+			return slugifyActionLabel(label)
+		},
+
+		/**
+		 * The entry's `data-testid`: `cn-action-item-<id>` for a built-in, the label slug otherwise.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @return {string} The testid.
+		 */
+		actionTestId(action) {
+			return rowActionTestId(action)
+		},
+
+		/**
+		 * The entry's render key: `builtin:<id>` for a built-in, the label otherwise.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @return {string} The key.
+		 */
+		actionKey(action) {
+			return rowActionKey(action)
 		},
 
 		onAction(action) {
@@ -446,10 +496,28 @@ export default {
 				action.handler(this.targetItem)
 			}
 			/**
-			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice.
-			 * @type {{ action: string, row: object|null }}
+			 * @event action User picked an entry from the menu. The action's own `handler(targetItem)` (when present) ran synchronously before this event fires; the event lets parents observe / log the choice. Payload: `action` (the label), the target as `row`, the action's `id` when it has one, and `builtin: true` for a CnIndexPage built-in.
+			 * @type {{ action: string, row: object|null, id?: string, builtin?: boolean }}
 			 */
-			this.$emit('action', { action: action.label, row: this.targetItem })
+			this.$emit('action', rowActionPayload(action, this.targetItem))
+		},
+
+		/**
+		 * A link entry was clicked: route a plain in-app click, leave the rest to
+		 * the browser, and emit `action` as a button would. The `handler` is not
+		 * called, since navigating is what the link already does. A modified
+		 * click opens a new tab, so nothing is emitted in this one.
+		 *
+		 * @param {object} action The action descriptor.
+		 * @param {object} link The resolved link.
+		 * @param {MouseEvent} event The click event.
+		 */
+		onLinkAction(action, link, event) {
+			if (isModifiedClick(event)) {
+				return
+			}
+			followItemActionLink(event, link, this.$router)
+			this.$emit('action', rowActionPayload(action, this.targetItem))
 		},
 
 		onClose() {
@@ -481,20 +549,24 @@ export default {
 		},
 
 		/**
-		 * Meant to fire after the popper's hide animation completes, clearing
-		 * the cursor-position CSS vars.
+		 * Fires after the popper's hide animation completes.
 		 *
-		 * **Currently dead.** `@nextcloud/vue` 9 binds `onAfterClose` on its
-		 * NcPopover while NcPopover only emits `afterHide`, so NcActions never
-		 * emits `closed` and neither do we. Nothing depends on it any more —
-		 * positioning is scoped to this menu's own popper (see `tagPopper`), the
-		 * data attribute is dropped in the `internalOpen` watcher, and the CSS
-		 * vars are refreshed by the next `open()` / wiped by the composable's
-		 * unmount hook. Kept wired so the tear-down lands at the correct moment
-		 * if upstream ever fixes the binding.
+		 * IT MUST NOT CLEAR THE CURSOR POSITION, and it used to. This fires LATE
+		 * — a whole hide animation late — so a second click on the same target
+		 * reopens the menu before it arrives, and the tear-down then strips the
+		 * coordinates that reopen had just written. The transform resolves
+		 * against undefined vars and the menu lands in the corner, on every open
+		 * after the first.
+		 *
+		 * It was dead code when written: `@nextcloud/vue` 9 bound `onAfterClose`
+		 * against an NcPopover that only emitted `afterHide`. 9.11.0 binds
+		 * `onAfterHide`, so it runs now, and a tear-down nothing needed became a
+		 * bug. Nothing needs it still: positioning is scoped to this menu's own
+		 * popper (see `tagPopper`), the data attribute is dropped in the
+		 * `internalOpen` watcher, the next `open()` overwrites the vars, and the
+		 * composable's unmount hook clears them for good.
 		 */
 		onClosed() {
-			clearContextMenuPositionDom()
 			/**
 			 * @event closed Intended to fire after the popper's hide animation completes. Does not currently fire — `@nextcloud/vue` 9's NcActions listens for an `afterClose` event NcPopover never emits. Use `close` instead.
 			 */

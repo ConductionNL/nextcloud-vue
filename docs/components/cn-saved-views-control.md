@@ -4,45 +4,44 @@ title: CnSavedViewsControl
 
 # CnSavedViewsControl
 
-Toolbar dropdown listing OpenRegister saved-search views (saved-views-ui). Rendered by `CnIndexPage` in its actions slot when the page opts in via `allowSavedViews`; also usable standalone.
+The toolbar entry to saved views. Rendered by `CnIndexPage` in its actions bar when the page opts in via `allowSavedViews`.
 
-Purely presentational: the parent owns fetching (`GET /apps/openregister/api/views`) and all mutations. The control lists the given `views` and emits intents — `apply` (write the view's stored filters/search/sort into the route query), `save-request` (open a save dialog), `delete-request` (confirm-delete). The delete entry only renders for views owned by `currentUserId`; OpenRegister enforces owner scoping server-side as well.
+It is a **Save view** button (nl "Weergave opslaan") that asks to save the current filters, and, under the board look, the saved views as a row of chips that apply them, each with its count when one is known. Listing, editing, sharing, deleting and adding a filter to the app menu live in the filters sidebar: see [`CnSavedViewsPanel`](./cn-saved-views-panel.md). After a save `CnIndexPage` opens the sidebar, so the new filter is in view.
+
+Purely presentational: the parent owns fetching (`GET /apps/openregister/api/views`) and every write.
 
 ## Try it
 
 ```vue
 <CnSavedViewsControl
   :views="savedViews"
-  :loading="savedViewsLoading"
   :current-user-id="currentUserId"
+  :selected-view-id="appliedId"
   @apply="onApplyView"
-  @save-request="showSaveDialog = true"
-  @delete-request="onDeleteViewRequest" />
+  @save-request="showSaveDialog = true" />
 ```
 
 ## Props
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `views` | `Array` | `[]` | View API objects from `GET /apps/openregister/api/views` (`{ id, name, owner, query, … }`). |
-| `loading` | `Boolean` | `false` | Shows a "Loading…" caption while the parent fetches. |
-| `currentUserId` | `String` | `''` | Signed-in NC user id — gates the per-view delete affordance (`view.owner === currentUserId`). |
+| `views` | `Array` | `[]` | View API objects, defaults included. |
+| `loading` | `Boolean` | `false` | True while the parent fetches. |
+| `currentUserId` | `String` | `''` | The signed-in user id. |
+| `maxDepth` | `Number` | `3` | Mirrors `savedViewTree.maxDepth`; only the top level gets a chip. |
+| `counts` | `Object` | `null` | Record counts by view id or slug, shown on the chips. |
+| `selectedViewId` | `String` | `''` | The applied view; its chip renders selected. |
+| `chips` | `Boolean` | `true` | Whether the board look draws the views as chips. `false` keeps only Save view (CnIndexPage `config.savedViewChips: false`), for a page whose views live in the side panel's Weergaven tab. |
+| `shareView` | `Object` | `null` | The open view to offer to share: a "Share: \{name\}" button beside Save view that emits `share-request`. CnIndexPage passes it with `config.savedViewShare: true` for a stored view the reader owns (PqTicketsSelectie). |
 
 ## Events
 
 | Event | Payload | Description |
 |---|---|---|
-| `apply` | View object | A view entry was clicked; apply its stored state. |
-| `save-request` | — | "Save current view…" clicked; open the save dialog. |
-| `delete-request` | View object | A view's delete entry was clicked; confirm and delete. |
+| `apply` | View | A chip was clicked. |
+| `save-request` | none | Save view was clicked. |
+| `share-request` | View | "Share: \{name\}" was clicked; CnIndexPage opens the share dialog for that view. |
 
-## States
+## Save view given up for the header (`save`)
 
-- **Loading** — `loading: true` shows a caption instead of the list.
-- **Empty** — no views and not loading shows "No saved views yet".
-
-## See also
-
-- `CnSaveViewDialog` — the companion "Save current view…" dialog.
-- `CnIndexPage` — `allowSavedViews` prop wires the full flow (fetch, apply via route query, save, delete-with-confirm).
-- `utils/savedViewHelpers.js` — pure state ↔ route-query ↔ OR-payload serializers.
+`save: false` leaves the toolbar's Save view out. CnIndexPage passes it when the page header carries a `save-view` button (DqZoekresultaten saves a search from "Zoekopdracht opslaan"), so the page offers one way to save.

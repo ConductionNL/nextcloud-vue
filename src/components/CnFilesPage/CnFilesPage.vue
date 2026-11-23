@@ -38,7 +38,7 @@
 		<!-- Actions slot -->
 		<div v-if="$slots.actions || $slots.actions" class="cn-files-page__actions">
 			<slot name="actions">
-				<NcButton variant="secondary" @click="openInFiles">
+				<NcButton variant="secondary" :href="openInFilesUrl">
 					<template #icon>
 						<OpenInNew :size="20" />
 					</template>
@@ -269,6 +269,17 @@ export default {
 			]
 		},
 
+		/**
+		 * Files-app URL for the configured folder. The shape
+		 * (`/apps/files/files?dir=…`) is stable on Nextcloud 26+; for older
+		 * releases the consumer can override the button via `#actions`.
+		 *
+		 * @return {string}
+		 */
+		openInFilesUrl() {
+			return generateUrl('/apps/files/files?dir={dir}', { dir: this.folder })
+		},
+
 		/** Files filtered by `allowedTypes`. */
 		filteredFiles() {
 			if (!this.allowedTypes || this.allowedTypes.length === 0) {
@@ -295,15 +306,6 @@ export default {
 				}
 			}
 			return false
-		},
-
-		openInFiles() {
-			// Build a Files-app URL for the configured folder. The URL
-			// shape (`/apps/files/files?dir=…`) is stable on Nextcloud
-			// 26+; for older releases the consumer can override the
-			// button entirely via the `#actions` slot.
-			const url = generateUrl('/apps/files/files?dir={dir}', { dir: this.folder })
-			window.open(url, '_self')
 		},
 
 		/**

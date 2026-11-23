@@ -1,0 +1,2 @@
+- [x] CnRecordNotesWidget and its registration
+- [x] Jest

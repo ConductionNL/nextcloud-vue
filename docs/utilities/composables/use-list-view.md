@@ -39,6 +39,8 @@ const {
 | `options.defaultPageSize` | `number` | Initial `_limit`. Default `20`. |
 | `options.debounceMs` | `number` | Search debounce. Default `300`. |
 | `options.defaultSort` | `{ key, order }` | Applied on mount. `order` is `'asc'` or `'desc'`. |
+| `options.defaultActiveFilters` | `object` | Initial facet-filter map, applied on mount. Used by `CnIndexPage` to restore filters deep-linked in the route query so a shared link opens on the same filtered list. Default `{}`. |
+| `options.defaultSearchTerm` | `string` | Initial search term, applied on mount. Used by `CnIndexPage` to restore `_search` from the route query. Default `''`. |
 | `options.defaultVisibleColumns` | `Array<string> \| null` | Initial visible-column key set. Seeds the sidebar's Columns tab with the curated default (e.g. a manifest `columns` list) so toggles add/remove from it. Omit (or `null`) for schema-driven tables where every column starts visible. |
 | `options.fixedFilters` | `object \| () => object` | A filter map (or a getter returning one) merged into **every** fetch *after* the user's `activeFilters`, so the fixed entries always win over a colliding facet filter. A getter is re-read on each fetch — pass one to derive the map from reactive sources (e.g. route params). Default `{}` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to apply a route-param-scoped `pages[].config.filter`. |
 | `options.extend` | `string[] \| () => string[]` | OpenRegister `_extend[]` values forwarded on **every** fetch, e.g. `['calculations']`. A schema's `x-openregister-calculations` entries declared `materialise: false` are virtual: `RenderObject` evaluates them only when the caller asks through `_extend`, so without this a declared calculation is absent from every row and its column renders empty. A getter is re-read on each fetch. Entries that are not non-empty strings are dropped; when nothing survives, no `_extend` is sent. Default `[]` — omitting it is behaviourally identical to before. Used by `CnIndexPage` to forward `pages[].config.extend`. |
@@ -51,6 +53,7 @@ Store-derived refs (read-only from the component's perspective):
 - `objects` — Current collection (`objectStore.collections[objectType]`).
 - `loading` — `objectStore.loading[objectType]`, **plus** the mount sequence that precedes the first fetch. `onMounted` awaits `fetchSchema()` before requesting any rows, and the store's own flag only rises once `fetchCollection` runs — so a list that reported only the store flag was "not loading" with zero rows for the length of the schema round trip, and consumers painted their empty state before anything had been asked for. It now reads `true` from creation until the first fetch has been issued (or the mount sequence has failed).
 - `pagination` — `{ total, page, pages, limit }`, defaulted when the store hasn't populated yet.
+- `error` — The outcome of the most recently started `refresh()`'s OWN request: the error the store recorded for it, `null` after a success, or the thrown error when building the params or `fetchCollection` throws (`refresh()` still rethrows it). It is read from the call's `options.outcome` (see [`fetchCollection`](../../store/object-store.md)), not from the shared `errors[objectType]`, which a call clears only when it starts and which an older failure can leave set over a newer success. A response that settles after a newer refresh has started does not change it, and a refresh that joins a deduplicated in-flight request gets that request's result. A store whose `fetchCollection` ignores `options.outcome` falls back to `errors[objectType]`, which is not race-safe. The store keeps the previous `objects` and `pagination` on a failed fetch and this composable leaves them as they are, so read `error` to tell stale rows from current ones (`CnIndexPage` shows its error state while it is set). A fetch made outside `refresh()`, such as a live-update refetch, never sets it, but one that stores new rows while no `refresh()` is pending clears it, so a list that failed transiently recovers on the next successful background fetch.
 
 Local state refs:
 - `searchTerm`, `sortKey`, `sortOrder`, `activeFilters`, `visibleColumns`, `pageSize`.
@@ -62,6 +65,7 @@ Event handlers (all trigger a re-fetch, most reset to page 1):
 - `onPageChange(page)` — Refresh at `page`.
 - `onPageSizeChange(size)` — Updates `pageSize`, refresh page 1.
 - `refresh(page = 1)` — Explicit re-fetch using current state.
+- `loadMore()` — Adds the next page after the rows already loaded (the board view uses it to show every row). Does nothing on the last page; a refresh started meanwhile drops the page.
 
 ### Request params
 
@@ -105,3 +109,8 @@ The legacy form mirrors the same state shape but exposes lower-level helpers (`t
 
 - [CnIndexPage](../../components/cn-index-page.md) — Primary consumer; its props/events match this composable's return value.
 - [useObjectStore](../../store/object-store.md) — Backing store for the object-store API.
+
+## Reading the search before it is sent
+
+`options.searchInterpreter(term)` reads a typed search before a fetch, once per term (answers in flight are shared). Its answer `{ search?, filters?, note? }` decides what is sent: `search` replaces `_search` (nothing is sent when it is empty), `filters` are added to the query, and `note` is exposed as `searchNote`. A `null` answer or a throw sends the term as typed. CnIndexPage wires it from `searchHandler` (a registry handler, manifest `config.searchHandler`).
+

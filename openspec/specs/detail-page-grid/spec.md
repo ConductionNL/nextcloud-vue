@@ -48,14 +48,6 @@ Each `#widget-{widgetId}` scoped slot MUST receive `item` (the layout item) and 
 - WHEN the slot renders
 - THEN it receives `{ item: { id, widgetId, gridX, ... }, widget: { id, title } }` as slot props
 
-## MODIFIED Requirements
-
-_None — CnDetailPage is only extended, not changed._
-
-## REMOVED Requirements
-
-_None._
-
 ---
 
 ## Implementation Reality Notes (Added 2026-03-16)

@@ -3,202 +3,165 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcActions
-		:forceMenu="true"
-		:forceName="true"
-		:menuName="menuLabel"
-		data-testid="cn-saved-views-control"
-		:aria-label="menuLabel">
-		<template #icon>
-			<BookmarkOutline :size="20" />
-		</template>
-
-		<NcActionCaption :name="t('nextcloud-vue', 'Saved views')" />
-
-		<!-- Loading state -->
-		<NcActionCaption
-			v-if="loading"
-			data-testid="cn-saved-views-loading"
-			:name="t('nextcloud-vue', 'Loading…')" />
-
-		<!-- Empty state -->
-		<NcActionCaption
-			v-else-if="views.length === 0"
-			data-testid="cn-saved-views-empty"
-			:name="t('nextcloud-vue', 'No saved views yet')" />
-
-		<!-- One entry per view: apply on click; own views get a delete entry. -->
-		<template v-else>
-			<template v-for="view in views" :key="`view-${view.id}`">
-				<NcActionButton
-					data-testid="cn-saved-views-item"
-					:data-view-id="view.id"
-					:aria-label="view.name"
-					@click="onApply(view)">
-					<template #icon>
-						<EyeOutline :size="20" />
-					</template>
-					{{ view.name }}
-				</NcActionButton>
-				<NcActionButton
-					v-if="isOwn(view)"
-					:key="`delete-${view.id}`"
-					data-testid="cn-saved-views-delete"
-					:data-view-id="view.id"
-					:aria-label="deleteLabel(view)"
-					@click="onDeleteRequest(view)">
-					<template #icon>
-						<TrashCanOutline :size="20" />
-					</template>
-					{{ deleteLabel(view) }}
-				</NcActionButton>
-			</template>
-		</template>
-
-		<NcActionSeparator />
-
-		<NcActionButton
-			data-testid="cn-saved-views-save"
-			:aria-label="t('nextcloud-vue', 'Save current view…')"
+	<!--
+		The toolbar half of saved views. Under the board look the views are
+		a row of chips that apply them; everywhere a "Save view" button saves
+		the current filters. Listing, editing, sharing and deleting live in the
+		sidebar's Filters tab (CnSavedViewsPanel).
+	-->
+	<div
+		v-if="isBoardLook && chips && chipRows.length > 0"
+		class="cn-saved-views__chips"
+		role="group"
+		:aria-label="t('nextcloud-vue', 'Saved views')"
+		data-testid="cn-saved-views-chips">
+		<button
+			v-for="row in chipRows"
+			:key="`chip-${row.view.id || row.view.slug}`"
+			type="button"
+			class="cn-saved-views__chip"
+			:class="{ 'cn-saved-views__chip--selected': isSelected(row.view) }"
+			:aria-pressed="isSelected(row.view)"
+			data-testid="cn-saved-views-chip"
+			:data-view-id="row.view.id || row.view.slug"
+			@click="onApply(row.view)">
+			<span class="cn-saved-views__chip-name">{{ row.view.name }}</span>
+			<span
+				v-if="countOf(row.view) !== null"
+				class="cn-saved-views__chip-count"
+				data-testid="cn-saved-views-chip-count">{{ countOf(row.view) }}</span>
+		</button>
+	</div>
+	<!-- The wrapper carries the board look's class, so the bar's row rules
+	     and the ghost-button rules reach the button the way they did when it
+	     was an NcActions trigger. -->
+	<div v-if="save || shareView" v-bind="$attrs" :class="{ 'cn-saved-views__save': isBoardLook }">
+		<NcButton
+			v-if="save"
+			:variant="isBoardLook ? 'tertiary' : 'secondary'"
+			:aria-label="t('nextcloud-vue', 'Save view')"
+			data-testid="cn-saved-views-control"
 			@click="onSaveRequest">
 			<template #icon>
-				<ContentSaveOutline :size="20" />
+				<ContentSaveOutline :size="isBoardLook ? 14 : 20" />
 			</template>
-			{{ t('nextcloud-vue', 'Save current view…') }}
-		</NcActionButton>
-	</NcActions>
+			{{ t('nextcloud-vue', 'Save view') }}
+		</NcButton>
+		<!-- Share the open view from the toolbar (PqTicketsSelectie): the
+		     same share dialog as the side panel's Share. -->
+		<NcButton
+			v-if="shareView"
+			class="cn-saved-views__share"
+			variant="primary"
+			aria-haspopup="dialog"
+			data-testid="cn-saved-views-share-current"
+			@click="onShareRequest">
+			<template #icon>
+				<ShareVariantOutline :size="isBoardLook ? 14 : 20" />
+			</template>
+			{{ t('nextcloud-vue', 'Share: {name}', { name: shareView.name || '' }) }}
+		</NcButton>
+	</div>
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionCaption, NcActions, NcActionSeparator } from '@nextcloud/vue'
-import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
+import { NcButton } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
-import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
-import { isOwnView } from '../../utils/savedViewHelpers.js'
+import ShareVariantOutline from 'vue-material-design-icons/ShareVariantOutline.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { savedViewsList } from '../../mixins/savedViewsList.js'
 
 /**
- * CnSavedViewsControl — toolbar dropdown listing OpenRegister saved-search
- * views for the current index page (saved-views-ui).
+ * CnSavedViewsControl — the toolbar entry to saved views: a "Save view"
+ * button and, under the board look, the saved views as chips that apply
+ * them. Everything else (the list, edit, share, delete, add to menu) lives in
+ * the index sidebar's `CnSavedViewsPanel`.
  *
- * Purely presentational: the parent (CnIndexPage) owns fetching via
- * `useSavedViewsApi()` and all mutations; this control only lists the
- * given `views` and emits intents:
+ * Purely presentational: `CnIndexPage` owns fetching and every write.
  *
- * - `@apply(view)` — a view entry was clicked; parent writes the view's
- *   stored filters/search/sort into the route query.
- * - `@save-request()` — "Save current view…" clicked; parent opens
- *   CnSaveViewDialog.
- * - `@delete-request(view)` — a view's delete entry clicked; parent opens
- *   a confirm dialog. Only rendered for views the current user owns
- *   (`view.owner === currentUserId`) — OpenRegister refuses foreign
- *   deletes server-side anyway (owner-scoped 404).
- *
- * @event {object} apply — Apply the clicked view. Payload: the View API object.
- * @event {void} save-request — Open the save-current-view dialog.
- * @event {object} delete-request — Confirm-delete the clicked view. Payload: the View API object.
+ * @event {object} apply — A chip was clicked; apply its view. Payload: the View API object.
+ * @event {void} save-request — "Save view" clicked; open the save dialog.
+ * @event {object} share-request — "Share: {name}" clicked; open the share dialog. Payload: `shareView`.
  */
 export default {
 	name: 'CnSavedViewsControl',
 
-	components: {
-		NcActions,
-		NcActionButton,
-		NcActionCaption,
-		NcActionSeparator,
-		BookmarkOutline,
-		ContentSaveOutline,
-		EyeOutline,
-		TrashCanOutline,
+	components: { NcButton, ContentSaveOutline, ShareVariantOutline },
+
+	mixins: [savedViewsList],
+
+	inject: {
+		/** The look CnAppRoot provides; `board` draws the views as chips. */
+		cnLook: { default: 'nextcloud' },
 	},
+
+	// The chips and the button are two roots under the board look.
+	inheritAttrs: false,
 
 	props: {
-		/** Views to list (View API objects from `GET /apps/openregister/api/views`). */
-		views: {
-			type: Array,
-			default: () => [],
-		},
-
-		/** True while the parent is fetching the view list. */
-		loading: {
+		/**
+		 * Whether the toolbar draws its Save view button. `false` when the page
+		 * header already saves the view (a `save-view` header button), so the
+		 * page offers one way to save, as DqZoekresultaten draws it.
+		 */
+		save: {
 			type: Boolean,
-			default: false,
+			default: true,
 		},
 
-		/** The signed-in NC user id — gates the per-view delete affordance. */
-		currentUserId: {
-			type: String,
-			default: '',
+		/**
+		 * Whether the board look draws the saved views as chips. `false`
+		 * leaves only Save view, for a page whose views live in the side
+		 * panel (DqZaken).
+		 */
+		chips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * The open saved view the toolbar offers to share, or null for no
+		 * share button. The page passes it only for the reader's own view.
+		 *
+		 * @spec openspec/changes/saved-view-share-from-toolbar/specs/saved-views/spec.md#requirement-an-index-page-can-share-the-open-view-from-the-toolbar
+		 */
+		shareView: {
+			type: Object,
+			default: null,
 		},
 	},
 
-	emits: ['apply', 'delete-request', 'save-request'],
+	emits: ['apply', 'save-request', 'share-request'],
 
 	computed: {
-		/** @return {string} The dropdown trigger label. */
-		menuLabel() {
-			return t('nextcloud-vue', 'Views')
+		/** @return {boolean} Whether the saved views draw as chips. */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/** @return {Array<object>} The top level of the tree, in tree order. */
+		chipRows() {
+			return this.rows.filter((row) => row.depth === 0)
 		},
 	},
 
 	methods: {
-		t,
-
-		/**
-		 * Whether the delete entry renders for a view.
-		 *
-		 * @param {object} view The View API object.
-		 * @return {boolean} True when the current user owns the view.
-		 */
-		isOwn(view) {
-			return isOwnView(view, this.currentUserId)
-		},
-
-		/**
-		 * Accessible label for a view's delete entry.
-		 *
-		 * @param {object} view The View API object.
-		 * @return {string} The label.
-		 */
-		deleteLabel(view) {
-			return t('nextcloud-vue', 'Delete "{name}"', { name: view.name })
-		},
-
-		/**
-		 * View-entry click: hand the view to the parent to apply.
-		 *
-		 * @param {object} view The clicked View API object.
-		 */
 		onApply(view) {
 			/**
-			 * @event apply A view entry was clicked; apply its stored state.
+			 * @event apply A chip was clicked; apply its stored state.
 			 * @type {object}
 			 */
 			this.$emit('apply', view)
 		},
 
-		/**
-		 * "Save current view…" click: ask the parent to open the save dialog.
-		 */
 		onSaveRequest() {
-			/**
-			 * @event save-request "Save current view…" clicked; open the save dialog.
-			 */
+			/** @event save-request "Save view" clicked; open the save dialog. */
 			this.$emit('save-request')
 		},
 
-		/**
-		 * Delete-entry click: hand the view to the parent to confirm-delete.
-		 *
-		 * @param {object} view The View API object to delete.
-		 */
-		onDeleteRequest(view) {
-			/**
-			 * @event delete-request A view's delete entry was clicked; confirm and delete.
-			 * @type {object}
-			 */
-			this.$emit('delete-request', view)
+		onShareRequest() {
+			/** @event share-request "Share: {name}" clicked; open the share dialog for `shareView`. */
+			this.$emit('share-request', this.shareView)
 		},
 	},
 }

@@ -64,6 +64,7 @@ Full pagination bar with page navigation, ellipsis for large page counts, and a 
 | `lastLabel` | String | `'Last'` | Accessible label for the Last button |
 | `itemsPerPageLabel` | String | `'Items per page:'` | Label preceding the page-size dropdown |
 | `pageInfoFormat` | String | `'Page {current} of {total}'` | Format string for the page info text; `{current}` and `{total}` are replaced at runtime |
+| `pagerOnOnePage` | Boolean | `true` | Board variant: whether a list on one page still draws its count and the "1" with an inert Next. Off, one page shows the footer note alone (PqWachtrij); more than one page is unchanged. |
 
 ### Events
 
@@ -85,3 +86,7 @@ The tables below are generated from the SFC source via `vue-docgen-cli`. They re
 ```vue
 <CnPagination compact :current-page="page" :total-pages="totalPages" :total-items="total" :current-page-size="pageSize" @page-changed="onPageChange" />
 ```
+
+## Board variant
+
+`variant="board"` draws the footer of the board look's table card: the count text (`"{shown} of {total}"`, then `footerNote` when set) at the start, numbered 34px page links at the end, "Previous" only after the first page and "Next" only before the last. It renders no First, no Last and no page-size select, and shows the count on a single page too. The default variant renders as before. `CnIndexPage` sets it under the board look.

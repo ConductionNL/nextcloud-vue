@@ -12,6 +12,11 @@
  * are never misparsed, and a leading backslash (`\@notauser`) is a natural
  * escape since it breaks that adjacency requirement.
  *
+ * A group is mentioned as `@"group/<gid>"`, the format Nextcloud Comments and
+ * Talk use. It is always quoted, so a group can never collide with a user whose
+ * id is `group`. Expanding a group to its members and notifying them is the job
+ * of whoever dispatches mention notifications.
+ *
  * All functions here are pure and side-effect-free.
  *
  * @module utils/mentions
@@ -23,6 +28,9 @@
 const SIMPLE_ID = '[A-Za-z0-9_.\'-]+'
 // Quoted id: anything except a double quote, so ids with spaces/slashes work.
 const QUOTED_ID = '"([^"]+)"'
+
+// The prefix that marks a quoted mention as a group.
+const GROUP_PREFIX = 'group/'
 
 // A mention only starts at the beginning of the string or after whitespace —
 // this is what prevents `john@example.com` from matching (the `@` there is
@@ -36,7 +44,7 @@ const MENTION_REGEX = new RegExp(`(?<=^|\\s)@(?:${QUOTED_ID}|(${SIMPLE_ID}))`, '
  * segment's `value`/`raw` reconstructs the original text exactly.
  *
  * @param {string} text The raw note text.
- * @return {Array<{type: 'text', value: string}|{type: 'mention', id: string, raw: string}>} Ordered segments.
+ * @return {Array<{type: 'text', value: string}|{type: 'mention', id: string, raw: string, kind?: 'group', groupId?: string}>} Ordered segments. A group mention has `kind: 'group'` and its `groupId` (its `id` stays the token's own text, `group/<gid>`); a user mention has neither.
  */
 export function parseMentions(text) {
 	if (typeof text !== 'string' || text === '') {
@@ -53,7 +61,10 @@ export function parseMentions(text) {
 			segments.push({ type: 'text', value: text.slice(lastIndex, match.index) })
 		}
 		const id = match[1] !== undefined ? match[1] : match[2]
-		segments.push({ type: 'mention', id, raw: match[0] })
+		const isGroup = match[1] !== undefined && id.startsWith(GROUP_PREFIX) && id.length > GROUP_PREFIX.length
+		segments.push(isGroup
+			? { type: 'mention', id, raw: match[0], kind: 'group', groupId: id.slice(GROUP_PREFIX.length) }
+			: { type: 'mention', id, raw: match[0] })
 		lastIndex = match.index + match[0].length
 	}
 
@@ -66,14 +77,15 @@ export function parseMentions(text) {
 
 /**
  * Extract the unique set of mentioned user ids, in first-appearance order.
+ * Group mentions are not users; see `extractMentionedGroupIds`.
  *
  * @param {string} text The raw note text.
- * @return {string[]} Unique mentioned ids.
+ * @return {string[]} Unique mentioned user ids.
  */
 export function extractMentionedIds(text) {
 	const ids = []
 	for (const segment of parseMentions(text)) {
-		if (segment.type === 'mention' && !ids.includes(segment.id)) {
+		if (segment.type === 'mention' && segment.kind !== 'group' && !ids.includes(segment.id)) {
 			ids.push(segment.id)
 		}
 	}
@@ -81,13 +93,34 @@ export function extractMentionedIds(text) {
 }
 
 /**
- * Serialize a user id into its canonical mention token.
+ * Extract the unique set of mentioned group ids (`@"group/<gid>"`), in
+ * first-appearance order.
  *
- * @param {string} id The user id to encode.
- * @return {string} `@id` when unambiguous, `@"id"` otherwise.
+ * @param {string} text The raw note text.
+ * @return {string[]} Unique mentioned group ids, without the `group/` prefix.
  */
-export function serializeMentionToken(id) {
+export function extractMentionedGroupIds(text) {
+	const ids = []
+	for (const segment of parseMentions(text)) {
+		if (segment.type === 'mention' && segment.kind === 'group' && !ids.includes(segment.groupId)) {
+			ids.push(segment.groupId)
+		}
+	}
+	return ids
+}
+
+/**
+ * Serialize a user or group id into its canonical mention token.
+ *
+ * @param {string} id The user id (or group id) to encode.
+ * @param {'user'|'group'} [kind] `group` gives `@"group/<id>"`.
+ * @return {string} `@id` when unambiguous, `@"id"` otherwise; a group is always `@"group/<id>"`.
+ */
+export function serializeMentionToken(id, kind = 'user') {
 	const value = String(id)
+	if (kind === 'group') {
+		return `@"${GROUP_PREFIX}${value}"`
+	}
 	return new RegExp(`^${SIMPLE_ID}$`).test(value) ? `@${value}` : `@"${value}"`
 }
 
@@ -123,11 +156,12 @@ export function detectMentionQuery(text, cursorPosition) {
  * @param {string} text The full composer text.
  * @param {number} cursorPosition The caret offset within `text`.
  * @param {string} id The selected suggestion's id.
+ * @param {'user'|'group'} [kind] The suggestion's kind.
  * @return {{text: string, cursor: number}} The updated text and new caret position.
  */
-export function insertMentionToken(text, cursorPosition, id) {
+export function insertMentionToken(text, cursorPosition, id, kind = 'user') {
 	const detected = detectMentionQuery(text, cursorPosition)
-	const token = serializeMentionToken(id)
+	const token = serializeMentionToken(id, kind)
 	// When no in-progress query is found, insert at the caret verbatim.
 	const before = text.slice(0, detected ? detected.start : cursorPosition)
 	const after = text.slice(cursorPosition)

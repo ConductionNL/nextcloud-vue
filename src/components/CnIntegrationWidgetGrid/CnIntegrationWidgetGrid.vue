@@ -47,6 +47,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { normalizeLook } from '../../composables/useLook.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard']
 
@@ -61,6 +62,11 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard']
  */
 export default {
 	name: 'CnIntegrationWidgetGrid',
+
+	inject: {
+		/** The look CnAppRoot provides; `board` lays the cards out on the board track. */
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/**
@@ -142,9 +148,27 @@ export default {
 		 * Grid styles. Three columns desktop, tablet/mobile fall back via media queries.
 		 */
 		gridStyles() {
+			if (this.isBoardLook) {
+				// The board track, `minmax(var(--cn-card-grid-min, 260px), 1fr)`
+				// with its gap: as many columns as fit, whatever `columns` says.
+				return {
+					gridTemplateColumns: 'repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))',
+					gap: 'var(--cn-card-grid-gap, 16px)',
+				}
+			}
 			return {
 				'--cn-iwg-columns': this.columns,
 			}
+		},
+
+		/**
+		 * Whether the cards lie on the board look's track.
+		 *
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-card-grid-takes-the-board-track
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
 		},
 	},
 
@@ -158,6 +182,9 @@ export default {
 		 * @return {object} Style object.
 		 */
 		cellStyles(integration) {
+			if (this.isBoardLook) {
+				return { 'grid-column': 'auto', '--cn-iwg-min-height': 'auto' }
+			}
 			const defaultSize = integration.defaultSize || {}
 			const span = Math.min(Math.max(defaultSize.w || 1, 1), this.columns)
 			const minH = (defaultSize.h || 0) * 80

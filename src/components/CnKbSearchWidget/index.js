@@ -8,11 +8,13 @@
  * key via CnDashboardPage's registryRenderer.
  */
 
-import CnKbSearchWidget from './CnKbSearchWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnKbSearchWidget = lazyComponent(() => import('./CnKbSearchWidget.vue'), 'CnKbSearchWidget')
+
 registerDashboardWidget('kb-search', {
-	renderer: CnKbSearchWidget,
+	renderer: LazyCnKbSearchWidget,
 	defaultContent: {
 		endpoint: '/apps/openregister/api/integrations/xwiki/search',
 		queryParam: 'q',
@@ -24,5 +26,5 @@ registerDashboardWidget('kb-search', {
 	icon: 'BookOpenVariant',
 })
 
-export { CnKbSearchWidget }
-export default CnKbSearchWidget
+export { default as CnKbSearchWidget } from './CnKbSearchWidget.vue'
+export { default } from './CnKbSearchWidget.vue'

@@ -237,7 +237,20 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 		expect(w.vm.$attrs.apiBase).toBe('/apps/openregister/api')
 	})
 
-	it('per-widget props override shared context', () => {
+	it('per-widget props the widget declares override shared context', () => {
+		const objectData = { '@self': { id: 'override' } }
+		const wrapper = mountSidebar({
+			tabs: [{
+				id: 'meta',
+				label: 'Meta',
+				widgets: [{ type: 'metadata', props: { objectData } }],
+			}],
+		})
+		expect(wrapper.findComponent(CnObjectMetadataWidget).props('objectData')).toEqual(objectData)
+	})
+
+	it('a per-widget prop the widget does not declare does not reach its root', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 		const wrapper = mountSidebar({
 			tabs: [{
 				id: 'meta',
@@ -245,8 +258,10 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 				widgets: [{ type: 'metadata', props: { objectData: {}, apiBase: '/override' } }],
 			}],
 		})
-		// apiBase isn't a declared prop on CnObjectMetadataWidget — test via $attrs.
-		expect(wrapper.findComponent(CnObjectMetadataWidget).vm.$attrs.apiBase).toBe('/override')
+		// apiBase isn't a declared prop on CnObjectMetadataWidget: the shared value stays.
+		expect(wrapper.findComponent(CnObjectMetadataWidget).vm.$attrs.apiBase).toBe('/apps/openregister/api')
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('content key "apiBase"'))
+		warn.mockRestore()
 	})
 
 	it('falls back to customComponents for unknown widget types', () => {
@@ -255,6 +270,17 @@ describe('CnObjectSidebar — open-enum tabs (custom branch)', () => {
 			customComponents: { 'my-custom': MyCustomWidget },
 		})
 		expect(wrapper.findComponent(MyCustomWidget).exists()).toBe(true)
+	})
+
+	it('resolves a widget type from the injected v2 cnRegistry', () => {
+		const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const wrapper = mountSidebar(
+			{ tabs: [{ id: 't', label: 'T', widgets: [{ type: 'MyWidget' }] }] },
+			{ provide: { cnRegistry: { MyWidget: { kind: 'widget', component: MyCustomWidget } } } },
+		)
+		expect(wrapper.findComponent(MyCustomWidget).exists()).toBe(true)
+		expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('Unknown widget type'))
+		warn.mockRestore()
 	})
 
 	it('logs a console.warn when a widget type is unresolved', () => {

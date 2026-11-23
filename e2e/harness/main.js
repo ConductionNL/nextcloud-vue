@@ -47,7 +47,9 @@ function t(app, text, vars) {
 }
 const n = (app, s, p, count) => (count === 1 ? s : p)
 
-const app = createApp(App)
+// The files browser bar (?filesbar=1) mounts on its own, outside App.vue.
+const filesBar = typeof window !== 'undefined' && /[?&]filesbar=/.test(window.location.search)
+const app = createApp(filesBar ? (await import('./FilesBarHarness.vue')).default : App)
 app.use(createPinia())
 
 // A ROUTER, FOR ONE SCENARIO ONLY (?runlink=1).
@@ -85,6 +87,77 @@ if (typeof window !== 'undefined' && window.location.search.includes('runlink'))
 				component: CnPageRenderer,
 				props: () => ({ manifest }),
 			},
+		],
+	}))
+}
+// A router for the round-3 pixel-gap scenarios too (?pixgaps3=nav|greeting):
+// the menu claim is about what vue-router calls active, and the greeting's
+// view switch only renders with a router to follow. Hash history, so a spec
+// sets the address with `#/cases?caseType=woo`.
+if (typeof window !== 'undefined' && /[?&]pixgaps3=(nav|greeting)/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Dashboard', component: page },
+			{ path: '/queue', name: 'Queue', component: page },
+			{ path: '/cases', name: 'Cases', component: page },
+			{ path: '/board', name: 'Board', component: page },
+		],
+	}))
+}
+// The navigation against board AppZijbalk (?screensnav=1): the entries route
+// by name, so the Dashboard entry is the active route as it is on the board.
+if (typeof window !== 'undefined' && /[?&]screensnav=/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	const names = ['Dashboard', 'Mine', 'Queue', 'Requests', 'Contacts', 'Appointments', 'People', 'Organisations', 'Help']
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: names.map((name, i) => ({ path: i === 0 ? '/' : '/' + name.toLowerCase(), name, component: page })),
+	}))
+}
+// The portal dashboard and accounts boards (?ptlistcard=1, ?ptaccounts=1): a
+// row link needs a router to be an <a> at all.
+if (typeof window !== 'undefined' && /[?&](ptlistcard|ptaccounts)=/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Dashboard', component: page },
+			{ path: '/requests/:id', name: 'AccessRequest', component: page },
+			{ path: '/accounts/:id', name: 'AccountDetail', component: page },
+		],
+	}))
+}
+// The header Actions menu scenarios (?l7=header-menu-<name>): a navigate
+// entry is an in-app link only when the router can resolve its route, and the
+// claim is that clicking it routes, so these need the real router.
+if (typeof window !== 'undefined' && /[?&]l7=header-menu-/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Meetings', component: page },
+			{ path: '/calendar', name: 'MeetingCalendar', component: page },
+			{ path: '/agenda', name: 'LongTermAgenda', component: page },
+		],
+	}))
+}
+// The tabs widget's header link (?l7=l18-tabs-...): the link is a router link
+// and the claim is that clicking it routes, so it needs the real router.
+if (typeof window !== 'undefined' && /[?&]l7=l18-tabs-/.test(window.location.search)) {
+	const { createRouter, createWebHashHistory } = await import('vue-router')
+	const page = { render: () => null }
+	app.use(createRouter({
+		history: createWebHashHistory(),
+		routes: [
+			{ path: '/', name: 'Receivables', component: page },
+			{ path: '/receivables', name: 'AccountsReceivable', component: page },
+			{ path: '/payment-requests', name: 'PaymentRequests', component: page },
 		],
 	}))
 }

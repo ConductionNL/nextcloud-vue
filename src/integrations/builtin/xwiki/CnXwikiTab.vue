@@ -62,6 +62,8 @@
 				v-if="banner.ctaLabel"
 				variant="primary"
 				class="cn-xwiki-tab__banner-cta"
+				:href="banner.ctaHref || undefined"
+				:target="banner.ctaHref ? '_blank' : undefined"
 				@click="banner.ctaHandler">
 				{{ banner.ctaLabel }}
 			</NcButton>
@@ -124,16 +126,17 @@
 					<span class="cn-xwiki-tab__excerpt">{{ excerpt(page) }}</span>
 				</template>
 				<template #actions>
-					<NcActionButton
+					<NcActionLink
 						v-if="pageHref(page)"
 						class="cn-xwiki-tab__open"
 						:closeAfterClick="true"
-						@click="openPage(page)">
+						:href="pageHref(page)"
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in XWiki') }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton
 						class="cn-xwiki-tab__unlink"
 						:closeAfterClick="true"
@@ -166,7 +169,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
@@ -176,7 +179,8 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnXwikiPageCreate from '../../../components/CnXwikiPageCreate/CnXwikiPageCreate.vue'
 import CnXwikiPagePicker from '../../../components/CnXwikiPagePicker/CnXwikiPagePicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { htmlToText } from '../../../utils/htmlToText.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const EXCERPT_MAX_CHARS = 140
 
@@ -193,6 +197,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcDateTime,
 		NcListItem,
@@ -245,7 +250,7 @@ export default {
 						title: t('nextcloud-vue', 'XWiki connection not configured'),
 						message: t('nextcloud-vue', 'Add an XWiki source in Integriq with the upstream URL and credentials so OpenRegister can link pages.'),
 						ctaLabel: t('nextcloud-vue', 'Configure XWiki connection'),
-						ctaHandler: this.openIntegriq,
+						ctaHref: this.openConnectorSourcesUrl,
 					}
 				case 'auth':
 					return {
@@ -253,7 +258,7 @@ export default {
 						title: t('nextcloud-vue', 'XWiki authentication failed'),
 						message: t('nextcloud-vue', 'XWiki returned 401 — check the Integriq source credentials.'),
 						ctaLabel: t('nextcloud-vue', 'Reconnect'),
-						ctaHandler: this.openIntegriq,
+						ctaHref: this.openConnectorSourcesUrl,
 					}
 				case 'upstream':
 					return {
@@ -307,20 +312,6 @@ export default {
 		 */
 		xwikiEndpoint() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/xwiki`
-		},
-
-		/**
-		 * Open the page on the external XWiki host in a new tab. Used by
-		 * the per-row "Open in XWiki" action (the row itself is also a
-		 * deep-link via NcListItem's `href`).
-		 *
-		 * @param {object} page Provider row.
-		 */
-		openPage(page) {
-			const href = this.pageHref(page)
-			if (href && typeof window !== 'undefined') {
-				window.open(href, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {
@@ -394,15 +385,17 @@ export default {
 
 		/**
 		 * External XWiki deep-link for the page. Empty string when the
-		 * provider didn't surface a `url`, so the row renders as a plain
-		 * (non-anchored) NcListItem rather than a dead link.
+		 * provider didn't surface a `url`, or surfaced an unsafe scheme, so
+		 * the row renders as a plain (non-anchored) NcListItem rather than a
+		 * dead link.
 		 *
 		 * @param {object} page Provider row.
 		 *
 		 * @return {string} Absolute XWiki URL or ''.
 		 */
 		pageHref(page) {
-			return String(page.url ?? '')
+			const url = String(page.url ?? '')
+			return url && safeHref(url) !== '#' ? url : ''
 		},
 
 		breadcrumbLabel(page) {
@@ -436,12 +429,7 @@ export default {
 			if (str === '') {
 				return ''
 			}
-			let text = str
-				.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-				.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-				.replace(/<[^>]+>/g, ' ')
-				.replace(/\s+/g, ' ')
-				.trim()
+			let text = htmlToText(str)
 			if (text.length > EXCERPT_MAX_CHARS) {
 				text = text.slice(0, EXCERPT_MAX_CHARS).trimEnd() + '…'
 			}
@@ -466,12 +454,6 @@ export default {
 			}
 			const parsed = Date.parse(String(v))
 			return Number.isNaN(parsed) === true ? null : parsed
-		},
-
-		openIntegriq() {
-			if (typeof window !== 'undefined') {
-				window.open(this.openConnectorSourcesUrl, '_blank', 'noopener')
-			}
 		},
 
 		/**

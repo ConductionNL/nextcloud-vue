@@ -41,7 +41,19 @@ Pass pre-translated labels when your app handles i18n:
 | `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
+| `addable` | Boolean | `false` | Show an add button in the card header that attaches picked files to the object. |
+| `addLabel` (`add-label`) | String | "Add file" | Pre-translated label of the add button. |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `actions` | Header actions of the card, e.g. an Add button. Scope: `{ refresh }`, which reads the files again after the host added one. |
 
 ## Reference
+
+## Opening a file
+
+Each row is a button labelled with the file name; it opens a file through [`useFileOpener`](../utilities/composables/use-file-opener.md): the Nextcloud Viewer when it handles the type, otherwise an in-page [`CnFilePreview`](./cn-file-preview.md) for CSV, TSV, JSON, XML and text, otherwise the browser for PDF and images, otherwise the Files app. The preview carries Download and Open in Files.
 
 <GeneratedRef />

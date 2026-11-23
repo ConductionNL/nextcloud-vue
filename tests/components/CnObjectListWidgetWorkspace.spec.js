@@ -53,6 +53,18 @@ describe('CnObjectListWidget — workspace context', () => {
 		expect(w.vm.promptText).toBe('Pick a client first')
 	})
 
+	it('runs a custom prompt through the host translate function', () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: { content: { ...content, prompt: 'Pick a client first' } },
+			provide: {
+				cnWorkspaceContext: reactive({ value: {} }),
+				cnTranslate: (key) => (key === 'Pick a client first' ? 'Kies eerst een klant' : key),
+			},
+			stubs: { CnDataTable: true },
+		})
+		expect(w.find('.cn-object-list-widget__prompt').text()).toBe('Kies eerst een klant')
+	})
+
 	it('sourceKey changes when the selected client changes (drives refetch)', async () => {
 		const w = mount(content, { selectedClient: 'c-1' })
 		const before = w.vm.sourceKey

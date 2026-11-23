@@ -1,0 +1,2 @@
+- [x] CnDetailPage headerActionsBelow + look-board-detail.css
+- [x] jest css lookBoardDetailActionsBelow

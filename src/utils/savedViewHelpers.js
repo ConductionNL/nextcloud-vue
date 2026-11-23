@@ -8,13 +8,17 @@
  * (`/apps/openregister/api/views`, ViewsController + ViewService); these
  * helpers translate between the three state shapes involved:
  *
- * 1. **Route query** — CnIndexPage's existing deep-link contract: every
- *    `$route.query` key NOT starting with `_` is a fetch filter
- *    (see `useSelfFetchList.resolveQueryFilters`); `_`-prefixed keys are
- *    reserved list params. This module adds `_search`, `_sortKey` and
- *    `_sortOrder` as reserved keys for view application.
+ * 1. **Route query** — CnIndexPage's deep-link contract: every `$route.query`
+ *    key NOT starting with `_` is a fetch filter (see
+ *    `useSelfFetchList.resolveQueryFilters`); `_`-prefixed keys are reserved
+ *    list params. Search is `_search` and sort is `_order`, the JSON-encoded
+ *    ordered array `[{ key, order }, …]` — the one spelling CnIndexPage,
+ *    listNavigation, CnPageRenderer and OpenRegister's object API all agree
+ *    on. This module writes NO spelling of its own.
  * 2. **View state** — the normalized internal object
- *    `{ filters, search, sortKey, sortOrder }`.
+ *    `{ filters, search, sortKeys, sortKey, sortOrder }`, where `sortKeys` is
+ *    the truth and the last two mirror its first entry, exactly as
+ *    `useListView` holds the same state.
  * 3. **OR View payload** — the `POST/PUT /api/views` body whose opaque
  *    `query` field round-trips through OpenRegister unchanged.
  *
@@ -24,9 +28,65 @@
  * @module utils/savedViewHelpers
  */
 
+import { parseSortKeys } from './routeFilters.js'
+
 /** The default (empty) view state. @return {object} A fresh empty state. */
 function emptyState() {
-	return { filters: {}, search: '', sortKey: null, sortOrder: 'asc' }
+	return { filters: {}, search: '', sortKeys: [], sortKey: null, sortOrder: 'asc' }
+}
+
+/**
+ * Coerce anything into an ordered sort-key list.
+ *
+ * The single defensive entry point, and the whole of the stored-shape
+ * compatibility: a view saved before sorts could be chained holds `sort` as one
+ * `{ key, order }` object, and that must keep opening exactly as it does today.
+ *
+ * @param {unknown} value An array, a single `{ key, order }`, or anything else.
+ * @return {Array<{key: string, order: 'asc'|'desc'}>} The normalized list.
+ */
+function normalizeSortKeys(value) {
+	const list = Array.isArray(value) ? value : [value]
+	const seen = new Set()
+	const keys = []
+	for (const entry of list) {
+		if (!entry || typeof entry !== 'object' || typeof entry.key !== 'string' || entry.key === '') {
+			continue
+		}
+		if (seen.has(entry.key)) {
+			continue
+		}
+		seen.add(entry.key)
+		keys.push({ key: entry.key, order: entry.order === 'desc' ? 'desc' : 'asc' })
+	}
+	return keys
+}
+
+/**
+ * Write a sort onto a state, keeping the single-key mirror in step.
+ *
+ * @param {object} state The state to write onto (mutated and returned).
+ * @param {Array<{key: string, order: 'asc'|'desc'}>} keys The normalized sort.
+ * @return {object} The same state.
+ */
+function withSort(state, keys) {
+	state.sortKeys = keys
+	state.sortKey = keys.length > 0 ? keys[0].key : null
+	state.sortOrder = keys.length > 0 ? keys[0].order : 'asc'
+	return state
+}
+
+/**
+ * The sort a caller handed in, whichever of the two shapes they hold.
+ *
+ * @param {object} src A view state, possibly carrying only `sortKey`/`sortOrder`.
+ * @return {Array<{key: string, order: 'asc'|'desc'}>} The normalized sort.
+ */
+function sortKeysOf(src) {
+	if (src.sortKeys !== undefined && src.sortKeys !== null) {
+		return normalizeSortKeys(src.sortKeys)
+	}
+	return src.sortKey ? normalizeSortKeys({ key: src.sortKey, order: src.sortOrder }) : []
 }
 
 /**
@@ -34,12 +94,12 @@ function emptyState() {
  *
  * Non-underscore-prefixed keys become `filters` entries (values passed
  * through as-is, including arrays from `?status[]=a&status[]=b` deep
- * links). Reserved keys map onto the dedicated state fields: `_search`,
- * `_sortKey`, `_sortOrder`. Other reserved keys (`_page`, `_limit`, …)
- * are ignored — pagination is never part of a saved view.
+ * links). Reserved keys map onto the dedicated state fields: `_search` and
+ * `_order`. Other reserved keys (`_page`, `_limit`, …) are ignored —
+ * pagination is never part of a saved view.
  *
  * @param {object|null|undefined} query The `$route.query` object.
- * @return {{ filters: object, search: string, sortKey: ?string, sortOrder: string }} The normalized view state.
+ * @return {{ filters: object, search: string, sortKeys: Array<{key: string, order: string}>, sortKey: ?string, sortOrder: string }} The normalized view state.
  */
 export function extractViewStateFromRouteQuery(query) {
 	const state = emptyState()
@@ -58,24 +118,20 @@ export function extractViewStateFromRouteQuery(query) {
 	if (typeof query._search === 'string' && query._search !== '') {
 		state.search = query._search
 	}
-	if (typeof query._sortKey === 'string' && query._sortKey !== '') {
-		state.sortKey = query._sortKey
-		state.sortOrder = query._sortOrder === 'desc' ? 'desc' : 'asc'
-	}
-	return state
+	return withSort(state, parseSortKeys(query._order))
 }
 
 /**
  * Build a fresh route-query object that APPLIES a view state.
  *
- * Spreads `state.filters` (skipping null/undefined/empty-string values),
- * then sets the reserved keys only when meaningful: `_search` for a
- * non-empty search term, `_sortKey`/`_sortOrder` for an active sort.
- * Deliberately omits `_page` — applying a view is a full state replace
- * that implicitly resets pagination (the caller `$router.replace`s the
- * whole query, dropping any existing `_page`).
+ * Spreads `state.filters` (skipping null/undefined/empty-string/empty-array
+ * values, matching what `CnIndexPage.persistViewStateToRoute` skips — the two
+ * write the same query and must agree on what an absent filter looks like),
+ * then sets the reserved keys only when meaningful: `_search` for a non-empty
+ * search term, `_order` for an active sort. Deliberately omits `_page` —
+ * applying a view is a full state replace that implicitly resets pagination.
  *
- * @param {{ filters?: object, search?: string, sortKey?: ?string, sortOrder?: string }} state The view state to serialize.
+ * @param {{ filters?: object, search?: string, sortKeys?: Array<{key: string, order: string}>, sortKey?: ?string, sortOrder?: string }} state The view state to serialize.
  * @return {object} A plain object suitable for `$router.replace({ query })`.
  */
 export function buildRouteQueryFromViewState(state) {
@@ -83,7 +139,7 @@ export function buildRouteQueryFromViewState(state) {
 	const src = (state && typeof state === 'object') ? state : {}
 	const filters = (src.filters && typeof src.filters === 'object' && !Array.isArray(src.filters)) ? src.filters : {}
 	for (const [key, value] of Object.entries(filters)) {
-		if (value === undefined || value === null || value === '') {
+		if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
 			continue
 		}
 		query[key] = value
@@ -91,9 +147,9 @@ export function buildRouteQueryFromViewState(state) {
 	if (typeof src.search === 'string' && src.search !== '') {
 		query._search = src.search
 	}
-	if (src.sortKey) {
-		query._sortKey = String(src.sortKey)
-		query._sortOrder = src.sortOrder === 'desc' ? 'desc' : 'asc'
+	const keys = sortKeysOf(src)
+	if (keys.length > 0) {
+		query._order = JSON.stringify(keys)
 	}
 	return query
 }
@@ -110,24 +166,212 @@ export function buildRouteQueryFromViewState(state) {
  * @param {string} [options.description] Optional description.
  * @param {boolean} [options.isPublic] Share the view with other users.
  * @param {boolean} [options.isDefault] Mark as the user's default view.
- * @param {{ filters?: object, search?: string, sortKey?: ?string, sortOrder?: string }} options.state The view state to persist.
+ * @param {{ filters?: object, search?: string, sortKeys?: Array<{key: string, order: string}>, sortKey?: ?string, sortOrder?: string }} options.state The view state to persist.
+ * @param {string} [options.scope] The pages this view belongs to, from {@link savedViewScope}; omitted when empty.
+ * @param {string} [options.register] The page's register, written as OpenRegister's own `registers` list.
+ * @param {object|string} [options.schema] The page's schema (slug or object), written as OpenRegister's own `schemas` list.
+ * @param {Array<{group: string, mode: string}>} [options.sharedWith] Groups to share with; omitted from the body when empty.
+ * @param {object} [options.presentation] How the view shows (OpenRegister's shape); omitted from the body for a table, which is the default.
  * @return {object} The request body for the OR views API.
  */
-export function buildViewCreatePayload({ name, description, isPublic, isDefault, state } = {}) {
+export function buildViewCreatePayload({ name, description, isPublic, isDefault, state, scope, register, schema, sharedWith, presentation } = {}) {
 	const src = (state && typeof state === 'object') ? state : {}
-	return {
+	const keys = sortKeysOf(src)
+	const query = {
+		filters: (src.filters && typeof src.filters === 'object' && !Array.isArray(src.filters)) ? src.filters : {},
+		search: (typeof src.search === 'string') ? src.search : '',
+		// `null` rather than `[]` for no sort: every view stored before sorts
+		// could be chained says `null`, and one spelling for "no sort" is worth
+		// more than the symmetry.
+		sort: keys.length > 0 ? keys : null,
+	}
+	if (typeof scope === 'string' && scope !== '') {
+		query.scope = scope
+	}
+	if (typeof register === 'string' && register !== '') {
+		query.registers = [register]
+	}
+	const slug = schemaSlug(schema)
+	if (slug !== '') {
+		query.schemas = [slug]
+	}
+	const body = {
 		name,
 		description: description || '',
 		isPublic: !!isPublic,
 		isDefault: !!isDefault,
-		query: {
-			filters: (src.filters && typeof src.filters === 'object' && !Array.isArray(src.filters)) ? src.filters : {},
-			search: (typeof src.search === 'string') ? src.search : '',
-			sort: src.sortKey
-				? { key: String(src.sortKey), order: src.sortOrder === 'desc' ? 'desc' : 'asc' }
-				: null,
-		},
+		query,
 	}
+	if (presentation && typeof presentation === 'object' && ['kanban', 'calendar', 'gallery'].includes(presentation.viewType)) {
+		body.presentation = presentation
+	}
+	const audience = normalizeSharedWith(sharedWith)
+	if (audience.length > 0) {
+		body.sharedWith = audience
+	}
+	return body
+}
+
+/**
+ * Clean an audience list: keep `{ group, mode }` and `{ user, mode }` entries
+ * that name exactly one target, drop repeats, and coerce any mode but `write`
+ * to `read`.
+ *
+ * @param {unknown} sharedWith The audience as given.
+ * @return {Array<{group?: string, user?: string, mode: 'read'|'write'}>} The cleaned list.
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-5
+ */
+export function normalizeSharedWith(sharedWith) {
+	const seen = new Set()
+	const out = []
+	for (const entry of Array.isArray(sharedWith) ? sharedWith : []) {
+		const group = entry && typeof entry.group === 'string' ? entry.group : ''
+		const user = entry && typeof entry.user === 'string' ? entry.user : ''
+		if ((group === '') === (user === '')) {
+			continue
+		}
+		const key = user !== '' ? `user:${user}` : `group:${group}`
+		if (seen.has(key)) {
+			continue
+		}
+		seen.add(key)
+		const mode = entry.mode === 'write' ? 'write' : 'read'
+		out.push(user !== '' ? { user, mode } : { group, mode })
+	}
+	return out
+}
+
+/**
+ * What the current user may do with a view: `owner`, `write` or `read`.
+ *
+ * The server decides: `@self.access` wins. A view without it (an older
+ * OpenRegister) counts as `owner` when its `owner` is the current user and as
+ * `read` otherwise.
+ *
+ * @param {object|null|undefined} view The View API object.
+ * @param {string|null|undefined} currentUserId The signed-in NC user id.
+ * @return {'owner'|'write'|'read'} The access.
+ */
+export function viewAccess(view, currentUserId) {
+	const access = view && view['@self'] && view['@self'].access
+	if (access === 'owner' || access === 'write' || access === 'read') {
+		return access
+	}
+	return isOwnView(view, currentUserId) ? 'owner' : 'read'
+}
+
+/**
+ * The slug of a schema given as a slug or as a schema object.
+ *
+ * @param {object|string|null|undefined} schema The page's `schema` prop.
+ * @return {string} The slug, or the empty string.
+ */
+export function schemaSlug(schema) {
+	if (typeof schema === 'string') {
+		return schema
+	}
+	if (schema && typeof schema === 'object' && typeof schema.slug === 'string') {
+		return schema.slug
+	}
+	return ''
+}
+
+/**
+ * The key naming which pages share a view.
+ *
+ * A view is a set of filters over one schema's fields, so by default every
+ * page over the same register and schema shares it and no other page sees
+ * it: three case indexes share their views, the organisations index does
+ * not. `savedViewsScope` on a page overrides that, for pages that should
+ * share views although they read different sources, or keep them apart
+ * although they read the same one. A page over a named source
+ * (`entitySource`) and no schema shares its views with the pages over that
+ * source.
+ *
+ * @param {object} page The page.
+ * @param {string} [page.scope] The explicit `savedViewsScope`, when set.
+ * @param {string} [page.register] The page's register.
+ * @param {object|string} [page.schema] The page's schema, slug or object.
+ * @param {string} [page.source] The page's `entitySource`, when it reads one.
+ * @return {string} The scope key, or the empty string for a page with no source.
+ */
+export function savedViewScope({ scope, register, schema, source } = {}) {
+	if (typeof scope === 'string' && scope !== '') {
+		return scope
+	}
+	const slug = schemaSlug(schema)
+	if (typeof register === 'string' && register !== '' && slug !== '') {
+		return `${register}/${slug}`
+	}
+	if (typeof source === 'string' && source !== '') {
+		return `source:${source}`
+	}
+	return ''
+}
+
+/**
+ * Whether an index page offers saved views in its sidebar.
+ *
+ * `allowSavedViews` decides when it is set. Unset, every index page that has
+ * a sidebar and a source a view can be scoped to (a register and schema, a
+ * named source, or `savedViewsScope`) offers them, so managing views is
+ * there on every list without each page opting in.
+ *
+ * @param {object} config The page's index config, or CnIndexPage's props.
+ * @param {boolean|null} [config.allowSavedViews] The explicit choice, when made.
+ * @param {object} [config.sidebar] The sidebar config.
+ * @param {string} [config.savedViewsScope] The explicit scope.
+ * @param {string} [config.register] The register.
+ * @param {object|string} [config.schema] The schema.
+ * @param {string} [config.entitySource] The named source.
+ * @return {boolean}
+ */
+export function pageOffersSavedViews(config) {
+	if (!config || typeof config !== 'object') {
+		return false
+	}
+	if (typeof config.allowSavedViews === 'boolean') {
+		return config.allowSavedViews
+	}
+	const sidebar = config.sidebar
+	if (!sidebar || typeof sidebar !== 'object' || sidebar.enabled !== true || sidebar.show === false) {
+		return false
+	}
+	return savedViewScope({ scope: config.savedViewsScope, register: config.register, schema: config.schema, source: config.entitySource }) !== ''
+}
+
+/**
+ * Whether a saved view belongs on a page.
+ *
+ * A view saved with a `scope` is shown where the scope matches. A view that
+ * names `schemas` (OpenRegister's own search UI writes those) is shown on a
+ * page over one of them. A view that says neither, saved before views were
+ * scoped, is shown everywhere as it always was: hiding it would lose the
+ * view, and nothing can tell which page it was made on.
+ *
+ * @param {object|null|undefined} view The View API object.
+ * @param {object} page The page, as {@link savedViewScope} takes it.
+ * @return {boolean} True when the view is shown on this page.
+ */
+export function viewMatchesScope(view, page = {}) {
+	const query = view && typeof view === 'object' ? view.query : null
+	if (!query || typeof query !== 'object' || Array.isArray(query)) {
+		return true
+	}
+	if (typeof query.scope === 'string' && query.scope !== '') {
+		return query.scope === savedViewScope(page)
+	}
+	if (Array.isArray(query.schemas) && query.schemas.length > 0) {
+		const slug = schemaSlug(page.schema)
+		if (slug === '' || !query.schemas.map(String).includes(slug)) {
+			return false
+		}
+		if (Array.isArray(query.registers) && query.registers.length > 0 && page.register) {
+			return query.registers.map(String).includes(String(page.register))
+		}
+		return true
+	}
+	return true
 }
 
 /**
@@ -138,7 +382,7 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
  * malformed `sort` all yield the empty/default state — never throws.
  *
  * @param {object|null|undefined} view The View API object (or its raw `query` blob).
- * @return {{ filters: object, search: string, sortKey: ?string, sortOrder: string }} The normalized view state.
+ * @return {{ filters: object, search: string, sortKeys: Array<{key: string, order: string}>, sortKey: ?string, sortOrder: string }} The normalized view state.
  */
 export function extractViewState(view) {
 	const state = emptyState()
@@ -161,12 +405,7 @@ export function extractViewState(view) {
 	if (typeof query.search === 'string') {
 		state.search = query.search
 	}
-	const sort = query.sort
-	if (sort && typeof sort === 'object' && !Array.isArray(sort) && sort.key) {
-		state.sortKey = String(sort.key)
-		state.sortOrder = sort.order === 'desc' ? 'desc' : 'asc'
-	}
-	return state
+	return withSort(state, normalizeSortKeys(query.sort))
 }
 
 /**
@@ -181,4 +420,60 @@ export function extractViewState(view) {
  */
 export function isOwnView(view, currentUserId) {
 	return !!view && !!currentUserId && view.owner === currentUserId
+}
+
+/**
+ * The default views an index page declares (`config.defaultSavedViews`), as
+ * read-only views the saved-views control lists. They are never stored: the
+ * manifest installs them, so every user has the same set and none can delete
+ * one. `seeded: true` puts them in the control's default group; the query
+ * keeps its `@`-tokens, which resolve when a default is applied.
+ *
+ * A default's `overrides` (page config laid over the page while it is
+ * active, see `utils/savedViewOverrides.js`) ride in `query.overrides`, so a
+ * copy of the default keeps them. A `description` is the line under the
+ * view and its menu entry's tooltip; `icon` the icon of its menu entry;
+ * `secondary: true` folds it behind "More default views" in the panel.
+ *
+ * @param {Array<object>|null|undefined} defaults The declared entries `{ slug, name, filters, search?, sort?, label?, overrides?, description?, icon?, secondary? }`.
+ * @param {{ scope?: string, register?: string, schema?: object|string|null }} [page] The page, as `savedViewScope` takes it.
+ * @return {Array<object>} The views, in declaration order; entries without a slug or name are left out.
+ * @spec openspec/changes/saved-views-manage-and-defaults/tasks.md#task-4
+ */
+export function defaultFilterViews(defaults, page = {}) {
+	if (!Array.isArray(defaults)) {
+		return []
+	}
+	return defaults
+		.filter((entry) => entry && typeof entry.slug === 'string' && entry.slug !== '' && typeof entry.name === 'string' && entry.name !== '')
+		.map((entry) => {
+			const { query } = buildViewCreatePayload({
+				name: entry.name,
+				state: {
+					filters: (entry.filters && typeof entry.filters === 'object' && !Array.isArray(entry.filters)) ? entry.filters : {},
+					search: typeof entry.search === 'string' ? entry.search : '',
+					sortKeys: Array.isArray(entry.sort) ? entry.sort : [],
+				},
+				scope: savedViewScope(page),
+				register: page.register,
+				schema: page.schema,
+			})
+			if (entry.overrides && typeof entry.overrides === 'object' && !Array.isArray(entry.overrides)) {
+				query.overrides = entry.overrides
+			}
+			return {
+				id: `default:${entry.slug}`,
+				slug: entry.slug,
+				name: entry.name,
+				owner: '',
+				seeded: true,
+				isPublic: false,
+				labels: typeof entry.label === 'string' && entry.label !== '' ? [entry.label] : [],
+				'@self': { access: 'read' },
+				query,
+				...(typeof entry.description === 'string' && entry.description !== '' ? { description: entry.description } : {}),
+				...(entry.secondary === true ? { secondary: true } : {}),
+				...(typeof entry.icon === 'string' && entry.icon !== '' ? { icon: entry.icon } : {}),
+			}
+		})
 }

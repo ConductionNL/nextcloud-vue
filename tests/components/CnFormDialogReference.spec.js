@@ -14,7 +14,7 @@ const mockStore = {
 	registerObjectType: jest.fn((slug) => {
 		mockStore.objectTypeRegistry[slug] = {}
 	}),
-	fetchCollection: jest.fn().mockResolvedValue([
+	fetchCollectionForOptions: jest.fn().mockResolvedValue([
 		{ id: 'uuid-omg', title: 'Omgevingsvergunning' },
 		{ id: 'uuid-kap', title: 'Kapvergunning' },
 	]),
@@ -56,7 +56,7 @@ const refSchema = {
 beforeEach(() => {
 	mockStore.objectTypeRegistry = {}
 	mockStore.registerObjectType.mockClear()
-	mockStore.fetchCollection.mockClear()
+	mockStore.fetchCollectionForOptions.mockClear()
 	mockStore.fetchObject.mockClear()
 })
 
@@ -77,7 +77,7 @@ describe('CnFormDialog — $ref object references', () => {
 			stubs,
 		})
 		await flushPromises()
-		expect(mockStore.fetchCollection).toHaveBeenCalled()
+		expect(mockStore.fetchCollectionForOptions).toHaveBeenCalled()
 		const options = wrapper.vm.getEffectiveOptions(wrapper.vm.resolvedFields.find((f) => f.key === 'caseType'))
 		expect(options).toEqual([
 			{ id: 'uuid-omg', label: 'Omgevingsvergunning' },
@@ -147,6 +147,6 @@ describe('CnFormDialog — $ref object references', () => {
 		const field = wrapper.vm.visibleFields.find((f) => f.key === 'caseType')
 		expect(field.widget).toBe('text')
 		expect(field.reference).toBeNull()
-		expect(mockStore.fetchCollection).not.toHaveBeenCalled()
+		expect(mockStore.fetchCollectionForOptions).not.toHaveBeenCalled()
 	})
 })

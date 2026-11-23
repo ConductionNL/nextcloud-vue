@@ -13,7 +13,8 @@
  * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnPageRenderer from '../../src/components/CnPageRenderer/CnPageRenderer.vue'
 import { buildManifestRoutes, splitRouteName } from '../../src/utils/buildManifestRoutes.js'
 
@@ -42,7 +43,22 @@ const manifest = {
 }
 
 const IndexStub = { name: 'IndexStub', render: () => null }
-const DetailStub = { name: 'DetailStub', render: () => null }
+const DetailStub = {
+	name: 'DetailStub',
+	// Declared so `props()` can be asserted on rather than `$attrs`.
+	props: { objectStore: { type: Object, default: null }, register: { type: String, default: '' } },
+	render: () => null,
+}
+/** An index stub that actually renders the pane slot, so the pane mounts. */
+const SlotRenderingIndexStub = {
+	name: 'SlotRenderingIndexStub',
+	render() {
+		const slot = this.$slots['split-pane']
+		return h('div', typeof slot === 'function'
+			? [slot({ id: 'case-9', layout: 'split', close: () => {}, saved: () => {} })]
+			: [])
+	},
+}
 const pageTypes = { index: IndexStub, detail: DetailStub }
 
 /**
@@ -118,6 +134,64 @@ describe('the split route resolves to its list page', () => {
 
 		expect('id' in wrapper.vm.splitPaneProps).toBe(false)
 	})
+
+	// The pane mounts the same component the full route does, so it has to be
+	// mounted the same way.
+	it('hands the pane what the HOST passes the page, not only the manifest', () => {
+		const { records } = { records: buildManifestRoutes(manifest, { component: CnPageRenderer }) }
+		const store = { id: 'the-host-store' }
+		const wrapper = mount(CnPageRenderer, {
+			propsData: { manifest, pageTypes: { index: SlotRenderingIndexStub, detail: DetailStub } },
+			// An attr, which is how a host hands the page its store.
+			attrs: { objectStore: store },
+			mocks: {
+				$route: splitRoute,
+				$router: {
+					push: jest.fn(() => Promise.resolve()),
+					hasRoute: (name) => records.some((r) => r.name === name),
+					getRoutes: () => records,
+				},
+			},
+		})
+
+		const pane = wrapper.findComponent(DetailStub)
+		expect(pane.exists()).toBe(true)
+		// `toEqual`: what arrives is a reactive proxy, so identity differs.
+		expect(pane.props('objectStore')).toEqual(store)
+		// The manifest still wins over an attr of the same name.
+		expect(pane.props('register')).toBe('zaken')
+	})
+
+	it('mounts the detail page own actions and header components in the pane', () => {
+		const withComponents = {
+			...manifest,
+			pages: manifest.pages.map((p) => (p.id === 'CaseDetail'
+				? { ...p, actionsComponent: 'CaseActions', headerComponent: 'CaseHeader' }
+				: p)),
+		}
+		const records = buildManifestRoutes(withComponents, { component: CnPageRenderer })
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: {
+				manifest: withComponents,
+				pageTypes,
+				customComponents: {
+					CaseActions: { name: 'CaseActions', render: () => null },
+					CaseHeader: { name: 'CaseHeader', render: () => null },
+				},
+			},
+			mocks: {
+				$route: splitRoute,
+				$router: {
+					push: jest.fn(() => Promise.resolve()),
+					hasRoute: (name) => records.some((r) => r.name === name),
+					getRoutes: () => records,
+				},
+			},
+		})
+
+		const names = wrapper.vm.splitPaneSlotEntries.map((e) => e.name).sort()
+		expect(names).toEqual(['actions', 'header'])
+	})
 })
 
 describe('the list route still renders the list', () => {
@@ -184,5 +258,83 @@ describe('a page that declares no split view', () => {
 
 		expect(wrapper.vm.resolvedProps.splitView).toBeUndefined()
 		expect(push).toHaveBeenCalledWith(expect.objectContaining({ name: 'CaseDetail' }))
+	})
+})
+
+/**
+ * The record in the pane keeps the slot components its own page declares.
+ *
+ * A `type: "custom"` widget resolves through its HOST page's `slots` map and
+ * nothing else, and the pane mounts a different page from the one the renderer
+ * is rendering — so forwarding the index's slots here would forward the wrong
+ * set. Without the detail page's own, the pane drew an empty grid cell where the
+ * full route draws the widget, and the record silently lost content purely by
+ * being opened beside the list.
+ */
+describe('the split pane forwards the DETAIL page slots', () => {
+	const PlanStub = { name: 'PlanStub', render: () => null }
+
+	const withSlots = {
+		...manifest,
+		pages: [
+			manifest.pages[0],
+			{ ...manifest.pages[1], slots: { 'widget-case-plan': 'CasePlanPanel' } },
+		],
+	}
+
+	function mountSplit(m, registry) {
+		const records = buildManifestRoutes(m, { component: CnPageRenderer })
+		return shallowMount(CnPageRenderer, {
+			propsData: { manifest: m, pageTypes },
+			provide: { cnRegistry: registry },
+			mocks: {
+				$route: {
+					name: splitRouteName('Cases'),
+					params: { id: 'abc' },
+					query: {},
+					meta: { cnPageId: 'Cases', cnSplitOf: 'Cases', cnSplitBreakpoint: 900 },
+				},
+				$router: {
+					push: jest.fn(() => Promise.resolve()),
+					hasRoute: (name) => records.some((r) => r.name === name),
+					getRoutes: () => records,
+				},
+			},
+		})
+	}
+
+	it('resolves the detail page’s slot components for the pane', () => {
+		const wrapper = mountSplit(withSlots, { CasePlanPanel: { kind: 'widget', component: PlanStub } })
+
+		const entries = wrapper.vm.splitPaneSlotEntries
+		expect(entries).toHaveLength(1)
+		expect(entries[0].name).toBe('widget-case-plan')
+		expect(entries[0].component.name).toBe('PlanStub')
+		wrapper.unmount()
+	})
+
+	it('takes them from the DETAIL page, not the index it is rendering', () => {
+		// The index declares its own slot; the pane must not receive it.
+		const indexAlsoHasSlots = {
+			...withSlots,
+			pages: [
+				{ ...withSlots.pages[0], slots: { header: 'IndexHeader' } },
+				withSlots.pages[1],
+			],
+		}
+		const wrapper = mountSplit(indexAlsoHasSlots, {
+			CasePlanPanel: { kind: 'widget', component: PlanStub },
+			IndexHeader: { kind: 'header', component: { name: 'IndexHeaderStub', render: () => null } },
+		})
+
+		expect(wrapper.vm.splitPaneSlotEntries.map((e) => e.name)).toEqual(['widget-case-plan'])
+		wrapper.unmount()
+	})
+
+	it('is empty when the detail page declares no slots', () => {
+		const wrapper = mountSplit(manifest, {})
+
+		expect(wrapper.vm.splitPaneSlotEntries).toEqual([])
+		wrapper.unmount()
 	})
 })

@@ -43,8 +43,24 @@ The `layers[]` array dispatches by `type`:
 | `wms`        | `L.tileLayer.wms(url, options)`              |
 | `wfs`        | `fetch(url) → L.geoJSON(features, options)`  |
 | `geojson`    | inline `data` → `L.geoJSON`; OR fetched URL  |
+| `image`      | `{ url, width, height }` → `L.imageOverlay` on flat pixel coordinates (see below) |
 
 Unknown types log a warning and are skipped — manifests stay forward-compatible.
+
+## Image maps
+
+Not every map is the earth: a game world, a floor plan or a terrain drawing is a picture with places on it. A layer `{ "type": "image", "url": "/img/valley.png", "width": 2400, "height": 1600 }` turns the map into a picture in flat pixel coordinates: `(0, 0)` is the picture's top left, `x` runs right and `y` runs down. The whole picture is fitted on open, a drag cannot move it far out of view (the bounds are padded by 10 percent), and zoom runs from fitting the picture to four times its native size. The `url` goes through `safeHref`; the browser loads it as an image and the widget fetches nothing. A map is either a picture or the earth: any other layer beside an image layer is skipped with a warning, and one image layer per map.
+
+- **Markers** read `markers.xField` and `markers.yField` (default `x` and `y`) from their rows and stay on the same spot of the picture at every zoom. A row without both numbers is not plotted and is counted in a note under the map.
+- **`click`** carries `{ x, y }`, rounded to whole pixels and clamped to the picture, instead of `{ lat, lng }`: the click position for an "add pin here" form. A geographic map keeps emitting `{ lat, lng }`.
+- **Fit all markers** fits the whole picture, and `autoFit` does not run.
+
+```json
+{
+  "layers": [{ "type": "image", "url": "/img/valley.png", "width": 2400, "height": 1600 }],
+  "markers": { "xField": "x", "yField": "y", "popupField": "name", "dataSource": { "register": "larp", "schema": "place" } }
+}
+```
 
 ## Base maps and the layer switcher
 
@@ -63,6 +79,8 @@ Unknown types log a warning and are skipped — manifests stay forward-compatibl
   ]" />
 ```
 
+The widget form offers presets for `basemaps`: OpenStreetMap and the Dutch government's PDOK tiles (BRT achtergrondkaart standaard, grijs and pastel, and the aerial photo), all in EPSG:3857. A chosen preset is stored as an ordinary `basemaps[]` item (`name`, `url`, `attribution`, `options`); `basemapPresets.js` exports `BASEMAP_PRESETS`, `basemapFromPreset(id)` and `presetOf(basemap)`. A consuming app that offers PDOK must allow `service.pdok.nl` in its Content-Security-Policy `img-src`.
+
 Use `basemaps` **instead of** a `tile` entry in `layers` for the background — `layers` is then free to carry only overlays (WMS / WFS / GeoJSON). `basemaps` is empty by default, so consumers that already declare their background through `layers` are unaffected.
 
 > Base map tiles are `<img>` loads from a third-party host. A hardened Content-Security-Policy (`img-src`) may block hosts other than the one already allowed — verify before shipping a new basemap.
@@ -77,12 +95,20 @@ Beyond Leaflet's own zoom and attribution controls, the widget mounts a control 
 | `locateControl`     | `true`  | **Show my location** — browser geolocation; warns (never throws) when denied or on an insecure origin. |
 | `fullscreenControl` | `true`  | **Toggle fullscreen** — a CSS overlay, so no Fullscreen-API permission prompt. |
 
+`zoomControl` (default `true`) switches Leaflet's own zoom in and zoom out buttons; turn it off for a small preview map that only shows where something is.
+
 `fitToMarkers()` is also callable directly through a template ref:
 
 ```vue
 <CnMapWidget ref="map" ... />
 <!-- this.$refs.map.fitToMarkers() -->
 ```
+
+### `autoFit` and the user's view
+
+`autoFit` (default `true`) frames the map on every marker it is given — on load, and again whenever the marker set changes, so a consumer that narrows its markers with a filter re-frames on the result.
+
+It stops at the first pan or zoom the visitor makes. From then on their framing is kept and the markers reload underneath it, because a map that jumps back to the whole country on every refresh cannot be read. **Fit all markers** is how they ask for the full frame again, and `fitToMarkers()` still works at any time.
 
 ## Sizing
 
@@ -94,7 +120,54 @@ Pick **one** of:
 
 - `markers.features` — inline GeoJSON `Feature[]` (static maps).
 - `markers.dataSource.url` — fetched on mount; the response may be a GeoJSON FeatureCollection OR a flat array of rows (in which case `latField`, `lngField`, `popupField` drive the conversion).
-- `markers.dataSource.{register, schema}` — RESERVED. Round-tripped by validators today, resolver lands in a follow-up change.
+- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. With `markers.geoProperty` set, each object is drawn from that property: a GeoJSON geometry of any type (point, line, polygon, multi-geometry), a Feature, or a lat/lng value; an object whose property is empty falls back to `@self.geo`. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+
+### An area and a detail link
+
+`markers.dataSource.spatialFilter` narrows a register source to an area, through OpenRegister's geo filters. Give one of:
+
+- `{ "bbox": [west, south, east, north] }`, sent as `?geo.bbox=`;
+- `{ "near": [lon, lat], "radius": 500 }` (meters), sent as `?geo.near=&geo.radius=`;
+- `{ "within": <GeoJSON Polygon or MultiPolygon> }`, posted to `…/geo-search`.
+
+`markers.geoProperty`, when set, goes along as `geo.property`, so the filter reads the property the map draws. A filter that does not read (three bbox numbers, a radius of 0) is not sent. A changed filter reads the markers again. OpenRegister has no "nearest N" query; use a radius with `limit`.
+
+`markers.detailLink` is the address a clicked object opens in a new tab, for example `"/apps/dossiq/#/cases/{id}"`. `{id}`, `{register}` and `{schema}` read the object's `@self`; any other `{name}` reads that property. Without a template, a `url` the object carries (the address OpenRegister's deep-link registry stamps) is opened. A token the object cannot fill, or an address with an unsafe scheme, opens nothing. `marker-click` is emitted either way.
+
+## A record's places
+
+On a detail page the map can say why it shows no markers, and read them again when the app saves one:
+
+```json
+{
+  "type": "map",
+  "content": {
+    "markers": {
+      "dataSource": { "register": "myapp", "schema": "location", "filter": { "item": "@objectId" } },
+      "latField": "latitude",
+      "lngField": "longitude",
+      "popupField": "label"
+    },
+    "height": "260px",
+    "ariaLabel": "Locations on this item",
+    "emptyText": "No locations linked to this item yet",
+    "errorText": "The locations could not be loaded.",
+    "refreshOn": "myapp:location:saved",
+    "refreshMatch": "itemId"
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `emptyText` | A line under the map when the source answered no markers. Without it an empty map says nothing. |
+| `headerSubtitle` | The line under the card title with the number of places: `{ "one": "{total} location", "other": "{total} locations" }` or one string, through the app's translate ("1 locatie", the case "Locaties" card). Shown once the source answered with markers. |
+| `errorText` | The line, announced as an alert, when the source could not be read. Defaults to "The places could not be loaded." |
+| `refreshOn` | An event-bus event that reads the markers again. |
+| `refreshMatch` | Only when the event payload's field with this name holds the record's id. |
+| `ariaLabel` | The map's accessible name, through the app's translate. |
+
+The `objectId` prop is the record's id and `objectData` the record, for the filter tokens.
 
 `markers.clustering: true` (or the widget-level `clustering` prop) opts in to `leaflet.markercluster`. The cluster bundle lazy-loads only when first enabled — consumers without clustering pay zero extra bytes.
 
@@ -131,3 +204,17 @@ When Leaflet cannot be loaded (test envs, CSP-blocked CDNs), the `#fallback` slo
 ## Reference
 
 <GeneratedRef />
+
+## Layers to switch on and off
+
+`layerToggles` (or `content.layerToggles`) puts a fieldset under the map with a checkbox per layer, as DqZaakLocatie draws "Kaartlagen" with "Luchtfoto (PDOK)" and "Omgevingsplan (WMS)":
+
+```json
+"layerTogglesTitle": "Map layers",
+"layerToggles": [
+  { "id": "aerial", "label": "Aerial photo (PDOK)", "layer": { "type": "tile", "url": "https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg" } },
+  { "id": "plan", "label": "Zoning plan (WMS)", "on": false, "layer": { "type": "wms", "url": "https://service.pdok.nl/kadaster/plu/wms/v1_0", "options": { "layers": "enkelbestemming", "transparent": true } } }
+]
+```
+
+`layer` takes the `layers` shape; `on` is the starting state (default true). The labels and title go through the host translate.

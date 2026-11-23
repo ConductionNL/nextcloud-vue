@@ -5,9 +5,13 @@ import { useObjectStore } from '../../store/index.js'
 // Both filter resolvers live in `utils/routeFilters.js` so CnLogsPage applies
 // the same two grammars (route-param interpolation + `?key=value` deep links)
 // without pulling in this composable's index-only sidebar/subscription wiring.
-import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { loadMyTeam } from '../../utils/myTeam.js'
+import { withPersonalLenses } from '../../utils/personalLenses.js'
+import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { heldDefaultFilters, parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { orderToSortKeys } from '../../utils/sortOrder.js'
 
-function resolveInitialQuickFilterIndex(quickFilters) {
+export function resolveInitialQuickFilterIndex(quickFilters) {
 	const tabs = Array.isArray(quickFilters) ? quickFilters : null
 	if (!tabs || tabs.length === 0) {
 		return null
@@ -25,6 +29,53 @@ function resolveInitialQuickFilterIndex(quickFilters) {
  * @param {Array<object>} filterMaps Already route-resolved filter maps.
  * @return {object} The merged filter (scalar when a key has one value, array when many).
  */
+/**
+ * Rows one board fetch asks for. A board shows every matching row at once,
+ * so it loads far more than a table page (OpenRegister serves up to 1000);
+ * past this the board offers "Load more".
+ *
+ * @type {number}
+ */
+export const BOARD_PAGE_SIZE = 500
+
+/** How many rows `mapConfig.plotAll: true` plots at most. */
+export const MAP_PLOT_ALL_LIMIT = 500
+
+/**
+ * How many rows a map that plots every matching row loads (`mapConfig.plotAll`:
+ * `true` for {@link MAP_PLOT_ALL_LIMIT}, or a number), 0 when it plots the page.
+ *
+ * @param {object} [mapConfig] The page's map config.
+ * @return {number} The limit.
+ */
+export function mapPlotAllLimitOf(mapConfig) {
+	const plotAll = mapConfig && mapConfig.plotAll
+	if (plotAll === true) {
+		return MAP_PLOT_ALL_LIMIT
+	}
+	return typeof plotAll === 'number' && Number.isFinite(plotAll) && plotAll > 0 ? Math.floor(plotAll) : 0
+}
+
+/**
+ * The sort a quick filter sets while it is active (`sort: { key, order }`, or a
+ * list of those for a multi-column order), as sort keys, or null when it sets
+ * none.
+ *
+ * @param {object|undefined} tab A quick filter.
+ * @return {Array<{key: string, order: string}>|null} The sort keys.
+ * @spec openspec/changes/screens-quick-filter-sort/specs/index-page/spec.md
+ */
+export function quickFilterSortKeys(tab) {
+	const sort = tab && tab.sort
+	if (!sort) {
+		return null
+	}
+	const keys = (Array.isArray(sort) ? sort : [sort])
+		.filter((entry) => entry && typeof entry.key === 'string' && entry.key !== '')
+		.map((entry) => ({ key: entry.key, order: entry.order === 'desc' ? 'desc' : 'asc' }))
+	return keys.length > 0 ? keys : null
+}
+
 function unionFilterMaps(filterMaps) {
 	const grouped = {}
 	for (const map of filterMaps) {
@@ -59,9 +110,10 @@ function unionFilterMaps(filterMaps) {
  * @param {object} props CnIndexPage props.
  * @param {import('vue').ComponentInternalInstance|null} instance Pass `getCurrentInstance()`.
  * @param {typeof import('vue').inject} inject Pass Vue's `inject`.
+ * @param {{activeFolderSchema?: import('vue').Ref<?{schema: string, register?: string}>}} [extras] `activeFolderSchema`: a ref the page sets to the selected folder's `{ schema, register? }`, switching the loaded object type while it is non-null.
  * @return {object} { isSelfFetch, list, selfObjectStore, selfObjectType, activeQuickFilterIndex }
  */
-export function useSelfFetchList(props, instance, inject) {
+export function useSelfFetchList(props, instance, inject, extras = {}) {
 	const objectsProvided = !!(
 		instance && instance.proxy && instance.proxy.$options && instance.proxy.$options.propsData
 		&& Object.hasOwn(instance.proxy.$options.propsData, 'objects')
@@ -72,7 +124,12 @@ export function useSelfFetchList(props, instance, inject) {
 	// mistake, because the request succeeds and nothing says the two disagree.
 	const isSelfFetch = !!(props.register && props.schema) && !objectsProvided && !props.entitySource
 
-	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(props.quickFilters))
+	// "Also search inside files" switch, seeded from `?contentSearch=1` so a
+	// shared link reproduces the list. Only meaningful when `searchInFiles` is on.
+	const routeAtSetup = instance && instance.proxy && instance.proxy.$route
+	const contentSearch = ref(props.searchInFiles === true && String(routeAtSetup?.query?.contentSearch) === '1')
+
+	const activeQuickFilterIndex = ref(resolveInitialQuickFilterIndex(withPersonalLenses(props.quickFilters, props.personalLenses)))
 	const selectedQuickFilterIndices = ref([])
 	const isMultiQuickFilter = props.quickFilterMultiple === true
 
@@ -84,10 +141,28 @@ export function useSelfFetchList(props, instance, inject) {
 			selfObjectType: '',
 			activeQuickFilterIndex,
 			selectedQuickFilterIndices,
+			contentSearch,
+			selfFetchTokenCtx: null,
+			initialQueryFilterKeys: [],
 		}
 	}
 
-	const objectType = `${props.register}-${props.schema}`
+	// The object type follows the selected folder's own schema when it declares
+	// one; otherwise the page's register and schema.
+	const activeFolderSchema = extras.activeFolderSchema || null
+	const resolvedTarget = computed(() => {
+		const folder = activeFolderSchema && activeFolderSchema.value
+		if (folder && folder.schema) {
+			const register = folder.register || props.register
+			return { register, schema: folder.schema, type: `${register}-${folder.schema}` }
+		}
+		// A collection endpoint gets its own type key, so a plain registration of
+		// the same pair elsewhere never resets it.
+		const collectionUrl = props.collectionUrl || ''
+		const type = `${props.register}-${props.schema}` + (collectionUrl ? `@${collectionUrl}` : '')
+		return { register: props.register, schema: props.schema, type, collectionUrl }
+	})
+	const objectType = computed(() => resolvedTarget.value.type)
 	const sidebarState = inject('sidebarState', null) ?? inject('objectSidebarState', null)
 	const objectStore = useObjectStore()
 
@@ -116,7 +191,8 @@ export function useSelfFetchList(props, instance, inject) {
 		const objCtx = unwrapCtx(objectCtxRaw)
 		const base = (objCtx && typeof objCtx === 'object') ? { ...objCtx } : {}
 		base.workspace = unwrapCtx(workspaceCtxRaw) || {}
-		base.config = unwrapCtx(appConfigRaw) || {}
+		// The page's own `appConfig` prop wins over a config an ancestor provides.
+		base.config = { ...(unwrapCtx(appConfigRaw) || {}), ...(props.appConfig || {}) }
 		return base
 	}
 
@@ -128,23 +204,35 @@ export function useSelfFetchList(props, instance, inject) {
 	// never again. Stringified (like CnDeltaWidget's `sourceKey`) so the
 	// watcher fires on real content changes only, not object identity.
 	const workspaceSignature = computed(() => JSON.stringify(unwrapCtx(workspaceCtxRaw) || {}))
-	const appConfigSignature = computed(() => JSON.stringify(unwrapCtx(appConfigRaw) || {}))
+	const appConfigSignature = computed(() => JSON.stringify({ ...(unwrapCtx(appConfigRaw) || {}), ...(props.appConfig || {}) }))
 
 	// Pass register/schema in their positional id slots (not as a {register, schema} object as
 	// second arg) — that previously made fetch URLs go to `/api/objects/undefined/[object Object]`.
-	if (typeof objectStore.registerObjectType === 'function') {
-		objectStore.registerObjectType(
-			objectType,
-			props.schema,
-			props.register,
-			{ registerSlug: props.register, schemaSlug: props.schema },
-		)
+	// Runs (sync, ahead of the list's own watcher) again whenever the type switches.
+	function registerTarget() {
+		const { register, schema, type, collectionUrl } = resolvedTarget.value
+		if (typeof objectStore.registerObjectType === 'function') {
+			objectStore.registerObjectType(type, schema, register, {
+				registerSlug: register,
+				schemaSlug: schema,
+				...(collectionUrl ? { collectionUrl } : {}),
+			})
+		}
+		// A mixed list tells its own rows apart by `@self.register`, an id, so a slug register needs resolving.
+		if (collectionUrl && !/^\d+$/.test(String(register)) && typeof objectStore.fetchRegister === 'function') {
+			objectStore.fetchRegister(type)
+		}
 	}
+	registerTarget()
+	watch(objectType, registerTarget, { flush: 'sync' })
 
 	// Seed the visible-column set from the configured columns so the sidebar's
 	// Columns tab reflects the curated default; null when none are configured
 	// (schema-driven table — every column starts visible).
+	// A column marked `hidden: true` is declared but starts outside the set,
+	// so it is off until the person turns it on in the Columns tab.
 	const configuredColumnKeys = (props.columns || [])
+		.filter((c) => !(c && typeof c === 'object' && c.hidden === true))
 		.map((c) => (typeof c === 'string' ? c : c && c.key))
 		.filter(Boolean)
 
@@ -152,53 +240,189 @@ export function useSelfFetchList(props, instance, inject) {
 	// link / reload); fall back to a host-passed `sortKeys` prop, then the
 	// legacy single-key `sortKey`/`sortOrder` props.
 	const initialRoute = instance && instance.proxy && instance.proxy.$route
-	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
-		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
+	// The page's own order, which a lens without a `sort` goes back to.
+	// `defaultOrder` (manifest `config.defaultOrder`) is the order of last
+	// resort, after `sortKeys` and `sortKey`.
+	const defaultOrderKeys = orderToSortKeys(props.defaultOrder)
+	const pageSortKeys = (Array.isArray(props.sortKeys) && props.sortKeys.length > 0)
+		? props.sortKeys
+		: (props.sortKey ? [{ key: props.sortKey, order: props.sortOrder || 'asc' }] : defaultOrderKeys)
+	// The lens that is active on mount may set its own order.
+	/**
+	 * The tabs the strip shows, so the fetch filters by the chip that is
+	 * lit: the page's `effectiveQuickFilters` (declared, generated from
+	 * `quickFiltersFrom`, or a named source's), else the prop while the
+	 * page's computeds do not exist yet (setup).
+	 *
+	 * @return {Array<object>|null} The tabs, or null when there are none.
+	 */
+	function shownQuickFilters() {
+		const shown = instance && instance.proxy ? instance.proxy.effectiveQuickFilters : undefined
+		if (shown !== undefined) {
+			return shown
+		}
+		return withPersonalLenses(props.quickFilters, props.personalLenses)
+	}
 
-	const list = useListView(objectType, {
+	const initialTabs = withPersonalLenses(props.quickFilters, props.personalLenses)
+	const initialTabSort = (!isMultiQuickFilter && Array.isArray(initialTabs))
+		? quickFilterSortKeys(initialTabs[activeQuickFilterIndex.value])
+		: null
+	const initialSortKeys = parseSortKeysFromQuery(initialRoute)
+		|| initialTabSort
+		|| (Array.isArray(props.sortKeys) && props.sortKeys.length > 0 ? props.sortKeys : undefined)
+		|| (!props.sortKey && defaultOrderKeys.length > 0 ? defaultOrderKeys : undefined)
+	// Same deep-link restore for facet filters and search, so opening a
+	// shared/bookmarked URL reproduces the same view (CnIndexPage persists
+	// both back to the route on change).
+	const queryActiveFilters = resolveQueryFilters(initialRoute && initialRoute.query, tokenCtx())
+	// `defaultFilters` start the list when the address names no filter and no
+	// saved view; they are ordinary active filters from then on. While the
+	// address names filters, only the `heldDefaultFilters` keys it leaves out
+	// join them.
+	const namesSavedView = Boolean(initialRoute && initialRoute.query && initialRoute.query.savedView)
+	const openingDefaults = () => {
+		if (namesSavedView || !props.defaultFilters) {
+			return null
+		}
+		const namedKeys = Object.keys((initialRoute && initialRoute.query) || {})
+		return Object.keys(queryActiveFilters).length === 0
+			? props.defaultFilters
+			: heldDefaultFilters(props.defaultFilters, props.heldDefaultFilters, namedKeys)
+	}
+	const openingFilters = () => ({
+		...resolveFilterMap(openingDefaults() || {}, (initialRoute && initialRoute.params) || {}, tokenCtx()),
+		...queryActiveFilters,
+	})
+	const opensWithDefaults = Object.keys(openingDefaults() || {}).length > 0
+	const initialActiveFilters = opensWithDefaults ? openingFilters() : queryActiveFilters
+	const initialSearchTerm = (initialRoute && typeof initialRoute.query?._search === 'string') ? initialRoute.query._search : ''
+
+	// Set right after useListView returns; the fixed-filters getter reads it lazily.
+	let listHandle = null
+	const list = useListView(() => objectType.value, {
 		objectStore,
 		sidebarState,
 		defaultSort: props.sortKey ? { key: props.sortKey, order: props.sortOrder || 'asc' } : undefined,
 		defaultSortKeys: initialSortKeys,
-		defaultPageSize: (props.pagination && props.pagination.limit) || undefined,
+		defaultActiveFilters: initialActiveFilters,
+		defaultSearchTerm: initialSearchTerm,
+		defaultPageSize: props.viewMode === 'board'
+			? BOARD_PAGE_SIZE
+			: ((props.viewMode === 'map' && mapPlotAllLimitOf(props.mapConfig)) || (props.pagination && props.pagination.limit) || undefined),
 		defaultVisibleColumns: configuredColumnKeys.length ? configuredColumnKeys : null,
 		// `pages[].config.extend` → OpenRegister's repeated `_extend[]`. A
 		// getter so a reactive change re-scopes the next fetch, matching how
 		// `fixedFilters` is read.
 		extend: () => (Array.isArray(props.extend) ? props.extend : []),
+		// `pages[].config.searchHandler`, resolved by the page from the app's
+		// registry when the search runs, so a late registry still counts.
+		searchInterpreter: props.searchHandler
+			? (term) => {
+					const read = instance && instance.proxy && instance.proxy.searchInterpreterFn
+					return typeof read === 'function' ? read(term) : null
+				}
+			: undefined,
 		fixedFilters: () => {
 			const route = instance && instance.proxy && instance.proxy.$route
 			const params = (route && route.params) || {}
 			const ctx = tokenCtx()
 			const queryFilters = resolveQueryFilters(route && route.query, ctx)
 			const base = resolveFilterMap(props.filter, params, ctx)
-			const tabs = Array.isArray(props.quickFilters) ? props.quickFilters : null
+			// A folder-sidebar scope declaring `searchFields` narrows what the
+			// search box searches over while that scope is active. Read off the
+			// instance, like `$route` above, because the active scope is the
+			// component's own state rather than a prop — and read through the
+			// one fixed-filter getter rather than a second search path.
+			const scopeSearchFields = (instance && instance.proxy && instance.proxy.activeScopeSearchFields) || []
+			const scopeBase = scopeSearchFields.length > 0 ? { _searchFields: scopeSearchFields } : {}
+			// File-content search widens a text search, so it rides only with a term.
+			const widen = props.searchInFiles === true && contentSearch.value && !!(listHandle && listHandle.searchTerm.value)
+			// The visible calendar month, only while the page is in calendar mode.
+			const month = (instance && instance.proxy && instance.proxy.calendarRangeFilter) || {}
+			const scope = { ...(widen ? { ...scopeBase, _content_search: 'true' } : scopeBase), ...month }
+			const lensed = shownQuickFilters()
+			const tabs = Array.isArray(lensed) ? lensed : null
 			if (!tabs) {
-				return { ...queryFilters, ...base }
+				return { ...queryFilters, ...scope, ...base }
 			}
 
 			// Multiple mode: OR the selected tabs' filters together (union).
 			if (isMultiQuickFilter) {
 				const maps = selectedQuickFilterIndices.value
 					.map((i) => resolveFilterMap(tabs[i]?.filter, params, ctx))
-				return { ...queryFilters, ...base, ...unionFilterMaps(maps) }
+				return { ...queryFilters, ...scope, ...base, ...unionFilterMaps(maps) }
 			}
 
 			// Single mode: the active tab's filter spread last so it wins
 			// over a colliding props.filter entry.
-			const activeIdx = activeQuickFilterIndex.value
+			// Tabs that arrived after setup (`quickFiltersFrom`) have no index
+			// yet: the default tab is the one in force, as the strip shows.
+			const activeIdx = activeQuickFilterIndex.value ?? resolveInitialQuickFilterIndex(tabs)
 			const tabFilter = (activeIdx !== null && activeIdx !== undefined) ? tabs[activeIdx]?.filter : null
-			return { ...queryFilters, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
+			return { ...queryFilters, ...scope, ...base, ...resolveFilterMap(tabFilter, params, ctx) }
 		},
+	})
+
+	listHandle = list
+
+	// Default filters that name an app-config value (`@config.<key>?`) the
+	// page receives after it opened, such as a default pipeline the host reads
+	// from its settings: once the value arrives they are applied, as long as
+	// the list still shows the defaults it opened with. A filter the person
+	// set, a filter from the address or a saved view is never replaced.
+	let openedWithDefaults = opensWithDefaults
+		? JSON.stringify(list.activeFilters.value)
+		: null
+	watch(appConfigSignature, () => {
+		if (openedWithDefaults === null || JSON.stringify(list.activeFilters.value) !== openedWithDefaults) {
+			openedWithDefaults = null
+			return
+		}
+		const next = openingFilters()
+		const signature = JSON.stringify(next)
+		if (signature !== openedWithDefaults) {
+			openedWithDefaults = signature
+			list.activeFilters.value = next
+			list.refresh(1)
+		}
 	})
 
 	// Re-fetch when the quick-filter selection changes (pre-existing), OR
 	// when the workspace/app-config bag content changes (e.g. the
 	// administration switcher writes a new `activeAdministrationId`) — a
 	// `@workspace.<key>`/`@config.<key>` token in `props.filter` must re-scope
-	// the list without a manual reload.
-	watch([activeQuickFilterIndex, selectedQuickFilterIndices, workspaceSignature, appConfigSignature], () => {
+	// the list without a manual reload. A change to `props.filter` itself (a
+	// host toggling a filter checkbox) re-fetches the same way.
+	const filterSignature = computed(() => JSON.stringify(props.filter ?? null))
+	watch([activeQuickFilterIndex, selectedQuickFilterIndices, contentSearch, workspaceSignature, appConfigSignature, filterSignature], (now, before) => {
+		// Switching lens: a lens with a `sort` sets that order; leaving one
+		// for a lens without goes back to the page's own order. A column the
+		// person sorts by afterwards still wins until the next switch.
+		if (!isMultiQuickFilter && before && now[0] !== before[0]) {
+			const tabs = shownQuickFilters() || []
+			const keys = quickFilterSortKeys(tabs[now[0]]) || (quickFilterSortKeys(tabs[before[0]]) ? pageSortKeys : null)
+			if (keys && list.sortKeys) {
+				list.sortKeys.value = keys
+				list.sortKey.value = keys[0]?.key ?? null
+				list.sortOrder.value = keys[0]?.order ?? 'asc'
+			}
+		}
 		if (list && typeof list.refresh === 'function') {
+			list.refresh(1)
+		}
+	})
+
+	// Another chip set (a saved view's `overrides.quickFilters`, or the page's
+	// own again when the view is left): the selection indexed the old set, so
+	// it starts over on the new set's default chip.
+	const quickFiltersSignature = computed(() => JSON.stringify(props.quickFilters ?? null))
+	watch(quickFiltersSignature, () => {
+		const nextIndex = resolveInitialQuickFilterIndex(withPersonalLenses(props.quickFilters, props.personalLenses))
+		const changed = activeQuickFilterIndex.value !== nextIndex || selectedQuickFilterIndices.value.length > 0
+		activeQuickFilterIndex.value = nextIndex
+		selectedQuickFilterIndices.value = []
+		if (!changed && list && typeof list.refresh === 'function') {
 			list.refresh(1)
 		}
 	})
@@ -214,7 +438,19 @@ export function useSelfFetchList(props, instance, inject) {
 	// a reactive getter so a runtime flip attaches/detaches accordingly.
 	// Stores without live-updates support (no `subscribe` action) are a
 	// silent no-op inside the composable, keeping this fully inert.
-	useObjectSubscription(objectStore, objectType, null, {
+	// An address carrying `@myTeam` (a shared link) waits for the team, as a
+	// saved view on it does: once read, the token becomes the team, or goes
+	// for a reader in none.
+	const carriesMyTeam = Object.values(initialActiveFilters || {})
+		.some((value) => value === MY_TEAM_TOKEN || (Array.isArray(value) && value.includes(MY_TEAM_TOKEN)))
+	if (carriesMyTeam) {
+		loadMyTeam().then(() => {
+			list.activeFilters.value = dropOptionalUnresolved(resolveFilterTokens(list.activeFilters.value, tokenCtx()))
+			list.refresh(1)
+		})
+	}
+
+	useObjectSubscription(objectStore, () => objectType.value, null, {
 		enabled: () => props.subscribe !== false,
 	})
 
@@ -225,5 +461,12 @@ export function useSelfFetchList(props, instance, inject) {
 		selfObjectType: objectType,
 		activeQuickFilterIndex,
 		selectedQuickFilterIndices,
+		contentSearch,
+		// The page persists the view state back into the query, and needs both
+		// to do it without trampling the rest of it: the keys it adopted from
+		// the query on load (the only non-`_` ones it may clear), and the ctx
+		// those keys' `@`-tokens resolve against.
+		selfFetchTokenCtx: tokenCtx,
+		initialQueryFilterKeys: Object.keys(initialActiveFilters),
 	}
 }

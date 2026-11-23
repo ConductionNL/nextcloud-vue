@@ -6,7 +6,10 @@
   - Disabled prop disables both controls; send button shows NcLoadingIcon.
   - Send button disabled when the textarea is empty/whitespace-only AND no
     attachment has been added (an attachment-only send is allowed).
-  - Attach button (paperclip) opens a hidden file input. The picked file is
+  - Attach button (paperclip) is a menu: Upload from device opens a hidden
+    file input; Choose from Files opens the Nextcloud file picker and adds the
+    chosen files as chips carrying `{ fileId, path, name }`, sent by id with no
+    upload. On the device path the picked file is
     uploaded immediately as multipart/form-data (field `file`) to the chat
     backend's attachments endpoint (see composables/aiChatConfig.js
     `attachmentsUrl()`), which text-decodes and stores it, returning
@@ -20,7 +23,7 @@
     for the parent's async request to resolve before clearing either).
 -->
 <template>
-	<div class="cn-ai-input" data-testid="cn-ai-input">
+	<div class="cn-ai-input" :class="{ 'cn-ai-input--stacked': stacked }" data-testid="cn-ai-input">
 		<NcNoteCard
 			v-if="uploadError"
 			type="error"
@@ -41,7 +44,7 @@
 			data-testid="cn-ai-input-chips">
 			<li
 				v-for="(attachment, index) in attachments"
-				:key="attachment.path"
+				:key="attachment.fileId !== undefined ? 'f' + attachment.fileId : attachment.path"
 				class="cn-ai-input__chip">
 				<Paperclip :size="14" class="cn-ai-input__chip-icon" />
 				<span class="cn-ai-input__chip-name">{{ attachment.name }}</span>
@@ -148,20 +151,37 @@
 					v-else
 					:size="20" />
 			</button>
-			<button
-				class="cn-ai-input__attach-button"
-				type="button"
+			<!-- The paperclip is a small menu: upload from the device (the
+			     hidden file input below) or choose files already in Files. -->
+			<NcActions
+				class="cn-ai-input__attach-menu"
 				:aria-label="cnTranslate('Attach file')"
 				:disabled="disabled || uploading"
-				data-testid="cn-ai-input-attach"
-				@click="openFilePicker">
-				<NcLoadingIcon
-					v-if="uploading"
-					:size="20" />
-				<Paperclip
-					v-else
-					:size="20" />
-			</button>
+				:forceMenu="true"
+				data-testid="cn-ai-input-attach">
+				<template #icon>
+					<NcLoadingIcon v-if="uploading" :size="20" />
+					<Paperclip v-else :size="20" />
+				</template>
+				<NcActionButton
+					:closeAfterClick="true"
+					data-testid="cn-ai-input-attach-upload"
+					@click="openFilePicker">
+					<template #icon>
+						<Upload :size="20" />
+					</template>
+					{{ cnTranslate('Upload from device') }}
+				</NcActionButton>
+				<NcActionButton
+					:closeAfterClick="true"
+					data-testid="cn-ai-input-attach-files"
+					@click="chooseFromFiles">
+					<template #icon>
+						<FolderOutline :size="20" />
+					</template>
+					{{ cnTranslate('Choose from Files') }}
+				</NcActionButton>
+			</NcActions>
 			<!-- `:ref`, not `ref` — a fully static input with a cached handler
 			     is hoisted to module scope, and a hoisted vnode's ref has no
 			     owner, which throws in production builds where Vue's guard is
@@ -178,7 +198,7 @@
 				class="cn-ai-input__textarea"
 				:aria-label="cnTranslate('Message input')"
 				:disabled="disabled"
-				:placeholder="cnTranslate('Message input')"
+				:placeholder="placeholder || cnTranslate('Message input')"
 				rows="1"
 				data-testid="cn-ai-input-textarea"
 				@keydown.enter.exact.prevent="handleEnter"
@@ -186,14 +206,18 @@
 				@input="autoGrow" />
 			<button
 				class="cn-ai-input__send-button"
+				:class="{ 'cn-ai-input__send-button--labelled': sendLabel }"
 				type="button"
-				:aria-label="cnTranslate('Send message')"
+				:aria-label="sendLabel ? null : cnTranslate('Send message')"
 				:disabled="disabled || isSendDisabled"
 				data-testid="cn-ai-input-send"
 				@click="handleSend">
 				<NcLoadingIcon
 					v-if="disabled"
 					:size="20" />
+				<template v-else-if="sendLabel">
+					{{ sendLabel }}
+				</template>
 				<Send
 					v-else
 					:size="20" />
@@ -204,14 +228,16 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import Headset from 'vue-material-design-icons/Headset.vue'
 import HeadsetOff from 'vue-material-design-icons/HeadsetOff.vue'
 import MicrophoneIcon from 'vue-material-design-icons/Microphone.vue'
 import MicrophoneOutline from 'vue-material-design-icons/MicrophoneOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Send from 'vue-material-design-icons/Send.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
 import { attachmentsUrl, DEFAULT_CHAT_APP_ID, speechTranscriptionsUrl } from '../../composables/aiChatConfig.js'
 import { createLocalDictation } from '../../composables/aiLocalDictation.js'
 import {
@@ -222,6 +248,7 @@ import {
 	SPEECH_LOCAL,
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 /** How long a dictation failure stays on screen, in ms. */
 const DICTATION_ERROR_TIMEOUT = 6000
@@ -230,6 +257,10 @@ export default {
 	name: 'CnAiInput',
 
 	components: {
+		NcActionButton,
+		NcActions,
+		FolderOutline,
+		Upload,
 		NcLoadingIcon,
 		NcNoteCard,
 		Send,
@@ -242,7 +273,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {
@@ -250,6 +281,27 @@ export default {
 		 * Whether the input controls are disabled (e.g. while streaming).
 		 */
 		disabled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The textarea's placeholder, already translated; '' keeps "Message input". */
+		placeholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated; '' draws the send icon. */
+		sendLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The narrow layout of a card: the text box and the send button on the
+		 * first line, dictation and attach on a line under it.
+		 */
+		stacked: {
 			type: Boolean,
 			default: false,
 		},
@@ -1016,6 +1068,43 @@ export default {
 		},
 
 		/**
+		 * Pick files already in Nextcloud Files and add each as a chip carrying
+		 * its file id; they are sent by id and never uploaded. A dismissed
+		 * picker (which rejects in some dialog versions) is a no-op.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async chooseFromFiles() {
+			if (this.disabled || this.uploading) {
+				return
+			}
+			this.uploadError = ''
+			try {
+				// Loaded when someone picks from Files: the dialogs package is a large
+				// share of the chat panel, which hosts load on every page.
+				const { FilePickerType, getFilePickerBuilder } = await import('@nextcloud/dialogs')
+				const picker = getFilePickerBuilder(this.cnTranslate('Choose from Files'))
+					.setMultiSelect(true)
+					.setType(FilePickerType.Choose)
+					.allowDirectories(false)
+					.setModal(true)
+					.build()
+				const nodes = await picker.pickNodes()
+				for (const node of (Array.isArray(nodes) ? nodes : [])) {
+					const fileId = node.fileid ?? node.attributes?.fileid
+					const path = node.path || ''
+					if (fileId === null || fileId === undefined || this.attachments.some((a) => a.fileId === fileId)) {
+						continue
+					}
+					this.attachments.push({ fileId, path, name: node.basename || path.split('/').pop() })
+				}
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.debug('[CnAiInput] file picker closed', e)
+			}
+		},
+
+		/**
 		 * Remove a pending attachment chip before it's sent.
 		 *
 		 * @param {number} index Index into `attachments`.
@@ -1104,6 +1193,28 @@ export default {
 	display: flex;
 	gap: 8px;
 	align-items: flex-end;
+}
+
+/* `stacked`: in a card the box keeps the line, dictation and attach wrap
+   under it (DqZaakAssistent "Vraag iets over deze zaak" + "Vragen"). */
+.cn-ai-input--stacked {
+	padding: 12px 18px;
+}
+
+.cn-ai-input--stacked .cn-ai-input__row {
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.cn-ai-input--stacked .cn-ai-input__textarea {
+	order: -2;
+	flex: 1 1 calc(100% - 104px);
+	min-width: 0;
+	min-height: 40px;
+}
+
+.cn-ai-input--stacked .cn-ai-input__send-button {
+	order: -1;
 }
 
 .cn-ai-input__file-input {
@@ -1202,6 +1313,10 @@ export default {
 	color: var(--color-primary-element-text, #fff);
 }
 
+.cn-ai-input__attach-menu {
+	flex: 0 0 auto;
+}
+
 .cn-ai-input__attach-button {
 	display: flex;
 	flex-shrink: 0;
@@ -1273,6 +1388,37 @@ export default {
 	background: var(--color-primary-element);
 	color: var(--color-primary-element-text);
 	cursor: pointer;
+}
+
+.cn-ai-input__send-button--labelled {
+	width: auto;
+	min-height: 40px;
+	padding: 0 14px;
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/* server.css styles every button at (0,2,1), its disabled state too (grey
+   ground, 15px, bold, its own margin); the element and the doubled class
+   match that and load later, so the send button keeps its primary look and
+   the labelled one its 40px, 14px sides and 14px/600 (DqZaakAssistent "Vragen"). */
+button.cn-ai-input__send-button.cn-ai-input__send-button {
+	margin: 0;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+button.cn-ai-input__send-button--labelled.cn-ai-input__send-button--labelled {
+	height: 40px;
+	min-height: 40px;
+	padding: 0 14px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+button.cn-ai-input__send-button.cn-ai-input__send-button:hover:not(:disabled) {
+	background: var(--color-primary-element-hover, var(--color-primary-element));
 }
 
 .cn-ai-input__send-button:hover:not(:disabled) {

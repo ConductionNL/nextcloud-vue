@@ -1,0 +1,673 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * Page views: a few views of one page, each its own widget grid, behind one
+ * segmented control ("My work | My team").
+ *
+ * A page that mixes this in accepts `views` (each `{ id, label, icon?,
+ * widgets, layout, emptyText? }`), `defaultView` and `viewsLabel`. It keeps
+ * the chosen view, writes it to the address (`?view=<id>`) and to the
+ * user's preferences (the server, mirrored in the browser), and provides `cnPageViews` so a greeting header widget on
+ * the page can draw the switch instead of the page.
+ *
+ * Which view opens: the address, then the stored view, then `defaultView`,
+ * then the first view. An id that names no view is ignored at every step.
+ *
+ * Used by CnDashboardPage and CnDetailPage. Each renders the chosen view's
+ * `layout` with its own grid, so a view looks exactly like the page's own
+ * grid.
+ *
+ * With `userLayout` on, a user arranges each view's grid for themselves, as
+ * they arrange the dashboard's own grid. The arrangement is stored per view,
+ * per page and per user, through the same user-preference record the
+ * dashboard uses (the server, mirrored in the browser). The manifest stays
+ * the base: it decides which widgets a view has, the user decides where they
+ * sit, and a reset returns the view to the manifest.
+ *
+ * @mixin pageViews
+ * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
+ */
+import { translate as t } from '@nextcloud/l10n'
+import { readUserPreference, USER_PREFERENCE_STORAGE_PREFIX, writeUserPreference } from '../composables/useUserPreferences.js'
+import { dashboardLayoutKey, LAYOUT_GEOMETRY_FIELDS, mergeUserLayout, resolveUserLayoutApi } from '../store/plugins/dashboardLayouts.js'
+
+/** The query parameter that carries the chosen view. */
+export const PAGE_VIEW_QUERY_KEY = 'view'
+
+/** Prefix of the user-preference key; the page id follows it. */
+export const PAGE_VIEW_PREFERENCE_PREFIX = 'cn_page_view:'
+
+/**
+ * The page id one view's user layout is stored under: the page's own id,
+ * then `.view.`, then the view id. Spelled once, because a read and a write
+ * that disagree about the key read as an arrangement that never persists.
+ *
+ * @param {string} pageKey The page's id.
+ * @param {string} viewId The view id.
+ * @return {string} The page id handed to the layout store.
+ * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+ */
+export function pageViewLayoutId(pageKey, viewId) {
+	return `${String(pageKey || 'page')}.view.${String(viewId)}`
+}
+
+let regionSeq = 0
+
+/**
+ * Read the browser mirror of a user preference synchronously, so a stored
+ * value is on screen from the first frame. Errors read as nothing stored.
+ *
+ * @param {string} appId The app id.
+ * @param {string} key The preference key.
+ * @return {object|string|number|boolean|Array|null} The stored value, or null.
+ * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+ */
+function readPreferenceMirror(appId, key) {
+	try {
+		if (typeof localStorage === 'undefined') {
+			return null
+		}
+		const raw = localStorage.getItem(`${USER_PREFERENCE_STORAGE_PREFIX}${appId}:${key}`)
+		if (raw === null || raw === undefined) {
+			return null
+		}
+		return JSON.parse(raw)
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Read the browser mirror of the stored view synchronously, so the stored
+ * view is on screen from the first frame.
+ *
+ * @param {string} appId The app id.
+ * @param {string} key The preference key.
+ * @return {string|null} The stored id, or null.
+ * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-chosen-view-is-linkable-and-remembered
+ */
+function readStoredViewMirror(appId, key) {
+	const value = readPreferenceMirror(appId, key)
+	return typeof value === 'string' && value !== '' ? value : null
+}
+
+/**
+ * Whether a stored layout record holds an arrangement.
+ *
+ * @param {object|Array<object>|null} record The record, or its items.
+ * @return {boolean}
+ */
+function holdsArrangement(record) {
+	const items = Array.isArray(record) ? record : (record && Array.isArray(record.items) ? record.items : [])
+	return items.length > 0
+}
+
+export const pageViews = {
+	inject: {
+		/** The host app id, provided by CnAppRoot; keys the stored view. */
+		cnPageViewsAppId: { from: 'cnAppId', default: '' },
+	},
+
+	emits: ['view-layout-change', 'view-layout-reset'],
+
+	props: {
+		/**
+		 * Views of this page, each its own widget grid behind one segmented
+		 * control. Each is `{ id, label, icon?, widgets, layout, emptyText? }`:
+		 * `widgets` and `layout` have the same shape as the page's own. The
+		 * chosen view renders in a region below the page's own grid. Empty
+		 * (the default) draws no switch and no region. A view's `title` is
+		 * the page title while that view is open (on a dashboard).
+		 *
+		 * @type {Array<{id: string, label: string, title?: string, icon?: string, widgets?: Array<object>, layout?: Array<object>, emptyText?: string}>}
+		 */
+		views: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The id of the view chosen when neither the address nor the browser
+		 * store names one. Empty chooses the first view.
+		 *
+		 * @type {string}
+		 */
+		defaultView: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Accessible name of the view switch (through the host translate
+		 * function). Empty reads "View".
+		 *
+		 * @type {string}
+		 */
+		viewsLabel: {
+			type: String,
+			default: '',
+		},
+	},
+
+	data() {
+		regionSeq += 1
+		return {
+			/** The view the user chose in this session, or the stored one. */
+			selectedViewId: null,
+			/** Whether the user chose a view in this session (a late server read then leaves it alone). */
+			viewChosen: false,
+			/** Id of the view region, the target of the options' `aria-controls`. */
+			viewRegionId: `cn-page-view-region-${regionSeq}`,
+			/**
+			 * This user's arrangement of each view, by view id, when the page
+			 * keeps a user layout. A separate copy, never the view's `layout`:
+			 * that array is the manifest, and writing a user's drag into it
+			 * would rearrange the view for everybody.
+			 *
+			 * @type {Record<string, Array<object>>}
+			 */
+			viewUserLayouts: {},
+			/** The views whose arrangement changed since the last save, by id. */
+			viewUserLayoutsDirty: {},
+		}
+	},
+
+	/**
+	 * Provide the views to descendants, so a greeting header widget in the
+	 * page's grid can draw the switch. Getters keep it reactive.
+	 *
+	 * @return {object} The provided `cnPageViews`.
+	 */
+	provide() {
+		const vm = this
+		return {
+			cnPageViews: {
+				get views() { return vm.normalizedViews },
+				get activeId() { return vm.activeViewId },
+				get regionId() { return vm.viewRegionId },
+				select: (id) => vm.selectView(id),
+			},
+		}
+	},
+
+	computed: {
+		/**
+		 * The declared views in one shape, labels translated. Entries without
+		 * an id or a label are dropped, as are repeated ids.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string, title: string, gridSideColumn: object|null}>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
+		 */
+		normalizedViews() {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			const seen = new Set()
+			return (Array.isArray(this.views) ? this.views : [])
+				.filter((view) => {
+					if (!view || typeof view !== 'object' || view.id === undefined || view.id === null || view.id === '') {
+						return false
+					}
+					if (typeof view.label !== 'string' || view.label === '' || seen.has(String(view.id))) {
+						return false
+					}
+					seen.add(String(view.id))
+					return true
+				})
+				.map((view) => ({
+					id: String(view.id),
+					label: translate(view.label),
+					icon: typeof view.icon === 'string' ? view.icon : '',
+					widgets: Array.isArray(view.widgets) ? view.widgets : [],
+					layout: Array.isArray(view.layout) ? view.layout : [],
+					emptyText: typeof view.emptyText === 'string' && view.emptyText !== '' ? translate(view.emptyText) : '',
+					title: typeof view.title === 'string' && view.title !== '' ? translate(view.title) : '',
+					gridSideColumn: view.gridSideColumn && typeof view.gridSideColumn === 'object' ? view.gridSideColumn : null,
+				}))
+		},
+
+		/**
+		 * Whether this page has views.
+		 *
+		 * @return {boolean}
+		 */
+		hasViews() {
+			return this.normalizedViews.length > 0
+		},
+
+		/**
+		 * The chosen view's id: the address, then this session's or the
+		 * stored choice, then `defaultView`, then the first view.
+		 *
+		 * @return {string|null} The id, or null without views.
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-chosen-view-is-linkable-and-remembered
+		 */
+		activeViewId() {
+			const views = this.normalizedViews
+			if (views.length === 0) {
+				return null
+			}
+			const known = (id) => id !== null && id !== undefined && views.some((view) => view.id === String(id))
+			const fromAddress = this.$route && this.$route.query ? this.$route.query[PAGE_VIEW_QUERY_KEY] : undefined
+			if (known(fromAddress)) {
+				return String(fromAddress)
+			}
+			if (known(this.selectedViewId)) {
+				return String(this.selectedViewId)
+			}
+			if (known(this.defaultView)) {
+				return this.defaultView
+			}
+			return views[0].id
+		},
+
+		/**
+		 * The chosen view, or null without views.
+		 *
+		 * @return {object|null}
+		 */
+		activeView() {
+			return this.normalizedViews.find((view) => view.id === this.activeViewId) || null
+		},
+
+		/**
+		 * Whether a user arranges the views for themselves (`userLayout`).
+		 * Not while Buildiq edits the page (`editingBody`): Buildiq is the
+		 * layout editor, and it shows and changes the manifest layout.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		viewUserLayoutOn() {
+			return this.userLayout === true && this.hasViews && this.editingBody !== true
+		},
+
+		/**
+		 * The chosen view's layout: this user's arrangement when they have
+		 * one, the manifest's otherwise.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		activeViewLayout() {
+			const view = this.activeView
+			if (!view) {
+				return []
+			}
+			const arranged = this.viewUserLayoutOn ? this.viewUserLayouts[view.id] : null
+			return Array.isArray(arranged) ? arranged : view.layout
+		},
+
+		/**
+		 * The switch's options, for CnSegmentedControl.
+		 *
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		viewSwitchOptions() {
+			return this.normalizedViews.map((view) => ({ value: view.id, label: view.label }))
+		},
+
+		/**
+		 * The switch's accessible name: `viewsLabel` translated, else "View".
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-view-switch-is-accessible
+		 */
+		viewSwitchLabel() {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			return this.viewsLabel ? translate(this.viewsLabel) : t('nextcloud-vue', 'Views')
+		},
+
+		/**
+		 * Whether a greeting header in the page's own widgets draws the
+		 * switch (an option with a `view`), so the page draws none.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-greeting-header-can-switch-the-pages-views
+		 */
+		viewSwitchInHeaderWidget() {
+			const widgets = Array.isArray(this.widgets) ? this.widgets : []
+			return widgets.some((def) => {
+				const options = def && def.content && def.content.views && def.content.views.options
+				return Array.isArray(options) && options.some((option) => option && typeof option.view === 'string' && option.view !== '')
+			})
+		},
+
+		/**
+		 * Whether the page draws the switch itself.
+		 *
+		 * @return {boolean}
+		 */
+		showsPageViewSwitch() {
+			return this.hasViews && !this.viewSwitchInHeaderWidget
+		},
+
+		/**
+		 * The user-preference key for this page's chosen view.
+		 *
+		 * @return {string}
+		 */
+		viewPreferenceKey() {
+			// The page id, else the route name: a detail page's fallback id is
+			// its record's title, which would remember a view per record.
+			const id = this.pageId || (this.$route && this.$route.name) || this.resolvedPageId || 'page'
+			return `${PAGE_VIEW_PREFERENCE_PREFIX}${id}`
+		},
+
+		/**
+		 * The app id the stored view is kept under: the page's `appId` prop
+		 * when it has one, else the app root's.
+		 *
+		 * @return {string}
+		 */
+		viewPreferenceAppId() {
+			const own = typeof this.appId === 'string' ? this.appId : ''
+			return own || (typeof this.cnPageViewsAppId === 'string' ? this.cnPageViewsAppId : '')
+		},
+
+		/**
+		 * The message of the chosen view's empty state.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-view-with-nothing-to-draw-says-so
+		 */
+		viewEmptyText() {
+			if (this.activeView && this.activeView.emptyText) {
+				return this.activeView.emptyText
+			}
+			return t('nextcloud-vue', 'This view has no widgets yet.')
+		},
+	},
+
+	watch: {
+		/**
+		 * Read the user's arrangement of a view the first time it is shown.
+		 *
+		 * @param {string|null} id The chosen view id.
+		 * @return {void}
+		 */
+		activeViewId(id) {
+			this.loadViewUserLayout(id)
+		},
+	},
+
+	created() {
+		this.loadStoredView()
+		this.loadViewUserLayout(this.activeViewId)
+	},
+
+	methods: {
+		/**
+		 * Read the stored view: the browser mirror at once, then the user
+		 * preference on the server, which wins unless the user already chose.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-chosen-view-is-linkable-and-remembered
+		 */
+		async loadStoredView() {
+			if (!this.hasViews) {
+				return
+			}
+			const appId = this.viewPreferenceAppId
+			const key = this.viewPreferenceKey
+			this.selectedViewId = readStoredViewMirror(appId, key)
+			if (!appId) {
+				return
+			}
+			const stored = await readUserPreference(appId, key, null)
+			if (!this.viewChosen && typeof stored === 'string' && stored !== '') {
+				this.selectedViewId = stored
+			}
+		},
+
+		/**
+		 * Choose a view: keep it, store it, and write it to the address
+		 * (replacing the history entry, keeping the other query keys).
+		 *
+		 * @param {string} id The view id.
+		 * @return {void}
+		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-the-chosen-view-is-linkable-and-remembered
+		 */
+		selectView(id) {
+			const view = this.normalizedViews.find((candidate) => candidate.id === String(id))
+			if (!view) {
+				return
+			}
+			this.selectedViewId = view.id
+			this.viewChosen = true
+			writeUserPreference(this.viewPreferenceAppId, this.viewPreferenceKey, view.id)
+			if (!this.$router || !this.$route) {
+				return
+			}
+			const query = this.$route.query || {}
+			if (query[PAGE_VIEW_QUERY_KEY] === view.id) {
+				return
+			}
+			const result = this.$router.replace({ query: { ...query, [PAGE_VIEW_QUERY_KEY]: view.id } })
+			if (result && typeof result.catch === 'function') {
+				result.catch(() => {})
+			}
+		},
+
+		/**
+		 * Look a widget definition up in the views, for a layout item of the
+		 * chosen view.
+		 *
+		 * @param {string} widgetId The widget id.
+		 * @return {object|null} The definition, or null.
+		 */
+		findViewWidget(widgetId) {
+			const view = this.activeView
+			if (!view) {
+				return null
+			}
+			return view.widgets.find((def) => def && def.id === widgetId) || null
+		},
+
+		/**
+		 * The page id a view's arrangement is stored under.
+		 *
+		 * @param {string} viewId The view id.
+		 * @return {string}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		viewLayoutPageId(viewId) {
+			const pageKey = this.viewPreferenceKey.slice(PAGE_VIEW_PREFERENCE_PREFIX.length)
+			return pageViewLayoutId(pageKey, viewId)
+		},
+
+		/**
+		 * The layout store calls: the page's own (`userLayoutApi`, so an
+		 * injected `userLayoutStore` covers the views too), else the user
+		 * preferences.
+		 *
+		 * @return {{load: (appId: string, pageId: string) => Promise<object|null>, save: (appId: string, pageId: string, layout: Array<object>) => Promise<boolean>, reset: (appId: string, pageId: string) => Promise<boolean>}}
+		 */
+		viewLayoutApi() {
+			if (typeof this.userLayoutApi === 'function') {
+				return this.userLayoutApi()
+			}
+			return resolveUserLayoutApi(null)
+		},
+
+		/**
+		 * Read this user's arrangement of one view, once: the browser mirror
+		 * at once, then the server, which wins unless the user already moved
+		 * something in that view. A page without `userLayout` reads nothing.
+		 *
+		 * @param {string|null} viewId The view id.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		async loadViewUserLayout(viewId) {
+			if (!this.viewUserLayoutOn || viewId === null || viewId === undefined) {
+				return
+			}
+			const view = this.normalizedViews.find((candidate) => candidate.id === String(viewId))
+			if (!view || Array.isArray(this.viewUserLayouts[view.id])) {
+				return
+			}
+			const appId = this.viewPreferenceAppId
+			const pageId = this.viewLayoutPageId(view.id)
+			const mirror = readPreferenceMirror(appId, dashboardLayoutKey(pageId))
+			this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: mergeUserLayout(view.layout, holdsArrangement(mirror) ? mirror : null) }
+			if (!appId) {
+				return
+			}
+			let record
+			try {
+				record = await this.viewLayoutApi().load(appId, pageId)
+			} catch {
+				// The mirror, or the manifest, stands: a store that cannot
+				// answer leaves the view as the user last saw it.
+				return
+			}
+			if (this.viewUserLayoutsDirty[view.id] || !holdsArrangement(record)) {
+				return
+			}
+			this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: mergeUserLayout(view.layout, record) }
+		},
+
+		/**
+		 * Store the arrangement of every view the user changed since the last
+		 * save. The page calls it when the user leaves edit mode, so a drag
+		 * is not a write per pixel gesture.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		async saveViewUserLayouts() {
+			if (!this.viewUserLayoutOn) {
+				return
+			}
+			const ids = Object.keys(this.viewUserLayoutsDirty).filter((id) => this.viewUserLayoutsDirty[id])
+			this.viewUserLayoutsDirty = {}
+			const appId = this.viewPreferenceAppId
+			for (const id of ids) {
+				const pageId = this.viewLayoutPageId(id)
+				const items = this.viewUserLayouts[id] || []
+				try {
+					if (appId) {
+						await this.viewLayoutApi().save(appId, pageId, items)
+					} else {
+						// No app to address: keep it in this browser only, as
+						// the chosen view is kept.
+						await writeUserPreference('', dashboardLayoutKey(pageId), { items: items.map((item) => this.viewGeometry(item, true)) })
+					}
+				} catch {
+					// The arrangement stands for this session. A toast on a
+					// failed layout write is noise on an instance without the
+					// preference route.
+				}
+			}
+		},
+
+		/**
+		 * Drop this user's arrangement of one view and return it to the
+		 * manifest layout. Other views keep theirs.
+		 *
+		 * @param {string} [viewId] The view id; the chosen view when left out.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-resetting-a-view-restores-its-manifest-layout
+		 */
+		async resetViewUserLayout(viewId) {
+			const id = viewId === undefined || viewId === null ? this.activeViewId : String(viewId)
+			const view = this.normalizedViews.find((candidate) => candidate.id === id)
+			if (!this.viewUserLayoutOn || !view) {
+				return
+			}
+			const appId = this.viewPreferenceAppId
+			const pageId = this.viewLayoutPageId(view.id)
+			try {
+				if (appId) {
+					await this.viewLayoutApi().reset(appId, pageId)
+				} else {
+					await writeUserPreference('', dashboardLayoutKey(pageId), { items: [] })
+				}
+			} catch {
+				// The view returns to the manifest either way, which is what
+				// the user asked for.
+			}
+			const dirty = { ...this.viewUserLayoutsDirty }
+			delete dirty[view.id]
+			this.viewUserLayoutsDirty = dirty
+			this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: mergeUserLayout(view.layout, null) }
+			/**
+			 * Emitted when the user drops their arrangement of a view and it
+			 * returns to the manifest layout.
+			 *
+			 * @event view-layout-reset
+			 * @type {{view: string}}
+			 */
+			this.$emit('view-layout-reset', { view: view.id })
+		},
+
+		/**
+		 * The geometry fields of one layout item, and nothing else.
+		 *
+		 * @param {object} item A layout item, or a grid update.
+		 * @param {boolean} [withWidgetId] Whether to keep the widget id too.
+		 * @return {object}
+		 */
+		viewGeometry(item, withWidgetId = false) {
+			const geometry = withWidgetId ? { widgetId: String(item?.widgetId ?? '') } : {}
+			for (const field of LAYOUT_GEOMETRY_FIELDS) {
+				if (item?.[field] !== undefined) {
+					geometry[field] = item[field]
+				}
+			}
+			return geometry
+		},
+
+		/**
+		 * A drag or resize in the chosen view's grid. With `userLayout` it
+		 * moves this user's copy of the view and marks it for saving; the
+		 * view's manifest `layout` is not touched. Without it the geometry is
+		 * written back onto the layout items in place, as the page does for
+		 * its own layout, so the in-app manifest editor sees it.
+		 *
+		 * @param {Array<object>} updated The layout from the grid.
+		 * @return {void}
+		 * @spec openspec/changes/page-view-user-layouts/specs/view-switch-containers/spec.md#requirement-a-user-arranges-each-view-for-themselves
+		 */
+		onViewLayoutChange(updated) {
+			const view = this.activeView
+			if (!view || !Array.isArray(updated)) {
+				return
+			}
+			if (this.viewUserLayoutOn) {
+				const current = Array.isArray(this.viewUserLayouts[view.id]) ? this.viewUserLayouts[view.id] : mergeUserLayout(view.layout, null)
+				const arranged = current.map((item) => {
+					const u = updated.find((candidate) => String(candidate.id) === String(item.id))
+					return u ? { ...item, ...this.viewGeometry(u) } : item
+				})
+				this.viewUserLayouts = { ...this.viewUserLayouts, [view.id]: arranged }
+				this.viewUserLayoutsDirty = { ...this.viewUserLayoutsDirty, [view.id]: true }
+				this.$emit('view-layout-change', { view: view.id, layout: arranged })
+				// Outside an in-page edit session (the dashboard's edit mode, the
+				// detail page's Arrange) no Done will come to save it.
+				if (this.isEditing !== true && this.arrangingView !== true) {
+					this.saveViewUserLayouts()
+				}
+				return
+			}
+			for (const u of updated) {
+				const item = view.layout.find((l) => String(l.id) === String(u.id))
+				if (!item) {
+					continue
+				}
+				for (const key of ['gridX', 'gridY', 'gridWidth', 'gridHeight']) {
+					if (u[key] !== undefined) {
+						item[key] = u[key]
+					}
+				}
+			}
+			/**
+			 * Emitted when a widget in a view's grid is dragged or resized.
+			 *
+			 * @event view-layout-change
+			 * @type {{view: string, layout: Array<object>}}
+			 */
+			this.$emit('view-layout-change', { view: view.id, layout: view.layout })
+		},
+	},
+}

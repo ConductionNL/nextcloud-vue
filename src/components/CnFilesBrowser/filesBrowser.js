@@ -9,6 +9,8 @@
  */
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { conditionHolds } from '../../utils/fieldCondition.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * Actions the Files app registers that cannot run on a page without the Files
@@ -42,7 +44,7 @@ export function userRelativePathFromHref(href, uid) {
 	const marker = `/dav/files/${uid}`
 	const at = decoded.indexOf(marker)
 	const rest = at === -1 ? decoded : decoded.slice(at + marker.length)
-	const trimmed = rest.replace(/\/+$/, '')
+	const trimmed = stripTrailingSlashes(rest)
 	return trimmed === '' ? '/' : trimmed
 }
 
@@ -54,7 +56,7 @@ export function userRelativePathFromHref(href, uid) {
  * @return {string} The child's path.
  */
 export function joinPath(dir, name) {
-	return `${String(dir || '').replace(/\/+$/, '')}/${String(name || '').replace(/^\/+/, '')}`
+	return `${stripTrailingSlashes(String(dir || ''))}/${String(name || '').replace(/^\/+/, '')}`
 }
 
 /**
@@ -74,8 +76,8 @@ export function joinPath(dir, name) {
  * @return {Array<{name: string, path: string, aboveRoot: boolean}>} The crumbs, outermost first.
  */
 export function crumbsFor(rootPath, currentPath, rootLabel = null) {
-	const root = String(rootPath || '/').replace(/\/+$/, '') || '/'
-	const current = String(currentPath || root).replace(/\/+$/, '') || '/'
+	const root = stripTrailingSlashes(String(rootPath || '/')) || '/'
+	const current = stripTrailingSlashes(String(currentPath || root)) || '/'
 	const crumbs = []
 	let path = ''
 	for (const segment of root.split('/').filter(Boolean)) {
@@ -151,14 +153,55 @@ export function firstHrefIn(xml) {
  * @param {string} options.remoteUrl The DAV remote url, `…/remote.php/dav`.
  * @return {Promise<string|null>} The user-relative folder path, or null.
  */
-export async function resolveObjectFolder({ apiBase, register, schema, objectId, uid, remoteUrl }) {
+export async function resolveObjectFolder(options) {
+	const info = await resolveObjectFolderInfo(options)
+	return info === null ? null : info.path
+}
+
+/**
+ * The object's display name: `@self.name`, else `title`, else `name`. A
+ * value equal to the object's uuid is no name (the folder already reads so).
+ *
+ * @param {object|null} object The object as OpenRegister returns it.
+ * @param {string} objectId The object's uuid.
+ * @return {string|null} The name, or null.
+ * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+ */
+export function objectDisplayName(object, objectId) {
+	const candidates = [object?.['@self']?.name, object?.title, object?.name]
+	for (const candidate of candidates) {
+		if (typeof candidate === 'string' && candidate.trim() !== '' && candidate.trim() !== String(objectId)) {
+			return candidate.trim()
+		}
+	}
+	return null
+}
+
+/**
+ * `resolveObjectFolder`, plus the object's display name from the same read,
+ * so the browser can name the root crumb after the object instead of the
+ * uuid its folder is called on disk.
+ *
+ * @param {object} options The lookup, as for `resolveObjectFolder`.
+ * @param {string} options.apiBase OpenRegister's API base, `/apps/openregister/api`.
+ * @param {string} options.register The register slug.
+ * @param {string} options.schema The schema slug.
+ * @param {string} options.objectId The object's uuid.
+ * @param {string} options.uid The current user's id.
+ * @param {string} options.remoteUrl The DAV remote url, `…/remote.php/dav`.
+ * @return {Promise<{path: string, name: (string|null)}|null>} The folder and the object's name, or null.
+ * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+ */
+export async function resolveObjectFolderInfo({ apiBase, register, schema, objectId, uid, remoteUrl }) {
 	if (!register || !schema || !objectId || !uid) {
 		return null
 	}
 	let folderId
+	let name
 	try {
 		const { data } = await axios.get(generateUrl(`${apiBase}/objects/{register}/{schema}/{objectId}`, { register, schema, objectId }))
 		folderId = data?.['@self']?.folder ?? null
+		name = objectDisplayName(data, objectId)
 	} catch {
 		return null
 	}
@@ -168,14 +211,151 @@ export async function resolveObjectFolder({ apiBase, register, schema, objectId,
 	try {
 		const response = await axios.request({
 			method: 'SEARCH',
-			url: `${remoteUrl.replace(/\/+$/, '')}/`,
+			url: `${stripTrailingSlashes(remoteUrl)}/`,
 			headers: { 'Content-Type': 'application/xml' },
 			data: fileIdSearchBody(folderId, uid),
 			responseType: 'text',
 		})
 		const href = firstHrefIn(response.data)
-		return href === null ? null : userRelativePathFromHref(href, uid)
+		return href === null ? null : { path: userRelativePathFromHref(href, uid), name }
 	} catch {
 		return null
 	}
+}
+
+/**
+ * Read a dotted path off a value without throwing on a missing segment.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} value The value.
+ * @param {string} path A dotted path; empty answers the value itself.
+ * @return {(Array|object|string|number|boolean|null|undefined)} What sits at the path, or undefined.
+ */
+function readPath(value, path) {
+	if (typeof path !== 'string' || path === '') {
+		return value
+	}
+	return path.split('.').reduce((acc, key) => (acc === null || acc === undefined ? undefined : acc[key]), value)
+}
+
+/**
+ * Turn a host endpoint's answer into the browser's `rowData`: the host's own
+ * record for each file, keyed by file id.
+ *
+ * The answer may be a list of records (directly, at `path`, or under `items`
+ * or `results`), each naming its file in `key` (`fileId` unless the host says
+ * otherwise); a record without one is skipped. An object that is not a list
+ * and holds neither is taken as already keyed by file id. Anything else is
+ * an empty map: the extra columns stay empty, the files still list.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} data The endpoint answer.
+ * @param {object} [options] Where to look.
+ * @param {string} [options.path] A dotted path to the list in the answer.
+ * @param {string} [options.key] The record field that holds the file id.
+ * @return {object} The records by file id.
+ */
+export function indexRowData(data, { path = '', key = 'fileId' } = {}) {
+	let picked = readPath(data, path)
+	if (picked && typeof picked === 'object' && !Array.isArray(picked)) {
+		if (Array.isArray(picked.items)) {
+			picked = picked.items
+		} else if (Array.isArray(picked.results)) {
+			picked = picked.results
+		} else {
+			return { ...picked }
+		}
+	}
+	if (!Array.isArray(picked)) {
+		return {}
+	}
+	const byId = {}
+	picked.forEach((record) => {
+		if (!record || typeof record !== 'object') {
+			return
+		}
+		const id = record[key]
+		if (id === null || id === undefined || id === '') {
+			return
+		}
+		byId[String(id)] = record
+	})
+	return byId
+}
+
+/**
+ * Whether one field of a file's row meets its `visibleIf.row` entry: a plain
+ * value is compared strictly, an object is a predicate of a form field
+ * condition (`equals`, `in`, `notEmpty` and the rest).
+ *
+ * @param {string} key The row field.
+ * @param {unknown} wanted The value, or the predicate.
+ * @param {unknown} value What the row holds.
+ * @return {boolean} True when the field meets it.
+ */
+function rowFieldMatches(key, wanted, value) {
+	if (wanted !== null && typeof wanted === 'object' && !Array.isArray(wanted)) {
+		return conditionHolds({ ...wanted, field: key }, { [key]: value }, key)
+	}
+	return value === wanted
+}
+
+/**
+ * Whether a host row action is offered on a file, by its `visibleIf`.
+ *
+ * `visibleIf.extension` lists file extensions (no case, a leading dot is
+ * allowed); `visibleIf.mime` lists mime types, where one ending in `/` or
+ * `/*` names the whole family; `visibleIf.row` maps fields of the host's row
+ * for the file to the value each must have (compared strictly, so `true` is
+ * not `"true"`), or to a predicate of a form field condition such as
+ * `{ notEmpty: true }` or `{ in: [...] }`. Every condition named must hold. An action without
+ * `visibleIf` is offered on every file, as before. An action with `when` is
+ * offered only while `when` is `true`.
+ *
+ * @param {object} action The declared action.
+ * @param {object} node The file (`basename`, `mime`).
+ * @param {((key: string) => unknown)|null} rowValue Reads a field of the host's row for the file; without it a `row` condition fails.
+ * @return {boolean} True when the action belongs on this file.
+ * @spec openspec/changes/files-browser-action-visible-if-row/specs/files-browser/spec.md#requirement-a-host-action-can-be-offered-by-a-field-of-the-files-row
+ */
+export function hostActionApplies(action, node, rowValue = null) {
+	// `when`: the action applies only while it is true (a case type flag).
+	// @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-files-browser-entry-can-apply-only-when-a-condition-holds
+	if (action && typeof action === 'object' && 'when' in action && action.when !== true) {
+		return false
+	}
+	const condition = action && action.visibleIf
+	if (!condition || typeof condition !== 'object') {
+		return true
+	}
+	if (Array.isArray(condition.extension)) {
+		const name = String((node && node.basename) || '')
+		const dot = name.lastIndexOf('.')
+		const extension = dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
+		const wanted = condition.extension.map((entry) => String(entry).replace(/^\./, '').toLowerCase())
+		if (extension === '' || !wanted.includes(extension)) {
+			return false
+		}
+	}
+	if (Array.isArray(condition.mime)) {
+		const mime = String((node && node.mime) || '').toLowerCase()
+		const matches = condition.mime.some((entry) => {
+			const wanted = String(entry).toLowerCase()
+			if (wanted.endsWith('/*') || wanted.endsWith('/')) {
+				return mime.startsWith(wanted.replace(/\*$/, ''))
+			}
+			return mime === wanted
+		})
+		if (!matches) {
+			return false
+		}
+	}
+	if (condition.row && typeof condition.row === 'object') {
+		if (typeof rowValue !== 'function') {
+			return false
+		}
+		const holds = Object.entries(condition.row).every(([key, wanted]) => rowFieldMatches(key, wanted, rowValue(key)))
+		if (!holds) {
+			return false
+		}
+	}
+	return true
 }

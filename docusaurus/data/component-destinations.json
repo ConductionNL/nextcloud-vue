@@ -1,0 +1,1654 @@
+{
+ "source": "docs/project/14-component-destinations.md in ConductionNL/tables, branch docs/project-plan-buildiq-parity",
+ "weeks": {
+  "42": "12 Oct 2026",
+  "44": "26 Oct 2026",
+  "46": "9 Nov 2026",
+  "48": "23 Nov 2026",
+  "50": "7 Dec 2026",
+  "52": "21 Dec 2026",
+  "2": "4 Jan 2027"
+ },
+ "components": {
+  "cnRenderMarkdown": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "useEndpointSource": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "useScopedTheme": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "useUserPreferences": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "CnBreadcrumbs": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "display only"
+  },
+  "CnCard": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "display only"
+  },
+  "CnLockIndicator": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "display only"
+  },
+  "CnLockedBanner": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "display only"
+  },
+  "CnStatsBlock": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "display only"
+  },
+  "CnStatusBadge": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "display only"
+  },
+  "CnTabs": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "display only"
+  },
+  "CnBodySections": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnCommandPalette": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnDateAxisView": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnFolderSidebar": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnFolderTree": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnPageHeader": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnPagination": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnQuickFilterBar": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnCountdownWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnNavCardGrid": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnAdvancedFormDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "48",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnConfirmDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnCopyDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "48",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnDeleteDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "48",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnTabbedFormDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnWizardDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "cnFormFieldRenderer": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "CnColorPicker": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnDateRangePicker": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnFieldHelper": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnFileField": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnFormBuilder": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnFormWidgetBase": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnIconBrowser": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnIconPicker": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnJsonViewer": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnMarkdownEditor": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "useSetupStatus": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "useWalkthrough": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "CnSupportDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnAppLoading": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnDependencyMissing": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnSetupWizard": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnWalkthrough": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "nc-vue",
+   "week": "2",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "useBrokeredCall": {
+   "group": "composable or store",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "out of scope or OpenRegister-only"
+  },
+  "useLifecycleTransitions": {
+   "group": "composable or store",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "out of scope or OpenRegister-only"
+  },
+  "useObjectLock": {
+   "group": "composable or store",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "out of scope or OpenRegister-only"
+  },
+  "useObjectPresence": {
+   "group": "composable or store",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "out of scope or OpenRegister-only"
+  },
+  "useTaskInboxStore": {
+   "group": "composable or store",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "out of scope or OpenRegister-only"
+  },
+  "CnCredentials": {
+   "group": "dialog, field or primitive",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "OpenRegister-only"
+  },
+  "CnNotificationPreferences": {
+   "group": "dialog, field or primitive",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "OpenRegister-only"
+  },
+  "CnRegisterMapping": {
+   "group": "dialog, field or primitive",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "captured",
+   "note": "OpenRegister-only"
+  },
+  "CnRoadmapTab": {
+   "group": "dialog, field or primitive",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "OpenRegister-only"
+  },
+  "CnTransitionInputDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "OpenRegister-only"
+  },
+  "CnLifecycleActions": {
+   "group": "layout and shell",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "lifecycle transitions are out of scope"
+  },
+  "CnStorePage": {
+   "group": "page type",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "OpenRegister store plane"
+  },
+  "CnKbSearchWidget": {
+   "group": "widget",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "Out of scope"
+  },
+  "CnObjectPresenceWidget": {
+   "group": "widget",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "Out of scope"
+  },
+  "CnSpendAnalyticsWidget": {
+   "group": "widget",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "Out of scope"
+  },
+  "CnTasksWidget": {
+   "group": "widget",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "not needed",
+   "note": "Out of scope"
+  },
+  "CnWidgetRefItem": {
+   "group": "widget",
+   "verdict": "drop",
+   "destination": "none",
+   "week": "",
+   "screenshot": "captured",
+   "note": "Out of scope"
+  },
+  "useListView": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "list state and views through the adapter"
+  },
+  "useObjectStore": {
+   "group": "composable or store",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "the main seam: registerType, fetchSchema, fetchCollection, fetchObject, saveObject, deleteObject, resolveReferences"
+  },
+  "useSavedViewsApi": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "list state and views through the adapter"
+  },
+  "CnDashboardGrid": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnFeaturesAndRoadmapSidebar": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnLeafDependencySettings": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnLeafMountHost": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnObjectList": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnObjectRow": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnSavedViewsControl": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnWidgetRenderer": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnWidgetWrapper": {
+   "group": "layout and shell",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "no calls"
+  },
+  "CnDashboardPage": {
+   "group": "page type",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "no own data calls; per-user layout through preferences; widget references dropped"
+  },
+  "CnBannerWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnCalendarWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Nextcloud integrations"
+  },
+  "CnChartWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "Aggregations"
+  },
+  "CnContainerWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnConversationThread": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Nextcloud integrations"
+  },
+  "CnDashTileWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnDeltaWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Aggregations"
+  },
+  "CnDividerWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnDocumentReviewList": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Nextcloud integrations"
+  },
+  "CnFilesWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Nextcloud integrations"
+  },
+  "CnGaugeWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Aggregations"
+  },
+  "CnHeaderWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnImageWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnLabelWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnLinkButtonWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnLinksWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnMenuWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnNcWidgetWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Nextcloud integrations"
+  },
+  "CnPeopleWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Nextcloud integrations"
+  },
+  "CnQuicklinksWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnStackedBarWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "Aggregations"
+  },
+  "CnStatWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Aggregations"
+  },
+  "CnStatsBlockWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Aggregations"
+  },
+  "CnTextWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnTileWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "captured",
+   "note": "Presentational"
+  },
+  "CnVideoWidget": {
+   "group": "widget",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Presentational"
+  },
+  "CnWorkspaceFilterWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "44",
+   "screenshot": "needs an example",
+   "note": "Aggregations"
+  },
+  "actionsDispatcher": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "auditTrailDiff": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "pure, but they read OpenRegister's `@self` and `x-openregister-*` keys; the adapter returns Tables data in that shape or the utilities get a mapping"
+  },
+  "facets": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "pure, but they read OpenRegister's `@self` and `x-openregister-*` keys; the adapter returns Tables data in that shape or the utilities get a mapping"
+  },
+  "fetchAggregate": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "fetchFilterCounts": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "fetchSchemaProperties": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "indexExportHelpers": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "objectName": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "pure, but they read OpenRegister's `@self` and `x-openregister-*` keys; the adapter returns Tables data in that shape or the utilities get a mapping"
+  },
+  "schema.js": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "pure, but they read OpenRegister's `@self` and `x-openregister-*` keys; the adapter returns Tables data in that shape or the utilities get a mapping"
+  },
+  "schemaApi": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "visibleWhen": {
+   "group": "composable or store",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "each becomes one adapter method"
+  },
+  "CnEditDataModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "the data model editor becomes the Tables table and column editors"
+  },
+  "CnFieldPicker": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "form helper"
+  },
+  "CnFilesWidgetDeleteDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnFilterRowsEditor": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "form helper"
+  },
+  "CnFormDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "needs a JSON Schema shaped `getSchema`, then form generation works unchanged"
+  },
+  "CnMassCopyDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnMassDeleteDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnMassExportDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnMassImportDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": ""
+  },
+  "CnMenuItemEditor": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "form helper"
+  },
+  "CnNoteHistoryDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "one call each"
+  },
+  "CnObjectMetadataModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "metadata field mapping"
+  },
+  "CnQuickEditDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "through CnFormDialog"
+  },
+  "CnRegisterSchemaSelect": {
+   "group": "dialog, field or primitive",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "becomes the table and view picker"
+  },
+  "CnRelationLinkModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "one call each"
+  },
+  "CnResourceSelect": {
+   "group": "dialog, field or primitive",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "relation picker on `list`, `get` and inline `create`"
+  },
+  "CnSaveViewDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnSchemaFormDialog": {
+   "group": "dialog, field or primitive",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "the data model editor becomes the Tables table and column editors"
+  },
+  "CnShareCreate": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": ""
+  },
+  "CnTextTableEditor": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "form helper"
+  },
+  "CnActionButtons": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "schema and save through the adapter; flow run dropped"
+  },
+  "CnActionsBar": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "nothing of their own; reliance through children"
+  },
+  "CnAppNav": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "nothing of their own; reliance through children"
+  },
+  "CnAppRoot": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "required apps default, nav count badges and the collection probe go through the adapter; credentials dropped"
+  },
+  "CnBoardView": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "reference options and remote visibility rules"
+  },
+  "CnBuildiqEditButton": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "remove the flow entry"
+  },
+  "CnCellRenderer": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "foreign key cells resolve through `get`"
+  },
+  "CnContextMenu": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "reference options and remote visibility rules"
+  },
+  "CnDataTable": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "self fetch, distinct column values and aggregate columns through the adapter"
+  },
+  "CnDetailGrid": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "nothing of their own; reliance through children"
+  },
+  "CnDetailWidgetHost": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "nothing of their own; reliance through children"
+  },
+  "CnFilesBrowser": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "foreign key cells resolve through `get`"
+  },
+  "CnFkResolveCell": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "foreign key cells resolve through `get`"
+  },
+  "CnIndexSidebar": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "reference options and remote visibility rules"
+  },
+  "CnPageRenderer": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "page context and split view fetch through the adapter"
+  },
+  "CnRowActions": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "reference options and remote visibility rules"
+  },
+  "CnTabsWidget": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "nothing of their own; reliance through children"
+  },
+  "CnWidgetGrid": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "nothing of their own; reliance through children"
+  },
+  "CnDetailPage": {
+   "group": "page type",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "captured",
+   "note": "built on object fetch, schema, locks, presence, lifecycle and the sidebar"
+  },
+  "CnFormPage": {
+   "group": "page type",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "submits to a configured endpoint; only remote visibility rules call OpenRegister"
+  },
+  "CnIndexPage": {
+   "group": "page type",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "example does not render",
+   "note": "the list state, saved views, facets, mass actions and import and export call OpenRegister; table, cards, board and timeline rendering do not"
+  },
+  "CnLogsPage": {
+   "group": "page type",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "46",
+   "screenshot": "needs an example",
+   "note": "it is a list with pagination"
+  },
+  "CnAuditTrailCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "one sub-resource endpoint each"
+  },
+  "CnCardGrid": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "captured",
+   "note": "foreign key cells resolve through `get`"
+  },
+  "CnFilesCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "one sub-resource endpoint each"
+  },
+  "CnNextStepCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "reference options and remote visibility rules"
+  },
+  "CnNotesCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "one sub-resource endpoint each"
+  },
+  "CnObjectCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "captured",
+   "note": "foreign key cells resolve through `get`"
+  },
+  "CnObjectSidebar": {
+   "group": "layout and shell",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "captured",
+   "note": "tabs call object sub-resources; rebuilt on Tables rows with files, audit, relations and sharing tabs"
+  },
+  "CnRelatedCollections": {
+   "group": "layout and shell",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "inverse relation lists"
+  },
+  "CnSummaryAggregates": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "aggregate value"
+  },
+  "CnTagsCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "one sub-resource endpoint each"
+  },
+  "CnTasksCard": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "one sub-resource endpoint each"
+  },
+  "CnVersionHistory": {
+   "group": "layout and shell",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "one sub-resource endpoint each"
+  },
+  "CnFilesPage": {
+   "group": "page type",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "WebDAV; reliance comes through the data table"
+  },
+  "CnMapPage": {
+   "group": "page type",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "through the map widget"
+  },
+  "CnSettingsPage": {
+   "group": "page type",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "drop the register mapping section"
+  },
+  "CnAuditTrailWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnIntegrationWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnInteractionFormWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnMapWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Data lists"
+  },
+  "CnObjectDataWidget": {
+   "group": "widget",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "captured",
+   "note": "Detail"
+  },
+  "CnObjectGeoWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnObjectListWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Data lists"
+  },
+  "CnObjectMetadataWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "captured",
+   "note": "Detail"
+  },
+  "CnRelatedObjectsWidget": {
+   "group": "widget",
+   "verdict": "rewrite",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnStagesWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnTimelineWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Data lists"
+  },
+  "CnWeekStripWidget": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "captured",
+   "note": "Data lists"
+  },
+  "CnWidgetCardGrid": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Data lists"
+  },
+  "CnWidgetFormRenderer": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Detail"
+  },
+  "CnWidgetMapViewer": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Data lists"
+  },
+  "CnWidgetObjectTable": {
+   "group": "widget",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "48",
+   "screenshot": "needs an example",
+   "note": "Data lists"
+  },
+  "useManifestEditor": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "useWidgetForm": {
+   "group": "composable or store",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no OpenRegister calls"
+  },
+  "CnAddWidgetModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditActionsModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditMenuModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditPagesModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditSettingsModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditSetupModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditSidebarModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditSupportModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnEditWalkthroughModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnPageConfigModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnWidgetStyleEditorModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnWidgetVisibilityRulesModal": {
+   "group": "dialog, field or primitive",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "the designer dialogs make no calls; they edit the manifest in memory"
+  },
+  "CnFeaturesAndRoadmapPage": {
+   "group": "page type",
+   "verdict": "adapt",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "drop the GitHub proxy tab"
+  },
+  "CnLinkCardsPage": {
+   "group": "page type",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnReportsPage": {
+   "group": "page type",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnSearchPage": {
+   "group": "page type",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  },
+  "CnWikiPage": {
+   "group": "page type",
+   "verdict": "keep",
+   "destination": "tables",
+   "week": "50",
+   "screenshot": "needs an example",
+   "note": "no calls"
+  }
+ }
+}

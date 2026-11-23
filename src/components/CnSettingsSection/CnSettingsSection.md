@@ -86,8 +86,17 @@ export default {
 |------|------|---------|-------------|
 | `detailedDescription` | String | `''` | Extended description shown in a block below the title (more space than the NcSettingsSection `description`) |
 | `docUrl` | String | `''` | Documentation URL — shows an info icon link next to the section title |
+| `openedFrom` | String | `''` | The row this card is opened from, already translated: the card shows only while the page's hash names its `id`, and says "Opened from the row {row}" under its title in place of its description. Empty: the card is always shown. |
 | `errorMessage` | String | `'An error occurred'` | Message shown when `error` is `true` |
 | `onRetry` | Function | `null` | Callback for the retry button in the error state; button is hidden when `null` |
 | `retryButtonText` | String | `'Retry'` | Label for the retry button |
 | `empty` | Boolean | `false` | Show the empty state instead of the default slot content |
 | `emptyMessage` | String | `'No data available'` | Message shown in the empty state |
+| `footerLink` | Object | `null` | `{ label, href }`: a link at the end of the card to where its list is managed ("Leges beheren in shillinq"), drawn only with both and a safe href. The label is already translated. |
+
+
+`wide` is documented in the prop table of the component reference (board look, screens-chrome-parity).
+
+### Actions in the title row (`actionsInTitle`)
+
+With `actionsInTitle` the `actions` slot sits in the title row, beside the heading, the way the boards draw a section's buttons ("Regel toevoegen", "Dag toevoegen"). The description and the content run below across the width. Without it the actions float right above the content, as before.

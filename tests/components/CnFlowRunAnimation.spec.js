@@ -146,7 +146,7 @@ describe('CnFlowDetail run animation', () => {
 		expect(wrapper.find('.cn-flow-detail__node--run-done').exists()).toBe(true)
 		expect(wrapper.find('.cn-flow-detail__node--run-failed').exists()).toBe(true)
 		// Never colour alone: the state is also said in words (WCAG 1.4.1).
-		expect(wrapper.text()).toContain('Done')
+		expect(wrapper.text()).toContain('Succeeded')
 		expect(wrapper.text()).toContain('Failed')
 
 		wrapper.unmount()

@@ -26,9 +26,9 @@
 				v-for="group in groupedItems"
 				:key="group.key"
 				class="cn-object-metadata__group">
-				<h4 class="cn-object-metadata__group-title">
+				<component :is="innerHeadingTag" class="cn-object-metadata__group-title cn-inner-heading">
 					{{ group.label }}
-				</h4>
+				</component>
 				<CnDetailGrid
 					:items="group.items"
 					:layout="layout"
@@ -55,6 +55,8 @@
 <script>
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import innerHeading from '../../mixins/innerHeading.js'
+import { userLocale } from '../../utils/userLocale.js'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 
@@ -170,6 +172,8 @@ export default {
 		CnDetailCard,
 		CnDetailGrid,
 	},
+
+	mixins: [innerHeading],
 
 	props: {
 		/** Widget title shown in the card header */
@@ -516,7 +520,7 @@ export default {
 				if (Number.isNaN(date.getTime())) {
 					return String(value)
 				}
-				return date.toLocaleDateString(undefined, {
+				return date.toLocaleDateString(userLocale(), {
 					day: '2-digit',
 					month: '2-digit',
 					year: 'numeric',
@@ -530,11 +534,11 @@ export default {
 					if (Number.isNaN(date.getTime())) {
 						return String(value)
 					}
-					return date.toLocaleDateString(undefined, {
+					return date.toLocaleDateString(userLocale(), {
 						day: '2-digit',
 						month: '2-digit',
 						year: 'numeric',
-					}) + ', ' + date.toLocaleTimeString(undefined, {
+					}) + ', ' + date.toLocaleTimeString(userLocale(), {
 						hour: '2-digit',
 						minute: '2-digit',
 						second: '2-digit',
@@ -579,7 +583,7 @@ export default {
 			if (holder && hasUntil) {
 				return t('nextcloud-vue', 'Locked by {user} until {date}', {
 					user: holder,
-					date: until.toLocaleString(),
+					date: until.toLocaleString(userLocale()),
 				})
 			}
 

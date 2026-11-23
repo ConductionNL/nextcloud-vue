@@ -37,7 +37,10 @@
  * @property {object} defaultContent Initial `content` payload seeded into new placements.
  * @property {string} displayName Human-readable type name shown in the type picker.
  * @property {string} icon Material Design icon name used in the type picker.
+ * @property {boolean} [noChrome] The type draws no widget chrome (title, background, icon), so `CnAddWidgetModal` hides its Appearance block for it (a divider).
+ * @property {number} [minHeight] The fewest grid rows a placement of this type may take, below the grid's own minimum (a divider: 1). A host copies it onto the layout item as `minHeight`.
  * @property {string[]} [surfaces] Surfaces this type may be added on (e.g. `['app-dashboard']`, `['detail-page']`). Omitted means the default dashboard surfaces. A detail-only widget (like `data`) sets `['detail-page']` so it never appears in the dashboard Add-widget picker.
+ * @property {boolean} [public] Whether a PUBLIC host (an anonymous visitor at a public origin, such as the portal) may mount this widget. Default `false`, and `registerDashboardWidget()` records it: a widget author opts in deliberately. A non-boolean value is refused.
  * @property {{graphql?: string[]}} [requires] Soft runtime-source hint for cross-app widgets — names the sibling-app schemas the widget reads. NEVER a `manifest.dependencies` entry.
  */
 
@@ -65,6 +68,19 @@ export const dashboardWidgetRegistry = {}
 export function registerDashboardWidget(type, entry) {
 	if (typeof type !== 'string' || type === '') {
 		return
+	}
+	// Default closed: an anonymous visitor may only ever see a widget whose
+	// author said so. Refuse, rather than coerce, a value that is not a boolean:
+	// "yes" must not quietly become true, or false.
+	if (entry && entry.public !== undefined && typeof entry.public !== 'boolean') {
+		throw new TypeError(`[dashboardWidgetRegistry] widget type "${type}": \`public\` must be a boolean, got ${typeof entry.public}.`)
+	}
+	if (entry && entry.public === undefined) {
+		if (Object.isExtensible(entry)) {
+			entry.public = false
+		} else {
+			entry = { ...entry, public: false }
+		}
 	}
 	const isOverride = Object.hasOwn(dashboardWidgetRegistry, type)
 	// Read through `globalThis` rather than a bare `process`: this module is
@@ -95,6 +111,79 @@ export function listWidgetTypes(surface = 'app-dashboard') {
 		&& dashboardWidgetRegistry[type].form !== null
 		&& dashboardWidgetRegistry[type].form !== undefined
 		&& widgetTypeAllowsSurface(dashboardWidgetRegistry[type], surface))
+}
+
+/**
+ * List the widget types a USER may add to their own dashboard.
+ *
+ * 🔴 IT IS AN OPT-IN, AND THAT IS THE WHOLE POINT. `listWidgetTypes()` answers
+ * what an administrator may put on a page for everybody, which is a much
+ * larger set: an admin configures a widget once, with the register and schema
+ * in front of them, and a user picking from the same list would be offered
+ * types that need configuration they cannot supply and cannot be told about.
+ * So a type is offerable to a user only when its registry entry says
+ * `userAddable: true`.
+ *
+ * @param {string} [surface] The surface key, as {@link listWidgetTypes} uses it.
+ * @return {string[]} The type keys a user may add themselves.
+ */
+export function listUserAddableWidgetTypes(surface = 'app-dashboard') {
+	return listWidgetTypes(surface).filter((type) => dashboardWidgetRegistry[type]?.userAddable === true)
+}
+
+/**
+ * The presets a manifest offers a user, from `config.userWidgets[]`.
+ *
+ * A preset is a widget an app has already configured, offered under a name a
+ * user recognises: "one of my saved views", "my tasks". It exists because the
+ * registry types a user may add are deliberately few, and the two lists a user
+ * actually wants are both `object-list` widgets that need a query the app
+ * knows and the user does not.
+ *
+ * An entry with no `id` or no `kind` is dropped rather than offered: a preset
+ * nobody can identify cannot be added, and one with no kind has nothing to
+ * render.
+ *
+ * @param {object|null} config The page config.
+ * @return {Array<{ id: string, kind: string, label: string, widget: object }>} The offerable presets.
+ */
+export function userWidgetPresets(config) {
+	const declared = config?.userWidgets
+	if (!Array.isArray(declared)) {
+		return []
+	}
+
+	const presets = []
+	for (const entry of declared) {
+		const id = String(entry?.id ?? '').trim()
+		const kind = String(entry?.kind ?? '').trim()
+		if (id === '' || kind === '') {
+			continue
+		}
+
+		presets.push({
+			id,
+			kind,
+			label: String(entry?.label ?? id),
+			// The widget definition the app configured, copied so a caller
+			// adding one twice does not hand the grid the same object twice.
+			widget: { ...(entry?.widget || {}) },
+		})
+	}
+
+	return presets
+}
+
+/**
+ * Whether a widget type may be mounted by a public host. False for an unknown
+ * type: the decision and the lookup are one thing.
+ *
+ * @param {string} type the widget type key.
+ * @return {boolean} true only for a registered entry with `public: true`.
+ */
+export function isPublicWidgetType(type) {
+	const entry = dashboardWidgetRegistry[type]
+	return Boolean(entry) && entry.public === true
 }
 
 /**

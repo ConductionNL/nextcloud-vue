@@ -65,10 +65,13 @@ describe('the tasks source declares which fields the inbox answers', () => {
 	it('maps each declared field onto a real inbox argument', () => {
 		const source = indexSources.tasks()
 
-		expect(Object.keys(source.searchFields).sort()).toEqual(['dueAt', 'objectUuid', 'priority', 'state'])
+		// `kind` joined the source in #1201 and this assertion was not moved
+		// with it, so the suite has been red since. Inherited, one line.
+		expect(Object.keys(source.searchFields).sort()).toEqual(['dueAt', 'kind', 'objectUuid', 'priority', 'state'])
 		expect(source.searchFields.objectUuid).toEqual({ param: 'objectUuid', single: true })
 		expect(source.searchFields.state).toEqual({ param: 'state', join: ',' })
 		expect(source.searchFields.priority).toEqual({ param: 'priority', single: true })
+		expect(source.searchFields.kind).toEqual({ param: 'kind', single: true })
 		expect(source.searchFields.dueAt).toEqual({ range: ['dueAfter', 'dueBefore'] })
 	})
 

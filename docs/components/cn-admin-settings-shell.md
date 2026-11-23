@@ -52,10 +52,26 @@ With a real up-to-date check (when the backend reports a configured version):
 | `appId` | String | *(required)* | Nextcloud app id; used for the default re-import endpoint and the version `loadState` key |
 | `appName` | String | *(required)* | Human-readable name shown in the header and version card |
 | `appVersion` | String | `''` | Running version. When empty, read from `loadState(appId, 'version', 'Unknown')` |
+| `environment` | String | `''` | Environment this instance is: `development`, `test`, `acceptance` or `production`. Wins over the active organisation's `environment` field. A non-production value shows a [CnEnvironmentBanner](cn-environment-banner.md) and prefixes the tab title. |
 | `title` | String | `''` | Page title. Defaults to `"<appName> Settings"` |
 | `description` | String | `''` | Page description. Defaults to `"Configure your <appName> installation"` |
 | `docUrl` | String | `''` | Documentation URL (renders the info icon next to the title) |
+| `breadcrumbs` | Array | `[]` | Board look: the path under the title, in place of the description, as `[{ label, href? }]`. The last crumb is the current page. |
+| `breadcrumbNote` | String | `''` | Board look: a note after the path, behind a dot ("geldt voor de hele organisatie"). |
+| `tabs` | Array | `[]` | A tab strip under the header, as `[{ id, label, count? }]`. Each tab's panel is the `tab-<id>` slot; the version card, the credential broker and the default slot show on the first tab only. See [Tabs](#tabs). |
+| `tabQueryKey` | String | `'tab'` | The query parameter that holds the open tab's `id`. |
+| `tabStorageKey` | String | `''` | A browser storage key under which the shell remembers the last opened tab, so the page opens on it again when the address names no tab. The address still wins. Empty remembers nothing. |
+| `lazyTabs` | Boolean | `false` | Mount a tab's `tab-<id>` slot only while that tab is open, and unmount it when another tab opens. Off, every panel stays mounted and only the open one shows. See [Tabs](#tabs). |
+| `tabsVariant` | `'line' \| 'underline'` | `'line'` | How the `tabs` strip is drawn: `line`, the folder tabs, or `underline`, plain labels on a rule with the open one underlined in the primary colour (board LpBeheerAlgemeen). Passed to CnTabs as its `variant`. |
 | `showVersionCard` | Boolean | `true` | Whether to render the version card |
+| `versionCardWide` | Boolean | `true` | Under the board look the version card spans the whole settings grid. `false` keeps it one card in the grid. |
+| `versionCardPosition` | String | `'start'` | Where the version card and the organisation credential broker sit: `start`, above the app's sections, or `end`, after them (a board that starts with the app's own card, such as DcBeheer). The sections move in the markup, so the keyboard order follows. |
+| `supportPosition` | String | `'card'` | Where the support lines go: `card`, in the version card (its footer; with `compact` one "Support" row with the SLA address on the same line), or `end`, as their own wide card after everything else on the first tab (board PqBeheer: one row, the title then the support and SLA lines). |
+| `sectionColumns` | Number | `null` | Board look: how many columns the section cards take, `1` (dossiq's boards) or `2` (launchpad's; one again in a narrow window). Empty fits as many 420px columns as the width allows. |
+| `compact` | Boolean | `false` | Board look: dossiq's compact version card: "About this `{app}` installation.", no "Application name" row, the up-to-date state inline, support as one row, secondary buttons and no rule above them. The default keeps PqBeheer's card. Labels, the Support row's included, carry no colon. |
+| `showAppName` | Boolean | `true` | Board look: the version card draws its "Application name" row. Dossiq's boards pass `false`. |
+| `actionsDivider` | Boolean | `true` | Board look: the version card draws a rule above its buttons. Dossiq's boards pass `false`. |
+| `inlineUpToDate` | Boolean | `false` | Board look: the version card reads the up-to-date state in its configured version row instead of a disabled button. Dossiq's boards pass `true`. |
 | `showOrganisationCredentials` | Boolean | `false` | Render the organisation credential broker (`CnCredentials scope="organisation"`) on this admin page. Opt-in — only an app that actually brokers org-wide secrets should surface it. This is the broker's home since ADR-079 Step 2: it previously lived in a generic `manifest.adminSettings[]` modal on `CnAppRoot`, gated on app ownership, which no app ever declared — so it was unreachable everywhere. Here the access decision is Nextcloud's, made server-side for `/settings/admin/<app>`. |
 | `appCredentials` | Array | `[]` | The app's manifest `credentials[]` declarations, forwarded to the broker to drive its informational "apps requesting credentials" list. Only read when `showOrganisationCredentials` is true. |
 | `versionTitle` | String | `'Version information'` | Version card heading |
@@ -77,6 +93,7 @@ With a real up-to-date check (when the backend reports a configured version):
 | `update` | — | The version card's update button was clicked |
 | `reimported` | `object` | Configuration was re-imported successfully (AppHost response payload) |
 | `reimport-error` | `Error` | Configuration re-import failed |
+| `tab-change` | `string` | The reader opened another tab; the payload is its `id` |
 
 ## First-time setup actions (ADR-042)
 
@@ -89,12 +106,71 @@ Two optional actions surface the [`CnSetupWizard`](./cn-setup-wizard.md) and the
 | `setupSteps` | `Array` | `[]` | The `manifest.setup.steps` array passed to the wizard. |
 | `showHelp` | `boolean` | `false` | Show a "Help us" link to the forge's feature-request issue form (`helpRepo`). |
 | `helpRepo` | `string` | `''` | `<owner>/<repo>` slug for the feature-request modal. |
+| `formatters` | `object` | `{}` | Cell formatters by id, as `CnAppRoot`'s `formatters`. The shell provides `cnFormatters` (built-ins, an ancestor's registry, then these), so a table column's `formatter` resolves on an admin page that no `CnAppRoot` wraps. |
+| `versionTitleSize` | `number` | `0` | Board look: the version card title size in px when the app's board draws it other than 17px. |
+| `descGap` | `number` | `0` | Board look: the gap in px between a card's title and its description when the app's board draws it other than 4px; the content follows 10px further (DqBeheerinstellingen 6, so 16). |
+| `plainNotes` | `boolean` | `false` | Board look: the cards' notes draw no icon, and a warning note sits on the board's peach ground with its own edge (the NcBeheerInstellingen boards: DqBeheerGeavanceerd, DqBeheerinstellingen). |
 
 ## Slots
 
 | Slot | Description |
 |------|-------------|
-| default | The app's own settings sections, rendered below the version card |
+| default | The app's own settings sections, rendered below the version card (with `tabs`: on the first tab) |
+| `tab-<id>` | The panel of the tab with that `id` in `tabs` |
 | `actions` | Extra action buttons next to the update / re-import buttons |
 | `footer` | Replaces the default support / SLA footer |
 | `version-items` | Extra key/value rows inside the version card details |
+
+## Tabs
+
+With `tabs` the shell draws a tab strip right under the header, as the admin
+boards ShInstellingen and LpBeheerAlgemeen do. The shell's own content (the
+version card, the credential broker and the default slot) belongs to the first
+tab; every other tab shows its `tab-<id>` slot.
+
+```vue
+<CnAdminSettingsShell
+  app-id="shillinq"
+  app-name="Shillinq"
+  look="board"
+  :tabs="[
+    { id: 'algemeen', label: 'Algemeen' },
+    { id: 'velden', label: 'Verplichte velden', count: 12 },
+    { id: 'koppelingen', label: 'Koppelingen', count: 5 },
+  ]">
+  <GeneralSettings />
+  <template #tab-velden><RequiredFields /></template>
+  <template #tab-koppelingen><Integrations /></template>
+</CnAdminSettingsShell>
+```
+
+The open tab is in the address (`/settings/admin/shillinq?tab=velden`), so a
+link opens it and a reload keeps it. Picking a tab replaces the address entry
+rather than adding one, so Back still leaves the page. The strip is a WAI-ARIA
+tab list: Tab reaches the open tab, the arrow keys, Home and End move between
+tabs. Under the board look the strip draws folder tabs, and a panel's sections
+are cards on the same two-column grid as the shell's own.
+
+By default every panel stays mounted and only the open one shows, so a panel
+that fetches on `mounted()` fetches once, for all tabs, on page load. With
+`lazyTabs` the shell mounts a `tab-<id>` slot only while its tab is open and
+unmounts it when another tab opens: each visit mounts the panel afresh, and the
+page loads one tab at a time. The panel element itself stays, so the strip and
+its keyboard behaviour are the same either way.
+
+```vue
+<CnAdminSettingsShell app-id="launchpad" app-name="Launchpad" :tabs="tabs" lazy-tabs>
+  <template #tab-templates><TemplatesPage /></template>
+  <template #tab-operations><OperationsTab /></template>
+</CnAdminSettingsShell>
+```
+
+## Board look
+
+Under the board look the title is an h1 of 28px with the description under it, a labelled "Documentation" button (when `docUrl` is set) sits before the buildiq square, no documentation icon is drawn, and the sections lay out as cards in a two-column grid as wide as the content area. The `look` prop overrides the `cnLook` that `CnAppRoot` provides. A shell given `look="board"` itself carries the board class, so an admin page that no `CnAppRoot` wraps (Nextcloud mounts admin settings on their own) still takes the board look. With `breadcrumbs`, the path line ("Beheerinstellingen / Launchpad / Algemeen · geldt voor de hele organisatie") replaces the description. A `wide` section spans the grid and is not capped at NcSettingsSection's 900px.
+
+An element that wraps sections takes no box of its own under the board look, so its sections become cards of the shell's grid. Give it the class `cn-settings-cards` when it lays out its own cards, such as two cards side by side on a one-column page.
+
+## Translations
+
+The shell and its version card register the library's translation catalogue for the user's language when the page has not done so yet. An admin page is its own webpack entry, and its chrome reads in the user's language even when that entry never calls `registerTranslations()`. Calling it in the entry as well does no harm.

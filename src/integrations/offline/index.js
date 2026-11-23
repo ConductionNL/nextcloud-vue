@@ -15,13 +15,20 @@
 export {
 	__resetDbForTests,
 	__setDexie,
+	applyConflictResolution,
 	cacheKey,
+	CONFLICT_RECORD_PREFIX,
 	countPending,
+	countStuck,
 	enqueueMutation,
 	getCachedObject,
 	getDb,
 	getPlannedItems,
 	getPlanningMeta,
+	listQueue,
+	openDb,
+	recordConflict,
+	requeueOperation,
 	resolveDeviceId,
 	storePlanning,
 } from './offlineDb.js'
@@ -53,6 +60,23 @@ export {
 	checklistProgress,
 	classifyGps,
 	GPS_POOR_ACCURACY_M,
+	normaliseChecklistTemplate,
 	syncIndicator,
 	validateChecklistAnswers,
 } from './fieldCollectionHelpers.js'
+
+export { buildChecklistSubmission, fillEndpoint } from './checklistSubmission.js'
+
+export {
+	CACHE_PREFIX,
+	cacheNameFor,
+	isCacheable,
+	NEVER_CACHED,
+	respondTo,
+	staleCacheNames,
+} from '../../offline/serviceWorker.js'
+
+export {
+	registerOfflineWorker,
+	unregisterOfflineWorker,
+} from '../../offline/registerOfflineWorker.js'

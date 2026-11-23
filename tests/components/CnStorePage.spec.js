@@ -13,6 +13,7 @@
 
 import { getCurrentUser } from '@nextcloud/auth'
 import { showSuccess } from '@nextcloud/dialogs'
+import { NcButton } from '@nextcloud/vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnStorePage from '../../src/components/CnStorePage/CnStorePage.vue'
 
@@ -329,6 +330,165 @@ describe('CnStorePage', () => {
 		const own = mountPage({ kinds: ['case-type'] })
 		await flushPromises()
 		expect(own.vm.kindOptions.map((o) => o.value)).toEqual(['', 'case-type'])
+	})
+
+	// WHO SEES INSTALL AND PUBLISH IS THE APP'S ANSWER (learniq D27: any
+	// teacher installs a copy, team leads publish). `null` keeps the rule
+	// every store page had before the props: administrators only.
+	describe('action visibility', () => {
+		const CARD = { slug: 'course-package-demo', title: 'Demo course' }
+
+		/**
+		 * Mount with a router double, so Publish can navigate.
+		 *
+		 * @param {object} props The flattened props.
+		 * @param {object} router The router double.
+		 * @return {object} The wrapper.
+		 */
+		function publishButton(w) {
+			return w.findAllComponents(NcButton).find((b) => b.attributes('data-testid') === 'store-publish')
+		}
+
+		function mountWithRouter(props, router = { push: jest.fn() }) {
+			return mount(CnStorePage, {
+				props: { app: 'learniq', ...props },
+				global: { mocks: { $router: router } },
+			})
+		}
+
+		it('shows Install to a non-administrator the app allows', async () => {
+			getCurrentUser.mockReturnValue({ uid: 'teacher', isAdmin: false })
+			stubFetch({ outcome: 'ok', cards: [CARD] })
+
+			const w = mountWithRouter({ canInstall: true })
+			await flushPromises()
+
+			expect(w.find('[data-testid="store-install"]').exists()).toBe(true)
+		})
+
+		it('hides Install from an administrator when the app says no', async () => {
+			stubFetch({ outcome: 'ok', cards: [CARD] })
+
+			const w = mountWithRouter({ canInstall: false })
+			await flushPromises()
+
+			expect(w.text()).toContain('Demo course')
+			expect(w.find('[data-testid="store-install"]').exists()).toBe(false)
+		})
+
+		// NEGATIVE CONTROL ON THE DEFAULT. An absent Boolean prop is `false` in
+		// Vue unless it declares a default; `null` is what keeps the
+		// administrator rule for every app that sets nothing.
+		it('keeps the administrator rule when the app gives no answer', async () => {
+			stubFetch({ outcome: 'ok', cards: [CARD] })
+
+			const admin = mountWithRouter({})
+			await flushPromises()
+			expect(admin.vm.canInstall).toBeNull()
+			expect(admin.find('[data-testid="store-install"]').exists()).toBe(true)
+
+			getCurrentUser.mockReturnValue({ uid: 'teacher', isAdmin: false })
+			const teacher = mountWithRouter({})
+			await flushPromises()
+			expect(teacher.find('[data-testid="store-install"]').exists()).toBe(false)
+		})
+
+		it('installs through the declaring app for an allowed non-administrator', async () => {
+			getCurrentUser.mockReturnValue({ uid: 'teacher', isAdmin: false })
+			const urls = []
+			stubFetch({ outcome: 'ok', cards: [CARD], components: [] }, urls)
+
+			const w = mountWithRouter({ canInstall: true })
+			await flushPromises()
+			await w.find('[data-testid="store-install"]').trigger('click')
+			await flushPromises()
+
+			expect(urls).toContain('/apps/learniq/api/store/items/course-package-demo/install')
+			expect(showSuccess).toHaveBeenCalled()
+		})
+
+		it('shows Publish to a non-administrator the app allows, and navigates by route name', async () => {
+			getCurrentUser.mockReturnValue({ uid: 'lead', isAdmin: false })
+			stubFetch({ outcome: 'ok', cards: [] })
+			const router = { push: jest.fn() }
+
+			const w = mountWithRouter({ canPublish: true, publishRoute: 'CoursePackageExport' }, router)
+			await flushPromises()
+
+			const button = w.find('[data-testid="store-publish"]')
+			expect(button.exists()).toBe(true)
+			expect(button.text()).toBe('Publish')
+
+			// A real link: the button carries the location as `to`.
+			expect(publishButton(w).vm.$attrs.to).toEqual({ name: 'CoursePackageExport' })
+		})
+
+		it('passes a route location through unchanged', async () => {
+			stubFetch({ outcome: 'ok', cards: [] })
+			const router = { push: jest.fn() }
+			const location = { path: '/course-packages/export', query: { purpose: 'store' } }
+
+			const w = mountWithRouter({ canPublish: true, publishRoute: location }, router)
+			await flushPromises()
+
+			expect(publishButton(w).vm.$attrs.to).toEqual(location)
+		})
+
+		it('hides Publish when the app says no, administrators included', async () => {
+			stubFetch({ outcome: 'ok', cards: [] })
+
+			const w = mountWithRouter({ canPublish: false, publishRoute: 'CoursePackageExport' })
+			await flushPromises()
+
+			expect(w.find('[data-testid="store-publish"]').exists()).toBe(false)
+		})
+
+		// A button that goes nowhere is worse than none, and an event nobody
+		// listens to is what a manifest page would get.
+		it('renders no Publish button without a route, whatever the permission', async () => {
+			stubFetch({ outcome: 'ok', cards: [] })
+
+			const w = mountWithRouter({ canPublish: true })
+			await flushPromises()
+
+			expect(w.find('[data-testid="store-publish"]').exists()).toBe(false)
+		})
+
+		it('falls back to administrators for Publish when the app gives no answer', async () => {
+			stubFetch({ outcome: 'ok', cards: [] })
+
+			const admin = mountWithRouter({ publishRoute: 'CoursePackageExport' })
+			await flushPromises()
+			expect(admin.find('[data-testid="store-publish"]').exists()).toBe(true)
+
+			getCurrentUser.mockReturnValue({ uid: 'teacher', isAdmin: false })
+			const teacher = mountWithRouter({ publishRoute: 'CoursePackageExport' })
+			await flushPromises()
+			expect(teacher.find('[data-testid="store-publish"]').exists()).toBe(false)
+		})
+
+		// Every existing store page passes none of the new props: it must still
+		// render admin Install and no Publish.
+		it('renders an app that sets none of the new props exactly as before', async () => {
+			stubFetch({ outcome: 'ok', cards: [CARD] })
+
+			const w = mountPage({ app: 'dossiq', title: 'Store', description: 'Install case types.' })
+			await flushPromises()
+
+			expect(w.find('[data-testid="store-install"]').exists()).toBe(true)
+			expect(w.find('[data-testid="store-publish"]').exists()).toBe(false)
+		})
+
+		it('renders Publish as a plain button when no router is present', async () => {
+			stubFetch({ outcome: 'ok', cards: [] })
+
+			const w = mount(CnStorePage, { props: { app: 'learniq', canPublish: true, publishRoute: 'X' } })
+			await flushPromises()
+
+			const publish = w.find('[data-testid="store-publish"]')
+			expect(publish.exists()).toBe(true)
+			await expect(publish.trigger('click')).resolves.not.toThrow()
+		})
 	})
 
 	it('sends the search term and the kind filter as query parameters', async () => {

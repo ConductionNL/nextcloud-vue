@@ -32,26 +32,114 @@
   `POST /api/store/items/{slug}/install`; this component only calls it and
   renders what it reports.
 
+  WHO SEES INSTALL AND PUBLISH IS THE APP'S ANSWER, NOT THIS PAGE'S.
+  -----------------------------------------------------------------
+  `canInstall` and `canPublish` carry a boolean the app resolved (learniq reads
+  its ADR-023 action matrix). `null`, the default, falls back to administrators
+  only, which is what every store page did before the props existed. Publish
+  appears only when the app also names a `publishRoute`: publishing is the
+  app's own surface, like install. Both props hide a button and nothing more;
+  the app's endpoints enforce the same rule.
+
   A LOCAL-ONLY CARD GRID IS NOT A STORE (ADR-080 Decision 4). With no registry
   configured the engine answers `not_configured` WITHOUT a network call, and
   this page then renders `builtIn`. That fallback is the only reason a surface
   may carry the word Store at all.
 -->
 <template>
-	<div class="cn-store-page" data-testid="store-page">
-		<div class="cn-store-page__header">
-			<h2 class="cn-store-page__title">
-				{{ resolvedTitle }}
-			</h2>
-			<p v-if="resolvedDescription" class="cn-store-page__intro">
-				{{ resolvedDescription }}
+	<div class="cn-store-page" :class="{ 'cn-store-page--board': isBoardLook }" data-testid="store-page">
+		<!-- Board look (board PqStore): the page header, buildiq and Publish. -->
+		<CnPageHeader
+			v-if="isBoardLook"
+			:title="resolvedTitle"
+			:description="showsPackages ? '' : boardDescription">
+			<template #extra>
+				<div v-if="showsPackages" class="cn-store-page__header-actions">
+					<NcButton v-for="button in shippedButtons"
+						:key="button.label"
+						variant="secondary"
+						:href="button.href"
+						data-testid="store-header-link">
+						{{ shown(button.label) }}
+					</NcButton>
+				</div>
+				<div v-else class="cn-store-page__header-actions">
+					<CnBuildiqEditButton />
+					<NcButton
+						v-if="showPublish"
+						variant="primary"
+						data-testid="store-publish"
+						:to="publishable ? undefined : publishTarget"
+						@click="onPublishClick">
+						<template #icon>
+							<Upload :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Publish') }}
+					</NcButton>
+				</div>
+			</template>
+		</CnPageHeader>
+		<div v-else class="cn-store-page__header">
+			<div class="cn-store-page__heading">
+				<h2 class="cn-store-page__title" :lang="langOf(resolvedTitle)">
+					{{ shown(resolvedTitle) }}
+				</h2>
+				<NcButton
+					v-if="showPublish"
+					variant="secondary"
+					data-testid="store-publish"
+					:to="publishable ? undefined : publishTarget"
+					@click="onPublishClick">
+					{{ t('nextcloud-vue', 'Publish') }}
+				</NcButton>
+			</div>
+			<p v-if="resolvedDescription" class="cn-store-page__intro" :lang="langOf(resolvedDescription)">
+				{{ shown(resolvedDescription) }}
 			</p>
 		</div>
 
-		<div class="cn-store-page__controls">
+		<CnStorePackages v-if="showsPackages"
+			:app="resolvedApp"
+			:config="shipped"
+			:canInstall="showInstall"
+			:tr="shown" />
+
+		<div v-else-if="isBoardLook" class="cn-store-page__lens-row">
+			<div
+				class="cn-store-page__lenses"
+				role="group"
+				:aria-label="t('nextcloud-vue', 'Show')">
+				<button
+					v-for="option in lensOptions"
+					:key="option.value"
+					type="button"
+					class="cn-store-page__lens"
+					:class="{ 'cn-store-page__lens--active': option.value === lens }"
+					:aria-pressed="option.value === lens ? 'true' : 'false'"
+					:disabled="offline"
+					:data-testid="`store-lens-${option.value}`"
+					@click="lens = option.value">
+					{{ option.label }}
+					<span class="cn-store-page__lens-count">{{ option.count }}</span>
+				</button>
+			</div>
+			<div class="cn-store-page__lens-search" role="search">
+				<Magnify :size="18" class="cn-store-page__lens-search-icon" />
+				<input
+					v-model="query"
+					type="search"
+					class="cn-store-page__lens-search-input"
+					:placeholder="t('nextcloud-vue', 'Search the marketplace')"
+					:aria-label="t('nextcloud-vue', 'Search the marketplace')"
+					:disabled="offline"
+					data-testid="store-search"
+					@input="onSearchInput">
+			</div>
+		</div>
+		<div v-else class="cn-store-page__controls">
 			<NcTextField
 				v-model="query"
-				:label="t('nextcloud-vue', 'Search the store')"
+				:label="t('nextcloud-vue', 'Search the marketplace')"
 				:disabled="offline"
 				data-testid="store-search"
 				@update:modelValue="onSearchInput" />
@@ -65,113 +153,268 @@
 					:key="option.value"
 					:variant="option.value === kind ? 'primary' : 'secondary'"
 					:disabled="offline"
+					:data-testid="`store-kind-${option.value || 'all'}`"
 					@click="selectKind(option.value)">
 					{{ option.label }}
 				</NcButton>
 			</div>
 		</div>
 
-		<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
-
-		<NcNoteCard
-			v-else-if="offline"
-			type="info"
-			data-testid="store-not-configured">
-			{{ notConfiguredMessage }}
-		</NcNoteCard>
-
-		<NcNoteCard
-			v-else-if="unreachable"
-			type="warning"
-			data-testid="store-unreachable">
-			{{ unreachableMessage }}
-		</NcNoteCard>
-
-		<NcEmptyContent
-			v-else-if="cards.length === 0"
-			:name="t('nextcloud-vue', 'Nothing matches that search')"
-			:description="
-				t('nextcloud-vue', 'Try a different term, or clear the kind filter.')
-			" />
-
-		<ul
-			v-if="!loading && cards.length > 0"
-			class="cn-store-page__grid"
-			data-testid="store-results">
-			<li v-for="card in cards" :key="card.slug" class="cn-store-page__card">
-				<h3 class="cn-store-page__card-title">
-					{{ card.title || card.slug }}
-				</h3>
-				<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
-					{{ card.typeName || card.kind }}
-				</p>
-				<p class="cn-store-page__card-description">
-					{{ card.description }}
-				</p>
-				<div class="cn-store-page__card-footer">
-					<span v-if="card.publisher" class="cn-store-page__card-publisher">
-						{{ card.publisher }}
-					</span>
-					<span v-if="card.version" class="cn-store-page__card-version">
-						{{ card.version }}
-					</span>
-					<NcButton
-						v-if="canInstall"
-						variant="primary"
-						:disabled="installing === card.slug"
-						@click="install(card)">
-						{{
-							installing === card.slug
-								? t('nextcloud-vue', 'Installing…')
-								: t('nextcloud-vue', 'Install')
-						}}
-					</NcButton>
-				</div>
-			</li>
-		</ul>
-
-		<div
-			v-if="!loading && visibleBuiltIn.length > 0"
-			class="cn-store-page__builtin">
-			<h3 class="cn-store-page__builtin-title">
-				{{ builtInHeading }}
-			</h3>
-			<ul class="cn-store-page__grid" data-testid="store-builtin">
-				<li
-					v-for="item in visibleBuiltIn"
-					:key="item.slug"
-					class="cn-store-page__card">
-					<h4 class="cn-store-page__card-title">
-						{{ item.title || item.slug }}
-					</h4>
-					<p class="cn-store-page__card-description">
-						{{ item.description }}
-					</p>
-				</li>
-			</ul>
+		<!-- `targets`: where an install goes (a world, an administration); the
+		     chosen id travels in the install body as `target`. -->
+		<div v-if="!showsPackages && showInstall && targetOptions.length > 0"
+			class="cn-store-page__target"
+			data-testid="store-target">
+			<NcSelect
+				:inputLabel="resolvedTargetLabel"
+				:options="targetOptions"
+				:modelValue="selectedTarget"
+				:clearable="false"
+				label="label"
+				@update:modelValue="(option) => targetId = option ? option.id : ''" />
 		</div>
 
-		<NcNoteCard
-			v-if="report"
-			:type="report.type"
-			data-testid="store-install-report">
-			{{ report.message }}
-		</NcNoteCard>
+		<div v-if="!showsPackages" :class="{ 'cn-store-page__layout': isBoardLook }">
+			<div class="cn-store-page__main">
+				<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
+
+				<NcNoteCard
+					v-else-if="offline"
+					type="info"
+					data-testid="store-not-configured">
+					{{ notConfiguredMessage }}
+				</NcNoteCard>
+
+				<NcNoteCard
+					v-else-if="unreachable"
+					type="warning"
+					data-testid="store-unreachable">
+					{{ unreachableMessage }}
+				</NcNoteCard>
+
+				<NcEmptyContent
+					v-else-if="visibleCards.length === 0"
+					:name="t('nextcloud-vue', 'Nothing matches that search')"
+					:description="
+						t('nextcloud-vue', 'Try a different term, or clear the kind filter.')
+					" />
+
+				<ul
+					v-if="!loading && visibleCards.length > 0"
+					class="cn-store-page__grid"
+					:style="gridStyle"
+					data-testid="store-results">
+					<li
+						v-for="card in visibleCards"
+						:key="card.slug"
+						class="cn-store-page__card"
+						:class="{ 'cn-store-page__card--board': isBoardLook }">
+						<!--
+					Board look: an icon chip, the title, "<kind> · <publisher>" and a
+					state pill, then the description, then a footer with the version
+					and one named action. The same card without the look is the
+					plain one below.
+				-->
+						<template v-if="isBoardLook">
+							<div class="cn-store-page__card-head">
+								<span class="cn-store-page__card-chip" aria-hidden="true">
+									<CnIcon v-if="card.icon" :name="card.icon" :size="22" />
+									<PackageVariantClosed v-else :size="22" />
+								</span>
+								<div class="cn-store-page__card-heading">
+									<h3 class="cn-store-page__card-title">
+										{{ card.title || card.slug }}
+									</h3>
+									<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
+										{{ cardKindLine(card) }}
+									</p>
+									<span
+										class="cn-store-page__card-state"
+										:class="`cn-store-page__card-state--${cardState(card) || 'available'}`"
+										data-testid="store-card-state">
+										{{ cardStateLabel(card) }}
+									</span>
+								</div>
+							</div>
+							<p class="cn-store-page__card-description">
+								{{ card.description }}
+							</p>
+							<div class="cn-store-page__card-footer" data-testid="store-card-footer">
+								<span v-if="card.version" class="cn-store-page__card-version">
+									{{ cardVersion(card) }}
+								</span>
+								<NcButton
+									v-if="cardAction(card)"
+									variant="secondary"
+									class="cn-store-page__card-action"
+									:class="{ 'cn-store-page__card-action--soft': cardAction(card).id !== 'open' }"
+									data-testid="store-card-action"
+									:href="cardAction(card).href"
+									:disabled="installing === card.slug"
+									:aria-label="`${cardAction(card).label} ${card.title || card.slug}`"
+									@click="onCardAction(card, cardAction(card))">
+									{{ cardAction(card).label }}
+								</NcButton>
+							</div>
+						</template>
+						<template v-else>
+							<h3 class="cn-store-page__card-title">
+								{{ card.title || card.slug }}
+							</h3>
+							<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
+								{{ card.typeName || kindLabel(card.kind) }}
+							</p>
+							<p class="cn-store-page__card-description">
+								{{ card.description }}
+							</p>
+							<div class="cn-store-page__card-footer">
+								<span v-if="card.publisher" class="cn-store-page__card-publisher">
+									{{ card.publisher }}
+								</span>
+								<span v-if="card.version" class="cn-store-page__card-version">
+									{{ card.version }}
+								</span>
+								<NcButton
+									v-if="showInstall"
+									variant="primary"
+									data-testid="store-install"
+									:disabled="installing === card.slug"
+									@click="install(card)">
+									{{
+										installing === card.slug
+											? t('nextcloud-vue', 'Installing…')
+											: t('nextcloud-vue', 'Install')
+									}}
+								</NcButton>
+							</div>
+						</template>
+					</li>
+				</ul>
+
+				<div
+					v-if="!loading && visibleBuiltIn.length > 0"
+					class="cn-store-page__builtin">
+					<h3 class="cn-store-page__builtin-title">
+						{{ builtInHeading }}
+					</h3>
+					<ul class="cn-store-page__grid" :style="gridStyle" data-testid="store-builtin">
+						<li
+							v-for="item in visibleBuiltIn"
+							:key="item.slug"
+							class="cn-store-page__card">
+							<h4 class="cn-store-page__card-title" :lang="langOf(item.title)">
+								{{ shown(item.title) || item.slug }}
+							</h4>
+							<p class="cn-store-page__card-description" :lang="langOf(item.description)">
+								{{ shown(item.description) }}
+							</p>
+						</li>
+					</ul>
+				</div>
+
+				<NcNoteCard
+					v-if="report"
+					:type="report.type"
+					data-testid="store-install-report">
+					{{ report.message }}
+				</NcNoteCard>
+			</div>
+			<!-- Board look: what is installed, the update check, what ships with the app. -->
+			<aside v-if="isBoardLook && !loading && !offline && !unreachable" class="cn-store-page__aside">
+				<section class="cn-store-page__side-card" data-testid="store-installed">
+					<h2 class="cn-store-page__side-title">
+						{{ t('nextcloud-vue', 'Installed from this marketplace') }}
+					</h2>
+					<p v-if="installedCards.length === 0" class="cn-store-page__side-note">
+						{{ t('nextcloud-vue', 'Nothing from this marketplace is installed yet.') }}
+					</p>
+					<ul v-else class="cn-store-page__installed">
+						<li v-for="card in installedCards" :key="card.slug">
+							<span class="cn-store-page__installed-title">{{ card.title || card.slug }}</span>
+							<span class="cn-store-page__installed-version">{{ card.installedVersion || card.version }}</span>
+							<span
+								v-if="card.updateAvailable === true"
+								class="cn-store-page__card-state cn-store-page__card-state--update"
+								data-testid="store-installed-update">
+								{{ t('nextcloud-vue', 'Update') }}
+							</span>
+						</li>
+					</ul>
+				</section>
+				<section class="cn-store-page__side-card" data-testid="store-updates">
+					<h2 class="cn-store-page__side-title">
+						{{ t('nextcloud-vue', 'Updates') }}
+					</h2>
+					<p v-if="checkedLabel" class="cn-store-page__side-meta">
+						<ClockOutline :size="16" />
+						{{ t('nextcloud-vue', 'Last checked {when}', { when: checkedLabel }) }}
+					</p>
+					<p class="cn-store-page__side-note" data-testid="store-updates-count">
+						{{ updateCount === 0
+							? t('nextcloud-vue', 'Everything is up to date.')
+							: n('nextcloud-vue', '%n update is ready. An update keeps your own changes.', '%n updates are ready. An update keeps your own changes.', updateCount) }}
+					</p>
+					<NcButton
+						variant="secondary"
+						wide
+						:disabled="loading"
+						data-testid="store-check-now"
+						@click="search">
+						<template #icon>
+							<Refresh :size="18" />
+						</template>
+						{{ t('nextcloud-vue', 'Check now') }}
+					</NcButton>
+				</section>
+				<section v-if="includedLine" class="cn-store-page__side-card" data-testid="store-included">
+					<h2 class="cn-store-page__side-title">
+						{{ builtInHeading }}
+					</h2>
+					<p class="cn-store-page__side-text">
+						{{ includedLine }}
+					</p>
+					<p class="cn-store-page__side-note">
+						{{ t('nextcloud-vue', 'Only administrators install. An administrator connects the registry under Administration settings.') }}
+					</p>
+				</section>
+			</aside>
+		</div>
+		<CnStorePublishDialog
+			v-if="publishOpen"
+			:app="resolvedApp"
+			:kinds="effectiveKinds"
+			:kindLabel="kindLabel"
+			@close="publishOpen = false"
+			@published="onPublished" />
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { t } from '@nextcloud/l10n'
+import { n, t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import {
 	NcButton,
 	NcEmptyContent,
 	NcLoadingIcon,
 	NcNoteCard,
+	NcSelect,
 	NcTextField,
 } from '@nextcloud/vue'
+import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
+import Magnify from 'vue-material-design-icons/Magnify.vue'
+import PackageVariantClosed from 'vue-material-design-icons/PackageVariantClosed.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
+import Upload from 'vue-material-design-icons/Upload.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
+import CnStorePackages from './CnStorePackages.vue'
+import CnStorePublishDialog from './CnStorePublishDialog.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { labelLang } from '../../utils/manifestTranslate.js'
+import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
+import { CnIcon } from '../CnIcon/index.js'
 
 /**
  * The kind vocabulary from ADR-080 Decision 5. A `kind` names what installing
@@ -190,11 +433,29 @@ export default {
 	name: 'CnStorePage',
 
 	components: {
+		CnStorePackages,
+		ClockOutline,
+		CnBuildiqEditButton,
+		CnIcon,
+		CnPageHeader,
+		CnStorePublishDialog,
+		Magnify,
+		PackageVariantClosed,
+		Refresh,
+		Upload,
 		NcButton,
 		NcEmptyContent,
 		NcLoadingIcon,
 		NcNoteCard,
+		NcSelect,
 		NcTextField,
+	},
+
+	inject: {
+		/** The label lookup from CnAppRoot, so manifest labels show in the user's language. */
+		cnTranslate: { default: null },
+		/** The look CnAppRoot provides; `board` draws the catalogue cards of the screens. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -274,6 +535,104 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * Whether the signed-in user sees Install, as the app resolved it
+		 * (learniq: its ADR-023 matrix). `true` shows it on every remote
+		 * card, `false` hides it from everyone, administrators included.
+		 * `null` (the default) keeps the rule from before this prop:
+		 * administrators only. Presentation only: the app's install endpoint
+		 * must enforce the same rule.
+		 *
+		 * @type {boolean|null}
+		 */
+		canInstall: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * Where an install can go (`config.targets`): a list of `{ id, label }`,
+		 * or a source in the `optionsFrom` shape (`{ register, schema,
+		 * valueField?, labelField? }` or `{ url, ... }`), such as the app's
+		 * worlds. With targets the page shows a picker, the first target
+		 * chosen, and the install body carries `{ target: <id> }`. Without
+		 * any the install is sent as before.
+		 *
+		 * @spec openspec/changes/store-install-target/specs/store-page/spec.md#requirement-an-install-can-go-into-a-chosen-target
+		 * @type {Array<{id: string, label: string}>|object|null}
+		 */
+		targets: {
+			type: [Array, Object],
+			default: null,
+		},
+
+		/** The picker's label (`config.targetLabel`), through the app's translate; default "Install into". */
+		targetLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The app's shipped packages (`config.shipped`), drawn under the board
+		 * look while no registry is configured, in place of `builtIn`:
+		 * `{ title, subtitle?, parts?, notice?: { title, text }, crumbs?, buttons?, aside? }`.
+		 * The list reads `/api/store/packages`.
+		 *
+		 * @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages
+		 * @type {object|null}
+		 */
+		shipped: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Whether the signed-in user sees Publish, as the app resolved it.
+		 * `null` (the default) falls back to administrators only. Publish
+		 * renders only when `publishRoute` is set as well. Presentation
+		 * only: the app's publish endpoint must enforce the same rule.
+		 *
+		 * @type {boolean|null}
+		 */
+		canPublish: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * Where Publish takes the user: a route name (string) or a route
+		 * location (object). Publishing is the app's own surface, so this
+		 * page never sends anything to a registry itself. Empty means no
+		 * Publish button, whatever `canPublish` says, so an app that never
+		 * sets it renders what it rendered before.
+		 *
+		 * @type {string|object}
+		 */
+		publishRoute: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * Extra lens chips under the board look, one per item kind:
+		 * `[{ kind: 'connector', label: 'Connectors' }]` (board PqStore). The
+		 * label goes through the app's translate.
+		 */
+		kindLenses: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The app accepts a publish at `/api/store/publish` (and lists what may
+		 * be published at `/api/store/publishable`): Publish opens the publish
+		 * dialog instead of following `publishRoute`.
+		 */
+		publishable: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -294,17 +653,72 @@ export default {
 			// manifest block. Null until the first response, so "not asked
 			// yet" stays distinguishable from "the app declares none".
 			servedBuiltIn: null,
+			// The board look's lens: all, installed, updates or an item kind.
+			lens: 'all',
+			publishOpen: false,
+			// The targets read from a `targets` source, and the chosen one.
+			sourcedTargets: [],
+			targetId: '',
+			// When the registry last answered (`checkedAt` from the engine).
+			checkedAt: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the cards are drawn as the board look's catalogue cards.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Whether the shipped packages stand in for the marketplace.
+		 *
+		 * @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages
+		 * @return {boolean}
+		 */
+		showsPackages() {
+			return this.isBoardLook && this.shipped !== null && !this.loading && this.offline
+		},
+
+		/**
+		 * The header links of the shipped packages view.
+		 *
+		 * @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages
+		 * @return {Array<{label: string, href: string}>}
+		 */
+		shippedButtons() {
+			return Array.isArray(this.shipped?.buttons) ? this.shipped.buttons : []
+		},
+
+		/**
+		 * The board track for the cards: `minmax(var(--cn-card-grid-min,
+		 * 260px), 1fr)` and `var(--cn-card-grid-gap, 16px)`. Empty without
+		 * the look.
+		 *
+		 * @spec openspec/changes/screens-card-parity/specs/card-board-look/spec.md#requirement-the-card-grid-takes-the-board-track
+		 * @return {object}
+		 */
+		gridStyle() {
+			if (!this.isBoardLook) {
+				return {}
+			}
+			return {
+				gridTemplateColumns: 'repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))',
+				gap: 'var(--cn-card-grid-gap, 16px)',
+			}
+		},
+
 		/**
 		 * The page title, preferring the flattened prop over the page object.
 		 *
 		 * @return {string} The heading to render.
 		 */
 		resolvedTitle() {
-			return this.title || this.page?.title || t('nextcloud-vue', 'Store')
+			return this.title || this.page?.title || t('nextcloud-vue', 'Marketplace')
 		},
 
 		/**
@@ -323,6 +737,31 @@ export default {
 		 */
 		resolvedApp() {
 			return this.app || this.page?.config?.app || ''
+		},
+
+		/**
+		 * The targets an install can go into, `[{ id, label }]`.
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 * @spec openspec/changes/store-install-target/specs/store-page/spec.md#requirement-an-install-can-go-into-a-chosen-target
+		 */
+		targetOptions() {
+			if (Array.isArray(this.targets)) {
+				return this.targets
+					.filter((target) => target && (typeof target.id === 'string' || typeof target.id === 'number') && String(target.id) !== '')
+					.map((target) => ({ id: String(target.id), label: this.shown(target.label) || String(target.id) }))
+			}
+			return this.sourcedTargets
+		},
+
+		/** @return {{id: string, label: string}|null} The chosen target, the first by default. */
+		selectedTarget() {
+			return this.targetOptions.find((target) => target.id === this.targetId) || this.targetOptions[0] || null
+		},
+
+		/** @return {string} The picker's label. */
+		resolvedTargetLabel() {
+			return this.targetLabel ? this.shown(this.targetLabel) : t('nextcloud-vue', 'Install into')
 		},
 
 		/**
@@ -348,15 +787,76 @@ export default {
 		},
 
 		/**
-		 * Only an administrator may install: the components written are the
-		 * shape of the work every handler then operates against. The server
-		 * enforces this too; hiding the button keeps a non-admin from
-		 * discovering it as a 403.
+		 * Whether the current user is an administrator: the fallback for both
+		 * actions when the app did not say.
 		 *
 		 * @return {boolean} True when the current user is an administrator.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-1-the-consuming-app-decides-who-sees-install
 		 */
-		canInstall() {
+		isAdmin() {
 			return getCurrentUser()?.isAdmin === true
+		},
+
+		/**
+		 * Whether Install shows. The app's answer wins; without one only an
+		 * administrator installs, because what an install writes is the shape
+		 * of the work every handler then operates against. The server
+		 * enforces this too; hiding the button keeps a user from discovering
+		 * a refusal as a 403.
+		 *
+		 * @return {boolean} True when the Install buttons render.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-1-the-consuming-app-decides-who-sees-install
+		 */
+		showInstall() {
+			if (typeof this.canInstall === 'boolean') {
+				return this.canInstall
+			}
+
+			return this.isAdmin
+		},
+
+		/**
+		 * Where Publish navigates, or null when the app named no destination.
+		 * A string is a route NAME, the way manifest menu entries name routes.
+		 *
+		 * @return {object|null} A vue-router location, or null.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
+		 */
+		publishTarget() {
+			if (typeof this.publishRoute === 'string') {
+				return this.publishRoute === '' ? null : { name: this.publishRoute }
+			}
+
+			if (this.publishRoute !== null && typeof this.publishRoute === 'object') {
+				return this.publishRoute
+			}
+
+			return null
+		},
+
+		/**
+		 * Whether Publish shows: a destination is named AND the app allows it
+		 * (or, without an answer, the user is an administrator). No
+		 * destination means no button, because a button that goes nowhere
+		 * is worse than none.
+		 *
+		 * @return {boolean} True when the Publish button renders.
+		 *
+		 * @spec openspec/changes/store-page-action-visibility/specs/store-page/spec.md#requirement-req-stp-2-the-consuming-app-decides-who-sees-publish-and-where-it-leads
+		 */
+		showPublish() {
+			if (this.publishTarget === null && this.publishable !== true) {
+				return false
+			}
+
+			if (typeof this.canPublish === 'boolean') {
+				return this.canPublish
+			}
+
+			return this.isAdmin
 		},
 
 		/**
@@ -367,7 +867,7 @@ export default {
 		kindOptions() {
 			return [
 				{ value: '', label: t('nextcloud-vue', 'All kinds') },
-				...this.effectiveKinds.map((value) => ({ value, label: value })),
+				...this.effectiveKinds.map((value) => ({ value, label: this.kindLabel(value) })),
 			]
 		},
 
@@ -447,6 +947,85 @@ export default {
 		 *
 		 * @return {string} The built-in section heading.
 		 */
+		/**
+		 * The cards the chosen lens shows (board look); every card otherwise.
+		 *
+		 * @return {Array<object>}
+		 */
+		visibleCards() {
+			if (!this.isBoardLook || this.lens === 'all') {
+				return this.cards
+			}
+			if (this.lens === 'installed') {
+				return this.installedCards
+			}
+			if (this.lens === 'updates') {
+				return this.cards.filter((card) => card.updateAvailable === true)
+			}
+			return this.cards.filter((card) => card.kind === this.lens)
+		},
+
+		installedCards() {
+			return this.cards.filter((card) => card.installed === true)
+		},
+
+		updateCount() {
+			return this.cards.filter((card) => card.updateAvailable === true).length
+		},
+
+		/**
+		 * The lens chips with their counts.
+		 *
+		 * @return {Array<{value: string, label: string, count: number}>}
+		 */
+		lensOptions() {
+			return [
+				{ value: 'all', label: t('nextcloud-vue', 'All items'), count: this.cards.length },
+				{ value: 'installed', label: t('nextcloud-vue', 'Installed'), count: this.installedCards.length },
+				{ value: 'updates', label: t('nextcloud-vue', 'Updates available'), count: this.updateCount },
+				...this.kindLenses.map((entry) => ({
+					value: entry.kind,
+					label: this.shown(entry.label),
+					count: this.cards.filter((card) => card.kind === entry.kind).length,
+				})),
+			]
+		},
+
+		/**
+		 * The description, with `{count}` filled by the number of items the
+		 * registry holds.
+		 *
+		 * @return {string}
+		 */
+		boardDescription() {
+			return this.shown(this.resolvedDescription).replace('{count}', String(this.cards.length))
+		},
+
+		checkedLabel() {
+			if (!this.checkedAt) {
+				return ''
+			}
+			const date = new Date(this.checkedAt)
+			return isNaN(date.getTime()) ? '' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+		},
+
+		/**
+		 * "A, B and C ship with {app}. They show here when no registry is
+		 * connected.", or '' when the app ships nothing.
+		 *
+		 * @return {string}
+		 */
+		includedLine() {
+			const titles = this.effectiveBuiltIn.map((item) => this.shown(item.title) || item.slug).filter(Boolean)
+			if (titles.length === 0) {
+				return ''
+			}
+			const list = titles.length === 1
+				? titles[0]
+				: t('nextcloud-vue', '{list} and {last}', { list: titles.slice(0, -1).join(', '), last: titles[titles.length - 1] })
+			return t('nextcloud-vue', '{items} ship with the app. They show here when no registry is connected.', { items: list })
+		},
+
 		builtInHeading() {
 			return this.resolvedApp
 				? t('nextcloud-vue', 'Included with {app}', { app: this.resolvedApp })
@@ -463,7 +1042,7 @@ export default {
 		notConfiguredMessage() {
 			const base = t(
 				'nextcloud-vue',
-				'No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.',
+				'No marketplace registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.',
 			)
 
 			return this.builtIn.length > 0
@@ -477,7 +1056,7 @@ export default {
 		 * @return {string} The unreachable note.
 		 */
 		unreachableMessage() {
-			const base = t('nextcloud-vue', 'The store registry did not answer.')
+			const base = t('nextcloud-vue', 'The marketplace registry did not answer.')
 
 			return this.builtIn.length > 0
 				? `${base} ${t('nextcloud-vue', 'The items below ship with this app.')}`
@@ -487,6 +1066,7 @@ export default {
 
 	mounted() {
 		this.search()
+		this.loadTargets()
 	},
 
 	/**
@@ -501,6 +1081,156 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The "<kind> · <publisher>" line of a catalogue card.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The line, or ''.
+		 */
+		/**
+		 * The footer version: the installed one and the newer one when an
+		 * update is out, else the registry's.
+		 *
+		 * @param {object} card The store item.
+		 * @return {string}
+		 */
+		cardVersion(card) {
+			if (card.updateAvailable === true && card.installedVersion) {
+				return t('nextcloud-vue', 'Version {version}, {latest} is out', { version: card.installedVersion, latest: card.version })
+			}
+			return t('nextcloud-vue', 'Version {version}', { version: card.version })
+		},
+
+		n,
+
+		onPublishClick() {
+			if (this.publishable) {
+				this.publishOpen = true
+			}
+		},
+
+		onPublished() {
+			this.publishOpen = false
+			this.search()
+		},
+
+		cardKindLine(card) {
+			return [card.typeName || this.kindLabel(card.kind), card.publisher].filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
+		/**
+		 * The state a catalogue card shows as a pill: `update` when the item
+		 * says an update is available, `installed` when it says it is
+		 * installed, none otherwise.
+		 *
+		 * @param {object} card The card.
+		 * @return {('installed'|'update'|'')} The state.
+		 */
+		cardState(card) {
+			if (card.updateAvailable === true) {
+				return 'update'
+			}
+			return card.installed === true ? 'installed' : ''
+		},
+
+		/**
+		 * The words on a catalogue card's state pill: Update, Installed, or
+		 * Available for an item that is not installed.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The label.
+		 * @spec openspec/changes/store-page-board-as-drawn/specs/store-page/spec.md#requirement-a-board-look-store-card-shows-its-state-and-its-action-as-drawn
+		 */
+		cardStateLabel(card) {
+			const state = this.cardState(card)
+			if (state === 'update') {
+				return t('nextcloud-vue', 'Update')
+			}
+			return state === 'installed' ? t('nextcloud-vue', 'Installed') : t('nextcloud-vue', 'Available')
+		},
+
+		/**
+		 * The one action in a catalogue card's footer: Update for an item with
+		 * an update, Open for an installed one that says where it opens
+		 * (`openUrl`), Install for one that is not installed. Nothing when the
+		 * viewer may not install and there is nowhere to open.
+		 *
+		 * @param {object} card The card.
+		 * @return {?{id: string, label: string, href?: string}} The action, or null.
+		 */
+		cardAction(card) {
+			const state = this.cardState(card)
+			if (state === 'update') {
+				return this.showInstall ? { id: 'update', label: t('nextcloud-vue', 'Update') } : null
+			}
+			if (state === 'installed') {
+				return typeof card.openUrl === 'string' && card.openUrl !== '' ? { id: 'open', label: t('nextcloud-vue', 'Open'), href: card.openUrl } : null
+			}
+			return this.showInstall ? { id: 'install', label: t('nextcloud-vue', 'Install') } : null
+		},
+
+		/**
+		 * The footer action was clicked: install and update run the install
+		 * endpoint; Open is a link and has nothing to run.
+		 *
+		 * @param {object} card The card.
+		 * @param {{id: string}} action The action.
+		 * @return {void}
+		 */
+		onCardAction(card, action) {
+			if (action.id === 'install' || action.id === 'update') {
+				this.install(card)
+			}
+		},
+
+		/**
+		 * The label of a kind: the library's own for the five kinds of the
+		 * default vocabulary ("App template" for `app-template`), else the kind
+		 * through the app's translate, so an app with kinds of its own names
+		 * them in its catalogue. Never the raw id of a known kind.
+		 *
+		 * @spec openspec/changes/screens-store-page-translations/specs/store-page/spec.md#requirement-the-store-page-reads-in-the-users-language
+		 * @param {string} kind The kind id.
+		 * @return {string} The label.
+		 */
+		kindLabel(kind) {
+			const known = {
+				'app-template': t('nextcloud-vue', 'App template'),
+				adapter: t('nextcloud-vue', 'Adapter'),
+				'source-template': t('nextcloud-vue', 'Source template'),
+				'configuration-template': t('nextcloud-vue', 'Configuration template'),
+				'agent-template': t('nextcloud-vue', 'Agent template'),
+			}
+			if (typeof kind !== 'string' || kind === '') {
+				return ''
+			}
+			const translated = this.shown(kind)
+			// The app's own word for a kind wins over the library's.
+			return translated !== kind ? translated : (Object.hasOwn(known, kind) ? known[kind] : kind)
+		},
+
+		/**
+		 * A manifest label through the injected lookup, or as written. The
+		 * built-in items' titles and descriptions read through it too.
+		 *
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-the-stores-own-items-read-in-the-users-language
+		 * @param {string} text The label as written.
+		 * @return {string} The label in the user's language.
+		 */
+		shown(text) {
+			return typeof this.cnTranslate === 'function' && typeof text === 'string' && text !== '' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The `lang` of a label that fell back to its written text in another language.
+		 *
+		 * @param {string} text The label as written.
+		 * @return {string|undefined} The source language, or undefined.
+		 */
+		langOf(text) {
+			return labelLang(this.cnTranslate, text) || undefined
+		},
+
 		t,
 
 		/**
@@ -577,11 +1307,30 @@ export default {
 				// answers, so an app's own items survive a registry that is
 				// down — which is exactly when they are all there is to show.
 				this.servedBuiltIn = Array.isArray(body.builtIn) ? body.builtIn : null
+				this.checkedAt = typeof body.checkedAt === 'string' ? body.checkedAt : ''
 			} catch {
 				this.outcome = 'store_unreachable'
 				this.cards = []
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Read the targets of a `targets` source once; a failed read offers none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/store-install-target/specs/store-page/spec.md#requirement-an-install-can-go-into-a-chosen-target
+		 */
+		async loadTargets() {
+			if (!isOptionsFrom(this.targets)) {
+				return
+			}
+			try {
+				const options = await loadOptionsFrom(this.targets)
+				this.sourcedTargets = options.map((option) => ({ id: String(option.id), label: option.label }))
+			} catch {
+				this.sourcedTargets = []
 			}
 		},
 
@@ -599,6 +1348,7 @@ export default {
 		async install(card) {
 			this.installing = card.slug
 			this.report = null
+			const target = this.selectedTarget
 
 			try {
 				const response = await fetch(
@@ -609,6 +1359,7 @@ export default {
 							'Content-Type': 'application/json',
 							requesttoken: window.OC?.requestToken,
 						},
+						...(target ? { body: JSON.stringify({ target: target.id }) } : {}),
 					},
 				)
 				const body = await response.json()
@@ -652,13 +1403,34 @@ export default {
 	max-width: 1200px;
 }
 
-.cn-store-page__title {
+/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+   positioned at the left edge of .app-content) plus 12px breathing room, as
+   CnPageHeader does. Only the header shifts; the body keeps the full width. */
+.cn-store-page__header {
+	padding-inline-start: 56px;
+}
+
+.cn-store-page__heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 	margin: 0 0 4px;
+}
+
+.cn-store-page__title {
+	margin: 0;
 }
 
 .cn-store-page__intro {
 	color: var(--color-text-maxcontrast);
 	margin: 0 0 16px;
+}
+
+.cn-store-page__target {
+	max-width: 360px;
+	margin-bottom: 12px;
 }
 
 .cn-store-page__controls {

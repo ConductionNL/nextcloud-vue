@@ -79,7 +79,10 @@
 		<div v-else-if="reports.length === 0" class="cn-sidebar-tab__empty cn-analytics-tab__empty">
 			<ChartBar :size="32" class="cn-analytics-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openAnalyticsApp">
+			<NcButton
+				variant="primary"
+				:href="analyticsAppUrl"
+				target="_blank">
 				<template #icon>
 					<ChartBar :size="20" />
 				</template>
@@ -124,12 +127,15 @@
 					</span>
 				</template>
 				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openReport(report)">
+					<NcActionLink
+						:closeAfterClick="true"
+						:href="reportUrl(report)"
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Analytics') }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton :closeAfterClick="true" @click="unlinkReport(report)">
 						<template #icon>
 							<LinkOff :size="20" />
@@ -155,7 +161,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChartBar from 'vue-material-design-icons/ChartBar.vue'
 import ChartLine from 'vue-material-design-icons/ChartLine.vue'
@@ -170,7 +176,9 @@ import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import CnAnalyticsReportCreate from '../../../components/CnAnalyticsReportCreate/CnAnalyticsReportCreate.vue'
 import CnAnalyticsReportPicker from '../../../components/CnAnalyticsReportPicker/CnAnalyticsReportPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
+import { stripMarker } from '../../utils/marker.js'
 
 /**
  * CnAnalyticsTab — bespoke dataset list for the `analytics` integration.
@@ -188,6 +196,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcListItem,
 		NcLoadingIcon,
@@ -284,7 +293,7 @@ export default {
 		 */
 		reportTitle(report) {
 			const raw = (report && (report.reportTitle || report.title || report.name || report.data?.name)) || ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled report')
+			return stripMarker(raw) || t('nextcloud-vue', 'Untitled report')
 		},
 
 		/**
@@ -297,7 +306,7 @@ export default {
 		 */
 		reportSubheader(report) {
 			const raw = report?.subheader ?? report?.dataSource ?? report?.data?.subheader ?? ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim()
+			return stripMarker(raw)
 		},
 
 		reportType(report) {
@@ -387,7 +396,7 @@ export default {
 			const num = Number(raw)
 			if (Number.isFinite(num) && String(raw).trim() !== '') {
 				try {
-					return num.toLocaleString()
+					return num.toLocaleString(userLocale())
 				} catch {
 					return String(num)
 				}
@@ -399,8 +408,9 @@ export default {
 			return t('nextcloud-vue', 'Latest value')
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		reportUrl(report) {
-			if (report && report.url) {
+			if (report && report.url && safeHref(report.url) !== '#') {
 				return report.url
 			}
 			const id = this.reportKey(report)
@@ -428,7 +438,7 @@ export default {
 				if (Number.isNaN(d.getTime())) {
 					return String(value)
 				}
-				return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+				return d.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 			} catch {
 				return String(value)
 			}
@@ -440,12 +450,6 @@ export default {
 
 		openCreate() {
 			this.createOpen = true
-		},
-
-		openReport(report) {
-			if (typeof window !== 'undefined') {
-				window.open(this.reportUrl(report), '_blank', 'noopener')
-			}
 		},
 
 		async onLinkPick(payload) {
@@ -509,12 +513,6 @@ export default {
 				// eslint-disable-next-line no-console
 				console.error('[CnAnalyticsTab] unlink failed', err)
 				this.error = t('nextcloud-vue', 'Could not unlink report.')
-			}
-		},
-
-		openAnalyticsApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.analyticsAppUrl, '_blank', 'noopener')
 			}
 		},
 

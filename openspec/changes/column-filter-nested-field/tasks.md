@@ -1,0 +1,7 @@
+- [x] Resolve a dotted filter field through object properties (`fieldProperty`)
+- [x] `filterField` on a column, also for a computed column
+- [x] `filterField` in the v1 manifest column schema
+- [x] Unit spec `tests/utils/columnFiltersNestedField.spec.js`
+- [x] Document in `docs/components/cn-data-table.md`
+- [x] `aggregate.filterable`: related-row filter for count (Yes) and max (date range); no No in the panel
+- [x] Component spec `tests/components/CnDataTableRelatedRowFilter.spec.js`

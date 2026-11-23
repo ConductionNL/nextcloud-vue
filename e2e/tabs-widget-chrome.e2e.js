@@ -126,11 +126,9 @@ test.describe('CnTabsWidget chrome', () => {
 	// REGRESSION, and a gap in this file's own reach.
 	//
 	// Nextcloud's server stylesheet sets `margin-bottom: 3px` on every plain
-	// `button`, with a selector scoring (0,2,1) against the (0,2,0) of the
-	// component's scoped rule. Inside a real Nextcloud page the tabs therefore
-	// sat 4px ABOVE the bar's rule and the open tab never met its panel: the
-	// join was only ever visible in this harness, which is a bare vite page
-	// that does not load Nextcloud's CSS.
+	// `button`, with a selector that outscores the component's own scoped rule.
+	// The tabs sit flush in the strip and the single pixel of overhang lives on
+	// the nav, so the join holds only while that 3px stays zeroed on the tabs.
 	//
 	// So this test injects that one competing declaration and asserts the
 	// component still wins. It is the narrowest honest way to cover a cascade
@@ -140,8 +138,12 @@ test.describe('CnTabsWidget chrome', () => {
 		await page.addStyleTag({
 			content: 'button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button) { margin-bottom: 3px; }',
 		})
-		const mb = await page.evaluate(() => getComputedStyle(document.querySelector('.cn-tabs__nav-item--active')).marginBottom)
-		expect(mb).toBe('-1px')
+		const margins = await page.evaluate(() => ({
+			item: getComputedStyle(document.querySelector('.cn-tabs__nav-item--active')).marginBottom,
+			nav: getComputedStyle(document.querySelector('.cn-tabs__nav')).marginBottom,
+		}))
+		expect(margins.item).toBe('0px')
+		expect(margins.nav).toBe('-1px')
 	})
 
 	// The strip carries no card chrome of its own. Measured through

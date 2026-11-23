@@ -1,0 +1,28 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * CnToggleTableWidget — self-registers the `toggle-table` widget type (rows
+ * from a configured list or a source, each with a switch bound to the current
+ * object, and optional extra columns) into the shared dashboardWidgetRegistry.
+ */
+
+import { lazyComponent } from '../../utils/lazyComponent.js'
+import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+const LazyCnToggleTableWidget = lazyComponent(() => import('./CnToggleTableWidget.vue'), 'CnToggleTableWidget')
+
+registerDashboardWidget('toggle-table', {
+	renderer: LazyCnToggleTableWidget,
+	form: null,
+	defaultContent: {
+		bind: { mode: 'flag' },
+		rows: [],
+	},
+	displayName: 'Toggle table',
+	icon: 'TableCheck',
+	surfaces: ['detail-page'],
+})
+
+export { default as CnToggleTableWidget } from './CnToggleTableWidget.vue'
+export { default } from './CnToggleTableWidget.vue'

@@ -64,6 +64,21 @@ describe('CnFkResolveCell', () => {
 		expect(wrapper.text()).toBe('Fetched BV')
 	})
 
+	it('uses a camelCase schema slug exactly as given (no kebab-case)', async () => {
+		// pipelinq's productCategory schema: kebab-casing it to
+		// product-category asked the objects API for a schema that does not
+		// exist and every cell showed the raw uuid.
+		const store = makeStore({}, {
+			fetchObject: jest.fn().mockResolvedValue({ name: 'Hardware' }),
+		})
+		useObjectStore.mockReturnValue(store)
+		const wrapper = mount(CnFkResolveCell, { propsData: { register: 'pipelinq', schema: 'productCategory', labelField: 'name', value: 'uuid-9' } })
+		await new Promise((resolve) => setTimeout(resolve))
+		expect(store.fetchObject).toHaveBeenCalledWith('pipelinq/productCategory', 'uuid-9')
+		expect(store.registerObjectType).toHaveBeenCalledWith('pipelinq/productCategory', 'productCategory', 'pipelinq')
+		expect(wrapper.text()).toBe('Hardware')
+	})
+
 	it('falls back labelField → title → @self.name → raw id', async () => {
 		const store = makeStore({
 			'crm/client': {

@@ -86,8 +86,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcLoadingIcon, NcNoteCard, NcSelect, NcTextArea, NcTextField } from '@nextcloud/vue'
+import { prefixUrl } from '../utils/headers.js'
+import { hasStaticOptions, normaliseSelectOptions } from '../utils/selectOptions.js'
 
 /**
  * The dialog `run-node` opens to collect a directly-invoked flow node's own
@@ -128,7 +129,9 @@ export default {
 		title: { type: String, default: '' },
 		/**
 		 * The node's declared config form — `IFlowNodeConfigForm::configForm()`'s
-		 * shape, unchanged: `[{key, label, type, help?, required?, optionsFrom?}]`.
+		 * shape, unchanged: `[{key, label, type, help?, required?, optionsFrom?, options?}]`.
+		 * A `select` takes its choices from `optionsFrom` (a url) or `options`
+		 * (strings, or `{value, label}` pairs declared in the form itself).
 		 *
 		 * @type {Array<object>}
 		 */
@@ -177,7 +180,9 @@ export default {
 				}
 				this.values = seed
 				for (const field of (fields || [])) {
-					if (field.type === 'select' && field.optionsFrom) {
+					if (hasStaticOptions(field)) {
+						this.options = { ...this.options, [field.key]: normaliseSelectOptions(field.options, (s) => this.tr(s)) }
+					} else if (field.type === 'select' && field.optionsFrom) {
 						this.loadOptions(field)
 					}
 				}
@@ -271,15 +276,10 @@ export default {
 			try {
 				const [{ default: axios }] = await Promise.all([import('@nextcloud/axios')])
 				const raw = String(field.optionsFrom)
-				const url = (raw.startsWith('/') && !raw.startsWith('/apps') && !raw.startsWith('/index.php'))
-					? generateUrl(raw)
-					: raw
+				const url = prefixUrl(raw)
 				const response = await axios.get(url)
 				const rows = Array.isArray(response.data) ? response.data : (response.data?.results || [])
-				const opts = rows.map((row) => {
-					const id = row.id ?? row.value ?? row['@self']?.uuid ?? row.uuid
-					return { id, label: row.label || row.name || row.title || String(id) }
-				}).filter((o) => o.id !== undefined && o.id !== null && o.id !== '')
+				const opts = normaliseSelectOptions(rows)
 				this.options = { ...this.options, [field.key]: opts }
 			} catch (error) {
 				// A picker that fails to load degrades to an empty list rather

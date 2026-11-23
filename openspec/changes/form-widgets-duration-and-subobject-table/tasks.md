@@ -12,8 +12,8 @@
   - `format: duration` selects the widget; a field override can name it
   - Round trip for each unit; mixed values are not rounded
   - `inputLabel` on the number input and the unit select
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Sub-objects widget
 - **spec_ref**: `openspec/changes/form-widgets-duration-and-subobject-table/specs/dialog-system/spec.md#requirement-req-dg-021-sub-objects-widget`
@@ -22,8 +22,8 @@
   - Add, edit through a nested dialog, duplicate, move, remove all write the array
   - Per-row required validation blocks Save with the row number
   - `order` is rewritten on reorder
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Docs, exports and accessibility pass
 - **spec_ref**: `openspec/changes/form-widgets-duration-and-subobject-table/specs/dialog-system/spec.md#requirement-req-dg-021-sub-objects-widget`
@@ -32,5 +32,7 @@
   - Both widgets exported from the barrel and listed in the widget table of the reference doc
   - Move up and Move down reachable by keyboard
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> Built as `CnDurationField` and `CnSubObjectsField` under `src/components/` (library convention), tested under `tests/components/`. The widget choice lives in `resolveWidget` of `src/utils/schema.js`. `CnFormPage` has its own field renderer and does not render these two widgets yet: not run: needs a decision on the CnFormPage field registry.

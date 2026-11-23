@@ -27,7 +27,7 @@
  */
 export type TPageType =
 	| 'index' | 'detail' | 'dashboard' | 'logs' | 'settings' | 'chat'
-	| 'files' | 'form' | 'map' | 'roadmap' | 'reports' | 'store' | 'search' | 'wiki'
+	| 'files' | 'form' | 'map' | 'roadmap' | 'reports' | 'links' | 'store' | 'search' | 'wiki' | 'redaction'
 	| 'flow'
 	/** @deprecated `flows` predates named index sources — use `index` with `config.source: 'flows'`. */
 	| 'flows'
@@ -90,6 +90,8 @@ export interface TManifestMenuItemLeaf {
 	 * A resolved count of `0`, `null`, or `undefined` renders no badge.
 	 */
 	count?: number | 'auto'
+	/** How the count reads: `attention` draws the red pill under the board look. */
+	counterVariant?: 'default' | 'attention'
 	/**
 	 * Forwarded to the rendered `NcAppNavigationItem`'s `pinned` prop. NC
 	 * bottom-pins pinned items inside the parent list region. Defaults to
@@ -376,6 +378,12 @@ export interface TManifest {
 	$schema?: string
 	version: string
 	dependencies?: string[]
+	/**
+	 * Feature toggles the app declares. A page, widget, menu item or action
+	 * naming a key in `visibleIf.feature` / `visibleWhen.feature` shows only
+	 * while the toggle is on (values from initial state `features`).
+	 */
+	features?: Array<{ key: string, label: string, description?: string, default?: boolean, failMode?: 'open' | 'closed' }>
 	nav?: TManifestNav
 	/**
 	 * App defaults for the per-user options `CnPersonalPreferences` renders,
@@ -414,6 +422,12 @@ export interface TManifest {
 	 * 2026-08-21 OpenBuild → Buildiq rename deliberately left it untouched.
 	 */
 	openbuildEditable?: boolean
+	/**
+	 * The look the whole app is drawn in: `nextcloud` (the default) or `board`,
+	 * the look of the screens on identity.conduction.nl. A page overrides it
+	 * with `config.look`.
+	 */
+	look?: 'nextcloud' | 'board'
 	/**
 	 * First-time setup wizard descriptor (ADR-042). See the `setup` $def in
 	 * the v2 schema for the full shape.

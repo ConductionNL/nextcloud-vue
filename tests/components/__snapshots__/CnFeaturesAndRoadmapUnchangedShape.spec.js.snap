@@ -1,0 +1,70 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`the Features and roadmap surface for a consumer that passes no new props renders the manifest page exactly as it did before 1`] = `
+"<div class="cn-features-and-roadmap-view">
+  <header class="cn-features-and-roadmap-view__header">
+    <h2 class="cn-features-and-roadmap-view__title">Features</h2>
+    <div class="cn-features-and-roadmap-view__actions"><button class="btn">
+        <road-variant-stub fillcolor="currentColor" size="20"></road-variant-stub> Show roadmap
+      </button>
+      <!-- Direct link to the forge's feature-request issue form
+					     (team decision 2026-09-04: the in-product suggestion
+					     modal is gone — the forge is where the conversation
+					     happens, in English). --><button class="btn" data-href="https://github.com/ConductionNL/openregister/issues/new?template=feature-request.yml&amp;title=%5BFEATURE%5D+">
+        <plus-stub fillcolor="currentColor" size="20"></plus-stub> Suggest feature
+      </button>
+    </div>
+  </header>
+  <!--v-if-->
+  <main class="cn-features-and-roadmap-view__panel">
+    <div class="features-tab" data-count="2"></div>
+  </main>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`the Features and roadmap surface for a consumer that passes no new props renders the roadmap side of the view exactly as it did before 1`] = `
+"<div class="cn-features-and-roadmap-view">
+  <header class="cn-features-and-roadmap-view__header">
+    <h2 class="cn-features-and-roadmap-view__title">Roadmap</h2>
+    <div class="cn-features-and-roadmap-view__actions"><button class="btn">
+        <format-list-bulleted-stub fillcolor="currentColor" size="20"></format-list-bulleted-stub> Show features
+      </button>
+      <!-- Direct link to the forge's feature-request issue form
+					     (team decision 2026-09-04: the in-product suggestion
+					     modal is gone — the forge is where the conversation
+					     happens, in English). --><button class="btn" data-href="https://github.com/ConductionNL/openregister/issues/new?template=feature-request.yml&amp;title=%5BFEATURE%5D+">
+        <plus-stub fillcolor="currentColor" size="20"></plus-stub> Suggest feature
+      </button>
+    </div>
+  </header>
+  <div class="note-card cn-features-and-roadmap-view__docs-note" data-type="info">Looking for documentation? Visit <a href="https://docs.example.org" target="_blank" rel="noopener noreferrer">docs.example.org</a> for all technical and user documentation.</div>
+  <main class="cn-features-and-roadmap-view__panel">
+    <div class="roadmap-tab" data-repo="ConductionNL/openregister"></div>
+  </main>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`the Features and roadmap surface for a consumer that passes no new props renders the view exactly as it did before the capability table existed 1`] = `
+"<div class="cn-features-and-roadmap-view">
+  <header class="cn-features-and-roadmap-view__header">
+    <h2 class="cn-features-and-roadmap-view__title">Features</h2>
+    <div class="cn-features-and-roadmap-view__actions"><button class="btn">
+        <road-variant-stub fillcolor="currentColor" size="20"></road-variant-stub> Show roadmap
+      </button>
+      <!-- Direct link to the forge's feature-request issue form
+					     (team decision 2026-09-04: the in-product suggestion
+					     modal is gone — the forge is where the conversation
+					     happens, in English). --><button class="btn" data-href="https://github.com/ConductionNL/openregister/issues/new?template=feature-request.yml&amp;title=%5BFEATURE%5D+">
+        <plus-stub fillcolor="currentColor" size="20"></plus-stub> Suggest feature
+      </button>
+    </div>
+  </header>
+  <div class="note-card cn-features-and-roadmap-view__docs-note" data-type="info">Looking for documentation? Visit <a href="https://docs.example.org" target="_blank" rel="noopener noreferrer">docs.example.org</a> for all technical and user documentation.</div>
+  <main class="cn-features-and-roadmap-view__panel">
+    <div class="features-tab" data-count="2"></div>
+  </main>
+  <!--v-if-->
+</div>"
+`;

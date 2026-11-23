@@ -42,6 +42,22 @@ describe('CnSetupWizard', () => {
 		expect(evt).toMatchObject({ stepId: 'seed', action: 'seed', success: true })
 	})
 
+	describe('the summary of a config-fields step', () => {
+		const orgSteps = [{ id: 'organisation', type: 'config-fields', configKeys: ['receipt_company_name', 'receipt_company_kvk', 'receipt_company_vat'] }]
+
+		it('lists only the fields that were filled in', () => {
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: orgSteps } })
+			wrapper.vm.configModel = { receipt_company_name: 'Conduction', receipt_company_kvk: '', receipt_company_vat: null }
+			expect(wrapper.vm.summaryItems.find((i) => i.id === 'organisation').value).toBe('receipt_company_name: Conduction')
+		})
+
+		it('says "Not set" instead of a row of empty labels', () => {
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: orgSteps } })
+			wrapper.vm.configModel = { receipt_company_name: '  ', receipt_company_kvk: '', receipt_company_vat: undefined }
+			expect(wrapper.vm.summaryItems.find((i) => i.id === 'organisation').value).toBe('Not set')
+		})
+	})
+
 	it('saveConfig POSTs the patch to /api/setup/config', async () => {
 		axios.post.mockResolvedValue({ data: {} })
 		const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps } })
@@ -171,6 +187,63 @@ describe('CnSetupWizard', () => {
 		})
 	})
 
+	// An app reports a destructive on-demand step (learniq's "Remove the
+	// example data") as done on purpose, so the auto-run never fires it. The
+	// summary then read that `done` as "this happened" and ticked a removal
+	// nobody ran. `onDemand: true` makes the tick mean "ran in this session".
+	describe('on-demand run-action steps (onDemand: true)', () => {
+		const onDemandSteps = [
+			{ id: 'welcome', type: 'info', title: 'Hi' },
+			{ id: 'seed', type: 'run-action', action: 'seed', title: 'Load the example data' },
+			{ id: 'wipe', type: 'run-action', action: 'wipe', title: 'Remove the example data', onDemand: true },
+			{ id: 'done', type: 'summary', title: 'All set' },
+		]
+		const mountWizard = (completedStepIds = []) => shallowMount(CnSetupWizard, {
+			propsData: { appId: 'learniq', steps: onDemandSteps, completedStepIds },
+		})
+		const recap = (wrapper, id) => wrapper.vm.summaryItems.find((i) => i.id === id)
+
+		it('is not ticked in the summary when the server reports it done but it did not run', () => {
+			const wrapper = mountWizard(['seed', 'wipe'])
+			expect(recap(wrapper, 'wipe').done).toBe(false)
+			expect(recap(wrapper, 'wipe').notRun).toBe(true)
+			expect(recap(wrapper, 'wipe').value).toBe('Not run')
+		})
+
+		it('is ticked in the summary once its action succeeded in this session', async () => {
+			axios.post.mockResolvedValue({ data: { success: true, message: 'Removed' } })
+			const wrapper = mountWizard(['seed', 'wipe'])
+			await wrapper.vm.runAction(onDemandSteps[2])
+			expect(recap(wrapper, 'wipe').done).toBe(true)
+			expect(recap(wrapper, 'wipe').notRun).toBe(false)
+		})
+
+		it('is not ticked after a failed run', async () => {
+			axios.post.mockRejectedValue({ response: { data: { message: 'Nope' } } })
+			const wrapper = mountWizard(['seed', 'wipe'])
+			await wrapper.vm.runAction(onDemandSteps[2])
+			expect(recap(wrapper, 'wipe').done).toBe(false)
+		})
+
+		it('never auto-runs, even when the server reports it not done', async () => {
+			const wrapper = mountWizard(['seed'])
+			await flushPromises()
+			wrapper.vm.onStepChange({ stepId: 'wipe', stepIndex: 2, direction: 'next' })
+			await flushPromises()
+			expect(axios.post).not.toHaveBeenCalled()
+		})
+
+		it('is never the step a resumed wizard opens on', () => {
+			expect(mountWizard(['seed']).vm.initialStepId).toBe('')
+		})
+
+		it('leaves steps without the flag as they were: a server-done step is ticked', () => {
+			const wrapper = mountWizard(['seed', 'wipe'])
+			expect(recap(wrapper, 'seed').done).toBe(true)
+			expect(recap(wrapper, 'seed').notRun).toBe(false)
+		})
+	})
+
 	describe('validateStep', () => {
 		it('blocks a required choice with nothing picked and nothing persisted', async () => {
 			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'procest', steps } })
@@ -194,6 +267,19 @@ describe('CnSetupWizard', () => {
 			wrapper.vm.onChoice(steps[1], { value: 'nl', label: 'NL' })
 			await expect(wrapper.vm.validateStep('region')).resolves.toBe(true)
 			expect(axios.post).toHaveBeenCalledWith('/index.php/apps/procest/api/setup/config', { legal_region: 'nl' })
+		})
+
+		it('writes nothing for a config-fields step left alone, and only the fields filled in', async () => {
+			// "Leave a field empty to keep what is there" (board DqInstellen): a
+			// step the person did not touch must not overwrite what is stored.
+			axios.post.mockResolvedValue({ data: {} })
+			const org = [{ id: 'organisation', type: 'config-fields', configKeys: ['organisation_name', 'organisation_logo'] }]
+			const wrapper = shallowMount(CnSetupWizard, { propsData: { appId: 'dossiq', steps: org } })
+			await expect(wrapper.vm.validateStep('organisation')).resolves.toBe(true)
+			expect(axios.post).not.toHaveBeenCalled()
+			wrapper.vm.configModel.organisation_name = 'Gemeente Zuiddrecht'
+			await expect(wrapper.vm.validateStep('organisation')).resolves.toBe(true)
+			expect(axios.post).toHaveBeenCalledWith('/index.php/apps/dossiq/api/setup/config', { organisation_name: 'Gemeente Zuiddrecht' })
 		})
 
 		it('allows an optional choice to be skipped', async () => {
@@ -418,5 +504,231 @@ describe('CnSetupWizard — a choice offered as cards', () => {
 		const wrapper = await mountWizard()
 		expect(wrapper.vm.optionsFor(cardStep)).toEqual([])
 		expect(wrapper.find('.cn-choice-cards').exists()).toBe(true)
+	})
+})
+
+describe('CnSetupWizard — a dataset card loads itself (loadAction)', () => {
+	const loadStep = {
+		id: 'demo-data',
+		type: 'choice',
+		display: 'cards',
+		optionsSource: 'datasets',
+		configKey: 'demo_dataset',
+		loadAction: 'load-demo-data',
+		title: 'Load example data?',
+	}
+	const datasets = [
+		{ id: 'none', label: 'None, I will set this up myself' },
+		{ id: 'demo', label: 'Example data', description: 'A worked CRM.' },
+	]
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+		axios.post.mockReset()
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, datasets, steps: {} } })
+	})
+
+	const mountWizard = async (step = loadStep) => {
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: [step] } })
+		await flushPromises()
+		await wrapper.vm.$nextTick()
+		return wrapper
+	}
+
+	it('gives every card except "none" its own Load button', async () => {
+		const wrapper = await mountWizard()
+		const cells = wrapper.findAll('.cn-choice-cards__cell')
+		expect(cells).toHaveLength(2)
+		expect(cells[0].find('[data-testid="cn-setup-load-dataset"]').exists()).toBe(false)
+		expect(cells[1].find('[data-testid="cn-setup-load-dataset"]').exists()).toBe(true)
+	})
+
+	it('renders no Load button for a cards step without loadAction', async () => {
+		const wrapper = await mountWizard({ ...loadStep, loadAction: undefined })
+		expect(wrapper.find('[data-testid="cn-setup-load-dataset"]').exists()).toBe(false)
+		expect(wrapper.find('.cn-choice-cards__actions').exists()).toBe(false)
+	})
+
+	it('posts the card\'s dataset, spins while it runs, then shows the result on that card', async () => {
+		let settle
+		axios.post.mockImplementation(() => new Promise((resolve) => {
+			settle = resolve
+		}))
+		const wrapper = await mountWizard()
+		const cell = () => wrapper.findAll('.cn-choice-cards__cell')[1]
+		await cell().find('[data-testid="cn-setup-load-dataset"]').trigger('click')
+		await flushPromises()
+
+		expect(axios.post).toHaveBeenCalledWith(
+			'/index.php/apps/pipelinq/api/setup/action/load-demo-data',
+			{ dataset: 'demo' },
+		)
+		expect(wrapper.vm.isDatasetLoading(loadStep, { value: 'demo' })).toBe(true)
+		expect(cell().find('[data-testid="cn-setup-load-dataset"]').attributes('disabled')).toBeDefined()
+
+		settle({ data: { success: true, message: 'Seeded 262 objects.' } })
+		await flushPromises()
+
+		expect(wrapper.vm.isDatasetLoading(loadStep, { value: 'demo' })).toBe(false)
+		expect(cell().find('[data-testid="cn-setup-load-result"]').text()).toBe('Seeded 262 objects.')
+		expect(wrapper.vm.scalarChoice(loadStep)).toBe('demo')
+		const evt = wrapper.emitted('action-result')[0][0]
+		expect(evt).toMatchObject({ stepId: 'demo-data', action: 'load-demo-data', dataset: 'demo', success: true })
+	})
+
+	it('shows a failed load as an error on the card and does not select it', async () => {
+		axios.post.mockRejectedValue({ response: { data: { message: 'No dataset is called "demo".' } } })
+		const wrapper = await mountWizard()
+		await wrapper.findAll('.cn-choice-cards__cell')[1].find('[data-testid="cn-setup-load-dataset"]').trigger('click')
+		await flushPromises()
+		const result = wrapper.findAll('.cn-choice-cards__cell')[1].find('[data-testid="cn-setup-load-result"]')
+		expect(result.text()).toBe('No dataset is called "demo".')
+		expect(result.classes()).toContain('cn-setup-load-result--error')
+		expect(wrapper.vm.hasChoice(loadStep)).toBe(false)
+	})
+
+	it('records "None" through the choice, never through the load action', async () => {
+		axios.post.mockResolvedValue({ data: {} })
+		const wrapper = await mountWizard()
+		await wrapper.findAll('.cn-choice-cards__input')[0].trigger('change')
+		expect(await wrapper.vm.validateStep('demo-data')).toBe(true)
+		expect(axios.post).toHaveBeenCalledTimes(1)
+		expect(axios.post).toHaveBeenCalledWith('/index.php/apps/pipelinq/api/setup/config', { demo_dataset: 'none' })
+	})
+
+	it('never loads the "none" card even when asked directly', async () => {
+		const wrapper = await mountWizard()
+		await wrapper.vm.loadDataset(loadStep, { value: 'none', label: 'None' })
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+})
+
+describe('CnSetupWizard — dependencies are checked before any step', () => {
+	const { __resetAppStatusCacheForTests } = require('../../src/composables/useAppStatus.js')
+	const depSteps = [
+		{ id: 'welcome', type: 'info', title: 'Hi' },
+		{ id: 'seed', type: 'run-action', action: 'seed' },
+		{ id: 'invoices', type: 'run-action', action: 'link-invoices', requires: ['shillinq'], title: 'Link invoices' },
+		{ id: 'done', type: 'summary', title: 'Done' },
+	]
+
+	beforeEach(() => {
+		__resetAppStatusCacheForTests()
+		axios.post.mockReset()
+		axios.post.mockResolvedValue({ data: { success: true } })
+		global.OC = { appswebroots: { openregister: '/apps/openregister' } }
+	})
+
+	afterEach(() => {
+		delete global.OC
+	})
+
+	it('replaces the steps with the missing required app and disables Next', async () => {
+		global.OC = { appswebroots: {} }
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.dependencyBlocked).toBe(true)
+		expect(wrapper.vm.wizardSteps.map((s) => s.id)).toEqual(['cn-setup-dependencies'])
+		expect(wrapper.find('[data-testid="cn-setup-dependencies"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-leaf-dependency-openregister"]').exists()).toBe(true)
+		expect(wrapper.find('[data-testid="cn-wizard-next"]').attributes('disabled')).toBeDefined()
+		// No step action runs behind the gate.
+		expect(axios.post).not.toHaveBeenCalled()
+	})
+
+	it('reads the dependencies from the injected manifest when no prop is passed', async () => {
+		global.OC = { appswebroots: {} }
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps },
+			global: { provide: { cnManifest: { dependencies: ['openregister'] } } },
+		})
+		await flushPromises()
+		expect(wrapper.vm.dependencyBlocked).toBe(true)
+	})
+
+	it('shows the steps when every required app is there, and lists a missing optional one', async () => {
+		const wrapper = mount(CnSetupWizard, {
+			propsData: {
+				appId: 'pipelinq',
+				steps: depSteps,
+				dependencies: ['openregister', { id: 'forms', name: 'Forms', required: false }],
+			},
+		})
+		await flushPromises()
+		expect(wrapper.vm.dependencyBlocked).toBe(false)
+		expect(wrapper.vm.wizardSteps.map((s) => s.id)).toEqual(['welcome', 'seed', 'done'])
+		const note = wrapper.find('[data-testid="cn-setup-optional-dependencies"]')
+		expect(note.exists()).toBe(true)
+		expect(note.text()).toContain('Forms')
+		expect(wrapper.find('[data-testid="cn-wizard-next"]').attributes('disabled')).toBeUndefined()
+	})
+
+	it('skips a step whose required app is absent and says so in the summary', async () => {
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.setupSteps.map((s) => s.id)).not.toContain('invoices')
+		const recap = wrapper.vm.summaryItems.find((i) => i.id === 'invoices')
+		expect(recap).toMatchObject({ done: false, notRun: true, value: 'Skipped, needs shillinq' })
+	})
+
+	it('does not block on a REQUIRED step whose app is absent', async () => {
+		// The status side (useSetupStatus) counts this step as not applicable;
+		// the wizard must agree and neither offer it nor wait for it.
+		const steps = depSteps.map((s) => (s.id === 'invoices' ? { ...s, required: true } : s))
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.wizardSteps.map((s) => s.id)).toEqual(['welcome', 'seed', 'done'])
+		expect(wrapper.vm.summaryItems.find((i) => i.id === 'invoices')).toMatchObject({ notRun: true, value: 'Skipped, needs shillinq' })
+	})
+
+	it('offers that step once its app is present', async () => {
+		global.OC = { appswebroots: { openregister: '/a', shillinq: '/b' } }
+		const wrapper = mount(CnSetupWizard, {
+			propsData: { appId: 'pipelinq', steps: depSteps, dependencies: ['openregister'] },
+		})
+		await flushPromises()
+		expect(wrapper.vm.setupSteps.map((s) => s.id)).toContain('invoices')
+	})
+})
+
+// Live audit, 7 October 2026: a config-fields step drew no intro, while info,
+// choice and run-action steps do. pipelinq's organisation step said nothing
+// about what its fields were for.
+describe('the intro of a config-fields step', () => {
+	const orgStep = {
+		id: 'organisation',
+		type: 'config-fields',
+		title: 'Organisation',
+		body: 'Your organisation details appear on receipts and quotes.',
+		configKeys: ['receipt_company_name'],
+	}
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+		axios.get.mockResolvedValue({ data: { steps: {} } })
+	})
+
+	it('draws the step body above the fields', async () => {
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: [orgStep] } })
+		await flushPromises()
+		const intro = wrapper.find('[data-testid="cn-setup-step-intro"]')
+		expect(intro.exists()).toBe(true)
+		expect(intro.text()).toContain('Your organisation details appear on receipts and quotes.')
+	})
+
+	it('draws no empty note when the step has no body', async () => {
+		const { body, ...noBody } = orgStep
+		expect(body).toBeTruthy()
+		const wrapper = mount(CnSetupWizard, { propsData: { appId: 'pipelinq', steps: [noBody] } })
+		await flushPromises()
+		expect(wrapper.find('[data-testid="cn-setup-step-intro"]').exists()).toBe(false)
 	})
 })

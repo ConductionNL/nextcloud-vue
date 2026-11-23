@@ -1,0 +1,2 @@
+- [x] look-board.css note-row controls
+- [x] lookBoardRecordNotesControls spec

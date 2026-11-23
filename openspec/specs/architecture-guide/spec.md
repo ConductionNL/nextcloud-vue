@@ -416,14 +416,6 @@ Props that represent translatable strings MUST have sensible English default val
 - WHEN the developer defines the component
 - THEN they add a `confirmText` prop with `default: 'Are you sure you want to delete this item?'` and the consumer passes `t('myapp', 'Are you sure...')` to override
 
-## MODIFIED Requirements
-
-_(none — all new)_
-
-## REMOVED Requirements
-
-_(none — all new)_
-
 ---
 
 ## Current Implementation Status

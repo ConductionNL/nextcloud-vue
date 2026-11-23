@@ -2,14 +2,34 @@
 	<div
 		class="cn-object-row"
 		:class="{ 'cn-object-row--selected': selected }"
-		@mousedown="onPointerDown"
-		@click="onRowClick($event)">
+		@mousedown="onRowMouseDown"
+		@click="onRowClick($event)"
+		@auxclick="onRowAuxClick($event)">
 		<!-- Selection checkbox -->
-		<div v-if="selectable" class="cn-object-row__checkbox" @click.stop>
+		<div v-if="selectable"
+			class="cn-object-row__checkbox"
+			@click.stop
+			@auxclick.stop>
 			<NcCheckboxRadioSwitch
 				:modelValue="selected"
 				@update:modelValue="$emit('select', object)" />
 		</div>
+
+		<!-- `config.leading`: one cell before the title, as a table cell renders
+		     it (`{ key, widget?, widgetProps?, formatter? }`), e.g. the age
+		     "6 dagen" in the team queue. -->
+		<span
+			v-if="leadingCell"
+			class="cn-object-row__lead"
+			:style="leadingCell.width ? { width: leadingCell.width } : null"
+			data-testid="cn-object-row-lead">
+			<CnCellRenderer
+				:value="cellValue(leadingCell)"
+				:formatter="leadingCell.formatter || null"
+				:widget="leadingCell.widget || null"
+				:widgetProps="leadingCell.widgetProps || undefined"
+				:row="object" />
+		</span>
 
 		<!-- Leading icon / image — omitted entirely when nothing is configured
 		     (no image, no icon name, no slot). -->
@@ -32,6 +52,11 @@
 		<span class="cn-object-row__main">
 			<span class="cn-object-row__title">{{ title }}</span>
 			<span v-if="subtitle" class="cn-object-row__subtitle">{{ subtitle }}</span>
+			<span
+				v-if="note"
+				class="cn-object-row__note"
+				:class="{ 'cn-object-row__note--error': noteTone === 'error' }"
+				data-testid="cn-object-row-note">{{ note }}</span>
 		</span>
 
 		<!-- Badges (default: config-driven status badge) -->
@@ -48,8 +73,27 @@
 			</slot>
 		</span>
 
+		<!-- `config.trailing`: cells after the badges, each in its own column
+		     (the case type badge, the due text). -->
+		<span
+			v-for="(cell, index) in trailingCells"
+			:key="cell.key + '-' + index"
+			class="cn-object-row__trail"
+			:style="cell.width ? { width: cell.width } : null"
+			data-testid="cn-object-row-trail">
+			<CnCellRenderer
+				:value="cellValue(cell)"
+				:formatter="cell.formatter || null"
+				:widget="cell.widget || null"
+				:widgetProps="cell.widgetProps || undefined"
+				:row="object" />
+		</span>
+
 		<!-- Trailing actions -->
-		<span v-if="$slots.actions" class="cn-object-row__actions" @click.stop>
+		<span v-if="$slots.actions"
+			class="cn-object-row__actions"
+			@click.stop
+			@auxclick.stop>
 			<!-- @slot actions Trailing actions (copy button, menu, …). -->
 			<!-- @binding {object} object The row's object. -->
 			<slot name="actions" :object="object" />
@@ -60,6 +104,11 @@
 <script>
 import { NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
+import { joinTemplateParts } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
+import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -89,8 +138,13 @@ export default {
 
 	components: {
 		NcCheckboxRadioSwitch,
+		CnCellRenderer,
 		CnIcon,
 		CnStatusBadge,
+	},
+
+	inject: {
+		cnFormatters: { default: null },
 	},
 
 	props: {
@@ -110,7 +164,17 @@ export default {
 		 * Explicit field mapping. Every key is optional and overrides the
 		 * schema-configuration default.
 		 *
-		 * @type {{ titleField?: string, subtitleField?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object }}
+		 * `subtitleTemplate` fills `{field}` tokens from the row (empty parts and
+		 * their separators drop); `{field|formatter}` reads the field through
+		 * the host's formatter of that name (`cnFormatters`). `leading` (one cell) and `trailing` (a cell or
+		 * a list) draw cells as a table column does, `{ key, widget?,
+		 * widgetProps?, formatter? }`: `{ key: "createdAt", widget: "age" }`
+		 * reads "6 dagen", `{ key: "deadline", widget: "date", widgetProps: {
+		 * due: {} } }` the due text. A cell's `width` (CSS) lines the column
+		 * up across rows. `noteTemplate` fills a line under the subtitle the
+		 * same way, `noteToneField` names the dot path of its tone (`error`).
+		 *
+		 * @type {{ titleField?: string, subtitleField?: string, subtitleTemplate?: string, imageField?: string, iconField?: string, iconName?: string, badgeField?: string, badgeVariantField?: string, badgeVariant?: string, badgeColorMap?: object, leading?: object, trailing?: (object|Array<object>) }}
 		 */
 		config: {
 			type: Object,
@@ -137,7 +201,7 @@ export default {
 	// again from `$emit('click', object)` — twice per click, with different
 	// payloads. Declaring the names here removes them from `$attrs`, which is
 	// also what stops VTU v2 recording the native DOM event into `emitted()`.
-	emits: ['select', 'click'],
+	emits: ['select', 'click', 'aux-click'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -158,7 +222,35 @@ export default {
 			return this.object.title || this.object.name || this.object.id || '—'
 		},
 
+		/**
+		 * The line under the subtitle, from `config.noteTemplate`.
+		 *
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/object-row-note/specs/object-row/spec.md#requirement-a-list-row-can-draw-a-note
+		 */
+		note() {
+			const template = this.config.noteTemplate
+			return typeof template === 'string' && template !== ''
+				? joinTemplateParts(template, (token) => this.subtitlePart(token))
+				: ''
+		},
+
+		/**
+		 * The note's tone: the value at `config.noteToneField` (a dot path).
+		 *
+		 * @return {string} The tone, or ''.
+		 * @spec openspec/changes/object-row-note/specs/object-row/spec.md#requirement-a-list-row-can-draw-a-note
+		 */
+		noteTone() {
+			const path = this.config.noteToneField
+			return typeof path === 'string' && path !== '' ? String(readPath(this.object, path) ?? '') : ''
+		},
+
 		subtitle() {
+			if (typeof this.config.subtitleTemplate === 'string' && this.config.subtitleTemplate !== '') {
+				const text = joinTemplateParts(this.config.subtitleTemplate, (token) => this.subtitlePart(token))
+				return text.trim() || null
+			}
 			const field = this.config.subtitleField || this.schemaConfig.objectDescriptionField
 			if (field && this.object[field] !== null && this.object[field] !== undefined && this.object[field] !== '') {
 				return String(this.object[field])
@@ -169,7 +261,7 @@ export default {
 		imageUrl() {
 			const field = this.config.imageField || this.schemaConfig.objectImageField
 			if (field && this.object[field]) {
-				return String(this.object[field])
+				return resolveImageUrl(String(this.object[field]))
 			}
 			return null
 		},
@@ -206,9 +298,61 @@ export default {
 		badgeColorMap() {
 			return this.config.badgeColorMap || null
 		},
+
+		/**
+		 * The `config.leading` cell, or null.
+		 *
+		 * @spec openspec/changes/index-row-list-cells/specs/object-row/spec.md#requirement-a-list-row-can-carry-leading-and-trailing-cells
+		 * @return {object|null}
+		 */
+		leadingCell() {
+			const cell = this.config.leading
+			return cell && typeof cell === 'object' && typeof cell.key === 'string' && cell.key !== '' ? cell : null
+		},
+
+		/**
+		 * The `config.trailing` cells (one object or a list), those with a key.
+		 *
+		 * @spec openspec/changes/index-row-list-cells/specs/object-row/spec.md#requirement-a-list-row-can-carry-leading-and-trailing-cells
+		 * @return {Array<object>}
+		 */
+		trailingCells() {
+			const cells = this.config.trailing
+			const list = Array.isArray(cells) ? cells : (cells && typeof cells === 'object' ? [cells] : [])
+			return list.filter((cell) => cell && typeof cell === 'object' && typeof cell.key === 'string' && cell.key !== '')
+		},
 	},
 
 	methods: {
+		/**
+		 * One `subtitleTemplate` token as text: `field`, or `field|formatter`
+		 * read through the host formatter of that name ('' when empty).
+		 *
+		 * @param {string} token The token between the braces.
+		 * @return {string}
+		 * @spec openspec/changes/object-row-subtitle-formatters/specs/object-row/spec.md#requirement-a-list-rows-subtitle-token-can-read-through-a-formatter
+		 */
+		subtitlePart(token) {
+			const [key, name] = token.split('|').map((part) => part.trim())
+			const value = readPath(this.object, key)
+			const format = name && this.cnFormatters ? this.cnFormatters[name] : null
+			if (typeof format === 'function') {
+				const shown = format(value, this.object)
+				return shown === null || shown === undefined ? '' : String(shown)
+			}
+			return value === null || value === undefined ? '' : String(value)
+		},
+
+		/**
+		 * A cell's value: the dot-path `key` read off the row.
+		 *
+		 * @param {{key: string}} cell The cell.
+		 * @return {unknown} The value.
+		 */
+		cellValue(cell) {
+			return readPath(this.object, cell.key)
+		},
+
 		/**
 		 * Row-body click: emits `select` when `selectable` (ignoring drags),
 		 * otherwise emits `click` for navigation.
@@ -228,10 +372,41 @@ export default {
 				return
 			}
 			/**
-			 * @event click Emitted when a non-selectable row is clicked (navigation).
+			 * @event click Emitted when a non-selectable row is clicked (navigation). Payload: `(object, event)` — the row's object and the native click event, for opening it in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead.
 			 * @type {object} The row's object.
 			 */
-			this.$emit('click', this.object)
+			this.$emit('click', this.object, event)
+		},
+
+		/**
+		 * Row mousedown: record the press for the drag guard, and on a
+		 * non-selectable row keep a middle press from starting autoscroll.
+		 *
+		 * @param {MouseEvent} event The mousedown event.
+		 */
+		onRowMouseDown(event) {
+			this.onPointerDown(event)
+			if (!this.selectable) {
+				preventMiddleClickAutoscroll(event)
+			}
+		},
+
+		/**
+		 * Row-body middle click on a non-selectable row: emits `aux-click`, not
+		 * `click`, so an existing `click` listener that navigates never moves
+		 * the current tab away.
+		 *
+		 * @param {MouseEvent} event The auxclick event.
+		 */
+		onRowAuxClick(event) {
+			if (this.selectable || !isRowMiddleClick(event)) {
+				return
+			}
+			/**
+			 * @event aux-click Emitted when a non-selectable row is middle-clicked, for opening it in a new tab (see `openRowTarget`). Payload: `(object, event)` — the row's object and the native auxclick event.
+			 * @type {object} The row's object.
+			 */
+			this.$emit('aux-click', this.object, event)
 		},
 	},
 }
@@ -255,6 +430,16 @@ export default {
 	/* Inset accent — never border-left (would shift cell content). */
 	box-shadow: inset 3px 0 0 0 var(--color-primary-element);
 	background-color: var(--color-primary-element-light);
+}
+
+.cn-object-row__lead,
+.cn-object-row__trail {
+	flex: 0 0 auto;
+	min-width: 0;
+}
+
+.cn-object-row__lead {
+	font-weight: 600;
 }
 
 .cn-object-row__checkbox {
@@ -290,6 +475,17 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-object-row__note {
+	margin-top: 2px;
+	font-size: 13px;
+	color: var(--color-primary-element);
+}
+
+.cn-object-row__note--error {
+	font-weight: 600;
+	color: var(--color-error-text);
 }
 
 .cn-object-row__subtitle {

@@ -32,17 +32,251 @@
   Spec: hydra openspec/architecture/adr-112-reports-are-one-page.md (ConductionNL/hydra#640).
 -->
 <template>
-	<div class="cn-reports-page">
+	<div class="cn-reports-page" :class="{ 'cn-reports-page--board': isBoard, 'cn-reports-page--catalogue': isCatalogue, 'cn-reports-page--panel': isPanel }">
 		<div class="cn-reports-page__header">
-			<h2 class="cn-reports-page__title">
+			<!-- The header buttons (`headerButtons`) beside the title, as the
+			     board's "Downloaden" and the buildiq square (board DcRapportages).
+			     Without them, and outside the board look, the title stands alone
+			     as before. -->
+			<div v-if="headerButtonsRow.length > 0" class="cn-reports-page__heading-row">
+				<component :is="isBoard ? 'h1' : 'h2'" class="cn-reports-page__title">
+					{{ resolvedTitle }}
+				</component>
+				<div class="cn-reports-page__header-buttons" data-testid="cn-reports-header-buttons">
+					<template v-for="button in headerButtonsRow" :key="button.key">
+						<CnBuildiqEditButton v-if="button.action === '__buildiq'" />
+						<NcButton
+							v-else
+							:variant="button.variant"
+							:href="button.link ? button.link.href : undefined"
+							:target="button.link ? button.link.target : undefined"
+							:data-testid="`cn-reports-header-button-${button.key}`"
+							@click="onHeaderButton(button)">
+							<template v-if="button.icon" #icon>
+								<CnIcon :name="button.icon" :size="20" />
+							</template>
+							{{ button.label }}
+						</NcButton>
+					</template>
+				</div>
+			</div>
+			<component :is="isBoard ? 'h1' : 'h2'" v-else class="cn-reports-page__title">
 				{{ resolvedTitle }}
-			</h2>
+			</component>
 			<p v-if="resolvedDescription" class="cn-reports-page__description">
 				{{ resolvedDescription }}
 			</p>
 		</div>
 
-		<div v-if="categoryOptions.length > 1" class="cn-reports-page__filter">
+		<!-- `catalogue` under the board look (board PqReports): the categories
+		     as chips with their counts, the sections in a main column, each card
+		     with its category, a footer line and an Open link, and an aside with
+		     the category index and an optional note. -->
+		<template v-if="isPanel">
+			<section class="cn-reports-page__panel" data-testid="cn-reports-panel">
+				<div class="cn-reports-page__panel-head">
+					<div class="cn-reports-page__panel-heading">
+						<h2 class="cn-reports-page__panel-title">
+							{{ tr(config.panel.title) }}
+						</h2>
+						<p v-if="config.panel.subtitle" class="cn-reports-page__panel-subtitle">
+							{{ tr(config.panel.subtitle) }}
+						</p>
+					</div>
+					<a v-if="panelLink"
+						class="cn-reports-page__panel-link"
+						data-testid="cn-reports-panel-link"
+						:href="hrefFor(panelLink)"
+						@click="open(panelLink, $event)">
+						{{ tr(panelLink.label) }}
+					</a>
+				</div>
+				<ul class="cn-reports-page__panel-grid" data-testid="cn-reports-grid">
+					<li v-for="card in resolvedCards"
+						:key="card.id"
+						class="cn-reports-page__panel-card"
+						:class="card.tone ? `cn-reports-page__panel-card--${card.tone}` : ''"
+						data-testid="cn-report-card">
+						<div class="cn-reports-page__panel-card-head">
+							<span v-if="card.unavailable" class="cn-reports-page__panel-card-title">{{ card.label }}</span>
+							<a v-else
+								class="cn-reports-page__panel-card-title"
+								:href="hrefFor(card)"
+								@click="open(card, $event)">{{ card.label }}</a>
+							<span v-if="card.pill" class="cn-reports-page__panel-card-pill">{{ card.pill }}</span>
+						</div>
+						<span v-if="card.unavailable"
+							class="cn-reports-page__panel-card-description"
+							data-testid="cn-report-unavailable">{{ card.missingText }}</span>
+						<template v-else>
+							<span v-if="card.description" class="cn-reports-page__panel-card-description">{{ card.description }}</span>
+							<span v-if="card.meta" class="cn-reports-page__panel-card-meta">{{ card.meta }}</span>
+							<a v-if="card.linkLabel"
+								class="cn-reports-page__panel-card-link"
+								:href="hrefFor(card)"
+								@click="open(card, $event)">{{ card.linkLabel }}</a>
+						</template>
+						<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+							<NcButton v-for="action in actionsFor(card)"
+								:key="action.id"
+								variant="tertiary"
+								:disabled="runningAction !== ''"
+								:data-testid="`cn-report-card-action-${action.id}`"
+								@click="runCardAction(card, action)">
+								{{ action.label }}
+							</NcButton>
+						</div>
+					</li>
+				</ul>
+			</section>
+		</template>
+		<template v-else-if="isBoard && isCatalogue">
+			<div class="cn-reports-page__chips"
+				role="group"
+				:aria-label="resolvedCategoryLabel"
+				data-testid="cn-reports-chips">
+				<button v-for="chip in catalogueChips"
+					:key="chip.value"
+					type="button"
+					class="cn-reports-page__chip"
+					:class="{ 'cn-reports-page__chip--on': activeCategory === chip.value }"
+					:aria-pressed="activeCategory === chip.value ? 'true' : 'false'"
+					:data-testid="`cn-reports-chip-${chip.value}`"
+					@click="activeCategory = chip.value">
+					{{ chip.label }}<span class="cn-reports-page__chip-count">{{ chip.count }}</span>
+				</button>
+			</div>
+			<div class="cn-reports-page__body">
+				<div class="cn-reports-page__main">
+					<p v-if="catalogueSections.length === 0"
+						class="cn-reports-page__empty"
+						data-testid="cn-reports-empty">
+						{{ resolvedEmptyLabel }}
+					</p>
+					<section v-for="section in catalogueSections"
+						:id="sectionId(section.key)"
+						:key="section.key"
+						class="cn-reports-page__section"
+						:aria-labelledby="`${sectionId(section.key)}-title`"
+						data-testid="cn-reports-section">
+						<h2 v-if="section.label" :id="`${sectionId(section.key)}-title`" class="cn-reports-page__section-title">
+							{{ section.label }}
+						</h2>
+						<ul class="cn-reports-page__grid" data-testid="cn-reports-grid">
+							<li v-for="card in section.cards" :key="card.id" class="cn-reports-page__cell">
+								<article class="cn-reports-page__card" data-testid="cn-report-card">
+									<div class="cn-reports-page__card-head">
+										<span v-if="card.icon" class="cn-reports-page__card-icon" aria-hidden="true">
+											<CnIcon :name="card.icon" :size="22" />
+										</span>
+										<div class="cn-reports-page__card-text">
+											<h3 class="cn-reports-page__card-title">
+												{{ card.label }}
+											</h3>
+											<span v-if="categoryName(card)" class="cn-reports-page__card-category">{{ categoryName(card) }}</span>
+										</div>
+									</div>
+									<p v-if="card.description" class="cn-reports-page__card-description">
+										{{ card.description }}
+									</p>
+									<div class="cn-reports-page__card-footer">
+										<span class="cn-reports-page__card-meta">{{ cardMetaFor(card) }}</span>
+										<a class="cn-reports-page__card-open"
+											data-testid="cn-report-open"
+											:href="hrefFor(card)"
+											:aria-label="openLabelFor(card)"
+											@click="open(card, $event)">
+											{{ resolvedOpenLabel }}
+										</a>
+									</div>
+									<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+										<NcButton v-for="action in actionsFor(card)"
+											:key="action.id"
+											variant="tertiary"
+											:disabled="runningAction !== ''"
+											:data-testid="`cn-report-card-action-${action.id}`"
+											@click="runCardAction(card, action)">
+											{{ action.label }}
+										</NcButton>
+									</div>
+								</article>
+							</li>
+						</ul>
+					</section>
+				</div>
+				<aside class="cn-reports-page__aside" :aria-label="resolvedAsideLabel" data-testid="cn-reports-aside">
+					<section class="cn-reports-page__aside-card">
+						<h2 class="cn-reports-page__aside-title">
+							{{ resolvedCategoriesTitle }}
+						</h2>
+						<ul class="cn-reports-page__index">
+							<li v-for="entry in catalogueIndex" :key="entry.key">
+								<a class="cn-reports-page__index-link" :href="`#${sectionId(entry.key)}`" @click="activeCategory = 'all'">
+									<span class="cn-reports-page__index-label">{{ entry.label }}</span>
+									<span class="cn-reports-page__index-count">{{ entry.count }}</span>
+								</a>
+							</li>
+						</ul>
+					</section>
+					<section v-if="resolvedAsideNote" class="cn-reports-page__aside-card" data-testid="cn-reports-aside-note">
+						<h2 class="cn-reports-page__aside-title">
+							{{ resolvedAsideNote.title }}
+						</h2>
+						<p class="cn-reports-page__aside-text">
+							{{ resolvedAsideNote.text }}
+						</p>
+					</section>
+				</aside>
+			</div>
+		</template>
+		<!-- The board look (board DcRapportages): one section per category,
+		     headed by its label, instead of the category filter; each card
+		     draws its icon in a tile. -->
+		<template v-else-if="isBoard">
+			<p v-if="resolvedCards.length === 0"
+				class="cn-reports-page__empty"
+				data-testid="cn-reports-empty">
+				{{ resolvedEmptyLabel }}
+			</p>
+			<section v-for="section in boardSections"
+				:key="section.key"
+				class="cn-reports-page__section"
+				data-testid="cn-reports-section">
+				<h3 v-if="section.label" class="cn-reports-page__section-title">
+					{{ section.label }}
+				</h3>
+				<ul class="cn-reports-page__grid" data-testid="cn-reports-grid">
+					<li v-for="card in section.cards" :key="card.id" class="cn-reports-page__cell">
+						<a class="cn-reports-page__card"
+							data-testid="cn-report-card"
+							:href="hrefFor(card)"
+							@click="open(card, $event)">
+							<span v-if="card.icon" class="cn-reports-page__card-icon" aria-hidden="true">
+								<CnIcon :name="card.icon" :size="22" />
+							</span>
+							<span class="cn-reports-page__card-text">
+								<span class="cn-reports-page__card-title">{{ card.label }}</span>
+								<span v-if="card.description" class="cn-reports-page__card-description">
+									{{ card.description }}
+								</span>
+							</span>
+						</a>
+						<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+							<NcButton v-for="action in actionsFor(card)"
+								:key="action.id"
+								variant="tertiary"
+								:disabled="runningAction !== ''"
+								:data-testid="`cn-report-card-action-${action.id}`"
+								@click="runCardAction(card, action)">
+								{{ action.label }}
+							</NcButton>
+						</div>
+					</li>
+				</ul>
+			</section>
+		</template>
+
+		<div v-if="!isBoard && categoryOptions.length > 1" class="cn-reports-page__filter">
 			<label class="cn-reports-page__filter-label" :for="filterId">
 				{{ resolvedCategoryLabel }}
 			</label>
@@ -58,13 +292,13 @@
 			</select>
 		</div>
 
-		<p v-if="visibleCards.length === 0"
+		<p v-if="!isBoard && visibleCards.length === 0"
 			class="cn-reports-page__empty"
 			data-testid="cn-reports-empty">
 			{{ resolvedEmptyLabel }}
 		</p>
 
-		<ul v-else class="cn-reports-page__grid" data-testid="cn-reports-grid">
+		<ul v-else-if="!isBoard" class="cn-reports-page__grid" data-testid="cn-reports-grid">
 			<li v-for="card in visibleCards" :key="card.id" class="cn-reports-page__cell">
 				<a class="cn-reports-page__card"
 					data-testid="cn-report-card"
@@ -78,8 +312,27 @@
 						{{ categoryName(card) }}
 					</span>
 				</a>
+				<div v-if="actionsFor(card).length > 0" class="cn-reports-page__card-actions" data-testid="cn-report-card-actions">
+					<NcButton v-for="action in actionsFor(card)"
+						:key="action.id"
+						variant="tertiary"
+						:disabled="runningAction !== ''"
+						:data-testid="`cn-report-card-action-${action.id}`"
+						@click="runCardAction(card, action)">
+						{{ action.label }}
+					</NcButton>
+				</div>
 			</li>
 		</ul>
+
+		<!-- `widgets` + `layout`: a grid of dashboard widgets under the cards,
+		     such as a highlighted report with stat tiles and a chart. -->
+		<div v-if="sectionWidgets.length > 0" class="cn-reports-page__widgets" data-testid="cn-reports-widgets">
+			<CnDashboardPage
+				:widgets="sectionWidgets"
+				:layout="sectionLayout"
+				:showHeader="false" />
+		</div>
 	</div>
 </template>
 
@@ -88,11 +341,37 @@
  * The Reports page: one surface listing an app's reports as cards.
  */
 import { translate as t } from '@nextcloud/l10n'
+import { NcButton } from '@nextcloud/vue'
+import { defineAsyncComponent } from 'vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import { useLook } from '../../composables/useLook.js'
+import { headerActionAsLink } from '../../utils/actionLink.js'
+import { dispatchAction, resolveRegisteredHandler } from '../../utils/actionsDispatcher.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { followLinkClick } from '../../utils/linkNavigation.js'
+import { readPath } from '../../utils/readPath.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 export default {
 	name: 'CnReportsPage',
 
+	components: {
+		// Loaded only for a page that declares widgets: a cards-only reports
+		// page does not pull the dashboard in.
+		CnDashboardPage: defineAsyncComponent(() => import('../CnDashboardPage/CnDashboardPage.vue').then((m) => m.default)),
+		CnBuildiqEditButton,
+		CnIcon,
+		NcButton,
+	},
+
 	inject: {
+		/**
+		 * The v2 registry and the legacy customComponents map, provided by
+		 * CnAppRoot: a header action's named handler resolves against them.
+		 */
+		cnRegistry: { default: () => ({}) },
+		cnCustomComponents: { default: () => ({}) },
 		/**
 		 * The consuming app's translate function, provided by CnAppRoot.
 		 * Defaults to identity so the page still renders outside one.
@@ -189,6 +468,125 @@ export default {
 		},
 
 		/**
+		 * Dashboard widgets drawn under the report cards (`config.widgets`),
+		 * placed by `layout`, as on a `type: "dashboard"` page.
+		 *
+		 * @type {Array<object>|null}
+		 */
+		widgets: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Grid placement of `widgets` (`config.layout`): `{ id, widgetId,
+		 * gridX, gridY, gridWidth, gridHeight }` per widget. Without it each
+		 * widget takes a full row in the order declared.
+		 *
+		 * @type {Array<object>|null}
+		 */
+		layout: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Buttons beside the title (`config.headerButtons`), as the board's
+		 * "Downloaden". Each is `{ label, action, variant?, icon?, id? }`:
+		 * `action` is the id of a `headerActions` entry, which says what the
+		 * click does. Under the board look the buildiq square sits between the
+		 * secondary buttons and the primary one. Empty (the default) changes
+		 * nothing.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @type {Array<{label: string, action: string, variant?: ('primary'|'secondary'), icon?: string, id?: string}>|null}
+		 */
+		headerButtons: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * The page's header actions (`config.headerActions`), in the shape of
+		 * an index page's: a header button names one by id. `handler` is a
+		 * function, `navigate` (with `route`, and `params`), `emit`, `none`,
+		 * or a registry name; `type: "navigate"` with a `target` URL opens
+		 * that URL in a new tab. Every click also emits `header-action`
+		 * `{ action, id }`, except for `handler: "none"`. An entry with `href`
+		 * makes its button a real link that runs and emits nothing: an
+		 * absolute `http(s)`, `mailto:`, `tel:` or `//host/...` URL as written,
+		 * an instance path (leading `/`) through `generateUrl()`, in a new tab with
+		 * `target: '_blank'`.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @type {Array<object>|null}
+		 */
+		headerActions: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * `true` draws the board look as a catalogue (board PqReports): the
+		 * categories as chips with counts, each card with its category, a
+		 * footer line and an Open link, and an aside with the category index
+		 * and `asideNote`. Without it the board look draws its sections (board
+		 * DcRapportages). No effect outside the board look.
+		 *
+		 * @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue
+		 * @type {boolean|null}
+		 */
+		catalogue: {
+			type: Boolean,
+			default: null,
+		},
+
+		/**
+		 * The catalogue card's footer line (`config.cardMeta`), default "Opens a
+		 * page of its own"; a card's own `meta` wins.
+		 *
+		 * @type {string|null}
+		 */
+		cardMeta: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * The catalogue aside's closing card (`config.asideNote`): `{ title, text }`.
+		 *
+		 * @type {{title: string, text: string}|null}
+		 */
+		asideNote: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The titled panel the board look draws the cards in
+		 * (`config.panel`): `{ title, subtitle?, link?: { label, route | href } }`.
+		 * No effect outside the board look.
+		 *
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 * @type {{title: string, subtitle: (string|undefined), link: (object|undefined)}|null}
+		 */
+		panel: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The look to draw in: `board` or `nextcloud`. Absent: the look
+		 * CnAppRoot provides (`cnLook`), else `nextcloud`.
+		 *
+		 * @type {string|null}
+		 */
+		look: {
+			type: String,
+			default: null,
+		},
+
+		/**
 		 * Translate function. Falls back to injected `cnTranslate`.
 		 *
 		 * @type {((key: string) => string)|null}
@@ -199,9 +597,20 @@ export default {
 		},
 	},
 
+	emits: ['header-action'],
+
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
+	},
+
 	data() {
 		return {
 			activeCategory: 'all',
+			// The per-card state `config.cardState` answers, keyed by card id.
+			cardStates: {},
+			// `<card id>:<action id>` while a card action runs, else ''.
+			runningAction: '',
 		}
 	},
 
@@ -229,6 +638,7 @@ export default {
 		 * the renderer has already resolved route sentinels in them.
 		 *
 		 * @return {object} The config.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		config() {
 			const fromPage = (this.page && this.page.config) || {}
@@ -241,6 +651,14 @@ export default {
 				'allCategoriesLabel',
 				'categoryLabel',
 				'emptyLabel',
+				'widgets',
+				'layout',
+				'headerButtons',
+				'headerActions',
+				'catalogue',
+				'cardMeta',
+				'asideNote',
+				'panel',
 			]) {
 				if (this[key] !== null && this[key] !== undefined) {
 					fromProps[key] = this[key]
@@ -248,6 +666,88 @@ export default {
 			}
 
 			return { ...fromPage, ...fromProps }
+		},
+
+		/**
+		 * The widgets under the cards.
+		 *
+		 * @return {Array<object>} The declared widgets, or none.
+		 * @spec openspec/changes/screens-reports-page-widgets/specs/reports-page/spec.md
+		 */
+		sectionWidgets() {
+			const widgets = this.config.widgets
+			return Array.isArray(widgets) ? widgets.filter((w) => w && typeof w === 'object' && w.id) : []
+		},
+
+		/**
+		 * Where the widgets go: the declared `layout`, else one full row per
+		 * widget in the order declared.
+		 *
+		 * @return {Array<object>} The placements.
+		 * @spec openspec/changes/screens-reports-page-widgets/specs/reports-page/spec.md
+		 */
+		sectionLayout() {
+			if (Array.isArray(this.config.layout) && this.config.layout.length > 0) {
+				return this.config.layout
+			}
+			let y = 0
+			return this.sectionWidgets.map((widget, index) => {
+				const placement = { id: String(index + 1), widgetId: widget.id, gridX: 0, gridY: y, gridWidth: 12, gridHeight: 4 }
+				y += 4
+				return placement
+			})
+		},
+
+		/**
+		 * The declared header buttons that have a label and an action,
+		 * translated, each with a stable key and a variant. A button naming a
+		 * header action with `href` carries that `link`.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, link: ({href: string, target: string}|null)}>} The buttons.
+		 */
+		resolvedHeaderButtons() {
+			const declared = Array.isArray(this.config.headerButtons) ? this.config.headerButtons : []
+			const actions = Array.isArray(this.config.headerActions) ? this.config.headerActions : []
+			return declared
+				.filter((button) => button && typeof button === 'object'
+					&& typeof button.action === 'string' && button.action !== ''
+					&& typeof button.label === 'string' && button.label !== '')
+				.map((button) => {
+					const entry = headerActionAsLink(actions.find((action) => action && action.id === button.action))
+					return {
+						key: String(button.id || button.action),
+						label: this.tr(button.label),
+						action: button.action,
+						variant: button.variant === 'primary' ? 'primary' : 'secondary',
+						icon: typeof button.icon === 'string' ? button.icon : '',
+						link: entry && typeof entry.href === 'string' && entry.href !== '' ? { href: entry.href, target: entry.target } : null,
+					}
+				})
+		},
+
+		/**
+		 * The header row in the order it renders. Without the board look:
+		 * the declared buttons in the declared order. Under the board look:
+		 * the secondary buttons, the buildiq square, then the primary ones,
+		 * as the board draws "Downloaden" and the square. No declared button
+		 * leaves the header as it was, without the square.
+		 *
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @return {Array<object>} The buttons; the square is `{ key: '__buildiq', action: '__buildiq' }`.
+		 */
+		headerButtonsRow() {
+			const buttons = this.resolvedHeaderButtons
+			if (!this.isBoard || (buttons.length === 0 && !this.isPanel)) {
+				return buttons
+			}
+			const square = { key: '__buildiq', action: '__buildiq', variant: 'secondary', label: '', icon: '' }
+			return [
+				...buttons.filter((button) => button.variant !== 'primary'),
+				square,
+				...buttons.filter((button) => button.variant === 'primary'),
+			]
 		},
 
 		/**
@@ -271,13 +771,16 @@ export default {
 		},
 
 		/**
-		 * The declared cards, ignoring any that name no route.
+		 * The declared cards, ignoring any that name neither a route nor an
+		 * href.
 		 *
-		 * A card with no route is a card that cannot be opened. Rendering it
+		 * A card with no target is a card that cannot be opened. Rendering it
 		 * would put a report on the page that silently does nothing, which is
-		 * worse than leaving it off.
+		 * worse than leaving it off. A card whose `requiresApp` is missing
+		 * stays in the panel, where it says so, and leaves the other layouts.
 		 *
 		 * @return {Array<object>} The usable cards.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		resolvedCards() {
 			const declared = this.config.cards
@@ -286,12 +789,18 @@ export default {
 			}
 
 			return declared
-				.filter((card) => card && card.route && card.label)
+				.filter((card) => card && (card.route || card.href) && card.label)
 				.map((card) => ({
 					...card,
 					label: this.tr(card.label),
 					description: this.tr(card.description || ''),
+					meta: this.tr(card.meta || ''),
+					pill: this.tr(card.pill || ''),
+					linkLabel: this.tr(card.linkLabel || ''),
+					missingText: this.tr(card.missingText || ''),
+					unavailable: Boolean(card.requiresApp) && !isAppInstalled(card.requiresApp),
 				}))
+				.filter((card) => this.isPanel || !card.unavailable)
 		},
 
 		/**
@@ -311,6 +820,133 @@ export default {
 				.forEach((key) => options.push({ value: key, label: this.tr(declared[key]) }))
 
 			return options
+		},
+
+		/**
+		 * The board look's sections: the cards without a category first, under
+		 * no heading, then one section per declared category that holds a
+		 * card, in the declared order, headed by its label.
+		 *
+		 * @spec openspec/changes/screens-reports-page-board-look/specs/reports-page/spec.md#requirement-the-reports-page-takes-the-board-look
+		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
+		 */
+		boardSections() {
+			const declared = this.config.categories || {}
+			const sections = []
+			const loose = this.resolvedCards.filter((card) => !card.category || !Object.hasOwn(declared, card.category))
+			if (loose.length > 0) {
+				sections.push({ key: '__none', label: '', cards: loose })
+			}
+			for (const key of Object.keys(declared)) {
+				const cards = this.resolvedCards.filter((card) => card.category === key)
+				if (cards.length > 0) {
+					sections.push({ key, label: this.tr(declared[key]), cards })
+				}
+			}
+			return sections
+		},
+
+		/**
+		 * Whether the board look draws the cards in one titled panel.
+		 *
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 * @return {boolean}
+		 */
+		isPanel() {
+			const panel = this.config.panel
+			return this.isBoard && Boolean(panel) && typeof panel.title === 'string' && panel.title !== ''
+		},
+
+		/**
+		 * The link in the panel's heading, when it names a target.
+		 *
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 * @return {object|null} The link.
+		 */
+		panelLink() {
+			const link = this.config.panel && this.config.panel.link
+			return link && link.label && (link.route || link.href) ? link : null
+		},
+
+		/**
+		 * Whether the board look draws the catalogue.
+		 *
+		 * @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue
+		 * @return {boolean}
+		 */
+		isCatalogue() {
+			return this.isBoard && this.config.catalogue === true
+		},
+
+		/**
+		 * The catalogue's chips: all categories, then each category that holds
+		 * a card, with its count.
+		 *
+		 * @spec openspec/changes/reports-page-catalogue/specs/reports-page-catalogue/spec.md#requirement-a-board-reports-page-can-be-a-catalogue
+		 * @return {Array<{value: string, label: string, count: number}>} The chips.
+		 */
+		catalogueChips() {
+			return [
+				{ value: 'all', label: this.allLabel, count: this.resolvedCards.length },
+				...this.catalogueIndex.map((entry) => ({ value: entry.key, label: entry.label, count: entry.count })),
+			]
+		},
+
+		/**
+		 * The catalogue's sections, narrowed to the active chip.
+		 *
+		 * @return {Array<{key: string, label: string, cards: Array<object>}>} The sections.
+		 */
+		catalogueSections() {
+			if (this.activeCategory === 'all') {
+				return this.boardSections
+			}
+			return this.boardSections.filter((section) => section.key === this.activeCategory)
+		},
+
+		/**
+		 * The aside's category index: each category that holds a card, with its count.
+		 *
+		 * @return {Array<{key: string, label: string, count: number}>} The entries.
+		 */
+		catalogueIndex() {
+			return this.boardSections
+				.filter((section) => section.key !== '__none')
+				.map((section) => ({ key: section.key, label: section.label, count: section.cards.length }))
+		},
+
+		/**
+		 * @return {string} The Open link's text.
+		 */
+		resolvedOpenLabel() {
+			return t('nextcloud-vue', 'Open')
+		},
+
+		/**
+		 * @return {string} The aside's label.
+		 */
+		resolvedAsideLabel() {
+			return t('nextcloud-vue', 'About these reports')
+		},
+
+		/**
+		 * @return {string} The category index's title.
+		 */
+		resolvedCategoriesTitle() {
+			return t('nextcloud-vue', 'Categories')
+		},
+
+		/**
+		 * The aside's closing card, translated, or null.
+		 *
+		 * @return {{title: string, text: string}|null} The note.
+		 */
+		resolvedAsideNote() {
+			const note = this.config.asideNote
+			if (!note || typeof note !== 'object' || !note.title) {
+				return null
+			}
+			return { title: this.tr(note.title), text: this.tr(note.text || '') }
 		},
 
 		/**
@@ -363,6 +999,10 @@ export default {
 		},
 	},
 
+	mounted() {
+		this.loadCardStates()
+	},
+
 	methods: {
 		/**
 		 * Translate a manifest-declared string through the app's own
@@ -385,6 +1025,42 @@ export default {
 		},
 
 		/**
+		 * The id of a catalogue section, the aside index's anchor.
+		 *
+		 * @param {string} key The category key.
+		 * @return {string} The id.
+		 */
+		sectionId(key) {
+			return `${this.filterId}-${key}`
+		},
+
+		/**
+		 * A catalogue card's footer line: its own `meta`, else the page's `cardMeta`, else "Opens a page of its own".
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The line.
+		 */
+		cardMetaFor(card) {
+			if (card.meta) {
+				return this.tr(card.meta)
+			}
+			if (this.config.cardMeta) {
+				return this.tr(this.config.cardMeta)
+			}
+			return t('nextcloud-vue', 'Opens a page of its own')
+		},
+
+		/**
+		 * The Open link's accessible name, naming its report.
+		 *
+		 * @param {object} card The card.
+		 * @return {string} The name.
+		 */
+		openLabelFor(card) {
+			return t('nextcloud-vue', 'Open {report}', { report: card.label })
+		},
+
+		/**
 		 * The human label for a card's category, if it has one.
 		 *
 		 * @param {object} card The card.
@@ -397,50 +1073,224 @@ export default {
 		},
 
 		/**
+		 * The `config.cardActions` a card offers: each translated, kept only
+		 * while its local `visibleWhen` holds for the card with its `state`
+		 * (what `config.cardState` answered for it).
+		 *
+		 * @param {object} card The resolved card.
+		 * @return {Array<object>} The actions.
+		 * @spec openspec/changes/reports-card-actions/specs/reports-card-actions/spec.md#requirement-a-report-card-can-carry-actions-of-its-own
+		 */
+		actionsFor(card) {
+			const declared = Array.isArray(this.config.cardActions) ? this.config.cardActions : []
+			if (declared.length === 0 || card.unavailable) {
+				return []
+			}
+			const subject = { ...card, state: this.cardStates[card.id] || {} }
+			return declared
+				.filter((action) => action && action.id && action.label && (!action.visibleWhen || evaluateVisibleWhenLocal(action.visibleWhen, subject)))
+				.map((action) => ({ ...action, label: this.tr(action.label) }))
+		},
+
+		/**
+		 * Run a card action through the page dispatcher, with the card as
+		 * the object its tokens read (`@objectId` is the card id,
+		 * `@object.<path>` a card field), then read the card states again.
+		 *
+		 * @param {object} card The resolved card.
+		 * @param {object} action The action.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/reports-card-actions/specs/reports-card-actions/spec.md#requirement-a-report-card-can-carry-actions-of-its-own
+		 */
+		async runCardAction(card, action) {
+			this.runningAction = `${card.id}:${action.id}`
+			try {
+				await dispatchAction(action, {
+					tokenCtx: { objectId: card.id, object: { ...card, state: this.cardStates[card.id] || {} } },
+					translate: this.tr,
+					registry: this.cnRegistry,
+				})
+			} finally {
+				this.runningAction = ''
+			}
+			await this.loadCardStates()
+		},
+
+		/**
+		 * Read `config.cardState` (`{ url, responsePath?, keyField? }`): rows
+		 * keyed by `keyField` (default `id`), or a map keyed by card id. A
+		 * failed read leaves every card without state.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/reports-card-actions/specs/reports-card-actions/spec.md#requirement-a-report-card-can-carry-actions-of-its-own
+		 */
+		async loadCardStates() {
+			const source = this.config.cardState
+			if (!source || typeof source.url !== 'string' || source.url === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const response = await axios.get(/^https?:\/\//i.test(source.url) ? source.url : generateUrl(source.url))
+				const data = source.responsePath ? readPath(response.data, source.responsePath) : response.data
+				const keyField = source.keyField || 'id'
+				const states = {}
+				if (Array.isArray(data)) {
+					for (const row of data) {
+						const key = row && typeof row === 'object' ? readPath(row, keyField) : null
+						if (key !== null && key !== undefined && key !== '') {
+							states[String(key)] = row
+						}
+					}
+				} else if (data && typeof data === 'object') {
+					Object.assign(states, data)
+				}
+				this.cardStates = states
+			} catch {
+				this.cardStates = {}
+			}
+		},
+
+		/**
 		 * A real href for the card, so it is a link a reader can middle-click
 		 * or open in a new tab rather than a div that only answers to a click.
 		 *
 		 * @param {object} card The card.
 		 * @return {string} The href.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
 		 */
 		hrefFor(card) {
+			if (card.href) {
+				return card.href
+			}
 			if (!this.$router) {
 				return '#'
 			}
 
 			try {
-				return this.$router.resolve({ name: card.route }).href
+				return this.$router.resolve(this.locationOf(card)).href
 			} catch {
 				return '#'
 			}
 		},
 
 		/**
-		 * Navigate by route NAME.
+		 * A header button was clicked: run the `headerActions` entry it names
+		 * and emit `header-action`, as an index page's header button does. A
+		 * button that is a link is left to the browser.
 		 *
-		 * @param {object} card The card.
-		 * @param {Event} event The click.
+		 * @spec openspec/changes/screens-reports-header-buttons/specs/reports-page/spec.md#requirement-a-reports-page-carries-header-buttons
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @param {{action: string, link?: object}} button The resolved button.
 		 * @return {void}
 		 */
-		open(card, event) {
-			if (!this.$router) {
+		onHeaderButton(button) {
+			if (button.link) {
 				return
 			}
+			const id = button.action
+			const actions = Array.isArray(this.config.headerActions) ? this.config.headerActions : []
+			const entry = actions.find((action) => action && action.id === id) || null
+			const handler = entry ? entry.handler : undefined
+			if (handler === 'none') {
+				return
+			}
+			if (typeof handler === 'function') {
+				handler({ actionId: id })
+			} else if (handler === 'navigate' && entry.route) {
+				const params = (entry.params && typeof entry.params === 'object') ? entry.params : null
+				if (this.$router && typeof this.$router.push === 'function') {
+					this.$router.push(params ? { name: entry.route, params } : { name: entry.route })
+				}
+			} else if (entry && entry.type === 'navigate' && typeof entry.target === 'string' && entry.target !== '') {
+				window.open(entry.target, '_blank', 'noopener,noreferrer')
+			} else if (typeof handler === 'string' && handler !== 'emit') {
+				const resolved = resolveRegisteredHandler(handler, this.cnRegistry, this.cnCustomComponents)
+				if (typeof resolved === 'function') {
+					resolved({ actionId: id })
+				}
+			}
+			/**
+			 * A header button was clicked (`headerButtons`), after its
+			 * `headerActions` entry ran; not for `handler: "none"`.
+			 *
+			 * @event header-action
+			 * @property {{action: string, id: string}} payload The id of the `headerActions` entry the button names, as `action` and `id`.
+			 */
+			this.$emit('header-action', { action: id, id })
+		},
 
-			event.preventDefault()
-			this.$router.push({ name: card.route })
+		/**
+		 * Navigate by route NAME on a plain click; a modified or middle click
+		 * is left to the browser so it can open the card's href elsewhere.
+		 *
+		 * @param {object} card The card.
+		 * @param {MouseEvent} event The click.
+		 * @return {void}
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 */
+		open(card, event) {
+			if (!card.href) {
+				followLinkClick(event, this.locationOf(card), this.$router)
+			}
+		},
+
+		/**
+		 * The router location of a card: its route name and optional query.
+		 *
+		 * @param {object} card The card.
+		 * @return {{name: string, query: (object|undefined)}} The location.
+		 * @spec openspec/changes/reports-page-panel/specs/reports-page-panel/spec.md#requirement-a-board-reports-page-can-be-one-panel-of-report-cards
+		 */
+		locationOf(card) {
+			return card.query ? { name: card.route, query: card.query } : { name: card.route }
 		},
 	},
 }
 </script>
 
 <style scoped>
+.cn-reports-page__card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
 .cn-reports-page {
 	padding: 16px;
 }
 
+/* Clear the Nextcloud navigation toggle button (44px wide, absolutely
+   positioned at the left edge of .app-content) plus 12px breathing room, as
+   CnPageHeader does. Only the header shifts; the body keeps the full width. */
+.cn-reports-page__header {
+	padding-inline-start: 56px;
+}
+
 .cn-reports-page__title {
 	margin: 0 0 4px;
+}
+
+.cn-reports-page__heading-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px 24px;
+}
+
+.cn-reports-page__heading-row .cn-reports-page__title {
+	flex: 1 1 320px;
+	min-width: 0;
+}
+
+.cn-reports-page__header-buttons {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
 }
 
 .cn-reports-page__description {
@@ -497,5 +1347,9 @@ export default {
 
 .cn-reports-page__empty {
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-reports-page__widgets {
+	margin-top: 20px;
 }
 </style>

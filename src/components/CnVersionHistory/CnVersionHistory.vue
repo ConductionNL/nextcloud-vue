@@ -125,12 +125,14 @@
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import Compare from 'vue-material-design-icons/Compare.vue'
 import FileCompare from 'vue-material-design-icons/FileCompare.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import { foldAuditTrailEntries } from '../../utils/auditTrailDiff.js'
 import { computeObjectDiff } from '../../utils/computeObjectDiff.js'
 import { buildHeaders } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * A single row rendered in the top-level diff table.
@@ -249,7 +251,7 @@ export default {
 
 	data() {
 		return {
-			FileCompare,
+			FileCompare: markRaw(FileCompare),
 			entries: [],
 			loading: false,
 			loadingMore: false,
@@ -471,7 +473,7 @@ export default {
 			if (Number.isNaN(d.getTime()) === true) {
 				return String(raw)
 			}
-			return d.toLocaleString()
+			return d.toLocaleString(userLocale())
 		},
 	},
 }

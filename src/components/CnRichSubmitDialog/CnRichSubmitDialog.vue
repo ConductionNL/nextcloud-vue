@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		:noClose="loading"
@@ -32,7 +37,7 @@
 
 			<!-- Reason taxonomy (radio group / select). -->
 			<div v-if="reasons.length > 0" class="cn-rich-submit__field">
-				<label class="cn-rich-submit__label">{{ reasonLabel }}<span v-if="reasonRequired" class="cn-rich-submit__required">*</span></label>
+				<label class="cn-rich-submit__label">{{ reasonLabel }}<span v-if="reasonRequired && !isBoardLook" class="cn-rich-submit__required">*</span><span v-else-if="isBoardLook && !reasonRequired" class="cn-form-field__optional"> ({{ optionalLabel }})</span></label>
 				<div class="cn-rich-submit__reason-list">
 					<label v-for="r in normalisedReasons"
 						:key="r.value"
@@ -53,25 +58,27 @@
 			<!-- Notes / free-text. -->
 			<div v-if="showNotes" class="cn-rich-submit__field">
 				<label :for="fieldIdFor('notes')" class="cn-rich-submit__label">
-					{{ notesLabel }}<span v-if="notesRequired" class="cn-rich-submit__required">*</span>
+					{{ notesLabel }}<span v-if="notesRequired && !isBoardLook" class="cn-rich-submit__required">*</span><span v-else-if="isBoardLook && !notesRequired" class="cn-form-field__optional"> ({{ optionalLabel }})</span>
 				</label>
 				<textarea :id="fieldIdFor('notes')"
 					v-model="formData.notes"
 					:placeholder="notesPlaceholder"
 					rows="4"
+					:aria-required="isBoardLook && notesRequired ? 'true' : undefined"
 					class="cn-rich-submit__textarea" />
 			</div>
 
 			<!-- File upload (single or multi). -->
 			<div v-if="showFiles" class="cn-rich-submit__field">
 				<label :for="fieldIdFor('files')" class="cn-rich-submit__label">
-					{{ filesLabel }}<span v-if="filesRequired" class="cn-rich-submit__required">*</span>
+					{{ filesLabel }}<span v-if="filesRequired && !isBoardLook" class="cn-rich-submit__required">*</span><span v-else-if="isBoardLook && !filesRequired" class="cn-form-field__optional"> ({{ optionalLabel }})</span>
 				</label>
 				<input :id="fieldIdFor('files')"
 					type="file"
 					:accept="filesAccept"
 					:multiple="maxFiles !== 1"
 					class="cn-rich-submit__file"
+					:aria-required="isBoardLook && filesRequired ? 'true' : undefined"
 					@change="onFilesChange">
 				<small v-if="filesHint" class="cn-rich-submit__hint">{{ filesHint }}</small>
 				<ul v-if="formData.files.length > 0" class="cn-rich-submit__file-list">
@@ -100,11 +107,14 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 
 /**
  * CnRichSubmitDialog — Single-screen rich-submit modal with reason
@@ -145,8 +155,13 @@ import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
  */
 export default {
 	name: 'CnRichSubmitDialog',
-	components: { NcDialog, NcButton, NcNoteCard, NcLoadingIcon },
+	components: { CnDialog, NcButton, NcNoteCard, NcLoadingIcon },
+
+	mixins: [dialogBoardMixin],
 	props: {
+		/** The word shown as "(optional)" after an optional field in the board look. */
+		optionalLabel: { type: String, default: () => t('nextcloud-vue', 'optional') },
+
 		/**
 		 * Dialog title shown in the NcDialog header.
 		 *

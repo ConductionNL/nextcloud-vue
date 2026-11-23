@@ -1,5 +1,12 @@
 <template>
-	<div class="cn-sidebar-tab">
+	<!-- OpenRegister flow tasks anchored on the record (source="flow-tasks") -->
+	<CnFlowTasksPanel
+		v-if="source === 'flow-tasks'"
+		:objectId="objectId"
+		:register="register"
+		:schema="schema"
+		@count="(n) => $emit('count', n)" />
+	<div v-else class="cn-sidebar-tab">
 		<!-- Add / Edit task -->
 		<div class="cn-sidebar-tab__section">
 			<div class="cn-sidebar-tab__action--row">
@@ -136,12 +143,15 @@ import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnFlowTasksPanel from './CnFlowTasksPanel.vue'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnTasksTab',
 
 	components: {
+		CnFlowTasksPanel,
 		NcButton,
 		NcTextField,
 		NcListItem,
@@ -167,6 +177,14 @@ export default {
 		schema: { type: String, default: '' },
 		/** Base URL for the OpenRegister API */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/**
+		 * Where the tasks come from: `vtodo` (default, the record's linked
+		 * Nextcloud tasks) or `flow-tasks` (the OpenRegister flow tasks anchored
+		 * on the record, with create and per-row verbs).
+		 *
+		 * @type {'vtodo'|'flow-tasks'}
+		 */
+		source: { type: String, default: 'vtodo', validator: (v) => ['vtodo', 'flow-tasks'].includes(v) },
 		/** Placeholder text for the task input */
 		addTaskPlaceholder: { type: String, default: () => t('nextcloud-vue', 'Add task…') },
 		/** Label for the task deadline field */
@@ -188,6 +206,8 @@ export default {
 		/** Label for the assignee filter control */
 		assigneeFilterLabel: { type: String, default: () => t('nextcloud-vue', 'Assignee') },
 	},
+
+	emits: ['count'],
 
 	data() {
 		return {
@@ -233,7 +253,7 @@ export default {
 		objectId: {
 			immediate: true,
 			handler(id) {
-				if (id) {
+				if (id && this.source !== 'flow-tasks') {
 					this.fetchTasks()
 					this.fetchUsers()
 				}
@@ -289,7 +309,7 @@ export default {
 				return
 			}
 			try {
-				const response = await fetch('/ocs/v2.php/cloud/users/details?format=json&limit=50', {
+				const response = await fetch(prefixUrl('/ocs/v2.php/cloud/users/details?format=json&limit=50'), {
 					headers: buildHeaders(),
 				})
 				if (response.ok) {
@@ -452,7 +472,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleDateString(undefined, {
+				return new Date(dateStr).toLocaleDateString(userLocale(), {
 					day: 'numeric',
 					month: 'short',
 				})

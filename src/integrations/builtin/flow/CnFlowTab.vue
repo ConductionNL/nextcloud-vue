@@ -55,7 +55,10 @@
 		<div v-else-if="operations.length === 0" class="cn-sidebar-tab__empty cn-flow-tab__empty">
 			<SitemapOutline :size="32" class="cn-flow-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openFlowSettings">
+			<NcButton
+				variant="primary"
+				:href="flowSettingsUrl"
+				target="_blank">
 				<template #icon>
 					<SitemapOutline :size="20" />
 				</template>
@@ -135,7 +138,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import CnFlowOperationPicker from '../../../components/CnFlowOperationPicker/CnFlowOperationPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnFlowTab — bespoke automation-rule list for the `flow` integration.
@@ -214,7 +217,7 @@ export default {
 		},
 
 		opUrl(op) {
-			return op.url || this.flowSettingsUrl
+			return op.url && safeHref(op.url) !== '#' ? op.url : this.flowSettingsUrl
 		},
 
 		shortClass(className) {
@@ -317,12 +320,6 @@ export default {
 
 		enabledAriaLabel(op) {
 			return this.enabledLabel(op)
-		},
-
-		openFlowSettings() {
-			if (typeof window !== 'undefined') {
-				window.open(this.flowSettingsUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

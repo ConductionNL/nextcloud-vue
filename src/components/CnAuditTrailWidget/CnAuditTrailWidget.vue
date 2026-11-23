@@ -4,17 +4,35 @@
 -->
 
 <template>
-	<CnAuditTrailCard
-		v-if="resolvedRegister && resolvedSchema && resolvedObjectId"
-		:register="resolvedRegister"
-		:schema="resolvedSchema"
-		:objectId="resolvedObjectId"
-		:title="resolvedTitle"
-		:maxDisplay="resolvedMaxDisplay" />
+	<div
+		v-if="resolvedScope === 'app' || resolvedSource || resolvedEndpoint || (resolvedRegister && resolvedSchema && resolvedObjectId)"
+		class="cn-audit-trail-widget">
+		<CnAuditTrailCard
+			:source="resolvedSource"
+			:endpoint="resolvedEndpoint"
+			:register="resolvedRegister"
+			:schema="resolvedSchema"
+			:objectId="resolvedObjectId"
+			:scope="resolvedScope"
+			:title="resolvedTitle"
+			:maxDisplay="resolvedMaxDisplay"
+			:layout="content && typeof content.layout === 'string' ? content.layout : ''"
+			:density="content && typeof content.density === 'string' ? content.density : ''"
+			:excludeActions="resolvedExcludeActions"
+			:excludeActors="resolvedExcludeActors"
+			:actionLabels="actionLabels"
+			:valueLabels="valueLabels"
+			:changeLabels="changeLabels"
+			:object="ctx.object || ctx.objectData || null"
+			:relatedSources="relatedSources"
+			:footnote="footnote"
+			v-bind="emptyText ? { noEntriesLabel: emptyText } : {}" />
+	</div>
 </template>
 
 <script>
 import CnAuditTrailCard from '../CnAuditTrailCard/CnAuditTrailCard.vue'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 
 /**
  * CnAuditTrailWidget — thin built-in widget wrapping CnAuditTrailCard with
@@ -41,6 +59,8 @@ export default {
 	components: { CnAuditTrailCard },
 
 	inject: {
+		/** The host app's translate function, for `content.emptyText`. */
+		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Detail-page object context (`{ objectId, object, register, schema }`)
 		 * provided by CnDetailPage (raw object or `{ value }` holder).
@@ -70,7 +90,24 @@ export default {
 		title: { type: String, default: '' },
 		/** Maximum audit rows to render (0 falls back to the card default). */
 		maxDisplay: { type: Number, default: 0 },
-		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId? }`. */
+		/**
+		 * `app` lists the app-wide feed (every object the caller may read,
+		 * narrowed to `register` / `schema` when set) and needs no object;
+		 * `object` (the default) is one object's trail. Also read from
+		 * `content.scope`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 */
+		scope: { type: String, default: '' },
+		/** Read the trail of something that is not an object (`{ kind: 'flow-task', id? }`); also read from `content.source`. */
+		source: { type: Object, default: null },
+		/** A trail URL of its own; also read from `content.endpoint`. */
+		endpoint: { type: String, default: '' },
+		/** Actions to leave out (`['read']`); also read from `content.excludeActions`. */
+		excludeActions: { type: Array, default: () => [] },
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, footnote? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels? }`. */
+		/** Stored widget content blob (CnDashboardPage registry branch): `{ title, maxDisplay, register?, schema?, objectId?, source?, endpoint?, emptyText?, excludeActions?, actionLabels?, valueLabels?, relatedSources?, excludeActors?, layout?, density? }`. */
 		content: { type: Object, default: () => ({}) },
 	},
 
@@ -116,10 +153,145 @@ export default {
 		},
 
 		/**
+		 * The feed scope: explicit prop → content → `object`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-audit-trail-widget-reads-the-app-wide-feed
+		 * @return {('object'|'app')}
+		 */
+		resolvedScope() {
+			const s = this.scope || this.content.scope
+			return s === 'app' ? 'app' : 'object'
+		},
+
+		/**
 		 * The card title: explicit prop → content → '' (card default).
 		 *
 		 * @return {string}
 		 */
+		/** @return {object|null} The non-object anchor, from the prop or the content. */
+		resolvedSource() {
+			const source = this.source || this.content.source
+			return source && typeof source === 'object' ? source : null
+		},
+
+		/** @return {string} The trail URL of its own, from the prop or the content. */
+		resolvedEndpoint() {
+			return this.endpoint || (typeof this.content.endpoint === 'string' ? this.content.endpoint : '')
+		},
+
+		/** @return {string} The empty line the content names, through the host's translate, or ''. */
+		/**
+		 * `content.actionLabels`, each label through the app's translate.
+		 *
+		 * @return {Object<string, string>|null}
+		 * @spec openspec/changes/audit-trail-action-labels/specs/audit-trail/spec.md#requirement-a-trail-can-say-what-happened-in-words
+		 */
+		actionLabels() {
+			const labels = this.content.actionLabels
+			if (!labels || typeof labels !== 'object') {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return Object.fromEntries(Object.entries(labels)
+				.filter(([, text]) => (typeof text === 'string' && text !== '') || Array.isArray(text))
+				.map(([key, text]) => [key, Array.isArray(text) ? text.map((option) => ({ ...option, text: translate(option && option.text) })) : translate(text)]))
+		},
+
+		/**
+		 * `content.changeLabels`, each rule's label through the app's translate.
+		 *
+		 * @return {Array<object>}
+		 */
+		changeLabels() {
+			const rules = this.content.changeLabels
+			if (!Array.isArray(rules)) {
+				return []
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return rules
+				.filter((rule) => rule && typeof rule.label === 'string' && rule.label !== '')
+				.map((rule) => ({ ...rule, label: translate(rule.label) }))
+		},
+
+		/**
+		 * `content.footnote`, a muted line under the trail with the record's
+		 * fields filled in ("Reference {identifier}"); '' when a field is empty.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/audit-trail-footnote/specs/audit-trail/spec.md#requirement-a-history-card-can-end-in-a-line-about-the-record
+		 */
+		footnote() {
+			const note = this.content.footnote
+			if (typeof note !== 'string' || note === '') {
+				return ''
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return fillTemplate(translate(note), this.ctx.object || this.ctx.objectData || null)
+		},
+
+		/**
+		 * `content.valueLabels`, each word through the app's translate.
+		 *
+		 * @return {{[key: string]: {[value: string]: string}}|null}
+		 * @spec openspec/changes/audit-label-changed-values/specs/audit-trail/spec.md#requirement-a-trail-label-can-quote-what-the-entry-recorded
+		 */
+		valueLabels() {
+			const labels = this.content.valueLabels
+			if (!labels || typeof labels !== 'object') {
+				return null
+			}
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (text) => text
+			return Object.fromEntries(Object.entries(labels)
+				.filter(([, words]) => words && typeof words === 'object')
+				.map(([key, words]) => [key, Object.fromEntries(Object.entries(words)
+					.filter(([, text]) => typeof text === 'string' && text !== '')
+					.map(([value, text]) => [value, translate(text)]))]))
+		},
+
+		/**
+		 * `content.relatedSources`: records beside the object whose events
+		 * join its history (see CnAuditTrailCard).
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/audit-trail-related-sources/specs/audit-trail/spec.md#requirement-an-objects-history-can-include-the-events-of-records-beside-it
+		 */
+		relatedSources() {
+			return Array.isArray(this.content.relatedSources) ? this.content.relatedSources : []
+		},
+
+		emptyText() {
+			const text = this.content.emptyText
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The actions to leave out: explicit prop → content → none.
+		 *
+		 * @spec openspec/changes/audit-trail-exclude-actions/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-events-by-action
+		 * @return {Array<string>}
+		 */
+		resolvedExcludeActions() {
+			if (this.excludeActions.length > 0) {
+				return this.excludeActions
+			}
+			const fromContent = this.content.excludeActions
+			return Array.isArray(fromContent) ? fromContent.filter((action) => typeof action === 'string' && action !== '') : []
+		},
+
+		/**
+		 * The actors to leave out, from `content.excludeActors`.
+		 *
+		 * @spec openspec/changes/audit-card-exclude-actors/specs/audit-trail/spec.md#requirement-a-history-card-can-leave-out-entries-by-actor
+		 * @return {Array<string>}
+		 */
+		resolvedExcludeActors() {
+			const fromContent = this.content.excludeActors
+			return Array.isArray(fromContent) ? fromContent.filter((actor) => typeof actor === 'string' && actor !== '') : []
+		},
+
 		resolvedTitle() {
 			return this.title || this.content.title || ''
 		},
@@ -139,3 +311,10 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* The card keeps its own box, footnote included. */
+.cn-audit-trail-widget {
+	display: contents;
+}
+</style>

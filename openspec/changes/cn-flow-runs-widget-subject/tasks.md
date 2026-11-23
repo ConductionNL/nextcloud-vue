@@ -57,7 +57,7 @@
 - [ ] 7.3 Playwright coverage for the two `@e2e` scenarios (the case detail
       widget lists only the case's own runs; a finished flow appears in the
       case detail's run history). Blocked on the openregister implementation
-      of `flow-runs-subject-scope`: both need the server-side reads to exist.
+      of `flow-runs-subject-scope`: both need the server-side reads to exist. — not run: needs a live instance
 
 ## Acceptance criteria
 

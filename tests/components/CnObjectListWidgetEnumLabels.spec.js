@@ -37,7 +37,7 @@ describe('manifest column enumLabels', () => {
 	})
 
 	it('CnDataTable hands the column enumLabels to the cell renderer', () => {
-		const ctx = { getSchemaProperty: () => ({}) }
+		const ctx = { getSchemaProperty: () => ({}), columnValueField: CnDataTable.methods.columnValueField }
 		const property = CnDataTable.methods.columnProperty.call(ctx, {
 			key: 'informatieobject.direction',
 			enum: ['incoming'],
@@ -49,9 +49,29 @@ describe('manifest column enumLabels', () => {
 	})
 
 	it('CnDataTable falls back to the schema property enumLabels when the column has none', () => {
-		const ctx = { getSchemaProperty: () => ({ enumLabels: { a: 'A' } }) }
+		const ctx = { getSchemaProperty: () => ({ enumLabels: { a: 'A' } }), columnValueField: CnDataTable.methods.columnValueField }
 		const property = CnDataTable.methods.columnProperty.call(ctx, { key: 'status', enum: ['a'] })
 
 		expect(property.enumLabels).toEqual({ a: 'A' })
+	})
+})
+
+describe('manifest column colorMap', () => {
+	it('CnObjectListWidget passes a column colorMap through', async () => {
+		const w = shallowMount(CnObjectListWidget, {
+			propsData: {
+				content: {
+					register: 'r',
+					schema: 'submission',
+					columns: [{ key: 'deliveryStatus', widget: 'badge', colorMap: { delivered: 'success', failed: 'error' } }],
+				},
+			},
+			stubs: { CnDataTable: true, CnFormDialog: true },
+			mocks: { t: (_app, s) => s },
+		})
+		w.vm.rows = []
+		await w.vm.$nextTick()
+
+		expect(w.vm.resolvedColumns[0].colorMap).toEqual({ delivered: 'success', failed: 'error' })
 	})
 })

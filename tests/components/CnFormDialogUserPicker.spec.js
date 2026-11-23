@@ -12,10 +12,10 @@ import { mount } from '@vue/test-utils'
 jest.mock('../../src/utils/userAutocomplete.js', () => ({
 	__esModule: true,
 	searchNextcloudUsers: jest.fn().mockResolvedValue([
-		{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
-		{ id: 'henk', label: 'Henk Bakker', subline: '' },
+		{ id: 'annemarie', label: 'Annemarie de Vries', displayName: 'Annemarie de Vries', subline: '' },
+		{ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' },
 	]),
-	resolveNextcloudUser: jest.fn().mockResolvedValue({ id: 'henk', label: 'Henk Bakker' }),
+	resolveNextcloudUser: jest.fn().mockResolvedValue({ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker' }),
 }))
 
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
@@ -66,8 +66,8 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		expect(searchNextcloudUsers).toHaveBeenCalled()
 		const options = wrapper.vm.getEffectiveOptions(wrapper.vm.resolvedFields.find((f) => f.key === 'assignee'))
 		expect(options).toEqual([
-			{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
-			{ id: 'henk', label: 'Henk Bakker', subline: '' },
+			{ id: 'annemarie', label: 'Annemarie de Vries', displayName: 'Annemarie de Vries', subline: '' },
+			{ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' },
 		])
 	})
 
@@ -96,7 +96,7 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		expect(resolveNextcloudUser).toHaveBeenCalledWith('henk')
 		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'assignee')
 		const selected = wrapper.vm.getEffectiveSelectedOption(field)
-		expect(selected).toEqual({ id: 'henk', label: 'Henk Bakker' })
+		expect(selected).toEqual({ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker' })
 		// Stored value is still the UID.
 		expect(wrapper.vm.formData.assignee).toBe('henk')
 	})
@@ -132,5 +132,23 @@ describe('CnFormDialog — Nextcloud user picker', () => {
 		const wrapper = mount(CnFormDialog, { propsData: { schema: plain, item: null }, stubs })
 		expect(wrapper.findComponent({ name: 'NcSelectUsers' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'NcSelect' }).exists()).toBe(true)
+	})
+
+	// Audit D4: NcSelectUsers can hand back an option with only `displayName`;
+	// the chip then showed the uid after a clear and re-pick.
+	it('shows the display name after clearing and picking again', () => {
+		const wrapper = mount(CnFormDialog, { propsData: { schema: userSchema, item: null }, stubs })
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'assignee')
+		wrapper.vm.onEffectiveSelectChange(field, { id: 'annemarie', label: 'Annemarie de Vries' })
+		wrapper.vm.onEffectiveSelectChange(field, null)
+		wrapper.vm.onEffectiveSelectChange(field, { id: 'annemarie', displayName: 'Annemarie de Vries' })
+		expect(wrapper.vm.getEffectiveSelectedOption(field).displayName).toBe('Annemarie de Vries')
+	})
+
+	it('keeps a known name when a user option arrives without one', () => {
+		const wrapper = mount(CnFormDialog, { propsData: { schema: userSchema, item: null }, stubs })
+		const field = wrapper.vm.resolvedFields.find((f) => f.key === 'assignee')
+		wrapper.vm.onEffectiveSelectChange(field, { id: 'henk', displayName: 'Henk Bakker' })
+		expect(wrapper.vm.getEffectiveSelectedOption(field).label).toBe('Henk Bakker')
 	})
 })

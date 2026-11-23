@@ -12,8 +12,49 @@
  * @module utils/userAutocomplete
  */
 
+import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+
+/**
+ * The signed-in user as a picker option, or null when nobody is signed in.
+ *
+ * Core autocomplete never returns the person who searches (it is built for
+ * sharing, and you do not share with yourself), so a picker backed by it
+ * alone cannot assign a task to yourself.
+ *
+ * @spec openspec/changes/audit-round-lib-fixes/specs/schema-utilities/spec.md
+ * @return {{id: string, label: string, displayName: string, subline: string}|null} The option.
+ */
+function currentUserOption() {
+	let user
+	try {
+		user = getCurrentUser()
+	} catch {
+		return null
+	}
+	if (!user || !user.uid) {
+		return null
+	}
+	const name = user.displayName || String(user.uid)
+	return { id: String(user.uid), label: name, displayName: name, subline: '' }
+}
+
+/**
+ * Whether the current-user option matches a search term (uid or display
+ * name contains the term, ignoring case). An empty term matches.
+ *
+ * @param {object} option The current-user option.
+ * @param {string} query The search term.
+ * @return {boolean} True when it matches.
+ */
+function matchesQuery(option, query) {
+	const q = String(query || '').trim().toLowerCase()
+	if (q === '') {
+		return true
+	}
+	return option.id.toLowerCase().includes(q) || option.label.toLowerCase().includes(q)
+}
 
 /**
  * Map one autocomplete suggestion to a picker option, keeping only user
@@ -21,7 +62,7 @@ import { generateOcsUrl } from '@nextcloud/router'
  * name and `source` (`users`) / `shareType` (`0`) to mark a user entry.
  *
  * @param {object} suggestion A single autocomplete suggestion object.
- * @return {{id: string, label: string, subline: string}|null} Option or null when it isn't a user.
+ * @return {{id: string, label: string, displayName: string, subline: string}|null} Option or null when it isn't a user.
  */
 function toUserOption(suggestion) {
 	if (!suggestion || typeof suggestion !== 'object') {
@@ -38,9 +79,13 @@ function toUserOption(suggestion) {
 	if (uid === undefined || uid === null || uid === '') {
 		return null
 	}
+	const name = suggestion.label || String(uid)
 	return {
 		id: String(uid),
-		label: suggestion.label || String(uid),
+		label: name,
+		// NcSelectUsers reads `displayName` specifically (label: "displayName"
+		// on the underlying NcSelect, and NcListItemIcon's `name` prop).
+		displayName: name,
 		subline: suggestion.subline || '',
 	}
 }
@@ -55,10 +100,11 @@ function toUserOption(suggestion) {
  * @param {string} [query] The search term (empty loads an initial page).
  * @param {object} [options] Tuning options.
  * @param {number} [options.limit] Max results (default 25).
+ * @param {boolean} [options.includeCurrentUser] Add the signed-in user when they match (default true; a mention list passes false).
  * @return {Promise<Array<{id: string, label: string, subline: string}>>} Picker options.
  */
 export async function searchNextcloudUsers(query = '', options = {}) {
-	const { limit = 25 } = options
+	const { limit = 25, includeCurrentUser = true } = options
 	try {
 		const url = generateOcsUrl('core/autocomplete/get')
 		const response = await axios.get(url, {
@@ -82,12 +128,62 @@ export async function searchNextcloudUsers(query = '', options = {}) {
 		const list = Array.isArray(data)
 			? data
 			: (Array.isArray(response && response.data) ? response.data : [])
-		return list
+		const found = list
 			.map(toUserOption)
+			.filter((opt) => opt !== null)
+		return includeCurrentUser ? withCurrentUser(found, query) : found
+	} catch {
+		return []
+	}
+}
+
+/**
+ * Search Nextcloud groups by name via the same core autocomplete endpoint
+ * (`shareTypes[]=1`), so the instance's sharing restrictions apply. Fails soft:
+ * any error resolves to [].
+ *
+ * @param {string} [query] The search term (empty loads an initial page).
+ * @param {object} [options] Tuning options.
+ * @param {number} [options.limit] Max results (default 25).
+ * @return {Promise<Array<{id: string, label: string, displayName: string, subline: string}>>} Group options, `id` being the group id.
+ */
+export async function searchNextcloudGroups(query = '', options = {}) {
+	const { limit = 25 } = options
+	try {
+		const response = await axios.get(generateOcsUrl('core/autocomplete/get'), {
+			headers: { 'OCS-APIRequest': 'true', Accept: 'application/json' },
+			params: { search: query || '', itemType: ' ', itemId: ' ', 'shareTypes[]': 1, limit },
+		})
+		const data = response && response.data && response.data.ocs && response.data.ocs.data
+		const list = Array.isArray(data) ? data : (Array.isArray(response && response.data) ? response.data : [])
+		return list
+			.filter((s) => s && typeof s === 'object' && (s.source === 'groups' || s.shareType === 1 || (s.value && s.value.shareType === 1)))
+			.map((s) => {
+				const gid = s.id || (s.value && s.value.shareWith)
+				const name = s.label || String(gid)
+				return gid ? { id: String(gid), label: name, displayName: name, subline: s.subline || '' } : null
+			})
 			.filter((opt) => opt !== null)
 	} catch {
 		return []
 	}
+}
+
+/**
+ * Put the signed-in user first in a result list when they match the search
+ * and the server left them out.
+ *
+ * @spec openspec/changes/audit-round-lib-fixes/specs/schema-utilities/spec.md
+ * @param {Array<object>} options The server's options.
+ * @param {string} query The search term.
+ * @return {Array<object>} The options, the current user included when they match.
+ */
+function withCurrentUser(options, query) {
+	const me = currentUserOption()
+	if (!me || !matchesQuery(me, query) || options.some((opt) => opt.id === me.id)) {
+		return options
+	}
+	return [me, ...options]
 }
 
 /**
@@ -103,6 +199,12 @@ export async function resolveNextcloudUser(uid) {
 	const fallback = { id: String(uid), label: String(uid) }
 	if (uid === undefined || uid === null || uid === '') {
 		return fallback
+	}
+	// The server never returns the signed-in user, so their own uid would
+	// otherwise fall back to the bare uid.
+	const me = currentUserOption()
+	if (me && me.id === String(uid)) {
+		return me
 	}
 	const results = await searchNextcloudUsers(String(uid))
 	const match = results.find((opt) => opt.id === String(uid))

@@ -24,9 +24,14 @@
  * …) — they are resolved at render time via `resolveFilterValue` so a metric
  * tile can deep-link to a list pre-filtered "relative to now / the current user"
  * (e.g. `route: { name: 'Cases', query: { 'deadline[lt]': '@today' } }`) without
- * baking a fixed value into the manifest. Object-context tokens (`@workspace.*`,
- * `@config.*`, `@objectId`) are NOT resolved here — only the global tokens that
- * need no context.
+ * baking a fixed value into the manifest. Context tokens resolve too, from
+ * whatever the host widget exposes: `@objectId` / `@object.<field>` from its
+ * `objectCtx` (a tile on a detail page), `@workspace.<key>` from `pageCtx`,
+ * `@config.<key>` from `configCtx`, and `@range.<key>` from `activeRange()`
+ * (CnStatWidget's period). So a tile on a portal's detail page can link to
+ * `{ name: 'Traffic', query: { portal: '@object.slug' } }`. A host that exposes
+ * none of these (CnGaugeWidget) resolves only the global tokens, as before, and
+ * a token that stays unresolved is still dropped from the URL.
  */
 import { resolveFilterValue } from '../utils/resolveFilterTokens.js'
 
@@ -79,13 +84,37 @@ export default {
 		isLinked() {
 			return !!(this.linkRoute || this.linkHref)
 		},
+		/**
+		 * The token context the host widget can offer its link. Each part is
+		 * optional: `objectCtx`, `pageCtx` and `configCtx` exist on
+		 * CnStatWidget and CnDeltaWidget, `activeRange()` on CnStatWidget only.
+		 * Until this existed the link resolved no context at all, so
+		 * `@object.slug` was silently dropped from a tile's route and apps
+		 * wrapped the tile just to build the link themselves.
+		 *
+		 * @return {object} A resolveFilterValue context.
+		 */
+		linkTokenContext() {
+			const ctx = { ...(this.objectCtx || {}) }
+			if (this.pageCtx && typeof this.pageCtx === 'object') {
+				ctx.workspace = this.pageCtx
+			}
+			if (this.configCtx && typeof this.configCtx === 'object') {
+				ctx.config = this.configCtx
+			}
+			if (typeof this.activeRange === 'function') {
+				ctx.range = this.activeRange() || {}
+			}
+			return ctx
+		},
 	},
 	methods: {
 		/**
-		 * Resolve `@`-tokens inside a route's `query` / `params` maps. Only the
-		 * context-free global tokens (`@me`, `@today`, `@monthStart`, …) are
-		 * resolved; a value that stays a `@…` string (context-bound token) is
-		 * dropped so a half-resolved token never lands in the URL.
+		 * Resolve `@`-tokens inside a route's `query` / `params` maps: the
+		 * global tokens (`@me`, `@today`, `@monthStart`, …) and whatever
+		 * context the host offers (see `linkTokenContext`). A value that stays
+		 * a `@…` string is dropped so a half-resolved token never lands in the
+		 * URL.
 		 *
 		 * @param {object} route The vue-router location object.
 		 * @return {object} A partial `{ query?, params? }` with resolved maps (only present when the source had them).
@@ -100,9 +129,9 @@ export default {
 				const resolved = {}
 				for (const [k, v] of Object.entries(map)) {
 					if (Array.isArray(v)) {
-						resolved[k] = v.map((x) => resolveFilterValue(x))
+						resolved[k] = v.map((x) => resolveFilterValue(x, this.linkTokenContext))
 					} else {
-						const r = resolveFilterValue(v)
+						const r = resolveFilterValue(v, this.linkTokenContext)
 						// Drop a still-unresolved context-bound token (e.g. `@workspace.*`).
 						if (typeof r === 'string' && r.charAt(0) === '@') {
 							continue

@@ -25,7 +25,26 @@
 		:is="hideWrapper ? 'CnWidgetHostShell' : 'CnWidgetWrapper'"
 		v-bind="hideWrapper ? {} : { title, widgetId, documentationUrl, flush: true, refreshing: epLoading }">
 		<div class="cn-widget-object-table">
-			<CnDataTable ref="dataTable" v-bind="{ ...innerProps, ...$attrs }">
+			<!-- An endpoint read that was refused, failed or came back short
+			     says so; a refused or failed read shows no table, so it is
+			     never mistaken for an empty one. -->
+			<CnEndpointNotice
+				v-if="endpointActive"
+				:error="epError"
+				:refused="epRefused"
+				:truncated="epTruncated"
+				:truncatedText="endpointText('truncatedText')"
+				:awaitingRequest="epAwaitingRequest"
+				:requestLabel="endpointText('requestLabel')"
+				:requestHint="endpointText('requestHint')"
+				:requestDisabled="epBlocked"
+				@request="epRequest" />
+			<CnDataTable
+				v-if="!(endpointActive && (epError || epAwaitingRequest))"
+				ref="dataTable"
+				v-bind="{ ...innerProps, ...$attrs }"
+				@sort="onHeaderSort"
+				@columnFilter="onHeaderFilter">
 				<!-- Forward every host-supplied CnDataTable scoped slot verbatim
 				     (#footer { total, shown }, #empty, #column-<key>, …). The
 				     #row-actions slot is NOT forwarded while the widget renders
@@ -39,9 +58,31 @@
 				</template>
 			</CnDataTable>
 
+			<!-- `footnote`: a muted line under the table, through the host
+			     translate; not while a refused or failed read shows no table. -->
+			<p
+				v-if="footnote && !(endpointActive && (epError || epAwaitingRequest))"
+				class="cn-widget-object-table__footnote"
+				data-testid="cn-widget-object-table-footnote">
+				{{ cnTranslate(footnote) }}
+			</p>
+
 			<!-- Widget-scoped object-op create affordance: `create` has no row
 			     to mutate, so it renders in the list footer, never inside the
 			     per-row actions menu (ADR-049 / list-widget-enrichment). -->
+			<div v-if="exportCsv && !(endpointActive && (epError || epAwaitingRequest))" class="cn-widget-object-table__footer cn-widget-object-table__footer--export">
+				<NcButton
+					variant="tertiary"
+					data-testid="cn-widget-export-csv"
+					:disabled="csvRows.length === 0"
+					@click="downloadCsv">
+					<template #icon>
+						<DownloadIcon :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Export CSV') }}
+				</NcButton>
+			</div>
+
 			<div v-if="createActions.length > 0" class="cn-widget-object-table__footer">
 				<NcButton
 					v-for="action in createActions"
@@ -77,18 +118,27 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import DownloadIcon from 'vue-material-design-icons/Download.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
-import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
-import { dispatchAction, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { dispatchAction, interpolateActionTarget, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { headerFilterParams, nextHeaderFilters, withSortableColumns } from '../../utils/headerFilterState.js'
+import { localHeaderRows } from '../../utils/localHeaderRows.js'
+import { pageFilter, pageSort } from '../../utils/pageControls.js'
+import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { compareVisibleWhen, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { compileRowClass } from '../../utils/rowClassRules.js'
+import { fieldsFromSchema } from '../../utils/schema.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { rowsToCsv } from '../CnIndexPage/rowsToCsv.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 // Chrome-less pass-through used when `hideWrapper` is set (see hostShell.js
@@ -138,7 +188,7 @@ import { CnWidgetHostShell } from './hostShell.js'
 export default {
 	name: 'CnWidgetObjectTable',
 
-	components: { CnDataTable, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
+	components: { CnDataTable, CnEndpointNotice, DownloadIcon, CnWidgetWrapper, CnWidgetHostShell, CnRowActions, CnIcon, NcButton, CnConfirmDialog },
 
 	inject: {
 		/**
@@ -168,6 +218,8 @@ export default {
 		 * call when mounted outside a CnPageRenderer tree.
 		 */
 		cnDispatchAction: { default: null },
+		/** The app's translate, for manifest-authored strings. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	inheritAttrs: false,
@@ -229,6 +281,12 @@ export default {
 		 * Column definitions. Forwarded to CnDataTable — bare string keys OR
 		 * the object form (`{ key, label, sortable, width, cellClass,
 		 * formatter, widget, format, aggregate }`) both pass straight through.
+		 *
+		 * A column that holds a reference shows the referenced object's label
+		 * with `labelField` (the property to show) and/or `resolve`
+		 * (`{ register, schema, labelField? }`, where the reference points).
+		 * Without `resolve` the target is read off the source schema's `$ref`
+		 * for that property. Such a column renders as an `fkResolve` cell.
 		 *
 		 * @type {Array<object|string>}
 		 */
@@ -324,11 +382,67 @@ export default {
 		},
 
 		/**
+		 * Fit the table to the tile: the title column (a column's `grow: true`,
+		 * else `title` or `name`, else the first) shrinks and ends in an
+		 * ellipsis so the trailing columns stay visible. On by default; pass
+		 * `false` for the table's own auto layout. Forwarded to CnDataTable.
+		 *
+		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
+		 */
+		fitWidth: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show an "Export CSV" button under the table that downloads the rows
+		 * it holds, one column per table column headed by its label. The
+		 * values are the row values, not the formatted cell text, so a
+		 * spreadsheet can compute with them.
+		 */
+		exportCsv: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The name a page header `export` action uses to ask this table for
+		 * its rows as CSV (`{ type: "export", exportId }`), so the page's
+		 * "Download" downloads this table. Empty: no header download.
+		 */
+		exportId: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The downloaded file's name without `.csv`. Defaults to the title,
+		 * slugged, else `export`.
+		 */
+		exportFileName: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Route NAME for row-click navigation. Mapped onto CnDataTable's
 		 * `rowClickRoute` as `{ name: rowRoute, params: { id } }` with the
 		 * row's `id` (or `@self.id`). Empty (the default) = no navigation.
 		 */
 		rowRoute: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The row field (a dot-path) holding the id `rowRoute` opens, for a row
+		 * that links to another record (a payment row opening its case:
+		 * `rowIdField: "case"`). Empty (the default) uses the row's own id; a
+		 * row whose field is empty does not link.
+		 *
+		 * @spec openspec/changes/object-table-row-id-field/specs/object-table/spec.md#requirement-a-row-can-link-to-the-record-a-field-names
+		 */
+		rowIdField: {
 			type: String,
 			default: '',
 		},
@@ -348,6 +462,20 @@ export default {
 		},
 
 		/**
+		 * Rows per page: the board's pager under the table ("4 of 7", page
+		 * buttons, Next), forwarded to CnDataTable. It pages the rows the
+		 * widget holds; with a `source`, `source.limit` is how many are read
+		 * (OpenRegister's default page otherwise). 0 (the default) shows no
+		 * pager.
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 */
+		pageSize: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
 		 * vue-router route object for the "View all" footer link. Forwarded
 		 * to CnDataTable (footer shows when the rows are a `limit`-ed subset).
 		 *
@@ -358,15 +486,28 @@ export default {
 			default: null,
 		},
 
-		/** Pre-translated "View all" footer label. Forwarded to CnDataTable. */
+		/** "View all" footer label, through the app's translate. Forwarded to CnDataTable. */
 		viewAllLabel: {
 			type: String,
 			default: undefined,
 		},
 
-		/** Text shown when there are no rows. Forwarded to CnDataTable. */
+		/** Text shown when there are no rows, through the app's translate. Forwarded to CnDataTable. */
 		emptyText: {
 			type: String,
+			default: undefined,
+		},
+
+		/**
+		 * App wording for an unavailable personal lens (a `source.filter._recent`
+		 * tile on an instance that does not log reads), keyed `<lens>.<reason>`
+		 * or `<reason>`. Forwarded to CnDataTable, which shows the library's
+		 * object-neutral text without it.
+		 *
+		 * @spec openspec/changes/lens-says-why-it-is-empty/specs/personal-lens-availability/spec.md#requirement-an-unavailable-lens-explains-its-empty-page
+		 */
+		lensReasonTexts: {
+			type: Object,
 			default: undefined,
 		},
 
@@ -379,6 +520,39 @@ export default {
 		rowIcon: {
 			type: [String, Function],
 			default: null,
+		},
+
+		/**
+		 * Column heads that sort, as the index table's: `true` for every
+		 * column, or the keys that do. A column's own `sortable` wins. The
+		 * sort goes out with the widget's fetch (`source`), replacing
+		 * `source.order` while it is set; `endpointSource` rows are sorted
+		 * here.
+		 */
+		sortable: {
+			type: [Boolean, Array],
+			default: false,
+		},
+
+		/**
+		 * Column heads with the index table's filter button. A header filter
+		 * goes out with the widget's fetch (`source`) as the same parameters
+		 * the index page sends; `endpointSource` rows are filtered here.
+		 */
+		filterable: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * A muted line under the table (DqTermijnen Ingebrekestellingen
+		 * "Een ingebrekestelling telt pas ..."), through the host translate.
+		 *
+		 * @spec openspec/changes/object-table-footnote/specs/object-table-footnote/spec.md#requirement-an-object-table-can-carry-a-footnote
+		 */
+		footnote: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -420,7 +594,7 @@ export default {
 		// External rows always win — and suppress the request entirely (the
 		// pre-existing "when rows are provided, no API calls are made"
 		// contract), so the getter resolves to null while `rows` are supplied.
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, body, loading, error, refused, truncated, blocked, awaitingRequest, request, refetch } = useEndpointSource(
 			() => ((props.rows && props.rows.length > 0) ? null : props.endpointSource),
 			{
 				ctx: () => ({
@@ -431,17 +605,23 @@ export default {
 				widgetId: () => props.widgetId,
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch }
+		return { epData: data, epBody: body, epLoading: loading, epError: error, epRefused: refused, epTruncated: truncated, epBlocked: blocked, epAwaitingRequest: awaitingRequest, epRequest: request, epRefetch: refetch }
 	},
 
 	data() {
 		return {
+			/** The sort a column head set (`sortable`), or null for `source.order`. */
+			headerSort: null,
+			/** The column-head filters (`filterable`), `{ paramKey: values[] }`. */
+			headerFilters: {},
 			/** Error message from the last rejected object-op write ('' = none). */
 			opError: '',
 			/** @type {object|null} The object-op action awaiting confirmation (null = no dialog). */
 			confirmAction: null,
 			/** @type {object|null} The row the pending confirm-gated action targets. */
 			confirmRow: null,
+			/** Where each label column's references point, read off the source schema, by column key. */
+			refTargets: {},
 		}
 	},
 
@@ -491,7 +671,8 @@ export default {
 		 * @return {object}
 		 */
 		resolvedFilter() {
-			return dropOptionalUnresolved(resolveFilterTokens((this.source && this.source.filter) || {}, this.tokenCtx))
+			const filter = pageFilter(this.source && this.source.pageControls, this.workspaceCtx, this.source && this.source.filter)
+			return dropOptionalUnresolved(resolveFilterTokens(filter, this.tokenCtx))
 		},
 
 		/**
@@ -526,6 +707,16 @@ export default {
 		 */
 		endpointRows() {
 			return Array.isArray(this.epData) ? this.epData : []
+		},
+
+		/**
+		 * The rows the CSV export writes: the endpoint rows, else the
+		 * external rows.
+		 *
+		 * @return {Array<object>}
+		 */
+		csvRows() {
+			return this.endpointActive ? this.endpointRows : (this.rows || [])
 		},
 
 		/**
@@ -564,11 +755,19 @@ export default {
 		resolvedFetchParams() {
 			const src = this.source || {}
 			const params = {}
-			for (const [field, dir] of Object.entries(src.order || {})) {
+			// A page sort control (`source.pageControls.sort`) replaces the order.
+			// An entry with `rank` (a sort by an enum's rank) is the record list's:
+			// this table pages, and a rank order over pages needs the server.
+			const picked = pageSort(src.pageControls, this.workspaceCtx, null)
+			const chosen = picked && !Array.isArray(picked.rank) ? picked : null
+			const order = this.headerSort ? { [this.headerSort.field]: this.headerSort.dir } : (chosen ? { [chosen.field]: chosen.dir } : (src.order || {}))
+			for (const [field, dir] of Object.entries(order)) {
 				params[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
 			}
 			if (typeof src.limit === 'number' && src.limit > 0) {
-				params._limit = src.limit + 1
+				// Under a pager `limit` is how many rows the pages hold, not a
+				// "View all" cap that needs to see one more.
+				params._limit = this.pageSize > 0 ? src.limit : src.limit + 1
 			}
 			// `source.extend` (#91 Wave 3): forwarded as OR's repeated
 			// `_extend[]` param so virtual/declarative fields (e.g.
@@ -601,7 +800,58 @@ export default {
 					}
 				}
 			}
-			return params
+			return { ...params, ...headerFilterParams(this.headerFilters) }
+		},
+
+		/**
+		 * Columns that ask for the label of the object they reference
+		 * (`labelField` or `resolve`) and draw no cell widget of their own.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/dashboard-table-reference-labels/specs/dashboard-page/spec.md#requirement-a-dashboard-table-shows-a-referenced-objects-label
+		 */
+		refLabelColumns() {
+			return (this.columns || []).filter((col) => col && typeof col === 'object' && !col.widget
+				&& ((typeof col.labelField === 'string' && col.labelField !== '') || (col.resolve && typeof col.resolve === 'object')))
+		},
+
+		/**
+		 * The columns handed to CnDataTable: a label column whose target is
+		 * known renders as an `fkResolve` cell; every other column as given.
+		 *
+		 * @return {Array<object|string>}
+		 * @spec openspec/changes/dashboard-table-reference-labels/specs/dashboard-page/spec.md#requirement-a-dashboard-table-shows-a-referenced-objects-label
+		 */
+		renderedColumns() {
+			if (this.refLabelColumns.length === 0) {
+				return this.columns
+			}
+			return this.columns.map((col) => {
+				if (!this.refLabelColumns.includes(col)) {
+					return col
+				}
+				const target = this.refTargetOf(col)
+				if (!target) {
+					return col
+				}
+				const labelField = (col.resolve && typeof col.resolve.labelField === 'string' && col.resolve.labelField) || col.labelField || 'name'
+				return { ...col, widget: 'fkResolve', widgetProps: { ...(col.widgetProps || {}), register: target.register, schema: target.schema, labelField } }
+			})
+		},
+
+		/**
+		 * The label columns whose target has to be read off the source schema.
+		 *
+		 * @return {string[]} Their keys.
+		 */
+		schemaRefKeys() {
+			return this.refLabelColumns.filter((col) => !this.explicitTarget(col)).map((col) => col.key)
+		},
+
+		/** @return {string} The label columns to look up and the source schema, to read again when either changes. */
+		refTargetsKey() {
+			const src = this.source || {}
+			return `${src.register || ''}/${src.schema || ''}:${this.schemaRefKeys.join('|')}`
 		},
 
 		/**
@@ -619,28 +869,56 @@ export default {
 		 * @return {object}
 		 */
 		innerProps() {
-			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowClass, ...rest } = this.$props
+			const { title, documentationUrl, widgetId, hideWrapper, source, endpointSource, actions, rowRoute, rowIdField, rowClass, schema, exportCsv, exportFileName, exportId, sortable, filterable, footnote, ...rest } = this.$props
 			const inner = {}
 			for (const [k, v] of Object.entries(rest)) {
 				if (v !== undefined) {
 					inner[k] = v
 				}
 			}
+			// The manifest writes these in English; a host that already
+			// translated them passes its words, which translate to themselves.
+			for (const key of ['viewAllLabel', 'emptyText']) {
+				if (typeof inner[key] === 'string' && inner[key] !== '') {
+					inner[key] = this.cnTranslate(inner[key])
+				}
+			}
+			// This widget's `schema` is a slug, while CnDataTable's `schema` is a
+			// schema object, so it is not forwarded. Nor is it mapped to `schemaId`:
+			// that would turn on CnDataTable's unscoped self-fetch whenever the
+			// widget's own rows are empty. Self-fetch comes from `source` alone.
 			// `rowClass` is consumed here (function or declarative rules[]) and
 			// forwarded to CnDataTable as a compiled `(row) => class` function.
 			if (this.compiledRowClass) {
 				inner.rowClass = this.compiledRowClass
 			}
+			if (this.refLabelColumns.length > 0) {
+				inner.columns = this.renderedColumns
+			}
+			if (this.endpointActive && this.columns.some((col) => col && typeof col === 'object' && col.labelPath)) {
+				inner.columns = this.labelledColumns(inner.columns || this.columns)
+			}
+			// Header sort and filter (`sortable`, `filterable`): the server sorts
+			// and filters a self-fetch; endpoint rows are sorted and filtered here.
+			if ((this.selfFetchActive || this.endpointActive) && (this.sortable !== false || this.filterable)) {
+				inner.columns = withSortableColumns(inner.columns || this.columns, this.sortable)
+				inner.filterable = this.filterable
+				inner.activeFilters = this.headerFilters
+				if (this.headerSort) {
+					inner.sortKey = this.headerSort.field
+					inner.sortOrder = this.headerSort.dir
+				}
+			}
 			if (this.selfFetchActive) {
 				inner.register = this.source.register
 				inner.schemaId = this.source.schema
 				inner.fetchParams = this.resolvedFetchParams
-				if (typeof this.source.limit === 'number' && this.source.limit > 0) {
+				if (typeof this.source.limit === 'number' && this.source.limit > 0 && !(this.pageSize > 0)) {
 					inner.limit = this.source.limit
 				}
 			}
 			if (this.endpointActive) {
-				inner.rows = this.endpointRows
+				inner.rows = localHeaderRows(this.endpointRows, this.headerSort, this.headerFilters)
 				inner.loading = this.epLoading || this.loading
 			}
 			if (this.rowRoute) {
@@ -661,28 +939,7 @@ export default {
 		 * @return {?(row: object) => string} The row-class function, or null.
 		 */
 		compiledRowClass() {
-			const rc = this.rowClass
-			if (typeof rc === 'function') {
-				return rc
-			}
-			if (!Array.isArray(rc) || rc.length === 0) {
-				return null
-			}
-			const rules = rc
-			return (row) => {
-				const classes = []
-				for (const rule of rules) {
-					if (!rule || !rule.class) {
-						continue
-					}
-					const when = rule.when || {}
-					const actual = readVisibleWhenPath(row, when.field)
-					if (compareVisibleWhen(actual, when.op || 'eq', when.value)) {
-						classes.push(rule.class)
-					}
-				}
-				return classes.join(' ')
-			}
+			return compileRowClass(this.rowClass)
 		},
 
 		/**
@@ -693,8 +950,10 @@ export default {
 		 */
 		rowRouteFn() {
 			return (row) => {
-				const id = row && (row.id || (row['@self'] && row['@self'].id))
-				return id ? { name: this.rowRoute, params: { id: String(id) } } : null
+				const id = this.rowIdField
+					? readPath(row, this.rowIdField)
+					: row && (row.id || (row['@self'] && row['@self'].id))
+				return id !== null && id !== undefined && id !== '' && typeof id !== 'object' ? { name: this.rowRoute, params: { id: String(id) } } : null
 			}
 		},
 
@@ -722,6 +981,8 @@ export default {
 		 * Row-scoped actions mapped onto the CnRowActions shape: label + icon
 		 * pass through, `object-op` `delete` renders destructive, and the
 		 * handler routes back through the widget's confirm-gated dispatcher.
+		 * `visibleWhen` and `visible` pass through, so CnRowActions decides per
+		 * row whether the entry shows.
 		 *
 		 * @return {Array<object>}
 		 */
@@ -731,6 +992,8 @@ export default {
 				icon: action.icon,
 				destructive: action.type === 'object-op' && action.op === 'delete',
 				handler: (row) => this.onActionTriggered(action, row),
+				...(action.visibleWhen ? { visibleWhen: action.visibleWhen } : {}),
+				...(action.visible !== undefined ? { visible: action.visible } : {}),
 			}))
 		},
 
@@ -766,7 +1029,110 @@ export default {
 		},
 	},
 
+	watch: {
+		refTargetsKey() {
+			this.loadRefTargets()
+		},
+	},
+
+	mounted() {
+		this.loadRefTargets()
+		if (this.exportId !== '') {
+			this.onHeaderExport = (payload) => {
+				if (payload && payload.exportId === this.exportId) {
+					this.downloadCsv()
+				}
+			}
+			subscribe('cn:widget:export', this.onHeaderExport)
+		}
+	},
+
+	beforeUnmount() {
+		if (this.onHeaderExport) {
+			unsubscribe('cn:widget:export', this.onHeaderExport)
+		}
+	},
+
 	methods: {
+		/**
+		 * A column head's sort (`sortable`): it replaces `source.order` until
+		 * it is cleared.
+		 *
+		 * @param {{key: string|null, order: string|null}} payload CnDataTable's sort.
+		 * @return {void}
+		 * @spec openspec/changes/table-widget-header-controls/specs/table-widget-header-controls/spec.md
+		 */
+		onHeaderSort(payload) {
+			const key = payload && payload.key
+			this.headerSort = key ? { field: key, dir: payload.order === 'desc' ? 'desc' : 'asc' } : null
+		},
+
+		/**
+		 * A column head's filter (`filterable`), kept with the others.
+		 *
+		 * @param {{key: string, params: object}} payload CnDataTable's column-filter.
+		 * @return {void}
+		 * @spec openspec/changes/table-widget-header-controls/specs/table-widget-header-controls/spec.md
+		 */
+		onHeaderFilter(payload) {
+			this.headerFilters = nextHeaderFilters(this.headerFilters, payload)
+		},
+
+		t,
+
+		/**
+		 * A string the `endpointSource` block carries, through the app's
+		 * translate ('' when absent).
+		 *
+		 * @param {string} key The key in the block.
+		 * @return {string} The translated text.
+		 */
+		endpointText(key) {
+			const text = this.endpointSource && this.endpointSource[key]
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Columns whose `labelPath` names their heading in the endpoint's
+		 * whole response, so an endpoint can say what a column measures (a
+		 * working-hours column counted on the calendar or approximated). The
+		 * `label` stays the heading until the response names one.
+		 *
+		 * @param {Array<object|string>} columns The columns.
+		 * @return {Array<object|string>} The columns with response-named headings.
+		 */
+		labelledColumns(columns) {
+			return columns.map((col) => {
+				if (!col || typeof col !== 'object' || !col.labelPath) {
+					return col
+				}
+				const named = getByPath(this.epBody, col.labelPath)
+				return (typeof named === 'string' && named !== '') ? { ...col, label: named } : col
+			})
+		},
+
+		/**
+		 * Download the rows as CSV with the table's columns (#exportCsv).
+		 *
+		 * @return {void}
+		 */
+		downloadCsv() {
+			const columns = (this.innerProps.columns || this.columns || [])
+				.map((col) => (typeof col === 'string' ? { key: col, label: col } : col))
+			const csv = rowsToCsv(this.csvRows, columns)
+			const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			const name = String(this.exportFileName || this.title || 'export').trim().toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export'
+			link.href = url
+			link.download = `${name}.csv`
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			URL.revokeObjectURL(url)
+		},
+
 		/**
 		 * Entry point for every declarative action trigger (row menu or
 		 * footer create button). `object-op` `delete` ALWAYS confirms;
@@ -826,9 +1192,13 @@ export default {
 				return { ok: false, error: '' }
 			}
 			if (action.type !== 'object-op') {
-				const wrapped = (!action.type || action.type === 'handler')
-					? { ...action, args: [...(action.args || []), row] }
-					: action
+				let wrapped = action
+				if (!action.type || action.type === 'handler') {
+					wrapped = { ...action, args: [...(action.args || []), row] }
+				} else if (action.type === 'navigate' && row) {
+					// A row's navigate reads that row: `{objectId}` / `@objectId` is its id, `@object.<field>` its fields.
+					wrapped = { ...action, target: interpolateActionTarget(action.target, { objectId: row.id, object: row }) }
+				}
 				if (typeof this.cnDispatchAction === 'function') {
 					this.cnDispatchAction(wrapped)
 				} else {
@@ -877,6 +1247,68 @@ export default {
 		},
 
 		/**
+		 * Where a label column's references point when the column says so
+		 * itself (`resolve.register` and `resolve.schema`).
+		 *
+		 * @param {object} col The column.
+		 * @return {{register: string, schema: string}|null}
+		 */
+		explicitTarget(col) {
+			const r = col && col.resolve
+			if (r && typeof r === 'object' && typeof r.register === 'string' && r.register !== '' && typeof r.schema === 'string' && r.schema !== '') {
+				return { register: r.register, schema: r.schema }
+			}
+			return null
+		},
+
+		/**
+		 * Where a label column's references point: the column's `resolve`, else
+		 * the source schema's `$ref` for the property, else null (the column
+		 * then shows the raw value).
+		 *
+		 * @param {object} col The column.
+		 * @return {{register: string, schema: string}|null}
+		 */
+		refTargetOf(col) {
+			return this.explicitTarget(col) || this.refTargets[col.key] || null
+		},
+
+		/**
+		 * Read the source schema once and note, for each label column without a
+		 * `resolve`, the register and schema its property's `$ref` names. A
+		 * failed or missing schema leaves those columns showing raw values.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dashboard-table-reference-labels/specs/dashboard-page/spec.md#requirement-a-dashboard-table-shows-a-referenced-objects-label
+		 */
+		async loadRefTargets() {
+			const keys = this.schemaRefKeys
+			const src = this.source
+			if (keys.length === 0 || !src || typeof src.register !== 'string' || src.register === '' || src.register.startsWith('@') || typeof src.schema !== 'string' || src.schema === '') {
+				return
+			}
+			const store = this.getObjectStore()
+			if (!store || typeof store.fetchSchema !== 'function') {
+				return
+			}
+			const type = resolveObjectOpType(store, { register: src.register, schema: src.schema }, { exactSchema: true })
+			const schema = await store.fetchSchema(type).catch(() => null)
+			if (!schema || typeof schema !== 'object') {
+				return
+			}
+			const fields = fieldsFromSchema(schema, { includeReadOnly: true })
+			const found = {}
+			for (const key of keys) {
+				const field = fields.find((f) => f.key === key)
+				const ref = field && field.reference
+				if (ref && ref.schema !== undefined && ref.schema !== null) {
+					found[key] = { register: ref.register || src.register, schema: String(ref.schema) }
+				}
+			}
+			this.refTargets = { ...this.refTargets, ...found }
+		},
+
+		/**
 		 * The shared object store instance, or null when no Pinia is active
 		 * (`dispatchAction` then warns and no-ops).
 		 *
@@ -920,6 +1352,13 @@ export default {
 	width: 100%;
 }
 
+.cn-widget-object-table__footnote {
+	margin: 12px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	line-height: normal;
+}
+
 .cn-widget-object-table__footer {
 	display: flex;
 	gap: 4px;
@@ -928,7 +1367,7 @@ export default {
 }
 
 .cn-widget-object-table__error {
-	color: var(--color-error);
+	color: var(--color-text-error, var(--color-error-text));
 	font-size: 0.85em;
 	margin: 4px 8px 0;
 }

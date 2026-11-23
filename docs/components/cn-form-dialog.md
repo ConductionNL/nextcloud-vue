@@ -30,6 +30,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `fields` | Array | `null` | Manual field definitions (overrides schema) |
 | `initialData` | Object | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | Array | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
+| `footnote` | String | `''` | A short note the form closes on, drawn under its fields with an information icon. Empty shows none. |
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
@@ -41,7 +42,17 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `cancelLabel` | String | | |
 | `closeLabel` | String | | |
 | `confirmLabel` | String | | |
+| `confirmIcon` | String | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Empty shows Plus when creating, else a save icon. |
+| `feedback` | Boolean | `true` | Report the write with a toast: "Saved \{title\}" (the object's name, else the schema's title) after a successful save, the server's message after a failed one. `false` suppresses the toasts and changes nothing else. |
+| `confirmDisabled` | Boolean | `false` | Keep the Confirm button disabled regardless of the form state, for a host that knows the form cannot be completed (used by `CnTaskFormDialog` when a required declared field is broken). |
 | `referenceContext` (`reference-context`) | Object \| null | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType` (AD-18). Optional. |
+| `recoverDraft` (`recover-draft`) | Boolean | `true` | Keep what the user typed and offer it back when this form reopens. Local only: nothing reaches the server until they save. On by default, because it changes nothing they did not type and the case it solves is a closed tab. |
+| `allowDraft` (`allow-draft`) | Boolean | `false` | Offer a "Save draft" button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`: a button writing a property the schema does not declare would have OpenRegister drop it in silence, and the record would come back looking published. |
+| `draftField` (`draft-field`) | String | `'isDraft'` | The boolean property that marks a record as a draft. |
+| `draftAppId` (`draft-app-id`) | String | `''` | The app the draft belongs to. Part of the key the recovered draft is stored under. |
+| `draftUserId` (`draft-user-id`) | String | `''` | Who is typing. Also part of the draft key, and that matters: a shared browser profile at a service desk is ordinary in a municipality, and a draft keyed without the user hands the next person at the counter what the last one typed. A host that passes nothing gets the signed-in Nextcloud user, and `anonymous` only when nobody is signed in. A draft stored under `anonymous` is removed once somebody is signed in. |
+
+When `allowDraft` is on and the schema declares `draftField`, a stored draft record (its marker set) opens with "(draft)" in the title and a **Publish** button in place of Save. Publish runs the full validation and sends the record with the marker cleared; **Save draft** stays available and skips validation. The footer indicator reads **Saving** while a local write is pending and **Saved just now** (or a relative time) once it lands, in an `aria-live="polite"` region.
 
 ## Widget Types
 
@@ -52,16 +63,23 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `url` | URLs |
 | `number` | Numeric input |
 | `textarea` | Long text |
+| `lines` | A list of strings, one per line; lines are trimmed and empty ones dropped |
 | `select` | Single choice from options (static or async) |
 | `multiselect` | Multiple choices (static or async) |
 | `user` | Single Nextcloud user (`referenceType: 'nextcloud-user'` / `format: 'user'`) — a searchable dropdown of real users rendered by the shared select branch as NC's native `:user-select` picker (stores the UID string). See [Nextcloud user references](#nextcloud-user-references-referencetype-nextcloud-user) |
 | `user-multiselect` | Multiple Nextcloud users — searchable multi-select (stores an array of UIDs) |
+| `group` | Single Nextcloud group (`format: 'nc-group'` / `referenceType: 'nextcloud-group'`): a searchable dropdown of groups that stores the group id |
+| `group-multiselect` | Several Nextcloud groups: a searchable multi-select that stores an array of group ids |
+| `language` | `format: 'language'`: a searchable list of languages, labelled in the user's language, that stores the language code |
+| `timezone` | `format: 'timezone'`: a searchable list of IANA time zones that stores the id |
 | `tags` | Tag input (with optional async suggestions) |
 | `checkbox` | Boolean toggle |
 | `switch` | Toggle over a 2-value `enum` (off → first value, on → last value) |
 | `date` | Date picker |
 | `datetime` | Date-time picker |
 | `json` | JSON editor (CnJsonViewer). formData holds the parsed value; invalid JSON blocks confirm |
+| `party` | One search field over people, organisations and contacts ([CnPartyPicker](cn-party-picker.md)) over `field.sources`, with the label above the field. formData holds the chosen row's id only. `field.testid` lands on the picker With `choiceKey`, formData also holds the whole choice (`{ source, id, label, secondary, row }`, or null) under that key, for a create override that stores more than the id; the override takes it out before saving. |
+| `resource` | An object pick ([CnResourceSelect](cn-resource-select.md)) over `field.resource: { register, schema, labelField?, scope?, failedText? }`. A `scope.value` token such as `@object.caseType` is read from the page's object (by id when it is a relation); an unreadable token offers every row. `failedText` goes through the app's translate. Nothing is created from the search term |
 | `code` | Freeform code editor (CnJsonViewer). formData holds the raw string; syntax highlighting via `field.language` |
 | `icon` | Icon picker ([CnIconPicker](cn-icon-picker.md)). Forwards `field.iconSources` → `sources` (default `['mdi']`), plus `field.catalogues` / `field.searchable` (default on) / `field.allowCustomSvg`. formData holds the selected icon value |
 
@@ -80,6 +98,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `#field-\{key\}` | field, value, error, updateField | Per-field override |
 | `#field-\{key\}-option` | *option object properties* | Custom dropdown option rendering for a select/multiselect/tags field |
 | `#field-\{key\}-selected-option` | *option object properties* | Custom selected option display for a select/multiselect/tags field |
+| `#field-\{key\}-hint` | field, value, formData | Content under one field, such as a hint that follows its value. Wins over the field's `hintWidget` |
 | `#before-fields` | — | Content before fields |
 | `#after-fields` | — | Content after fields |
 
@@ -109,7 +128,7 @@ When using the `fields` prop (manual field definitions), each field object suppo
 | `enum` | Array \| Function | Options for `select` widget. Static array or async function (see below) |
 | `items` | Object | For `multiselect`: `{ enum: [...] }` or `{ enum: asyncFn }` |
 | `debounce` | Number | Debounce delay in ms for async enum search (default: 300) |
-| `validation` | Object | `{ minLength, maxLength, minimum, maximum, pattern }` |
+| `validation` | Object | `{ minLength, maxLength, minimum, maximum, pattern, patternMessage }`; `patternMessage` replaces "Invalid format." for a value that does not match `pattern`, translated through the host app ("Invalid email format"). Set it through `fieldOverrides[key].validation`. |
 | `language` | String | For `code`: `'json' \| 'xml' \| 'html' \| 'text' \| 'auto'` (default `'auto'`) |
 
 ## JSON and code fields
@@ -188,6 +207,30 @@ Select, multiselect, and tags fields support **async options** by setting `enum`
 
 **Static enums are unchanged** — arrays work exactly as before, storing just the ID value.
 
+## Options from a source (`optionsFrom`)
+
+### Starting from a template
+
+With `templateSource: { register, schema }` a create form reads OpenRegister's record templates of that register and schema (`GET /apps/openregister/api/record-templates`) and offers them in a "Start from a template" picker above the fields. Picking one fills the form from its `values`. A value whose field the form no longer has, or whose type no longer matches the property, is left out, and a line under the picker names them. A field the person already changed keeps what they typed. The record is then saved like any other, so validation and rights apply once. An edit form offers no templates. On a manifest index page, `config.recordTemplates: true` switches it on.
+
+A select whose allowed values depend on another field follows the property's `x-openregister-dependent-values` table, the one OpenRegister enforces on save: `{ "controlledBy": "licentietype", "allowed": { "Open source": ["EUPL-1.2", "MIT"], "Closed source": [] } }`. The field offers only the row of the controlling field's value (nothing for an empty row), and every value while the controlling value is not in the table. When the controlling field changes, a value the new row does not allow is cleared; on an array field (the table on `items`) only those entries are dropped.
+
+A select can read its options instead of listing them, as dossiq's IV3 taakveld picker does. Declare `optionsFrom` on a field (or in `fieldOverrides`), or `x-options-from` on the register schema property:
+
+```json
+{ "taakveld": { "optionsFrom": { "register": "dossiq", "schema": "taakveld", "valueField": "code", "labelField": "name" } } }
+```
+
+`optionsFrom` is `{ register, schema, filter? }` (OpenRegister objects; tokens in `filter` resolve) or `{ url, params?, responsePath? }` (an app endpoint), the shape a dashboard page filter takes. `valueField` and `labelField` are dot-paths into a row: by default the value is `id` (else the object's uuid) and the label `title` (else `name`, else the value).
+
+A source that lives in another app can name it in `requiresApp`. While that app is not installed the source is not read: the field is a plain text input, so the value can still be typed, with the block's `missingText` (translated) under it instead of the general "could not be loaded" line:
+
+```json
+{ "iv3TaskField": { "optionsFrom": { "register": "shillinq", "schema": "BbvTaakveld", "valueField": "code", "labelField": "name", "requiresApp": "shillinq", "missingText": "Install Shillinq to pick from the BBV list" } } }
+```
+
+The field becomes a select, or a multiselect on an array field. The form stores the option's value, never the row, and shows a held value by its label. The source is read once per dialog; typing filters those options on their label or value. A read that fails or gives no options turns the field into a text input with a line saying so, as a concept-scheme choice does. [`CnAdvancedFormDialog`](./cn-advanced-form-dialog.md) reads the same declaration in its Properties tab.
+
 ## Object references (`$ref`)
 
 A schema property that is an OpenRegister object reference renders as a **searchable dropdown of the referenced objects** (label = human name, value = UUID) instead of a free-text UUID box:
@@ -251,18 +294,49 @@ const schema = {
 
 ### Inline create (`x-allow-create`)
 
-Add `x-allow-create: true` (or `allowCreate: true`) to a **single** `$ref` property and the field renders [`CnResourceSelect`](./cn-resource-select.md) instead of a read-only select — the user can pick an existing object **or** type a new term to create one inline (the term is written to the reference schema's label field, default `name`):
+Add `x-allow-create: true` to a `$ref` property (or to `items` of an array of references) and the field renders [`CnResourceSelect`](./cn-resource-select.md) instead of a read-only select. The user picks an existing object or types a name and chooses Create.
+
+Create opens the referenced schema's own form on top of this one, in the same register, with the typed term in the label field (`x-label-field`, default `name`). Saving it selects the new object. Closing it leaves the field as it was. When the referenced schema cannot be loaded, the term alone is saved.
 
 ```js
 // single reference the user can pick OR create
-ocName: { type: 'string', format: 'uuid', $ref: 'player', 'x-allow-create': true, title: 'Player' }
+client: { type: 'string', format: 'uuid', $ref: 'client', 'x-allow-create': true, 'x-label-field': 'name', title: 'Client' }
+// several
+products: { type: 'array', items: { $ref: 'product', 'x-allow-create': true }, title: 'Products' }
 ```
 
-The stored value is still the chosen (or freshly-created) object's UUID. Without the flag, a `$ref` stays a plain select of existing objects.
+The stored value is still the chosen (or freshly-created) object's UUID, or an array of them. Without the flag, a `$ref` stays a plain select of existing objects. `x-fill-from: { formKey: sourceKey }` copies values off the chosen object into this form.
+
+The form the Create opens is, in this order: the field's own `createModal` (a `fieldOverrides` key naming a `kind: 'modal'` registry dialog), the `createOverride` or `createModal` of the index page that lists the referenced schema, else the schema's generic form. A field `createModal` is mounted on top of this form, not in the app's single modal slot, so a form that is itself a registry modal stays open underneath. It gets `initialData` with the typed term plus its `createModalProps`, where `@answer.<key>` is another answer of this form:
+
+```json
+{
+  "client": { "createModal": "ClientCreateDialog" },
+  "contact": { "createModal": "ContactCreateDialog", "createModalProps": { "client": "@answer.client" } }
+}
+```
+
+The dialog reports the new object (or its id) with `created`; `close` without it leaves the field as it was.
+
+`pickerFilter` scopes the picker's options by other answers: `"contact": { "pickerFilter": { "client": "@answer.client" } }` offers the contacts of the chosen client, and every contact while no client is chosen.
+
+### Groups, languages and time zones
+
+```js
+team: { type: 'string', format: 'nc-group', title: 'Team' }
+correspondenceLanguage: { type: 'string', format: 'language', 'x-default': 'current-language', title: 'Correspondence language' }
+timezone: { type: 'string', format: 'timezone', 'x-default': 'current-timezone', title: 'Time zone' }
+```
+
+Groups come from the core autocomplete endpoint (display names, any signed-in user), with `cloud/groups` as fallback. `x-default: current-language` fills a new object with the user's Nextcloud language as a BCP 47 tag, cut to the primary subtag when the property's `pattern` only takes that. `x-default: current-timezone` fills the browser's time zone. Neither touches an existing object.
+
+### Help behind the (i)
+
+`x-help` on a property always shows the (i) popover with that text, while `description` stays the short line under the field. Checkbox and switch fields show their helper line and (i) too.
 
 ## Nextcloud-user picker (`format: "user"`, `widget: "user"`)
 
-A `{ type: 'string', format: 'user' }` property renders a user picker that async-searches Nextcloud users (via the core `autocomplete/get` OCS endpoint) and stores the selected **uid** string. In edit mode the stored uid is resolved to its display name for the label.
+A `{ type: 'string', format: 'user' }` property (also `format: 'nc-user'` or `'username'`) renders a user picker that async-searches Nextcloud users (via the core `autocomplete/get` OCS endpoint) and stores the selected **uid** string. In edit mode the stored uid is resolved to its display name for the label.
 
 ```js
 userUid: { type: 'string', format: 'user', title: 'Nextcloud user' }
@@ -342,6 +416,96 @@ This reuses the same `register` fetch machinery as `$ref`, targeting the provide
 ## Field Overrides
 
 The `fieldOverrides` prop accepts an object keyed by field name. Each override is merged onto the auto-generated field definition, so any field property can be changed.
+
+`hidden: false` brings a property the schema marks `visible: false` onto this form, so a create form can ask for a field the record's detail page does not show (pipelinq's client website, address and notes). Lists and data widgets keep hiding it.
+
+### A key inside an object (`handling.teams`)
+
+A `fieldOverrides` key (or an `includeFields` entry) can be a dotted path into an object property: `"handling.teams": { "label": "Teams" }` edits `teams` inside `handling` as a field of its own, with the widget its nested schema property asks for and `required` from that object's `required` list. The form saves `handling` with the edited key and every other key `handling` held, so a form that shows only the teams does not clear `handling.deadline`. An object property is otherwise left out of a form unless its schema or a field override names a `widget` (`"settings": { "widget": "json" }`).
+
+### An optional object (`widget: "object-switch"`)
+
+An object property that is either there or not, such as a field rule's `condition`, gets a switch: `"condition": { "widget": "object-switch", "label": "Only in some cases", "defaults": { "kind": "fieldPresent" } }`. On fills it with `defaults`, off writes `null`. Its keys are fields at dotted paths (`condition.kind`), shown with `visibleWhen: { "field": "condition", "truthy": true }`; while the switch is off they are not saved and the object stays `null`.
+
+### `unique`
+
+`"order": { "unique": { "filter": { "caseType": "@objectId" } } }` refuses a value another stored object of the schema already has, among the objects the filter matches (`unique: true` compares with all of them). It is checked when the reader saves, against the form's `register` and schema; a clash shows on the field ("Order is already used; choose another value."). When the check cannot be made, the save goes on and the server decides.
+
+### Rules between fields
+
+These keys let one field follow another. A condition takes the shapes `visibleWhen` takes (`{ field, equals }`, `notEquals`, `in`, `notIn`, `truthy`, `falsy`, `empty`, `notEmpty`), or `{ all: [...] }` and `{ any: [...] }` of them.
+
+| Key | What it does |
+|-----|--------------|
+| `requiredWhen` | The field is required while the condition holds, with the asterisk and the error that go with it. |
+| `warnWhen` | `{ when, text }` (or a list): a note under the field while `when` holds. It does not block the save. |
+| `clearWhenHidden` | While `visibleWhen` hides the field, the save writes it empty (`null`, or `[]` for a list), so a value the reader can no longer see does not stay behind. |
+| `stored: false` | The field steers the form and is not saved. It may be a key the schema does not have, given a `type` (default `boolean`), a `label` and a `widget`. `initialWhen` sets its starting value from the loaded values. |
+| `placeholderFrom` | A text field's placeholder is another field's value, as the public label shows the status name. |
+| `optionSwatches`, `optionIcons` | A colour (`{ "blue": "var(--color-primary)" }`) or an icon per option value, drawn before the option's label. |
+| `sectionCollapsed` | Makes the field's `section` foldable from its heading; `true` opens it folded ("More options"). |
+
+A property form's choice list, as dossiq's property form has it:
+
+```json
+"choiceList": { "stored": false, "label": "Choice list", "widget": "switch", "initialWhen": { "any": [{ "field": "propertyType", "equals": "enum" }, { "field": "enumValues", "notEmpty": true }] } },
+"enumValues": {
+  "widget": "lines",
+  "visibleWhen": { "field": "choiceList", "truthy": true },
+  "clearWhenHidden": true,
+  "requiredWhen": { "all": [{ "field": "choiceList", "truthy": true }, { "field": "conceptScheme", "empty": true }] },
+  "warnWhen": { "when": { "all": [{ "field": "conceptScheme", "notEmpty": true }, { "field": "enumValues", "notEmpty": true }] }, "text": "The concept scheme wins over these choices." }
+}
+```
+
+`optionsFrom` can follow another field: `@answer.<key>` in it is that field's value, and the source is read again when the value changes. `where` keeps the rows whose fields equal its values and `itemsPath` reads the options from a list in each row, so a property type's formats come from the vocabulary: `{ "url": "/apps/openregister/api/schemas/property-vocabulary", "responsePath": "types", "where": { "type": "@answer.propertyType" }, "itemsPath": "formats", "hideWhenEmpty": true }`. With `hideWhenEmpty` the field is left out while there are no options.
+
+`optionsFrom` takes a `groupField` too: the options of one group stay together, groups in the order they first appear, and each option shows its group before its label.
+
+### `section`
+
+`section` groups fields under a heading (board PqTicketBewerken). A field whose `section` differs from the visible field before it opens a new group with that heading, across both columns; the heading goes through the app's translate function. Sections follow the field order, so set `order` to keep each section's fields together:
+
+```js
+fieldOverrides: {
+  title: { section: 'The ticket', order: 1 },
+  description: { section: 'The ticket', order: 2 },
+  assignee: { section: 'People', order: 3 },
+  requester: { section: 'People', order: 4 },
+  dueDate: { section: 'Dates and links', order: 5 },
+  visibleToClient: { section: 'Visible to the client', order: 6 },
+}
+```
+
+A form without `section` keys renders as before.
+
+### `widget` naming a registered component
+
+A `widget` that is not one of the form's own widget names is looked up as a registered component: the v2 registry (`registry` on CnAppRoot, any entry with a `component`) first, then the `customComponents` map. When one answers, it is mounted as the field's control (board DqNieuweZaak, the Aanvrager picker). It receives `value` and `modelValue` (the field's value), `field` (the field descriptor), `error` and `disabled`, and writes the value back by emitting `input` or `update:modelValue`. The built-in names (`text`, `select`, `textarea`, `user` and the rest) always draw the built-in control, and a name nothing answers to falls back to the text input.
+
+```js
+fieldOverrides: {
+  applicant: { widget: 'ApplicantPicker' },
+}
+```
+
+### `hintWidget`
+
+`hintWidget` names a registered component shown under the field's control. It receives `field`, `value` (the field's value) and `formData` (every answer), so it can follow what the user types, such as a list of colleagues whose skills cover the chosen category. A name nothing answers to shows nothing.
+
+```js
+fieldOverrides: {
+  category: { hintWidget: 'CategoryRoutingHint' },
+}
+```
+
+### `look: "search"`
+
+A single select field drawn as a search field ([CnSearchSelect](./cn-search-select.md)): a magnifier instead of the chevron, and rows with initials or an icon, the name, a secondary line and a check on the chosen one (DqOverdragen "Nieuw team"). `optionSecondary` is a template filled from each option, `optionAvatar: true` draws the initials, `optionIcon` names one icon for every row. A Nextcloud-user field keeps its own picker.
+
+```json
+"fieldOverrides": { "team": { "look": "search", "optionSecondary": "{members} leden · {focus}", "optionAvatar": true } }
+```
 
 ### `enumLabels`
 
@@ -494,8 +658,59 @@ const fields = [
 ]
 ```
 
+## Board look
+
+Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and the dialog draws the board dialog of the screens. An app that sets nothing renders exactly as before.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
+| `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
+| `eyebrow` | empty | A context line above the title, 13px in sentence case. Not part of the accessible name. |
+| `subtitle` | empty | A sentence under the title. |
+
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color`, `--cn-dialog-eyebrow-transform` (`uppercase` for capitals) and `--cn-dialog-eyebrow-tracking`.
+
+### Fields
+
+In the board look each field draws its label above the control (14px/600, 6px gap) with "(optional)" in grey after it on optional fields. Required fields carry no asterisk and set `aria-required="true"`; the Nextcloud look keeps " *". The word comes from the `optionalLabel` prop. A field error sits between the label and the control with an icon and a 2px error border; the hint stays under the control. In both looks an invalid control is `aria-invalid="true"` and `aria-describedby` lists the error before the hint.
+
+A field with `width: "half"` (through the schema or `fieldOverrides`) takes one cell of a `repeat(auto-fit, minmax(220px, 1fr))` grid, so two short fields share a row from 456px and stack below that.
+
+With drafts on, "Save draft" moves to the far left of the footer as a tertiary button, with the draft-state live region beside it.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnFormDialog/CnFormDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Registry-backed fields (`x-openregister-property-source`)
+
+A property that declares `x-openregister-property-source` (`provider`, `mode`, `config`) gets the `property-source` widget: [`CnPropertySourceField`](./cn-property-source-field.md), a type-ahead over integriq's registries. The descriptor carries `propertySource: { provider, mode, config }`. With `mode: "default"` and `config.fill`, a pick fills empty sibling fields and asks once before replacing values the user typed. A `fieldOverrides.<key>.widget` wins over the declaration.
+
+## Duration and sub-objects widgets
+
+`format: duration` selects the `duration` widget ([`CnDurationField`](./cn-duration-field.md)). A field override with `timer`, `autoStart`, `norm` and `normLabel` draws it as a running clock. An array of objects keeps its current widget unless the property declares `x-widget: sub-objects` or a field override names it; then [`CnSubObjectsField`](./cn-sub-objects-field.md) renders the rows as a table and `validate()` checks each row against `items.required`. `CnFormPage` does not render these two widgets yet.
+
+## Child records
+
+A property that is an array of references with `inversedBy` (or one naming `widget: "child-records"`) renders a [`CnChildRecordsField`](./cn-child-records-field.md): an editable table of the child schema's records. The children are kept out of the `confirm` payload; call `setResult({ success: true, id })` with the saved parent's id and the dialog saves them in one bulk save and one bulk delete, naming any row that was refused. A failing row blocks the submit and names the row and field.
+
+## Choices bound to a concept scheme
+
+A property that names an OpenRegister concept scheme, as `conceptScheme: "woo-categorieen"` or `x-openregister-concepts: { scheme, store, contextProperty }` (alone, or on the `items` of an array), renders as a select (a multiselect for an array). The options are not on the schema: the dialog asks `GET /apps/openregister/api/vocabulary/options` with the schema, the property key and the user's language, offers the options in OpenRegister's order with their labels, and stores the option's `value` (the concept uri, or its notation when `store` is `notation`) as a string, or an array of strings.
+
+- If the request fails or returns nothing, the field falls back to a text input with a line saying the list could not be loaded. OpenRegister still refuses a value outside the scheme on save.
+- A held value the scheme no longer offers is resolved through the concept route and shown by its label with "no longer offered". It stays until the user changes it.
+- With `contextProperty`, the current value of that field is sent as `context` and the options are requested again when it changes; a chosen value that is no longer offered is kept and marked, not cleared.
+
+## File properties
+
+A schema property of `type: "file"` renders as a [CnFileField](./cn-file-field.md), and an array whose items are files renders one that takes several. The accepted types come from the property's `allowedTypes` and the size limit from its `maxSize`, so the form refuses early what the server would refuse late. `capture: "environment"` or `"user"` on the property opens the device camera.
+
+A file under 1 MB travels inline in the saved payload. When `maxSize` is above 1 MB, bigger files are held and uploaded to the saved object's files after the save (`POST .../{id}/filesMultipart`), with progress, and their references are written onto the property. If an upload fails the object stays saved, the dialog names the file and offers Retry.
+
+## Live values
+
+A field can carry `assign` rules (for example through `fieldOverrides`): `[{ when, value }]`, where `when` is a local `visibleWhen` condition and `value` a literal, `@answer.<field>` or a sentinel token. The first matching rule sets the field when an answer it reads changes; once the person edits the field by hand its rules stop. A new record also opens with the rules and defaults applied to empty fields. A schema property's `default` may be a token: `@me`, `@me.displayName`, `@me.email`, `@today`, `@now` or `@object.<field>` (from `initialData`), resolved when a new record opens; editing never replaces stored data with a default. See [CnFormPage](./cn-form-page.md#live-values) for an example of each.

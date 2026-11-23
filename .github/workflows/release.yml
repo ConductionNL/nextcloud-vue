@@ -31,6 +31,41 @@ name: Release
 # Conduction package currently shipping cleanly via semantic-release +
 # OIDC.
 
+# ⚠️ THIS PACKAGE STAYS ON THE 2.x LINE. NOBODY CHOSE A 3.
+#
+# Commit 0db89dc58, `feat(widgets)!: remove the news widget, LaunchPad owns it
+# now`, carries a `BREAKING CHANGE:` footer. commit-analyzer read it and
+# published 3.0.0 on 14 September, then 3.1.0, 3.2.0, 3.3.0 and 3.4.0. No
+# person decided that. A footer did.
+#
+# Two changes in `.releaserc.json` stop it happening again, and they are
+# layered on purpose.
+#
+# 1. commit-analyzer now carries `releaseRules: [{breaking: true, release:
+#    "minor"}]`. A breaking footer, and a `type!:` header, now compute a minor.
+#    Measured against main on 2026-09-19: 93 commits since v2.53.1, including
+#    that footer, compute 2.54.0 instead of 3.0.0.
+#
+# 2. exec's `verifyReleaseCmd` refuses any computed version outside 2.x. It
+#    runs before prepare and publish, so the release aborts with
+#    EVERIFYRELEASE and nothing reaches npm. Mutation-tested the same day:
+#    with rule 1 removed the analyzer computed 3.0.0 and this step stopped it.
+#
+# Rule 1 keeps the numbers right. Rule 2 is there for the day somebody edits
+# rule 1 without meaning to. A rule with no backstop is one careless merge
+# from being gone.
+#
+# TO CUT A DELIBERATE MAJOR, two edits and a review:
+#
+#   a. Raise the ceiling in `verifyReleaseCmd` from `2.*` to the major you
+#      want.
+#   b. Drop the `breaking: true` release rule, so a breaking footer bumps the
+#      major again.
+#
+# Both live in `.releaserc.json`. Put them in their own pull request, with the
+# consumer re-pin plan in the body. Fourteen apps track this package and a
+# major strands every one of them.
+#
 # Keep this trigger list and `.releaserc.json`'s `branches` in agreement: a
 # branch configured in one and not the other is a release channel that
 # silently never publishes. That is not hypothetical — it is how

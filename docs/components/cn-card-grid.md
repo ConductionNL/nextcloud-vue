@@ -24,17 +24,21 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 | `objects` | Array | `[]` | Object data array |
 | `schema` | Object | `null` | Passed to each CnObjectCard (required only when using the default card template; not needed when providing a custom `#card` slot) |
 | `loading` | Boolean | `false` | Loading state |
+| `pillLooks` | Object | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`), passed to each CnObjectCard for the record layout's pills that declare `resolve`. |
 | `selectable` | Boolean | `false` | Enable card selection |
+| `cardFieldColumns` | Object | `null` | The page's columns by key, passed to each CnObjectCard: a fact or a layout part whose field names a column reads through that column's label, formatter and widget, as the table does |
 | `clickToView` | Boolean | `false` | Body click on a selectable card emits `click` (navigation); selection happens via the checkbox only (`CnIndexPage` wires this from its `rowClickToView`) |
 | `selectedIds` | Array | `[]` | Currently selected IDs |
 | `rowKey` | String | `'id'` | Unique identifier field |
 | `emptyText` | String | `'No items found'` | |
+| `accentOf` | Function | `null` | `(object) => { variant, icon?, label? } \| null`, each default card's `accent` (see [CnObjectCard](./cn-object-card.md)) |
 
 ## Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `click` | `object` | Card clicked |
+| `click` | `(object, event)` | Card clicked. The second argument is the native click event, for opening the card in a new tab on a ctrl/cmd/shift click. A middle click emits `aux-click` instead. |
+| `aux-click` | `(object, event)` | Card middle-clicked, under the same conditions as `click`. The second argument is the native auxclick event, for opening the card in a new tab. |
 | `select` | `ids[]` | Selection changed |
 
 ## Slots
@@ -63,3 +67,7 @@ Responsive CSS grid layout for CnObjectCard instances. Auto-fills with `minmax(3
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnCardGrid.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnCardGrid/CnCardGrid.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Board look
+
+Under the board look the grid is `repeat(auto-fill, minmax(var(--cn-card-grid-min, 260px), 1fr))` with a `var(--cn-card-grid-gap, 16px)` gap, theme hooks for both; without it the 320px track stands. `cardFields`, `cardLayout` (the record layout, CnObjectCard `layout`), `statusOf`, `leadingOf` and `footerActionOf` reach each default `CnObjectCard`.

@@ -35,9 +35,13 @@ heading) and renders one switch per notification. It degrades gracefully:
 
 ## Props, events, slots
 
-This component is fully self-contained: it takes **no props**, emits **no
+This component is self-contained: it needs **no props**, emits **no
 events**, and exposes **no named slots** — it fetches and persists its own
-state. Drop it in wherever an app-settings section is rendered (most commonly
+state.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `labels` | `Object` | `null` | Optional labels for the notification rules, keyed `<schema>.<key>` or `<key>`; values are strings or per-locale maps. Wins over the `cnNotificationLabels` map a `CnAppRoot` ancestor provides from its `notificationLabels` prop. See [`notificationRuleLabel`](../utilities/notification-rule-label.md) for the full order. | Drop it in wherever an app-settings section is rendered (most commonly
 via `CnAppRoot`'s `#user-settings` slot, which mounts it by default).
 
 ## Usage
@@ -64,3 +68,26 @@ export default {
 ## Related
 
 - [CnAppRoot](./cn-app-root.md) — mounts this component in its `#user-settings` slot by default.
+
+## When to reach for `CnNotificationMatrix` instead
+
+[`CnNotificationMatrix`](cn-notification-matrix.md) answers the same question
+with more of the answer: four levels rather than two, a channel axis, a scope
+per row, a digest and a test send. Most usefully, it shows a preference an
+administrator has **forced** and a channel the platform **refuses** for this
+recipient, neither of which this pane can express. A person reading this pane
+can therefore switch something off, keep receiving it, and see nothing that
+says why.
+
+This pane is not deprecated and is not going away on its own: `CnAppRoot`
+mounts it as the default of its `#user-settings` slot, so every app adopting
+the manifest shell gets it without passing anything. Prefer the matrix for a
+NEW screen where the host owns the catalogue.
+
+**The migration is not a rename.** The matrix renders what it is given and
+fetches nothing, so moving means the host reads the preferences itself and maps
+them onto `events`, `channels`, `groupValues`, `personalValues`, `forcedValues`
+and `refusals`. `useNotificationPreferencesStore` does the reading and writing,
+and dossiq's `src/services/notificationPreferenceProps.js` is a worked example
+of the mapping, including what to do when the platform answers without a
+channel axis.

@@ -202,6 +202,15 @@ describe('CnWidgetObjectTable — declarative source self-fetch', () => {
 		expect(table.props('fetchParams')).toBeNull()
 	})
 
+	it('does not turn a top-level schema slug into an unscoped self-fetch', () => {
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: { register: 'pipelinq', schema: 'case', rows: [], columns: ['title'] },
+		})
+		const table = wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table.props('schemaId')).toBeNull()
+		expect(table.props('schema')).not.toBe('case')
+	})
+
 	it('rows + columns without a source behave exactly as before (pure pass-through)', () => {
 		const rows = [{ id: '1', name: 'A' }, { id: '2', name: 'B' }]
 		const wrapper = shallowMount(CnWidgetObjectTable, {
@@ -234,6 +243,17 @@ describe('CnWidgetObjectTable — compact-list pass-through props', () => {
 		expect(table.props('viewAllRoute')).toEqual(viewAllRoute)
 		expect(table.props('viewAllLabel')).toBe('All cases')
 		expect(table.props('rowIcon')).toBe('FileDocumentOutline')
+	})
+
+	it('translates the manifest-authored viewAllLabel and emptyText through the app', () => {
+		const words = { 'View all clients': 'Alle klanten bekijken', 'No clients yet': 'Nog geen klanten' }
+		const wrapper = shallowMount(CnWidgetObjectTable, {
+			propsData: { viewAllRoute: { name: 'Clients' }, viewAllLabel: 'View all clients', emptyText: 'No clients yet' },
+			provide: { cnTranslate: (key) => words[key] || key },
+		})
+		const table = wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table.props('viewAllLabel')).toBe('Alle klanten bekijken')
+		expect(table.props('emptyText')).toBe('Nog geen klanten')
 	})
 
 	it('leaves CnDataTable defaults intact when emptyText / viewAllLabel are unset', () => {
@@ -305,6 +325,23 @@ describe('CnWidgetObjectTable — declarative actions[]', () => {
 		expect(mapped.map((a) => a.label)).toEqual(['Accept', 'Remove'])
 		expect(mapped[0].destructive).toBe(false)
 		expect(mapped[1].destructive).toBe(true)
+	})
+
+	it('forwards a row action visibleWhen so the menu hides it on rows it does not fit', () => {
+		const gate = { field: 'status', op: 'eq', value: 'open' }
+		const wrapper = mountWidget({
+			rows,
+			columns: ['title'],
+			source,
+			actions: [
+				{ id: 'pay', label: 'Pay', type: 'handler', handler: 'pay', visibleWhen: gate },
+				{ id: 'plain', label: 'Plain', type: 'handler', handler: 'plain' },
+			],
+		})
+		const mapped = wrapper.findComponent({ name: 'CnRowActions' }).props('actions')
+		expect(mapped[0].visibleWhen).toEqual(gate)
+		expect('visibleWhen' in mapped[1]).toBe(false)
+		expect('visible' in mapped[1]).toBe(false)
 	})
 
 	it('renders an object-op create action as a widget-scoped footer affordance', () => {

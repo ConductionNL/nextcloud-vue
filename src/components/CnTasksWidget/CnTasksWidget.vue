@@ -3,7 +3,7 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-tasks-widget">
+	<div class="cn-tasks-widget" :class="{ 'cn-tasks-widget--list': isList }">
 		<!-- One quiet line on failure, never a leaked axios status string
 		     (ADR-062). The real error goes to the console. -->
 		<p v-if="error" class="cn-tasks-widget__error">
@@ -14,6 +14,290 @@
 		</div>
 		<!-- An empty inbox is the GOOD state, not an error and not a void:
 		     one muted line, no illustration. -->
+		<template v-else-if="isTable">
+			<!-- The create form the header's "New task" opens: a title and a
+			     deadline, posted as an open task on this record. -->
+			<form
+				v-if="createOpen"
+				class="cn-tasks-widget__create"
+				data-testid="cn-tasks-widget-create"
+				@submit.prevent="createTask">
+				<NcTextField
+					:modelValue="newTitle"
+					:label="tr('Task')"
+					data-testid="cn-tasks-widget-create-title"
+					@update:modelValue="(value) => (newTitle = String(value ?? ''))" />
+				<NcTextField
+					:modelValue="newDue"
+					type="date"
+					:label="tr('Task deadline')"
+					data-testid="cn-tasks-widget-create-due"
+					@update:modelValue="(value) => (newDue = String(value ?? ''))" />
+				<NcButton
+					type="submit"
+					variant="primary"
+					:disabled="creating || newTitle.trim() === ''"
+					data-testid="cn-tasks-widget-create-save">
+					{{ tr('Add task') }}
+				</NcButton>
+			</form>
+			<p v-if="tableRows.length === 0" class="cn-tasks-widget__empty">
+				{{ emptyLabel }}
+			</p>
+			<table v-else class="cn-tasks-widget__table" data-testid="cn-tasks-widget-table">
+				<thead>
+					<tr>
+						<!-- `content.sortable` / `content.filterable`: a head sorts by its
+						     column and filters on its values (DqZaakTaken). -->
+						<th v-for="column in headColumns"
+							:key="column.key"
+							scope="col"
+							:aria-sort="headSort.key === column.key ? (headSort.dir === 'asc' ? 'ascending' : 'descending') : null"
+							:data-testid="`cn-tasks-widget-head-${column.key}`">
+							<span v-if="content.sortable === true || content.filterable === true" class="cn-tasks-widget__head">
+								<button v-if="content.sortable === true"
+									type="button"
+									class="cn-tasks-widget__head-sort"
+									:data-testid="`cn-tasks-widget-sort-${column.key}`"
+									@click="sortBy(column.key)">
+									{{ column.label }}
+									<ChevronUp v-if="headSort.key === column.key && headSort.dir === 'asc'" :size="14" />
+									<ChevronDown v-else :size="14" />
+								</button>
+								<template v-else>{{ column.label }}</template>
+								<NcActions v-if="content.filterable === true"
+									class="cn-tasks-widget__head-filter"
+									:aria-label="tr('Filter by {column}').replace('{column}', column.label)"
+									:data-testid="`cn-tasks-widget-filter-${column.key}`">
+									<template #icon>
+										<FilterOutline :size="14" />
+									</template>
+									<NcActionCheckbox v-for="option in headOptions(column.key)"
+										:key="option.value"
+										:modelValue="(headFilters[column.key] || []).includes(option.value)"
+										@update:modelValue="toggleHeadFilter(column.key, option.value)">
+										{{ option.label }}
+									</NcActionCheckbox>
+								</NcActions>
+							</span>
+							<template v-else>
+								{{ column.label }}
+							</template>
+						</th>
+						<th scope="col">
+							<span class="hidden-visually">{{ tr('Task actions') }}</span>
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr
+						v-for="task in tableRows"
+						:key="task.uuid"
+						class="cn-tasks-widget__table-row"
+						:class="{ 'cn-tasks-widget__table-row--done': task.isTerminal === true }"
+						:data-state="task.state"
+						:data-testid="`cn-tasks-widget-row-${task.uuid}`">
+						<td class="cn-tasks-widget__cell-task">
+							<CheckCircle
+								v-if="task.isTerminal === true"
+								:size="20"
+								class="cn-tasks-widget__state-icon cn-tasks-widget__state-icon--done" />
+							<CircleOutline v-else :size="20" class="cn-tasks-widget__state-icon" />
+							<span class="cn-tasks-widget__body">
+								<button
+									v-if="expandRows"
+									type="button"
+									class="cn-tasks-widget__name"
+									:aria-expanded="task.uuid === expandedId ? 'true' : 'false'"
+									:data-testid="`cn-tasks-widget-expand-${task.uuid}`"
+									@click="toggleExpanded(task)">
+									{{ titleOf(task) }}
+								</button>
+								<button
+									v-else
+									type="button"
+									class="cn-tasks-widget__name"
+									@click="onRowClick(task, $event)"
+									@auxclick="onRowAuxClick(task, $event)">
+									{{ titleOf(task) }}
+								</button>
+								<span v-if="tableMeta(task)" class="cn-tasks-widget__meta">{{ tableMeta(task) }}</span>
+							</span>
+						</td>
+						<td class="cn-tasks-widget__cell-handler">
+							<span v-if="task.assignee" class="cn-tasks-widget__handler">
+								<NcAvatar
+									:user="String(task.assignee)"
+									:displayName="handlerName(task)"
+									:size="28"
+									hideStatus />
+								{{ handlerName(task) }}
+							</span>
+							<span v-else class="cn-tasks-widget__meta">{{ tr('Unassigned') }}</span>
+						</td>
+						<td
+							class="cn-tasks-widget__cell-due"
+							:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true && task.isTerminal !== true }">
+							<template v-if="content.dueFormat === 'date'">
+								{{ dueDate(task) }}
+								<span v-if="task.overdue === true && task.isTerminal !== true" class="hidden-visually">{{ tr('Overdue') }}</span>
+							</template>
+							<template v-else>
+								{{ dueLabel(task) }}
+							</template>
+						</td>
+						<td>
+							<CnStatusBadge
+								:label="stateLabel(task)"
+								:variant="stateVariant(task)"
+								:colorMap="stateColors"
+								:colorKey="String(task.state || '')" />
+						</td>
+						<td class="cn-tasks-widget__cell-actions">
+							<NcButton
+								v-if="canClaim(task)"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-claim-${task.uuid}`"
+								@click="claim(task)">
+								{{ tr('Claim') }}
+							</NcButton>
+							<NcButton
+								v-else-if="canCompleteRow(task) && outcomesOf(task).length === 1"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-complete-${task.uuid}`"
+								@click="complete(task, outcomeId(outcomesOf(task)[0]))">
+								{{ tr('Complete') }}
+							</NcButton>
+							<!-- `cancelInline`: Cancel as a button beside Complete (DqZaakTaken). -->
+							<NcButton
+								v-if="content.cancelInline === true && canCancelRow(task)"
+								variant="secondary"
+								:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+								@click="cancel(task)">
+								{{ tr('Cancel') }}
+							</NcButton>
+							<NcActions
+								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || (canCancelRow(task) && content.cancelInline !== true)"
+								:forceMenu="true"
+								:aria-label="tr('Task actions')">
+								<template v-if="canCompleteRow(task) && outcomesOf(task).length > 1">
+									<NcActionButton
+										v-for="outcome in outcomesOf(task)"
+										:key="outcomeId(outcome)"
+										:closeAfterClick="true"
+										@click="complete(task, outcomeId(outcome))">
+										{{ completeLabel(outcome) }}
+									</NcActionButton>
+								</template>
+								<NcActionButton
+									v-if="canCancelRow(task) && content.cancelInline !== true"
+									:closeAfterClick="true"
+									:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+									@click="cancel(task)">
+									{{ tr('Cancel task') }}
+								</NcActionButton>
+							</NcActions>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<router-link
+				v-if="footerViewAll && $router"
+				class="cn-tasks-widget__view-all"
+				:to="footerViewAll.to"
+				data-testid="cn-tasks-widget-footer-link">
+				{{ footerViewAll.label }}
+			</router-link>
+			<!-- The opened row's task to work on in place (`expandRows`). -->
+			<CnTaskWorkCard
+				v-if="expandedTask"
+				:task="expandedTask"
+				:values="answersFor(expandedTask)"
+				:claimable="canClaim(expandedTask)"
+				:claimAvailable="claimAvailable"
+				:cancelable="content.cancel === true"
+				:busy="busy"
+				:openRoute="openRouteFor(expandedTask)"
+				:tr="tr"
+				@answer="recordAnswer(expandedTask, $event)"
+				@claim="claim(expandedTask)"
+				@complete="completeInPlace(expandedTask)"
+				@cancel="cancel(expandedTask)" />
+		</template>
+		<!-- `variant: "focus"`: the first open task to work on in place, the
+		     other open tasks listed under it. -->
+		<template v-else-if="isFocus">
+			<CnTaskWorkCard
+				v-if="focusTask"
+				:task="focusTask"
+				:values="answersFor(focusTask)"
+				:claimable="canClaim(focusTask)"
+				:claimAvailable="claimAvailable"
+				:cancelable="content.cancel === true"
+				:busy="busy"
+				:openRoute="openRouteFor(focusTask)"
+				:tr="tr"
+				@answer="recordAnswer(focusTask, $event)"
+				@claim="claim(focusTask)"
+				@complete="completeInPlace(focusTask)"
+				@cancel="cancel(focusTask)" />
+			<p v-else class="cn-tasks-widget__empty" data-testid="cn-tasks-widget-empty">
+				{{ emptyLabel }}
+			</p>
+			<div v-if="otherOpenTasks.length > 0" class="cn-tasks-widget__others" data-testid="cn-tasks-widget-others">
+				<h5 class="cn-tasks-widget__others-title">
+					{{ tr('Other open tasks') }}
+				</h5>
+				<ul class="cn-tasks-widget__others-list">
+					<li
+						v-for="task in otherOpenTasks"
+						:key="task.uuid"
+						class="cn-tasks-widget__others-row"
+						:data-testid="`cn-tasks-widget-other-${task.uuid}`">
+						<span class="cn-tasks-widget__body">
+							<router-link v-if="openRouteFor(task) && $router" :to="openRouteFor(task)" class="cn-tasks-widget__name">
+								{{ titleOf(task) }}
+							</router-link>
+							<span v-else class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
+							<span class="cn-tasks-widget__meta">{{ dueLabel(task) || tr('No due date') }}</span>
+						</span>
+						<span class="cn-tasks-widget__others-actions">
+							<NcButton
+								v-if="canClaim(task)"
+								:disabled="busy"
+								variant="tertiary"
+								:data-testid="`cn-tasks-widget-claim-${task.uuid}`"
+								@click="claim(task)">
+								{{ tr('Claim') }}
+							</NcButton>
+							<NcButton
+								v-else
+								:disabled="busy"
+								variant="tertiary"
+								:data-testid="`cn-tasks-widget-complete-${task.uuid}`"
+								@click="complete(task, 'done')">
+								{{ tr('Complete') }}
+							</NcButton>
+							<NcButton
+								v-if="content.cancel === true"
+								:disabled="busy"
+								variant="tertiary"
+								:data-testid="`cn-tasks-widget-cancel-${task.uuid}`"
+								@click="cancel(task)">
+								{{ tr('Cancel task') }}
+							</NcButton>
+						</span>
+					</li>
+				</ul>
+			</div>
+			<router-link
+				v-if="focusViewAll && $router"
+				class="cn-tasks-widget__view-all"
+				:to="focusViewAll.to"
+				data-testid="cn-tasks-widget-view-all">
+				{{ focusViewAll.label }}
+			</router-link>
+		</template>
 		<p v-else-if="rows.length === 0" class="cn-tasks-widget__empty">
 			{{ emptyLabel }}
 		</p>
@@ -21,7 +305,7 @@
 			<!-- The count states the server TOTAL, never the rendered length
 			     (ADR-062): the number a person acts on is how much work
 			     exists, not how much fits the cell. -->
-			<p class="cn-tasks-widget__count">
+			<p v-if="!isList" class="cn-tasks-widget__count">
 				{{ countLabel }}
 			</p>
 			<ul class="cn-tasks-widget__list">
@@ -30,24 +314,56 @@
 					:key="task.uuid"
 					class="cn-tasks-widget__row"
 					:data-state="task.state"
-					@click="onRowClick(task)">
-					<span class="cn-tasks-widget__body">
-						<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
-						<span class="cn-tasks-widget__meta">{{ metaLine(task) }}</span>
-					</span>
-					<!-- Overdue is carried by the WORDING (taskDueLabel) and by
-					     weight; the colour only reinforces it. -->
-					<span
-						class="cn-tasks-widget__due"
-						:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true }">
-						{{ dueLabel(task) }}
-					</span>
+					@click="onRowClick(task, $event)"
+					@mousedown="preventMiddleClickAutoscroll"
+					@auxclick="onRowAuxClick(task, $event)">
+					<!-- List variant: a checkbox completes the viewer's own task
+					     (the task with a declared outcome list keeps the menu, as
+					     a checkbox cannot choose an outcome). Other rows get a
+					     spacer so the titles stay aligned. -->
+					<template v-if="isList">
+						<input
+							v-if="canCheck(task)"
+							type="checkbox"
+							class="cn-tasks-widget__check"
+							:checked="completing.includes(String(task.uuid))"
+							:disabled="completing.includes(String(task.uuid))"
+							:aria-label="tr('Mark {title} as done').replace('{title}', titleOf(task))"
+							data-testid="cn-tasks-widget-check"
+							@click.stop
+							@change="check(task)">
+						<span v-else class="cn-tasks-widget__check-spacer" aria-hidden="true" />
+						<span class="cn-tasks-widget__body">
+							<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
+							<span class="cn-tasks-widget__meta cn-tasks-widget__meta--split">
+								<span class="cn-tasks-widget__subject">{{ subjectOf(task) }}</span>
+								<span
+									class="cn-tasks-widget__due"
+									:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true }">
+									{{ dueLabel(task) }}
+								</span>
+							</span>
+						</span>
+					</template>
+					<template v-else>
+						<span class="cn-tasks-widget__body">
+							<span class="cn-tasks-widget__name">{{ titleOf(task) }}</span>
+							<span class="cn-tasks-widget__meta">{{ metaLine(task) }}</span>
+						</span>
+						<!-- Overdue is carried by the WORDING (taskDueLabel) and by
+						     weight; the colour only reinforces it. -->
+						<span
+							class="cn-tasks-widget__due"
+							:class="{ 'cn-tasks-widget__due--overdue': task.overdue === true }">
+							{{ dueLabel(task) }}
+						</span>
+					</template>
 					<!-- Only verbs the contract can accept are offered; the
 					     server still authorizes, and a refusal is toasted in
 					     its own words. Stopped clicks: the menu must not also
 					     open the row. -->
 					<NcActions
-						v-if="canClaim(task) || canComplete(task)"
+						v-if="(canClaim(task) || canComplete(task)) && !(isList && canCheck(task))"
 						class="cn-tasks-widget__actions"
 						:forceMenu="true"
 						:aria-label="tr('Task actions')"
@@ -75,19 +391,42 @@
 				{{ moreLabel }}
 			</p>
 		</template>
+		<!-- A task that asks for a form is completed through it. -->
+		<CnTaskFormDialog
+			v-if="formTask"
+			:task="formTask"
+			:outcome="formOutcome"
+			:completeUrl="content.completeUrl || ''"
+			@completed="onFormCompleted"
+			@close="formTask = null" />
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
-import { showError } from '@nextcloud/dialogs'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionCheckbox, NcActions, NcAvatar, NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
+import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
+import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import CnTaskFormDialog from '../CnTaskFormDialog/CnTaskFormDialog.vue'
+import CnTaskWorkCard from './CnTaskWorkCard.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
+import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { missingRequiredTaskField, taskForm } from '../../utils/flowTask.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
+import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 /**
  * The OpenRegister inbox read (openregister flow-task-entity). One endpoint
@@ -154,9 +493,21 @@ export default {
 	name: 'CnTasksWidget',
 
 	components: {
+		CheckCircle,
+		ChevronDown,
+		ChevronUp,
+		CircleOutline,
+		CnStatusBadge,
+		CnTaskFormDialog,
+		CnTaskWorkCard,
+		FilterOutline,
 		NcActions,
 		NcActionButton,
+		NcActionCheckbox,
+		NcAvatar,
+		NcButton,
 		NcLoadingIcon,
+		NcTextField,
 	},
 
 	inject: {
@@ -181,8 +532,56 @@ export default {
 		 *   receiving the task uuid as `:id`. Omitted = the click opens the
 		 *   task's openregister deep link instead.
 		 * - `emptyText` — override for the empty-inbox line.
+		 * - `variant` — `list` draws a checkbox list: a checkbox that completes
+		 *   the viewer's own task, the title, the subject on a second muted
+		 *   line and the due date at its right. Default: the compact rows.
+		 * - `viewAllRoute` / `viewAllLabel` — a "View all" text link in the
+		 *   card header: a route name or location `{ name, params?, query? }`,
+		 *   and its label (default "View all"). `headerLink` works too.
+		 * - `objectUuid` — the tasks on one record (`"@objectId"` reads the
+		 *   page's record), every assignee's, instead of the viewer's inbox.
+		 * - `includeDone` — also list finished tasks (after the open ones).
+		 * - `variant: 'table'` — the record's task table (board DqZaakTaken):
+		 *   task, handler, deadline, status and the row's verbs, with the
+		 *   summary ("1 open, 3 done · sorted by deadline") and a "New task"
+		 *   action in the card header.
+		 * - `create` — offer "New task": `true`, or `{ appId?, label? }`; the
+		 *   task is posted as an open task on `objectUuid`.
+		 * - `completeAny` — offer Complete on every open row, not only the
+		 *   viewer's own (the server still decides); `cancel` — offer Cancel.
+		 * - `cancelInline` — in the table, Cancel is a secondary button beside
+		 *   Complete instead of an entry in the row's menu.
+		 * - `summaryNote` — a text appended to the table's summary after " · "
+		 *   ("the tasks of the whole case, colleagues' too").
+		 * - `variant: 'focus'` — the first open task to work on in place: its
+		 *   number, handler, deadline, lock, who it is offered to, its form
+		 *   inline and its verbs, with the other open tasks listed under it.
+		 * - `expandRows` — in the table, a row's title opens that task to work
+		 *   on in place under the table instead of following `rowRoute`; the
+		 *   opened task's title links to `rowRoute`.
+		 * - `completeUrl` — the route Complete posts to instead of the engine's
+		 *   own (`{id}` is the task uuid), for an app that checks something of
+		 *   its own before the engine completes the task.
+		 * - `cancelUrl` — the same for Cancel, for an app that cancels through
+		 *   its own route; a refusal shows the server's message.
+		 * - `stateVariants` — the status pill's tone by engine state
+		 *   (`{ active: 'purple', enabled: 'warning' }`); a state it does not
+		 *   name keeps info while open and default once finished.
+		 * - `claimCapabilityUrl` — a URL answering `{ claim: true|false }`;
+		 *   Claim is offered only when it answers true. Without it Claim is
+		 *   offered on every pooled task.
+		 * - Table only: `dueFormat: "date"` shows the deadline as a short date
+		 *   (an overdue one still says so to a screen reader and in its
+		 *   weight); `stateLabels` (`{ <state>: label }`) and `stateColors`
+		 *   (`{ <state>: tone }`, a badge variant or board hue) word and colour
+		 *   the status; `viewAllPlacement: "footer"` draws the view-all link
+		 *   under the table instead of in the card header.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string}}
+		 * A task that carries a form is completed through CnTaskFormDialog, or
+		 * with its form inline in the focus and opened-row cards.
+		 *
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
 		 */
 		content: {
 			type: Object,
@@ -198,6 +597,12 @@ export default {
 			default: '',
 		},
 
+		/** The page's record id, for `objectUuid: "@objectId"`. */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+
 		/**
 		 * Translate function. Falls back to the injected `cnTranslate`.
 		 * Provide explicitly when mounting outside a CnAppRoot ancestor.
@@ -210,25 +615,35 @@ export default {
 		},
 	},
 
+	emits: ['header'],
+
 	setup(props) {
 		// The shared endpoint engine owns request dedup, the short-TTL cache
 		// and the cn:page:refresh / cn:widget:refresh subscriptions — the
 		// same binding CnFlowRunsWidget uses, so a page-level Refresh updates
 		// this widget with everything else on the page.
 		const widgetIdRef = ref(props.widgetId)
-		const source = () => ({
-			url: FLOW_TASKS_URL,
-			method: 'GET',
-			params: {
-				scope: normaliseScope(props.content && props.content.scope),
-				// An inbox drains: finished tasks leave the widget. The index
-				// page's "everything" tab is the place to read history.
-				isTerminal: 'false',
+		const source = () => {
+			const content = props.content || {}
+			const objectUuid = recordUuid(content.objectUuid, props.objectId)
+			const params = {
+				// A record's tasks are everyone's: scoping them to the viewer
+				// would make the record look finished while a colleague works.
+				scope: objectUuid !== '' && !content.scope ? 'all' : normaliseScope(content.scope),
 				// Ascending due date: the most urgent (overdue first) on top.
 				sort: 'dueAt',
-				limit: normaliseLimit(props.content && props.content.limit),
-			},
-		})
+				limit: normaliseLimit(content.limit),
+			}
+			if (objectUuid !== '') {
+				params.objectUuid = objectUuid
+			}
+			// An inbox drains: finished tasks leave the widget, unless the
+			// widget lists a record's work, done included (`includeDone`).
+			if (content.includeDone !== true) {
+				params.isTerminal = 'false'
+			}
+			return { url: FLOW_TASKS_URL, method: 'GET', params }
+		}
 		const { data, loading, error, refetch } = useEndpointSource(source, {
 			widgetId: widgetIdRef,
 		})
@@ -249,10 +664,247 @@ export default {
 	data() {
 		return {
 			pollTimer: null,
+			/** The table's head sort, `{ key, dir }`; no key keeps open tasks first. */
+			headSort: { key: '', dir: 'asc' },
+			/** The table's head filters, `{ column: values[] }`. */
+			headFilters: {},
+			/** Uuids of the tasks a checkbox is completing, until the next read. */
+			completing: [],
+			/** Whether the table's create form is open. */
+			createOpen: false,
+			/** The new task's title and deadline. */
+			newTitle: '',
+			newDue: '',
+			/** Whether the new task is being posted. */
+			creating: false,
+			/** The engine's answer to `claimCapabilityUrl`: true, false, or null while unasked. */
+			claimCapable: null,
+			/** The table row opened to work on in place, by uuid. */
+			expandedId: '',
+			/** One answer set per task, keyed by uuid, for the inline forms. */
+			answers: {},
+			/** Whether a verb from a work card is in flight. */
+			busy: false,
+			/** The task whose form dialog is open, and the outcome it completes with. */
+			formTask: null,
+			formOutcome: 'done',
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the rows draw as the checkbox list (`content.variant: 'list'`).
+		 *
+		 * @return {boolean}
+		 */
+		isList() {
+			return this.content.variant === 'list'
+		},
+
+		/**
+		 * Whether the rows draw as the record's task table (`variant: 'table'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		isTable() {
+			return this.content.variant === 'table'
+		},
+
+		/**
+		 * Whether the widget shows the first open task to work on in place
+		 * (`variant: 'focus'`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-the-first-open-task-can-be-worked-on-in-place
+		 */
+		isFocus() {
+			return this.content.variant === 'focus'
+		},
+
+		/** @return {boolean} Whether a table row's title opens it in place. */
+		expandRows() {
+			return this.content.expandRows === true
+		},
+
+		/** @return {Array<object>} The open tasks, in due order. */
+		openTasks() {
+			return this.rows.filter((task) => task.isTerminal !== true)
+		},
+
+		/** @return {object|null} The task the focus card shows: the first open one. */
+		focusTask() {
+			return this.openTasks[0] ?? null
+		},
+
+		/** @return {Array<object>} The open tasks after the focus card's. */
+		otherOpenTasks() {
+			return this.openTasks.slice(1)
+		},
+
+		/**
+		 * Whether the table draws its "View all" link under the table rather
+		 * than in the card header (`viewAllPlacement: "footer"`, DqZaakTaken).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		linkInFooter() {
+			return this.isTable && this.content.viewAllPlacement === 'footer'
+		},
+
+		/**
+		 * The table's footer link, with `viewAllPlacement: "footer"`.
+		 *
+		 * @return {{to: object, label: string}|null}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		footerViewAll() {
+			return this.linkInFooter ? this.focusViewAll : null
+		},
+
+		/**
+		 * The colours `content.stateColors` gives a state, by its raw value
+		 * (`{ active: "purple" }`), or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		stateColors() {
+			const map = this.content.stateColors
+			return map && typeof map === 'object' ? map : null
+		},
+
+		/**
+		 * The focus card's "View all" link: `viewAllRoute` with `@objectId`
+		 * in its query read from the page's record.
+		 *
+		 * @return {{to: object, label: string}|null}
+		 */
+		focusViewAll() {
+			const link = this.recordLink(this.headerLink)
+			if (!link || typeof link.route !== 'string' || link.route === '') {
+				return null
+			}
+			const to = { name: link.route }
+			if (link.params) {
+				to.params = link.params
+			}
+			if (link.query) {
+				to.query = link.query
+			}
+			return { to, label: this.tr(link.label) }
+		},
+
+		/** @return {object|null} The opened table row, while it is still open. */
+		expandedTask() {
+			if (this.expandedId === '') {
+				return null
+			}
+			return this.openTasks.find((task) => String(task.uuid) === this.expandedId) ?? null
+		},
+
+		/**
+		 * Whether this instance can claim: true without a
+		 * `claimCapabilityUrl`, else what it answered (false until it did).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-claim-follows-a-capability
+		 */
+		claimAvailable() {
+			const url = this.content.claimCapabilityUrl
+			if (typeof url !== 'string' || url === '') {
+				return true
+			}
+			return this.claimCapable === true
+		},
+
+		/**
+		 * The table's rows: the open tasks first, then the finished ones, each
+		 * in due order as the endpoint sorted them.
+		 *
+		 * @return {Array<object>} The rows.
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		tableRows() {
+			const kept = this.rows.filter((task) => Object.entries(this.headFilters).every(([key, values]) => values.length === 0 || values.includes(this.headValue(task, key))))
+			if (this.headSort.key) {
+				const dir = this.headSort.dir === 'desc' ? -1 : 1
+				return [...kept].sort((a, b) => {
+					const x = this.headSortValue(a, this.headSort.key)
+					const y = this.headSortValue(b, this.headSort.key)
+					return (x < y ? -1 : (x > y ? 1 : 0)) * dir
+				})
+			}
+			return [...kept.filter((task) => task.isTerminal !== true), ...kept.filter((task) => task.isTerminal === true)]
+		},
+
+		/** @return {Array<{key: string, label: string}>} The table's data columns. */
+		headColumns() {
+			return [
+				{ key: 'title', label: this.tr('Task') },
+				{ key: 'handler', label: this.tr('Handler') },
+				{ key: 'due', label: this.tr('Task deadline') },
+				{ key: 'state', label: this.tr('Status') },
+			]
+		},
+
+		/**
+		 * The table's summary for the card header: "1 open, 3 done · sorted by deadline".
+		 *
+		 * @return {string} The line.
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		summaryLabel() {
+			const open = this.rows.filter((task) => task.isTerminal !== true).length
+			const done = this.rows.length - open
+			const line = this.tr('{open} open, {done} done · sorted by deadline')
+				.replace('{open}', String(open))
+				.replace('{done}', String(done))
+			const note = typeof this.content.summaryNote === 'string' && this.content.summaryNote !== '' ? this.tr(this.content.summaryNote) : ''
+			return note === '' ? line : `${line} · ${note}`
+		},
+
+		/**
+		 * The card header's parts: the "View all" link, and for the table the
+		 * summary under the title and the "New task" action.
+		 *
+		 * @return {object} The header.
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		header() {
+			// The focus card draws its "View all" under the list itself, so it
+			// shows inside a tab panel too, where no card header is drawn.
+			const header = { link: this.isFocus || this.linkInFooter ? null : this.recordLink(this.headerLink), note: '' }
+			if (!this.isTable) {
+				return header
+			}
+			header.subtitle = this.loading && this.rows.length === 0 ? '' : this.summaryLabel
+			if (this.content.create && this.recordUuid !== '') {
+				const label = typeof this.content.create === 'object' && this.content.create.label ? this.tr(this.content.create.label) : this.tr('New task')
+				header.action = { label, icon: 'Plus', variant: 'primary', run: this.toggleCreate }
+			}
+			return header
+		},
+
+		/**
+		 * The record the table lists tasks for, '' without one.
+		 *
+		 * @return {string} The uuid.
+		 */
+		recordUuid() {
+			return recordUuid(this.content.objectUuid, this.objectId)
+		},
+
+		/**
+		 * The header "View all" link the content declares, or null.
+		 *
+		 * @return {object|null}
+		 */
+		headerLink() {
+			return contentHeaderLink(this.content)
+		},
+
 		/**
 		 * Effective translate function: the explicit prop, then the injected
 		 * host one, then `@nextcloud/l10n` under the library's own app id.
@@ -353,7 +1005,21 @@ export default {
 		},
 	},
 
+	watch: {
+		header: {
+			immediate: true,
+			handler(header) {
+				/**
+				 * @event header Emitted with the card header's parts: the "View all" link, if any, and for the table its summary and "New task".
+				 * @type {{link: (object|null), note: string, subtitle?: string, action?: object}}
+				 */
+				this.$emit('header', header)
+			},
+		},
+	},
+
 	mounted() {
+		this.loadClaimCapability()
 		this.startPolling()
 		document.addEventListener('visibilitychange', this.onVisibilityChange)
 	},
@@ -364,6 +1030,8 @@ export default {
 	},
 
 	methods: {
+		preventMiddleClickAutoscroll,
+
 		/**
 		 * Start (or restart) the refetch interval, unless polling is off.
 		 *
@@ -418,6 +1086,43 @@ export default {
 		},
 
 		/**
+		 * The subject (the case a task sits on), for the list variant's second line.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The subject's title, or ''.
+		 */
+		subjectOf(task) {
+			return task.subject && task.subject.title ? String(task.subject.title) : ''
+		},
+
+		/**
+		 * Whether the list variant draws a checkbox on the row: the viewer's own
+		 * open task, with no outcome list to choose from.
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 */
+		canCheck(task) {
+			return this.canComplete(task) && !(Array.isArray(task.outcomes) && task.outcomes.length > 0)
+		},
+
+		/**
+		 * Complete a task from its checkbox, with the server's default outcome.
+		 *
+		 * @param {object} task The task row.
+		 * @return {Promise<void>}
+		 */
+		async check(task) {
+			const uuid = String(task.uuid || '')
+			if (uuid === '' || this.completing.includes(uuid)) {
+				return
+			}
+			this.completing = [...this.completing, uuid]
+			await this.postVerb(task, 'complete', { outcome: 'done' })
+			this.completing = this.completing.filter((id) => id !== uuid)
+		},
+
+		/**
 		 * The secondary line: subject, state and priority — whichever of
 		 * those the row actually carries, in words.
 		 *
@@ -449,13 +1154,26 @@ export default {
 		},
 
 		/**
+		 * The due date as a short date ("18 Oct"), '' without one; for the
+		 * table with `dueFormat: "date"`.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string}
+		 * @spec openspec/changes/tasks-table-board-options/specs/record-task-table/spec.md#requirement-the-task-table-can-show-dates-its-own-state-words-and-a-footer-link
+		 */
+		dueDate(task) {
+			const at = new Date(task?.dueAt ?? '')
+			return Number.isNaN(at.getTime()) ? '' : at.toLocaleDateString(userLocale(), { day: 'numeric', month: 'short' })
+		},
+
+		/**
 		 * Whether the row offers claim: pooled (no assignee) and still open.
 		 *
 		 * @param {object} task The task row.
 		 * @return {boolean} True when claim is offered.
 		 */
 		canClaim(task) {
-			return !task.assignee && task.isTerminal !== true
+			return !task.assignee && task.isTerminal !== true && this.claimAvailable
 		},
 
 		/**
@@ -468,6 +1186,238 @@ export default {
 			return this.viewerUid !== ''
 				&& task.assignee === this.viewerUid
 				&& task.isTerminal !== true
+		},
+
+		/**
+		 * Whether a table row offers Complete: the viewer's own open task, or
+		 * any open task with `completeAny` (the server still decides).
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		canCompleteRow(task) {
+			if (task.isTerminal === true || this.canClaim(task)) {
+				return false
+			}
+			return this.content.completeAny === true || this.canComplete(task)
+		},
+
+		/**
+		 * Whether a table row offers Cancel (`content.cancel`), for an open task.
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 */
+		canCancelRow(task) {
+			return this.content.cancel === true && task.isTerminal !== true
+		},
+
+		/**
+		 * Cancel a task.
+		 *
+		 * @param {object} task The task row.
+		 * @return {Promise<void>} Resolves when the verb settled.
+		 */
+		cancel(task) {
+			return this.postVerb(task, 'cancel', {})
+		},
+
+		/**
+		 * The handler's display name, the uid until it resolves.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The name.
+		 */
+		/**
+		 * A row's value in a column, as a head filter keeps it.
+		 *
+		 * @param {object} task The task row.
+		 * @param {string} key The column.
+		 * @return {string}
+		 */
+		headValue(task, key) {
+			if (key === 'title') {
+				return this.titleOf(task)
+			}
+			if (key === 'handler') {
+				return String(task.assignee || '')
+			}
+			if (key === 'due') {
+				return this.content.dueFormat === 'date' ? this.dueDate(task) : this.dueLabel(task)
+			}
+			return String(task.state || '')
+		},
+
+		/**
+		 * A row's value in a column, as its head sorts it: the deadline by date.
+		 *
+		 * @param {object} task The task row.
+		 * @param {string} key The column.
+		 * @return {string|number}
+		 */
+		headSortValue(task, key) {
+			if (key === 'due') {
+				const time = Date.parse(task.dueAt || task.dueDate || '')
+				return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time
+			}
+			if (key === 'handler') {
+				return this.handlerName(task).toLowerCase()
+			}
+			if (key === 'state') {
+				return this.stateLabel(task).toLowerCase()
+			}
+			return this.titleOf(task).toLowerCase()
+		},
+
+		/**
+		 * The values a column's head filter offers, one per value the rows hold.
+		 *
+		 * @param {string} key The column.
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		headOptions(key) {
+			const seen = new Map()
+			for (const task of this.rows) {
+				const value = this.headValue(task, key)
+				if (value !== '' && !seen.has(value)) {
+					seen.set(value, key === 'handler' ? this.handlerName(task) : (key === 'state' ? this.stateLabel(task) : value))
+				}
+			}
+			return [...seen].map(([value, label]) => ({ value, label }))
+		},
+
+		/**
+		 * Sort by a column: ascending first, then descending.
+		 *
+		 * @param {string} key The column.
+		 */
+		sortBy(key) {
+			this.headSort = this.headSort.key === key && this.headSort.dir === 'asc' ? { key, dir: 'desc' } : { key, dir: 'asc' }
+		},
+
+		/**
+		 * Keep or drop one value of a column's head filter.
+		 *
+		 * @param {string} key The column.
+		 * @param {string} value The value.
+		 */
+		toggleHeadFilter(key, value) {
+			const current = this.headFilters[key] || []
+			this.headFilters = { ...this.headFilters, [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value] }
+		},
+
+		handlerName(task) {
+			return userDisplayName(task.assignee) || String(task.assignee || '')
+		},
+
+		/**
+		 * A table row's status in words: `content.stateLabels` first, through
+		 * the app's translate, then the library's.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The label.
+		 */
+		stateLabel(task) {
+			const own = this.content.stateLabels && typeof this.content.stateLabels === 'object' ? this.content.stateLabels[task.state] : null
+			if (typeof own === 'string' && own !== '') {
+				return this.tr(own)
+			}
+			const state = STATE_LABELS[task.state]
+			return state ? this.tr(state) : String(task.state || '')
+		},
+
+		/**
+		 * The tone of a task's status pill: `stateVariants[state]` when that
+		 * names a badge variant, else info for an open task and default for a
+		 * finished one.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The badge variant.
+		 * @spec openspec/changes/tasks-state-variants/specs/tasks-state-variants/spec.md#requirement-a-task-status-pill-can-take-its-tone-from-its-state
+		 */
+		stateVariant(task) {
+			const map = this.content && this.content.stateVariants
+			const named = map && typeof map === 'object' ? map[task.state] : undefined
+			if (isBadgeVariant(named)) {
+				return named
+			}
+			return task.isTerminal === true ? 'default' : 'info'
+		},
+
+		/**
+		 * A table row's second line: its description and a priority above normal.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string} The line, or ''.
+		 */
+		tableMeta(task) {
+			const parts = []
+			if (typeof task.description === 'string' && task.description.trim() !== '') {
+				parts.push(task.description.trim().split('\n')[0])
+			}
+			const priority = PRIORITY_LABELS[task.priority]
+			if (priority && task.priority !== 'normal') {
+				parts.push(this.tr(priority))
+			}
+			return parts.join(' · ')
+		},
+
+		/**
+		 * The header link with `@objectId` in its query read from the page's
+		 * record ("all tasks of this case" on the Tasks page).
+		 *
+		 * @param {object|null} link The declared link.
+		 * @return {object|null} The link.
+		 */
+		recordLink(link) {
+			if (!link || !link.query || typeof link.query !== 'object') {
+				return link
+			}
+			const query = Object.fromEntries(Object.entries(link.query).map(([key, value]) => [key, value === '@objectId' ? String(this.objectId ?? '') : value]))
+			return { ...link, query }
+		},
+
+		/**
+		 * Open or close the create form (the header's "New task").
+		 *
+		 * @return {void}
+		 */
+		toggleCreate() {
+			this.createOpen = !this.createOpen
+		},
+
+		/**
+		 * Post the create form as an open task on the record, then refetch.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/record-task-table/specs/record-task-table/spec.md#requirement-a-records-tasks-show-as-a-table-with-their-summary-and-new-task-in-the-header
+		 */
+		async createTask() {
+			const title = this.newTitle.trim()
+			if (title === '' || this.recordUuid === '' || this.creating) {
+				return
+			}
+			const create = typeof this.content.create === 'object' && this.content.create ? this.content.create : {}
+			const payload = { title, objectUuid: this.recordUuid, state: 'available' }
+			if (typeof create.appId === 'string' && create.appId !== '') {
+				payload.appId = create.appId
+			}
+			if (this.newDue !== '') {
+				payload.dueAt = this.newDue
+			}
+			this.creating = true
+			try {
+				await axios.post(generateUrl(FLOW_TASKS_URL), payload)
+				this.newTitle = ''
+				this.newDue = ''
+				this.createOpen = false
+			} catch (error) {
+				const message = error?.response?.data?.error
+				showError(typeof message === 'string' && message !== '' ? message : this.tr('The task could not be added'))
+			}
+			this.creating = false
+			this.refetch(true)
 		},
 
 		/**
@@ -532,6 +1482,11 @@ export default {
 		 * @return {Promise<void>} Resolves when the verb settled.
 		 */
 		complete(task, outcome) {
+			if (this.formOf(task)) {
+				this.formOutcome = outcome || 'done'
+				this.formTask = task
+				return Promise.resolve()
+			}
 			return this.postVerb(task, 'complete', { outcome })
 		},
 
@@ -547,16 +1502,27 @@ export default {
 		 * @param {string} verb The lifecycle verb.
 		 * @param {object} body The verb body.
 		 * @return {Promise<void>} Resolves when the verb settled.
+		 * @spec openspec/changes/tasks-widget-cancel-url/specs/tasks-widget-cancel-url/spec.md#requirement-cancel-posts-to-the-app-route-when-one-is-set
 		 */
 		async postVerb(task, verb, body) {
 			const uuid = String(task.uuid || '')
 			if (uuid === '') {
 				return
 			}
+			const appUrl = { complete: this.content.completeUrl, cancel: this.content.cancelUrl }[verb]
+			const route = typeof appUrl === 'string' && appUrl !== ''
+				? appUrl.replace('{id}', encodeURIComponent(uuid))
+				: `${FLOW_TASKS_URL}/${uuid}/${verb}`
 			try {
-				await axios.post(generateUrl(`${FLOW_TASKS_URL}/${uuid}/${verb}`), body)
+				await axios.post(generateUrl(route), body)
+				if (verb === 'complete') {
+					showSuccess(this.tr('Task {title} finished').replace('{title}', this.titleOf(task)))
+				} else if (verb === 'claim') {
+					showSuccess(this.tr('Task {title} is yours').replace('{title}', this.titleOf(task)))
+				}
 			} catch (error) {
-				const message = error?.response?.data?.error
+				const data = error?.response?.data
+				const message = data?.error || data?.message
 				showError(typeof message === 'string' && message !== ''
 					? message
 					: this.tr('The task action was refused'))
@@ -565,23 +1531,157 @@ export default {
 		},
 
 		/**
-		 * Open the clicked task: the configured route with the uuid as `id`,
-		 * else the task's openregister deep link.
+		 * Ask `claimCapabilityUrl` once whether this instance can claim. A
+		 * failure leaves Claim off: a button that silently assigns a task is
+		 * worse than none.
 		 *
-		 * @param {object} task The clicked task row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-claim-follows-a-capability
+		 */
+		async loadClaimCapability() {
+			const url = this.content.claimCapabilityUrl
+			if (typeof url !== 'string' || url === '') {
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl(url))
+				this.claimCapable = response?.data?.claim === true
+			} catch {
+				this.claimCapable = false
+			}
+		},
+
+		/**
+		 * The form a task asks for, when it is one to fill in here.
+		 *
+		 * @param {object} task The task row.
+		 * @return {object|null}
+		 */
+		formOf(task) {
+			const form = taskForm(task)
+			return form && form.kind === 'fields' ? form : null
+		},
+
+		/**
+		 * One task's answer set, empty until something was typed.
+		 *
+		 * @param {object} task The task row.
+		 * @return {object} The answers.
+		 */
+		answersFor(task) {
+			return this.answers[String(task.uuid || '')] || {}
+		},
+
+		/**
+		 * Keep one answer an inline form emitted.
+		 *
+		 * @param {object} task The task row.
+		 * @param {{field: string, value: string}} answer The answer.
 		 * @return {void}
 		 */
-		onRowClick(task) {
+		recordAnswer(task, answer) {
+			const uuid = String(task.uuid || '')
+			this.answers = { ...this.answers, [uuid]: { ...this.answersFor(task), [String(answer?.field ?? '')]: answer?.value } }
+		},
+
+		/**
+		 * Complete the task in a work card with its inline answers. A required
+		 * field left empty is named before the round trip; the server refuses
+		 * it again for every other client.
+		 *
+		 * @param {object} task The task row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/task-widget-on-the-record/specs/task-widget-on-the-record/spec.md#requirement-the-first-open-task-can-be-worked-on-in-place
+		 */
+		async completeInPlace(task) {
+			if (this.busy) {
+				return
+			}
+			const answers = this.answersFor(task)
+			const missing = missingRequiredTaskField(taskForm(task), answers)
+			if (missing !== '') {
+				showError(this.tr('Fill in {field} before completing this task').replace('{field}', missing))
+				return
+			}
+			this.busy = true
+			try {
+				await this.postVerb(task, 'complete', taskForm(task) ? { outcome: 'done', data: answers } : { outcome: 'done' })
+			} finally {
+				this.busy = false
+			}
+		},
+
+		/**
+		 * Open or close a table row's task in place.
+		 *
+		 * @param {object} task The task row.
+		 * @return {void}
+		 */
+		toggleExpanded(task) {
+			const uuid = String(task.uuid || '')
+			this.expandedId = this.expandedId === uuid ? '' : uuid
+		},
+
+		/**
+		 * The route a task's title links to (`rowRoute`), or null.
+		 *
+		 * @param {object} task The task row.
+		 * @return {object|null}
+		 */
+		openRouteFor(task) {
+			const rowRoute = this.content.rowRoute
+			const uuid = String(task?.uuid || '')
+			if (typeof rowRoute !== 'string' || rowRoute === '' || uuid === '') {
+				return null
+			}
+			return { name: rowRoute, params: { id: uuid } }
+		},
+
+		/**
+		 * The form dialog completed its task.
+		 *
+		 * @return {void}
+		 */
+		onFormCompleted() {
+			const title = this.formTask ? this.titleOf(this.formTask) : ''
+			this.formTask = null
+			showSuccess(this.tr('Task {title} finished').replace('{title}', title))
+			this.refetch(true)
+		},
+
+		/**
+		 * Open the clicked task: the configured route with the uuid as `id`,
+		 * else the task's openregister deep link. A ctrl/cmd/shift or middle
+		 * click opens it in a new tab.
+		 *
+		 * @param {object} task The clicked task row.
+		 * @param {MouseEvent} [event] The originating click/auxclick event.
+		 * @return {void}
+		 */
+		onRowClick(task, event) {
 			const uuid = String(task.uuid || '')
 			if (uuid === '') {
 				return
 			}
 			const rowRoute = this.content.rowRoute
 			if (typeof rowRoute === 'string' && rowRoute !== '' && this.$router) {
-				this.$router.push({ name: rowRoute, params: { id: uuid } }).catch(() => {})
+				openRowTarget(event, { name: rowRoute, params: { id: uuid } }, this.$router)
 				return
 			}
-			window.location.assign(taskDeepLink(uuid))
+			openRowTarget(event, taskDeepLink(uuid))
+		},
+
+		/**
+		 * Middle click on a task row: open it in a new tab.
+		 *
+		 * @param {object} task The clicked task row.
+		 * @param {MouseEvent} event The auxclick event.
+		 * @return {void}
+		 */
+		onRowAuxClick(task, event) {
+			if (isRowMiddleClick(event)) {
+				this.onRowClick(task, event)
+			}
 		},
 	},
 }
@@ -609,9 +1709,137 @@ function normaliseLimit(raw) {
 function normaliseScope(raw) {
 	return ['assigned', 'pooled', 'watched', 'all'].includes(raw) ? raw : 'assigned'
 }
+
+/**
+ * The record a widget lists tasks for: `objectUuid` as written, with
+ * `@objectId` read from the page's record.
+ *
+ * @param {unknown} configured The `objectUuid` setting.
+ * @param {unknown} objectId The page's record id.
+ * @return {string} The uuid, or ''.
+ */
+function recordUuid(configured, objectId) {
+	if (typeof configured !== 'string' || configured === '') {
+		return ''
+	}
+	return configured === '@objectId' ? String(objectId ?? '') : configured
+}
 </script>
 
 <style scoped>
+/* The record's task table (`variant: 'table'`, board DqZaakTaken): a head
+   row of muted 14px labels on a near-white ground, rows divided by hairlines,
+   the title at 600 over a muted line, a finished task struck through. */
+.cn-tasks-widget__create {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+	margin-block-end: 12px;
+}
+
+.cn-tasks-widget__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.cn-tasks-widget__head {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.cn-tasks-widget__head-sort {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.cn-tasks-widget__head-filter {
+	--button-size: 22px;
+}
+
+.cn-tasks-widget__table th {
+	padding: 12px 16px;
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
+	color: var(--color-text-maxcontrast);
+	font-weight: 600;
+	text-align: start;
+	white-space: nowrap;
+}
+
+.cn-tasks-widget__table td {
+	padding: 12px 16px;
+	border-top: 1px solid var(--color-border);
+	vertical-align: middle;
+}
+
+.cn-tasks-widget__cell-task {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.cn-tasks-widget__state-icon {
+	flex: none;
+	color: var(--color-primary-element);
+}
+
+.cn-tasks-widget__state-icon--done {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-tasks-widget__table .cn-tasks-widget__name {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-tasks-widget__table .cn-tasks-widget__name:hover,
+.cn-tasks-widget__table .cn-tasks-widget__name:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-tasks-widget__table-row--done .cn-tasks-widget__name {
+	text-decoration: line-through;
+}
+
+.cn-tasks-widget__handler {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-tasks-widget__cell-due {
+	white-space: nowrap;
+}
+
+.cn-tasks-widget__cell-due.cn-tasks-widget__due--overdue {
+	color: var(--color-warning-text, var(--color-warning));
+	font-weight: 600;
+}
+
+.cn-tasks-widget__cell-actions {
+	text-align: end;
+	white-space: nowrap;
+}
+
 .cn-tasks-widget {
 	display: flex;
 	flex-direction: column;
@@ -623,6 +1851,43 @@ function normaliseScope(raw) {
 	display: flex;
 	justify-content: center;
 	padding: 8px 0;
+}
+
+.cn-tasks-widget__view-all {
+	display: inline-block;
+	margin-top: 8px;
+	color: var(--color-primary-element-text, var(--color-primary-element));
+	text-decoration: underline;
+}
+
+.cn-tasks-widget__others {
+	margin-top: 12px;
+}
+
+.cn-tasks-widget__others-title {
+	margin: 0 0 6px;
+	font-size: 14px;
+}
+
+.cn-tasks-widget__others-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-tasks-widget__others-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-tasks-widget__others-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
 }
 
 .cn-tasks-widget__empty,
@@ -698,6 +1963,57 @@ function normaliseScope(raw) {
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-variant-numeric: tabular-nums;
+}
+
+/* List variant, after the dashboard board's My tasks card: a checkbox, the
+   title, the subject on a muted second line and the due date at its right. */
+.cn-tasks-widget--list .cn-tasks-widget__row {
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 0;
+}
+
+.cn-tasks-widget--list .cn-tasks-widget__name {
+	font-weight: 400;
+	font-size: 15px;
+	line-height: 1.35;
+	color: var(--color-main-text);
+}
+
+.cn-tasks-widget__check,
+.cn-tasks-widget__check-spacer {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin: 1px 0 0;
+}
+
+.cn-tasks-widget__check {
+	accent-color: var(--color-primary-element);
+	cursor: pointer;
+}
+
+.cn-tasks-widget__meta--split {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 13px;
+	overflow: visible;
+}
+
+.cn-tasks-widget__subject {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cn-tasks-widget--list .cn-tasks-widget__due {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.cn-tasks-widget--list .cn-tasks-widget__due--overdue {
+	font-weight: 600;
 }
 
 /* Overdue: weight AND colour on top of the wording, which already says

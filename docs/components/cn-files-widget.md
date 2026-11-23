@@ -33,3 +33,7 @@ Setting `objectId` + `register` + `schema` together switches the widget from the
 | `register` | String | `''` | OpenRegister register slug of the bound object. See `objectId`. |
 | `schema` | String\|Object | `''` | OpenRegister schema of the bound object — a slug string, or the resolved schema object as merged by `CnWidgetGrid` (the slug is derived internally). See `objectId`. |
 | `objectApiBase` | String | `/apps/openregister/api` | App base for the object-file endpoints used in object-bound mode (`{objectApiBase}/objects/{register}/{schema}/{id}/...`). |
+
+## Opening a file
+
+A file row opens a file through [`useFileOpener`](../utilities/composables/use-file-opener.md): the Nextcloud Viewer when it handles the type, otherwise an in-page [`CnFilePreview`](./cn-file-preview.md) for CSV, TSV, JSON, XML and text, otherwise the browser for PDF and images, otherwise the Files app. The preview carries Download and Open in Files.

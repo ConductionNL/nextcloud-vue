@@ -27,10 +27,11 @@
 				:key="row.id"
 				class="cn-email-card__row"
 				:class="{ 'cn-email-card__row--unread': row.unread }">
-				<button
+				<component
+					:is="row.href ? 'a' : 'div'"
 					class="cn-email-card__open"
-					:title="openInMailLabel"
-					@click="openInMail(row.message)">
+					:title="row.href ? openInMailLabel : undefined"
+					v-bind="row.href ? { href: row.href, target: '_blank', rel: 'noopener noreferrer' } : {}">
 					<NcAvatar
 						class="cn-email-card__avatar"
 						:size="32"
@@ -49,7 +50,7 @@
 							{{ row.snippet }}
 						</div>
 					</div>
-				</button>
+				</component>
 			</li>
 		</ul>
 		<template v-if="messages.length > maxDisplay" #footer>
@@ -63,9 +64,11 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcLoadingIcon } from '@nextcloud/vue'
+import { markRaw } from 'vue'
 import Email from 'vue-material-design-icons/Email.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnEmailCard — compact widget for the `email` integration leaf.
@@ -136,7 +139,7 @@ export default {
 
 	data() {
 		return {
-			Email,
+			Email: markRaw(Email),
 			messages: [],
 			total: 0,
 			loading: false,
@@ -172,6 +175,7 @@ export default {
 				when: this.formatWhen(message),
 				unread: this.isUnread(message),
 				avatarUser: this.senderEmail(message),
+				href: this.threadUrl(message),
 			}))
 		},
 	},
@@ -276,21 +280,19 @@ export default {
 			if (Number.isNaN(d.getTime()) === true) {
 				return String(raw)
 			}
-			return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+			return d.toLocaleDateString(userLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
 		},
 
-		openInMail(message) {
+		// Thread deep-link into NC Mail; undefined when the row lacks ids.
+		threadUrl(message) {
 			const accountId = message.mailAccountId
 			const messageId = message.mailMessageId
 			if (accountId === undefined || accountId === null || messageId === undefined || messageId === null) {
-				return
+				return undefined
 			}
-			const base = (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
+			return (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
 				? OC.generateUrl(`/apps/mail/box/${accountId}/thread/${messageId}`)
 				: `/index.php/apps/mail/box/${accountId}/thread/${messageId}`
-			if (typeof window !== 'undefined' && window.location) {
-				window.open(base, '_blank', 'noopener')
-			}
 		},
 	},
 }
@@ -320,13 +322,19 @@ export default {
 	background: none;
 	border: none;
 	padding: 6px 0;
-	cursor: pointer;
 	text-align: left;
 	color: inherit;
 	font: inherit;
+	text-decoration: none;
+	box-sizing: border-box;
 }
 
-.cn-email-card__open:hover .cn-email-card__subject {
+/* Only a row with Mail ids is a link; the rest must not look clickable. */
+a.cn-email-card__open {
+	cursor: pointer;
+}
+
+a.cn-email-card__open:hover .cn-email-card__subject {
 	color: var(--color-primary-element);
 }
 

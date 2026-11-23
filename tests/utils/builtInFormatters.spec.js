@@ -8,7 +8,8 @@
  * value for unparseable input, empty string for null/empty).
  */
 
-const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+const { registerTranslations } = require('../../src/l10n/index.js')
+const { formatDate, formatDateTime, formatRelativeTime, formatDaysSince, formatDaysUntil, formatCurrency, formatConditionalPhrase, formatCount, formatConnectionStatus, formatConnectionSettingsLabel, formatIsoDuration, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
 
 /**
  * A date `days` whole days from today, at local noon so DST shifts and
@@ -124,21 +125,35 @@ describe('builtInFormatters', () => {
 	})
 
 	describe('formatDaysSince (daysSince)', () => {
-		it('renders "N days ago" for a past date (plural)', () => {
-			expect(formatDaysSince(daysFromToday(-7))).toBe('7 days ago')
+		it('renders "today" for any time today', () => {
+			expect(formatDaysSince(daysFromToday(0))).toBe('today')
+			const earlyToday = new Date()
+			earlyToday.setHours(0, 1, 0, 0)
+			expect(formatDaysSince(earlyToday)).toBe('today')
 		})
 
-		it('renders the singular form for exactly one day ago', () => {
-			expect(formatDaysSince(daysFromToday(-1))).toBe('1 day ago')
+		it('renders "yesterday" for one calendar day back, even late in the evening', () => {
+			expect(formatDaysSince(daysFromToday(-1))).toBe('yesterday')
+			const lateYesterday = new Date()
+			lateYesterday.setDate(lateYesterday.getDate() - 1)
+			lateYesterday.setHours(23, 59, 0, 0)
+			expect(formatDaysSince(lateYesterday)).toBe('yesterday')
 		})
 
-		it('renders "Today" for today', () => {
-			expect(formatDaysSince(daysFromToday(0))).toBe('Today')
+		it('renders "N days ago" from two days back', () => {
+			expect(formatDaysSince(daysFromToday(-2))).toBe('2 days ago')
+			expect(formatDaysSince(daysFromToday(-3))).toBe('3 days ago')
+			expect(formatDaysSince(daysFromToday(-30))).toBe('30 days ago')
 		})
 
 		it('renders a forward phrasing for a (nonsensical) future date instead of garbage', () => {
-			expect(formatDaysSince(daysFromToday(4))).toBe('In 4 days')
-			expect(formatDaysSince(daysFromToday(1))).toBe('In 1 day')
+			expect(formatDaysSince(daysFromToday(1))).toBe('tomorrow')
+			expect(formatDaysSince(daysFromToday(4))).toBe('in 4 days')
+		})
+
+		it('accepts an ISO string and a timestamp as well as a Date', () => {
+			expect(formatDaysSince(daysFromToday(-3).toISOString())).toBe('3 days ago')
+			expect(formatDaysSince(daysFromToday(-3).getTime())).toBe('3 days ago')
 		})
 
 		it('never throws on null / empty / unparseable input', () => {
@@ -146,6 +161,35 @@ describe('builtInFormatters', () => {
 			expect(formatDaysSince(undefined)).toBe('')
 			expect(formatDaysSince('')).toBe('')
 			expect(formatDaysSince('garbage')).toBe('garbage')
+		})
+
+		describe('for a Dutch reader', () => {
+			beforeAll(() => {
+				globalThis._nc_l10n_language = 'nl'
+				registerTranslations()
+			})
+
+			afterAll(() => {
+				globalThis._nc_l10n_language = 'en'
+				registerTranslations()
+			})
+
+			it('says vandaag, gisteren and N dagen geleden', () => {
+				expect(formatDaysSince(daysFromToday(0))).toBe('vandaag')
+				expect(formatDaysSince(daysFromToday(-1))).toBe('gisteren')
+				expect(formatDaysSince(daysFromToday(-2))).toBe('2 dagen geleden')
+				expect(formatDaysSince(daysFromToday(-3))).toBe('3 dagen geleden')
+			})
+
+			it('says morgen and over N dagen for a future date', () => {
+				expect(formatDaysSince(daysFromToday(1))).toBe('morgen')
+				expect(formatDaysSince(daysFromToday(2))).toBe('over 2 dagen')
+			})
+
+			it('stays null-safe', () => {
+				expect(formatDaysSince(null)).toBe('')
+				expect(formatDaysSince('garbage')).toBe('garbage')
+			})
 		})
 	})
 
@@ -206,6 +250,43 @@ describe('builtInFormatters', () => {
 			expect(formatConditionalPhrase(null, {}, {}, options)).toBe('')
 			expect(formatConditionalPhrase('', {}, {}, options)).toBe('')
 			expect(formatConditionalPhrase('garbage', {}, {}, options)).toBe('garbage')
+		})
+	})
+
+	describe('formatIsoDuration (isoDuration)', () => {
+		it('reads a one-unit ISO period in words, as a retention or term is meant to be read (DqZaaktypeStatussen "10 jaar")', () => {
+			expect(formatIsoDuration('P10Y')).toBe('10 years')
+			expect(formatIsoDuration('P1Y')).toBe('1 year')
+			expect(formatIsoDuration('P6W')).toBe('6 weeks')
+			expect(formatIsoDuration('P3M')).toBe('3 months')
+			expect(formatIsoDuration('P30D')).toBe('30 days')
+			expect(BUILT_IN_FORMATTERS.isoDuration).toBe(formatIsoDuration)
+		})
+
+		it('leaves anything else as written and is null-safe', () => {
+			expect(formatIsoDuration('P1Y6M')).toBe('P1Y6M')
+			expect(formatIsoDuration('permanent')).toBe('permanent')
+			expect(formatIsoDuration(null)).toBe('')
+			expect(formatIsoDuration('')).toBe('')
+		})
+
+		describe('for a Dutch reader', () => {
+			beforeAll(() => {
+				globalThis._nc_l10n_language = 'nl'
+				registerTranslations()
+			})
+
+			afterAll(() => {
+				globalThis._nc_l10n_language = 'en'
+				registerTranslations()
+			})
+
+			it('says jaar, weken and dagen', () => {
+				expect(formatIsoDuration('P10Y')).toBe('10 jaar')
+				expect(formatIsoDuration('P6W')).toBe('6 weken')
+				expect(formatIsoDuration('P1W')).toBe('1 week')
+				expect(formatIsoDuration('P30D')).toBe('30 dagen')
+			})
 		})
 	})
 
@@ -368,5 +449,22 @@ describe('builtInFormatters', () => {
 			// non-overridden built-ins still present
 			expect(typeof merged.datetime).toBe('function')
 		})
+	})
+})
+
+describe('masked formatter (masked-formatter-max-aggregate)', () => {
+	const { formatMasked, BUILT_IN_FORMATTERS } = require('../../src/utils/builtInFormatters.js')
+
+	it('keeps the last four characters and draws at most five stars', () => {
+		expect(formatMasked('NL91ABNA0417164300')).toBe('*****4300')
+		expect(formatMasked('123456')).toBe('**3456')
+		expect(BUILT_IN_FORMATTERS.masked).toBe(formatMasked)
+	})
+
+	it('takes formatterOptions.visible, and leaves a short or empty value', () => {
+		expect(formatMasked('123456789', null, null, { visible: 2 })).toBe('*****89')
+		expect(formatMasked('123', null, null, {})).toBe('123')
+		expect(formatMasked(null)).toBe('')
+		expect(formatMasked('')).toBe('')
 	})
 })

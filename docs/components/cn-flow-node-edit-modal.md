@@ -34,7 +34,7 @@ A field holding unparseable JSON disables Done and says so next to the field
 ## Declared forms render as real fields, selects as pickers
 
 When a node declares its form (the catalogue's `configForm`:
-`{key, label, type, help, required, optionsFrom}` — see openregister's
+`{key, label, type, help, required, optionsFrom, options}` — see openregister's
 `IFlowNodeConfigForm`), the dialog uses the owner's translated labels and
 help lines, maps `boolean`/`number`/`textarea` to their widgets, and renders
 a `select` with `optionsFrom` as a picker fed by the URL the OWNING APP
@@ -44,6 +44,26 @@ synthesised option, so an existing configuration is never blanked, and a
 picker that fails to load degrades to the raw value with Advanced as the
 fallback. `configForm` beats `configKeys` for order and widgets; keys only
 `configKeys` names still render.
+
+A `select` can also carry its choices in the form itself, for a short fixed
+vocabulary with no endpoint of its own. `options` takes plain strings or
+`{value, label}` pairs (`{id, label}` works too). The picker shows the label
+and stores the value. A stored value outside the list stays visible, and the
+field's `help` line sits under the picker.
+
+```php
+[
+    'key' => 'messageCategory',
+    'label' => $l->t('Message category'),
+    'type' => 'select',
+    'options' => [
+        ['value' => 'service', 'label' => $l->t('Service message')],
+        ['value' => 'marketing', 'label' => $l->t('Marketing')],
+    ],
+]
+```
+
+`CnRunNodeDialog`, the dialog behind the `run-node` action, reads the same `options`.
 
 ## An app can replace this dialog per node type
 

@@ -110,11 +110,21 @@ describe('a named source supplies its columns to the table', () => {
 	 */
 	const tableColumns = (ctx) => {
 		const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
-		return CnIndexPage.computed.tableColumns.call({
+		// `tableColumns` reads two sibling computeds, so this stands them up
+		// from the component too rather than hardcoding what they return: a
+		// stub that answers for them would go on passing after the real ones
+		// changed, which is the failure this whole block exists to catch.
+		// `activeScopeLayout` is what the component itself returns when no
+		// folder sidebar is present, which is the case every test here sets up.
+		const self = {
 			register: null,
 			effectiveVisibleColumns: null,
+			folderSidebar: null,
 			...ctx,
-		})
+		}
+		self.activeScopeLayout = CnIndexPage.computed.activeScopeLayout.call(self)
+		self.declaredColumns = CnIndexPage.computed.declaredColumns.call(self)
+		return CnIndexPage.computed.tableColumns.call(self)
 	}
 
 	it('falls back to the source columns when the manifest sets none', () => {
@@ -267,9 +277,23 @@ describe('a named source supplies its create and navigation actions', () => {
 		expect(pushed).toEqual(['/flows/new'])
 	})
 
+	/**
+	 * Call a row-click method against a stand-in `this` that also carries the
+	 * shared routeClickedRow it delegates to.
+	 *
+	 * @param {string} name The method name.
+	 * @param {object} self The stand-in instance fields.
+	 * @param {...unknown} args The method's arguments.
+	 * @return {unknown} What the method returns.
+	 */
+	function callRowMethod(name, self, ...args) {
+		const methods = CnIndexPage().methods
+		return methods[name].call({ routeClickedRow: methods.routeClickedRow, ...self }, ...args)
+	}
+
 	it('opens a clicked row in the source detail route', () => {
 		const pushed = []
-		CnIndexPage().methods.onRowClick.call({
+		callRowMethod('onRowClick', {
 			selectable: false,
 			rowClickToView: true,
 			isNamedSource: true,
@@ -279,7 +303,7 @@ describe('a named source supplies its create and navigation actions', () => {
 		})
 		expect(pushed).toEqual([])
 
-		CnIndexPage().methods.onRowClick.call({
+		callRowMethod('onRowClick', {
 			selectable: false,
 			rowClickToView: true,
 			isNamedSource: true,
@@ -288,6 +312,87 @@ describe('a named source supplies its create and navigation actions', () => {
 			$emit: () => {},
 		}, { id: 'abc' })
 		expect(pushed).toEqual(['/flows/abc'])
+	})
+
+	describe('a modified or middle click opens the row in a new tab', () => {
+		let openSpy
+
+		beforeEach(() => {
+			openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+		})
+
+		afterEach(() => openSpy.mockRestore())
+
+		/**
+		 * Click a row on a minimal named-source page: onRowClick for a click,
+		 * onRowAuxClick for an auxclick, as the page's children wire them.
+		 *
+		 * @param {object} source The named source.
+		 * @param {Event} event The click or auxclick event.
+		 * @param {object} [extra] Extra instance fields.
+		 * @return {{ pushed: Array, emitted: Array }} Router pushes and emits.
+		 */
+		function clickRow(source, event, extra = {}) {
+			const pushed = []
+			const emitted = []
+			callRowMethod(event.type === 'auxclick' ? 'onRowAuxClick' : 'onRowClick', {
+				selectable: false,
+				isNamedSource: true,
+				namedSource: source,
+				rowRoute: '',
+				$router: {
+					push: (r) => pushed.push(r),
+					resolve: (loc) => ({ href: `/apps/x${loc.path || `/${loc.name}/${loc.params.id}`}` }),
+				},
+				$emit: (...args) => emitted.push(args),
+				...extra,
+			}, { id: 'abc' }, event)
+			return { pushed, emitted }
+		}
+
+		it('opens the source detailRoute in a new tab on a ctrl-click', () => {
+			const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
+			const { pushed, emitted } = clickRow(flows(), event)
+			expect(openSpy).toHaveBeenCalledWith('/apps/x/flows/abc', '_blank', 'noopener,noreferrer')
+			expect(pushed).toEqual([])
+			// Marked, so the host hearing row-click does not open a second tab.
+			expect(event.defaultPrevented).toBe(true)
+			expect(emitted).toEqual([['row-click', { id: 'abc' }, event]])
+		})
+
+		it('opens rowRoute in a new tab on a middle click, emitting row-aux-click', () => {
+			const event = new MouseEvent('auxclick', { button: 1, cancelable: true })
+			const { pushed, emitted } = clickRow(flows(), event, { rowRoute: 'FlowDetail' })
+			expect(openSpy).toHaveBeenCalledWith('/apps/x/FlowDetail/abc', '_blank', 'noopener,noreferrer')
+			expect(pushed).toEqual([])
+			expect(emitted).toEqual([['row-aux-click', { id: 'abc' }, event]])
+		})
+
+		it('uses the source rowTarget for a new tab, and openRow for a plain click', () => {
+			const openRow = jest.fn()
+			const source = { openRow, rowTarget: (row) => `https://example.test/tasks/${row.id}` }
+			clickRow(source, new MouseEvent('click', { metaKey: true }))
+			expect(openSpy).toHaveBeenCalledWith('https://example.test/tasks/abc', '_blank', 'noopener,noreferrer')
+			expect(openRow).not.toHaveBeenCalled()
+
+			clickRow(source, new MouseEvent('click'))
+			expect(openRow).toHaveBeenCalledWith({ id: 'abc' })
+			expect(openSpy).toHaveBeenCalledTimes(1)
+		})
+
+		it('opens the row in place on a modified click when the source can only openRow', () => {
+			const openRow = jest.fn()
+			clickRow({ openRow, detailRoute: '/flows' }, new MouseEvent('click', { ctrlKey: true }))
+			expect(openRow).toHaveBeenCalledWith({ id: 'abc' })
+			expect(openSpy).not.toHaveBeenCalled()
+		})
+
+		it('ignores a middle click when the source can only openRow', () => {
+			const openRow = jest.fn()
+			clickRow({ openRow }, new MouseEvent('auxclick', { button: 1 }))
+			expect(openRow).not.toHaveBeenCalled()
+			expect(openSpy).not.toHaveBeenCalled()
+		})
 	})
 
 	it('leaves an explicit @add listener in charge', () => {

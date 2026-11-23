@@ -12,6 +12,7 @@
  */
 
 import { mount } from '@vue/test-utils'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 const CnBannerWidget = require('../../src/components/CnBannerWidget/CnBannerWidget.vue').default
 
@@ -67,15 +68,15 @@ describe('CnBannerWidget', () => {
 		expect(mount(CnBannerWidget).find('.cn-banner-widget').exists()).toBe(false)
 	})
 
-	it('is registered in dashboardWidgetRegistry and BUILT_IN_WIDGETS', () => {
+	it('is registered in dashboardWidgetRegistry and BUILT_IN_WIDGETS', async () => {
 		require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 		const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
 		const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const entry = getWidgetTypeEntry('banner')
 		expect(entry).not.toBeNull()
-		expect(entry.renderer).toBe(CnBannerWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnBannerWidget)
 		expect(entry.form).toBeDefined()
-		expect(BUILT_IN_WIDGETS.banner).toBe(CnBannerWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.banner)).toBe(CnBannerWidget)
 	})
 
 	describe('visibleWhen', () => {
@@ -160,18 +161,31 @@ describe('CnBannerWidget', () => {
 			expect(push).toHaveBeenCalledWith({ name: 'migrations' })
 		})
 
-		it('renders an accessible button and supports a location object', async () => {
+		it('renders a real link to a location object', async () => {
 			const push = jest.fn().mockResolvedValue()
+			const resolve = jest.fn(() => ({ href: '/apps/x/detail/1' }))
 			const route = { name: 'detail', params: { id: '1' } }
 			const wrapper = mount(CnBannerWidget, {
 				propsData: { text: 'Go', route },
-				mocks: { $router: { push } },
+				mocks: { $router: { push, resolve } },
 			})
 			const el = wrapper.find('[data-testid="cn-banner-widget-text"]')
-			expect(el.attributes('role')).toBe('button')
-			expect(el.attributes('tabindex')).toBe('0')
-			await el.trigger('keydown.enter')
+			expect(el.element.tagName).toBe('A')
+			expect(el.attributes('href')).toBe('/apps/x/detail/1')
+			expect(el.attributes('role')).toBeUndefined()
+			expect(resolve).toHaveBeenCalledWith(route)
+			await el.trigger('click')
 			expect(push).toHaveBeenCalledWith(route)
+		})
+
+		it('leaves a ctrl-click to the browser', async () => {
+			const push = jest.fn().mockResolvedValue()
+			const wrapper = mount(CnBannerWidget, {
+				propsData: { text: 'Go', route: 'migrations' },
+				mocks: { $router: { push, resolve: () => ({ href: '/m' }) } },
+			})
+			await wrapper.find('[data-testid="cn-banner-widget-text"]').trigger('click', { ctrlKey: true })
+			expect(push).not.toHaveBeenCalled()
 		})
 
 		it('renders static text (no button semantics) without a route', () => {

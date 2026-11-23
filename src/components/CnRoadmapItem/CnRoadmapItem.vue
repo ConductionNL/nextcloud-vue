@@ -83,6 +83,7 @@ import ThumbUpOutline from 'vue-material-design-icons/ThumbUpOutline.vue'
 import { cnRenderMarkdown } from '../../composables/cnRenderMarkdown.js'
 import { ROADMAP_LABEL_BLOCKLIST } from '../../utils/roadmapLabelBlocklist.js'
 import { safeHref } from '../../utils/safeHref.js'
+import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnRoadmapItem',
@@ -138,7 +139,7 @@ export default {
 			if (diffSec < 2592000) {
 				return `${Math.floor(diffSec / 86400)}d`
 			}
-			return created.toLocaleDateString()
+			return created.toLocaleDateString(userLocale())
 		},
 	},
 

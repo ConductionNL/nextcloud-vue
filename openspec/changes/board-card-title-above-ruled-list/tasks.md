@@ -1,0 +1,2 @@
+- [x] look-board.css header padding-bottom 6px over a ruled list
+- [x] tests/css/lookBoardCardTitleAboveRuledList.spec.js

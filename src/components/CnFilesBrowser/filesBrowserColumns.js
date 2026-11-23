@@ -1,0 +1,397 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+import { isAppInstalled } from '../../utils/appInstalled.js'
+
+/**
+ * The built-in columns a host may name by string, and what each one reads.
+ *
+ * `nodeKey` is the property on the @nextcloud/files node. `sortKey` is what
+ * `sortNodes` understands, so a built-in sorts the way the Files app sorts;
+ * a built-in with no `sortKey` sorts client-side like a declared column.
+ *
+ * @type {object}
+ */
+export const BUILT_IN_FILE_COLUMNS = {
+	name: { key: 'name', source: 'node', nodeKey: 'basename', sortKey: 'basename', sortable: true },
+	size: { key: 'size', source: 'node', nodeKey: 'size', sortKey: 'size', sortable: true },
+	modified: { key: 'modified', source: 'node', nodeKey: 'mtime', sortKey: 'mtime', sortable: true },
+	owner: { key: 'owner', source: 'node', nodeKey: 'owner', sortable: true },
+	type: { key: 'type', source: 'node', nodeKey: 'mime', sortable: true },
+	tags: { key: 'tags', source: 'node', nodeKey: 'attributes.system-tags', sortable: false },
+}
+
+/**
+ * The columns a browser shows when its host declares none: what the table has
+ * always shown, in the order it has always shown it.
+ *
+ * @type {string[]}
+ */
+export const DEFAULT_FILE_COLUMNS = ['name', 'size', 'modified']
+
+/**
+ * Read a dotted path off a node without throwing on a missing segment.
+ *
+ * @param {object} node The node.
+ * @param {string} path A dotted path.
+ * @return {(Array|object|string|number|boolean|undefined)} The value.
+ */
+function atPath(node, path) {
+	if (!node || typeof path !== 'string' || path === '') {
+		return undefined
+	}
+	return path.split('.').reduce((acc, key) => (acc === null || acc === undefined ? undefined : acc[key]), node)
+}
+
+/**
+ * Whether a string names a built-in column.
+ *
+ * @param {string} name The candidate name.
+ * @return {boolean} True when it is a built-in.
+ */
+export function isBuiltInFileColumn(name) {
+	return typeof name === 'string' && Object.hasOwn(BUILT_IN_FILE_COLUMNS, name)
+}
+
+/**
+ * Whether the app a column leans on is enabled: one app id, or a list of which
+ * any one will do. A column without `requiredApp` always applies.
+ *
+ * @param {(string|string[]|undefined)} requiredApp The app id(s).
+ * @return {boolean} True when the column applies.
+ * @spec openspec/changes/files-column-required-app/specs/files-column-required-app/spec.md#requirement-a-file-column-can-require-another-app
+ */
+function requiredAppPresent(requiredApp) {
+	const ids = (Array.isArray(requiredApp) ? requiredApp : [requiredApp]).filter((id) => typeof id === 'string' && id !== '')
+	return ids.length === 0 || ids.some((id) => isAppInstalled(id))
+}
+
+/**
+ * Resolve a host's `columns` declaration into column objects.
+ *
+ * A string names a built-in. An object declares its own: `key`, `label`,
+ * `source` (`node`, `attribute` or `row`), `attribute`, `formatter` and
+ * `sortable`, `hidden` (`true`, or `{ not: <flag> }`: hidden unless the
+ * resolved flag is true), and `requiredApp` (an app id, or a list of which any one will
+ * do; without it the column is left out). An entry naming an unknown built-in is dropped here and refused
+ * by the manifest validator, so an author hears about it at authoring time
+ * rather than finding a column missing at runtime.
+ *
+ * @param {(Array|null|undefined)} columns The declaration, or nothing.
+ * @return {Array<object>} The resolved columns, in the declared order.
+ */
+export function normaliseFileColumns(columns) {
+	const declared = Array.isArray(columns) && columns.length > 0 ? columns : DEFAULT_FILE_COLUMNS
+	const out = []
+	declared.forEach((entry) => {
+		if (typeof entry === 'string') {
+			if (isBuiltInFileColumn(entry)) {
+				out.push({ ...BUILT_IN_FILE_COLUMNS[entry], builtIn: true })
+			}
+			return
+		}
+		if (!entry || typeof entry !== 'object' || typeof entry.key !== 'string' || entry.key === '') {
+			return
+		}
+		// `when`: the column applies only while it is true (a case type flag).
+		// @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-files-browser-entry-can-apply-only-when-a-condition-holds
+		if ('when' in entry && entry.when !== true) {
+			return
+		}
+		if (!requiredAppPresent(entry.requiredApp)) {
+			return
+		}
+		// `hidden: { not: <flag> }`: hidden by default unless the flag is true
+		// (Type, Richting and Auteur show on a case type that reviews documents).
+		const own = entry.hidden && typeof entry.hidden === 'object' && 'not' in entry.hidden
+			? { ...entry, hidden: entry.hidden.not !== true }
+			: entry
+		if (isBuiltInFileColumn(own.key) && own.source === undefined) {
+			out.push({ ...BUILT_IN_FILE_COLUMNS[own.key], ...own, builtIn: true })
+			return
+		}
+		out.push({
+			source: 'node',
+			sortable: false,
+			...own,
+			builtIn: false,
+		})
+	})
+	return out
+}
+
+/**
+ * The columns a browser renders: the host's declaration, narrowed by what this
+ * user chose to see.
+ *
+ * Which side wins on what:
+ *
+ * - The HOST decides MEMBERSHIP. The result is built by walking the
+ *   declaration, so a column exists only because the host declared it, in the
+ *   order the host declared it.
+ * - The USER decides VISIBILITY, and only downward. A stored preference can
+ *   hide a declared column; it can never add one. A key in the stored list
+ *   that the host no longer declares is passed over, so unticking a column
+ *   last month cannot bring it back once the host removed it, and neither can
+ *   a preference written while a different column set was declared.
+ *
+ * A stored value of `null` is a user who has never chosen, which shows
+ * every declared column but the ones the host declared `hidden: true`. An
+ * empty list is a user who hid everything, which is a choice and is honoured.
+ *
+ * @param {Array<object>} declared The resolved declared columns.
+ * @param {(string[]|null|undefined)} visibleKeys The user's stored visible keys.
+ * @return {Array<object>} The columns to render.
+ */
+export function visibleFileColumns(declared, visibleKeys) {
+	const columns = Array.isArray(declared) ? declared : []
+	if (!Array.isArray(visibleKeys)) {
+		return columns.filter((column) => column.hidden !== true)
+	}
+	const wanted = new Set(visibleKeys)
+	return columns.filter((column) => wanted.has(column.key))
+}
+
+/**
+ * The DAV properties a declaration needs in the PROPFIND, so an `attribute`
+ * column's value is there when the folder lists rather than one request later.
+ *
+ * @param {Array<object>} columns The resolved columns.
+ * @return {string[]} The property names, deduplicated, in declaration order.
+ */
+export function attributePropertiesFor(columns) {
+	const out = []
+	;(Array.isArray(columns) ? columns : []).forEach((column) => {
+		if (column && column.source === 'attribute' && typeof column.attribute === 'string' && column.attribute !== '') {
+			if (!out.includes(column.attribute)) {
+				out.push(column.attribute)
+			}
+		}
+	})
+	return out
+}
+
+/**
+ * The value one column shows for one node. A `row` column's key may be a
+ * dotted path into the host's record.
+ *
+ * @param {object} column A resolved column.
+ * @param {object} node The node.
+ * @param {object} [rowData] The host's per-file data, keyed by file id.
+ * @return {(Array|object|string|number|boolean|undefined)} The cell value.
+ */
+export function fileColumnValue(column, node, rowData = null) {
+	if (!column || !node) {
+		return undefined
+	}
+	if (column.source === 'attribute') {
+		// Read the key directly, NOT through the dotted-path reader: a DAV
+		// property name is `{http://owncloud.org/ns}av-status`, and splitting
+		// that on dots looks for a property called `org/ns}av-status` inside
+		// one called `owncloud`, which is undefined every time.
+		const attributes = node.attributes
+		return attributes && typeof attributes === 'object' ? attributes[column.attribute] : undefined
+	}
+	if (column.source === 'row') {
+		const byId = rowData && typeof rowData === 'object' ? rowData : null
+		if (!byId) {
+			return undefined
+		}
+		const entry = byId[node.fileid] ?? byId[String(node.fileid)]
+		if (!entry) {
+			return undefined
+		}
+		// A key the record holds as written wins; otherwise a dotted key reads
+		// a nested field (`scanVerdict.state`, `integrity.value`).
+		return Object.hasOwn(entry, column.key) ? entry[column.key] : atPath(entry, column.key)
+	}
+	return atPath(node, column.nodeKey || column.key)
+}
+
+/**
+ * Sort nodes on a declared column's resolved value, within the listed folder.
+ *
+ * Folders stay first, the way the Files app lists them and the way the
+ * built-in sorts already do, so switching to a declared column does not
+ * reshuffle the folders into the files.
+ *
+ * @param {Array<object>} nodes The nodes.
+ * @param {object} column The resolved column.
+ * @param {boolean} ascending Sort direction.
+ * @param {object} [rowData] The host's per-file data.
+ * @param {(node: object) => boolean} [isFolder] Whether a node is a folder.
+ * @return {Array<object>} A new, sorted array.
+ */
+export function sortNodesByColumn(nodes, column, ascending, rowData = null, isFolder = () => false) {
+	const list = Array.isArray(nodes) ? [...nodes] : []
+	if (!column) {
+		return list
+	}
+	const direction = ascending ? 1 : -1
+	return list.sort((a, b) => {
+		const folderA = isFolder(a)
+		const folderB = isFolder(b)
+		if (folderA !== folderB) {
+			return folderA ? -1 : 1
+		}
+		const left = fileColumnValue(column, a, rowData)
+		const right = fileColumnValue(column, b, rowData)
+		const leftMissing = left === undefined || left === null || left === ''
+		const rightMissing = right === undefined || right === null || right === ''
+		// A value nobody filled in sorts last in BOTH directions. Letting it
+		// ride to the top on a descending sort hides the rows that do carry
+		// one, which is the opposite of what sorting was asked for.
+		if (leftMissing !== rightMissing) {
+			return leftMissing ? 1 : -1
+		}
+		if (leftMissing && rightMissing) {
+			return 0
+		}
+		if (typeof left === 'number' && typeof right === 'number') {
+			return (left - right) * direction
+		}
+		return String(left).localeCompare(String(right)) * direction
+	})
+}
+
+/**
+ * Whether a cell value counts as filled in.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} value The value.
+ * @return {boolean} False for nothing, an empty string or an empty list.
+ */
+function isFilled(value) {
+	if (value === null || value === undefined || value === '') {
+		return false
+	}
+	return !(Array.isArray(value) && value.length === 0)
+}
+
+/**
+ * The single value a node is grouped under, as a string key: a list groups
+ * under its first entry, an object under its label, title, name or id.
+ *
+ * @param {(Array|object|string|number|boolean|null|undefined)} value The cell value.
+ * @return {(string|null)} The group key, or null when nothing is filled in.
+ */
+function groupKeyOf(value) {
+	const first = Array.isArray(value) ? value[0] : value
+	if (!isFilled(first)) {
+		return null
+	}
+	if (typeof first === 'object') {
+		const label = first.label ?? first.title ?? first.name ?? first.id
+		return isFilled(label) ? String(label) : null
+	}
+	return String(first)
+}
+
+/**
+ * The values a node carries in a column, as strings, for counting and
+ * filtering: every entry of a list, the one value otherwise.
+ *
+ * @param {object} column A resolved column.
+ * @param {object} node The node.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {string[]} The values, deduplicated.
+ */
+function facetValuesOf(column, node, rowData) {
+	const value = fileColumnValue(column, node, rowData)
+	const entries = Array.isArray(value) ? value : [value]
+	const out = []
+	entries.forEach((entry) => {
+		const key = groupKeyOf(entry)
+		if (key !== null && !out.includes(key)) {
+			out.push(key)
+		}
+	})
+	return out
+}
+
+/**
+ * Group nodes on a column's value, in the order each value is first met.
+ * Nodes with no value come last, in one group whose value is null.
+ *
+ * @param {Array<object>} nodes The nodes, already in display order.
+ * @param {object} column The resolved column.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {Array<{value: (string|null), nodes: Array<object>}>} The groups.
+ */
+export function groupNodes(nodes, column, rowData = null) {
+	const groups = []
+	const byKey = new Map()
+	const empty = { value: null, nodes: [] }
+	;(Array.isArray(nodes) ? nodes : []).forEach((node) => {
+		const key = column ? groupKeyOf(fileColumnValue(column, node, rowData)) : null
+		if (key === null) {
+			empty.nodes.push(node)
+			return
+		}
+		if (!byKey.has(key)) {
+			const group = { value: key, nodes: [] }
+			byKey.set(key, group)
+			groups.push(group)
+		}
+		byKey.get(key).nodes.push(node)
+	})
+	if (empty.nodes.length > 0) {
+		groups.push(empty)
+	}
+	return groups
+}
+
+/**
+ * The values in use in a column across the nodes, with how many nodes carry
+ * each; a list counts once per entry. Most used first, then in first-seen
+ * order.
+ *
+ * @param {Array<object>} nodes The nodes.
+ * @param {object} column The resolved column.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {Array<{value: string, count: number}>} The values and counts.
+ */
+export function facetCounts(nodes, column, rowData = null) {
+	const counts = []
+	const byValue = new Map()
+	;(Array.isArray(nodes) ? nodes : []).forEach((node) => {
+		facetValuesOf(column, node, rowData).forEach((value) => {
+			if (!byValue.has(value)) {
+				const entry = { value, count: 0 }
+				byValue.set(value, entry)
+				counts.push(entry)
+			}
+			byValue.get(value).count += 1
+		})
+	})
+	return counts
+		.map((entry, index) => ({ entry, index }))
+		.sort((a, b) => (b.entry.count - a.entry.count) || (a.index - b.index))
+		.map(({ entry }) => entry)
+}
+
+/**
+ * Whether a node passes the chosen facet values: within one facet any chosen
+ * value will do, and every facet with a choice must pass. A facet with
+ * nothing chosen does not filter.
+ *
+ * @param {object} node The node.
+ * @param {object} selections Chosen values by column key.
+ * @param {object} columnsByKey Resolved columns by key.
+ * @param {object} [rowData] The host's per-file data.
+ * @return {boolean} True when the node stays in the list.
+ */
+export function nodeMatchesFacets(node, selections, columnsByKey, rowData = null) {
+	return Object.entries(selections || {}).every(([key, chosen]) => {
+		if (!Array.isArray(chosen) || chosen.length === 0) {
+			return true
+		}
+		const column = columnsByKey && columnsByKey[key]
+		if (!column) {
+			return true
+		}
+		const values = facetValuesOf(column, node, rowData)
+		return chosen.some((value) => values.includes(value))
+	})
+}

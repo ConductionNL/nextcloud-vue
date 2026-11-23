@@ -25,6 +25,10 @@ describe('CnEmailTab', () => {
 		})
 		await flushPromises()
 		expect(wrapper.text()).toContain('No linked emails yet')
+		// "Compose in Mail" links to the NC Mail composer.
+		const compose = wrapper.findAll('.cn-email-tab__actions .stub.NcButton').at(1)
+		expect(compose.attributes('href')).toBe('/index.php/apps/mail/box/draft')
+		expect(compose.attributes('target')).toBe('_blank')
 		wrapper.unmount()
 	})
 
@@ -103,6 +107,10 @@ describe('CnEmailTab', () => {
 		// First row unread → carries the modifier class.
 		expect(rows.at(0).classes()).toContain('cn-email-tab__row--unread')
 		expect(rows.at(1).classes()).not.toContain('cn-email-tab__row--unread')
+		// Each row is a real link into the NC Mail thread.
+		expect(rows.at(0).element.tagName).toBe('A')
+		expect(rows.at(0).attributes('href')).toBe('/index.php/apps/mail/box/1/thread/100')
+		expect(rows.at(0).attributes('target')).toBe('_blank')
 		// Sender name + snippet are surfaced.
 		expect(wrapper.text()).toContain('Jane Doe')
 		expect(wrapper.text()).toContain('A short preview of the message body')
@@ -195,6 +203,18 @@ describe('CnEmailTab', () => {
 		})
 		await flushPromises()
 		expect(global.fetch).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('leaves its buttons to a host with showActions false, which opens the picker', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ results: [], total: 0 }) })
+		const wrapper = mount(CnEmailTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1', showActions: false },
+		})
+		await flushPromises()
+		expect(wrapper.find('.cn-email-tab__actions').exists()).toBe(false)
+		wrapper.vm.openPicker()
+		expect(wrapper.vm.pickerOpen).toBe(true)
 		wrapper.unmount()
 	})
 })

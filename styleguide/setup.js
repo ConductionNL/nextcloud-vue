@@ -1,7 +1,4 @@
 import { setLanguage, translate, translatePlural } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
-import { createPinia, PiniaVuePlugin } from 'pinia'
-import Vue from 'vue'
 import { registerTranslations } from '../src/index.js'
 
 import '../src/css/index.css'
@@ -27,45 +24,8 @@ window.switchLanguage = (lang) => {
 }
 
 // --- Component globals ------------------------------------------------------
-
-// NcButton is used in almost every component example to trigger dialogs or
-// demonstrate interactions. Register it globally to avoid per-example imports.
-Vue.component('NcButton', NcButton)
-
-// @nextcloud/vue components access $route/$router internally. Stub them so
-// components that call this.$route.query etc. don't crash in the styleguide.
-Vue.prototype.$route = { query: {}, params: {}, path: '/', name: null, hash: '', matched: [], fullPath: '/', meta: {} }
-Vue.prototype.$router = {
-	currentRoute: { query: {}, params: {}, path: '/', name: null, hash: '', matched: [], fullPath: '/', meta: {} },
-	push: () => Promise.resolve(),
-	replace: () => Promise.resolve(),
-	go: () => {},
-	back: () => {},
-	forward: () => {},
-	resolve: () => ({ href: '/' }),
-}
-
-// Register a no-op v-tooltip directive stub so @nextcloud/vue components that
-// use v-tooltip internally don't log "Failed to resolve directive: tooltip".
-Vue.directive('tooltip', { bind() {}, update() {}, unbind() {} })
-
-// Register a no-op <router-link> stub so examples using the `route` prop
-// (which renders as <router-link>) don't crash with "Unknown custom element".
-Vue.component('RouterLink', {
-	functional: true,
-	props: { to: [String, Object] },
-	render(h, ctx) {
-		return h('a', { attrs: { href: '#' } }, ctx.children)
-	},
-})
-Vue.component('router-link', {
-	functional: true,
-	props: { to: [String, Object] },
-	render(h, ctx) {
-		return h('a', { attrs: { href: '#' } }, ctx.children)
-	},
-})
-
-// Pinia is required by store-backed components (CnObjectDataWidget, CnIndexPage, etc.)
-Vue.use(PiniaVuePlugin)
-window.__pinia = createPinia()
+//
+// Global components, directives, `$route`/`$router` and the pinia install used
+// to live here. Vue 3 scopes all of them to an app instance rather than to a
+// global constructor, and vue-styleguidist builds one app per example, so they
+// moved to enhance-app.js, which styleguidist calls with each preview app.

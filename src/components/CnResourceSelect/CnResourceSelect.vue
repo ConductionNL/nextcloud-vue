@@ -3,7 +3,14 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
+	<NcNoteCard
+		v-if="scopeFailed"
+		type="warning"
+		data-testid="cn-resource-select-failed">
+		{{ failedText || t('nextcloud-vue', 'The choices could not be read.') }}
+	</NcNoteCard>
 	<NcSelect
+		v-else
 		:inputId="inputId"
 		:inputLabel="inputLabel"
 		:modelValue="selectedOption"
@@ -12,7 +19,9 @@
 		:clearable="clearable"
 		:disabled="disabled"
 		:placeholder="placeholder"
-		:filterable="false"
+		:filterable="isScoped"
+		:multiple="multiple"
+		:keepOpen="multiple"
 		label="label"
 		@search="onSearch"
 		@update:modelValue="onInput">
@@ -27,8 +36,10 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcSelect } from '@nextcloud/vue'
+import { generateUrl } from '@nextcloud/router'
+import { NcNoteCard, NcSelect } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import { useObjectStore } from '../../store/index.js'
 
@@ -63,6 +74,15 @@ import { useObjectStore } from '../../store/index.js'
  *    worth collecting in a full dialog) the consumer owns the create and
  *    resolves the finished object back.
  *
+ * `scope` offers a vocabulary scoped to an owner plus the rows every owner
+ * shares: `{ field, value, includeUnscoped, dedupeOn }` reads the whole list
+ * once (up to 200 rows), puts the rows whose `field` equals `value` first,
+ * then (with `includeUnscoped`) the rows that name no owner, dropping an
+ * unscoped row whose `dedupeOn` key an owned row already claims. An empty
+ * `value` offers every row. The list is searched in place, nothing is
+ * created, and a list that could not be read says so (`failedText`) instead
+ * of drawing an empty picker, which would read as "there are none".
+ *
  * Example:
  * ```vue
  * <CnResourceSelect
@@ -78,7 +98,7 @@ import { useObjectStore } from '../../store/index.js'
 export default {
 	name: 'CnResourceSelect',
 
-	components: { NcSelect, Plus },
+	components: { NcNoteCard, NcSelect, Plus },
 
 	props: {
 		/** OpenRegister register slug to search/create in. */
@@ -93,10 +113,19 @@ export default {
 			required: true,
 		},
 
-		/** Currently-selected object id (v-model). */
+		/** Currently-selected object id (v-model), or an array of ids when `multiple`. */
 		modelValue: {
-			type: [String, Number],
+			type: [String, Number, Array],
 			default: '',
+		},
+
+		/**
+		 * Pick several objects. `modelValue` is then an array of ids, and a
+		 * create adds the new object to the selection.
+		 */
+		multiple: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Object field used as the option label AND written on create. */
@@ -166,6 +195,29 @@ export default {
 		},
 
 		/**
+		 * Field values the candidates must match (`{ lifecycle: 'active' }`),
+		 * merged into the list query like `filters`. Use it for a fixed
+		 * narrowing; `filters` is for a scope that follows another field.
+		 *
+		 * @type {object}
+		 */
+		filter: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Ids to leave out of the options, for example the record a transition
+		 * runs on when it must not be picked as its own target.
+		 *
+		 * @type {Array<string>}
+		 */
+		exclude: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Load a first page of options on mount (and whenever `filters`
 		 * change) instead of waiting for `minChars` of typing. Lets the field
 		 * be BROWSED like a plain select while still searching server-side once
@@ -207,6 +259,23 @@ export default {
 			type: Function,
 			default: null,
 		},
+
+		/**
+		 * Scope the options to one owner plus the shared rows:
+		 * `{ field, value, includeUnscoped?, dedupeOn? }` (see above).
+		 *
+		 * @type {{field: string, value: string, includeUnscoped: boolean, dedupeOn: string}|null}
+		 */
+		scope: {
+			type: Object,
+			default: null,
+		},
+
+		/** With `scope`: the sentence shown when the list could not be read. */
+		failedText: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: ['update:modelValue', 'create'],
@@ -219,6 +288,11 @@ export default {
 			// The selected option object kept locally so the label shows even
 			// before/without a matching search result (e.g. a pre-set modelValue).
 			localSelected: null,
+			// Options seen so far, keyed by value, so a multiple selection
+			// keeps its labels when the search results move on.
+			known: {},
+			// Scope mode: whether reading the vocabulary failed.
+			scopeFailed: false,
 		}
 	},
 
@@ -232,6 +306,29 @@ export default {
 			}
 		},
 
+		/**
+		 * The selected ids as strings (multiple mode).
+		 *
+		 * @return {string[]}
+		 */
+		selectedIds() {
+			const value = this.modelValue
+			if (Array.isArray(value)) {
+				return value.filter((v) => v !== null && v !== undefined && v !== '').map((v) => String(v))
+			}
+			return value ? [String(value)] : []
+		},
+
+		/** @return {boolean} Whether the options come from a `scope`. */
+		isScoped() {
+			return !!(this.scope && this.scope.field)
+		},
+
+		/** @return {string} A stable identity of the scope. */
+		scopeKey() {
+			return this.isScoped ? JSON.stringify(this.scope) : ''
+		},
+
 		/** The `${register}-${schema}` object-type slug used by the store. */
 		typeSlug() {
 			return `${this.register}-${this.schema}`
@@ -239,6 +336,11 @@ export default {
 
 		/** The currently-selected option, for NcSelect's model-value. */
 		selectedOption() {
+			if (this.multiple) {
+				return this.selectedIds.map((id) => this.known[id]
+					|| this.options.find((o) => o.value === id)
+					|| { value: id, label: id })
+			}
 			if (this.localSelected && this.localSelected.value === this.modelValue) {
 				return this.localSelected
 			}
@@ -253,7 +355,11 @@ export default {
 		 * @return {Array<object>}
 		 */
 		displayOptions() {
-			const opts = [...this.options]
+			if (this.isScoped) {
+				return this.options
+			}
+			const skip = new Set((this.exclude || []).map(String))
+			const opts = this.options.filter((o) => !skip.has(String(o.value)))
 			const term = this.search.trim()
 			if (this.allowCreate && term.length >= this.minChars) {
 				const exact = opts.some((o) => (o.label || '').toLowerCase() === term.toLowerCase())
@@ -273,7 +379,7 @@ export default {
 		 * @return {string}
 		 */
 		filtersKey() {
-			return JSON.stringify(this.filters || {})
+			return JSON.stringify({ ...(this.filters || {}), ...(this.filter || {}) })
 		},
 
 		/**
@@ -286,7 +392,7 @@ export default {
 		 */
 		activeFilters() {
 			const out = {}
-			for (const [key, value] of Object.entries(this.filters || {})) {
+			for (const [key, value] of Object.entries({ ...(this.filters || {}), ...(this.filter || {}) })) {
 				if (value !== null && value !== undefined && value !== '') {
 					out[key] = value
 				}
@@ -303,6 +409,12 @@ export default {
 			},
 		},
 
+		scopeKey(next, prev) {
+			if (next !== prev && next !== '') {
+				this.loadScopedOptions()
+			}
+		},
+
 		filtersKey(next, prev) {
 			if (next === prev) {
 				return
@@ -310,9 +422,9 @@ export default {
 			// The scope moved, so anything already selected may no longer be
 			// in it. Drop the stale options + selection, then re-seed.
 			this.options = []
-			if (this.modelValue) {
+			if (this.selectedIds.length > 0) {
 				this.localSelected = null
-				this.$emit('update:modelValue', '')
+				this.$emit('update:modelValue', this.multiple ? [] : '')
 			}
 			if (this.search.trim().length >= this.minChars) {
 				this.onSearch(this.search)
@@ -323,10 +435,76 @@ export default {
 	},
 
 	created() {
+		if (this.isScoped) {
+			this.loadScopedOptions()
+			return
+		}
 		this.loadInitialOptions()
 	},
 
 	methods: {
+		t,
+
+		/**
+		 * Scope mode: read every row once and order them, owned first.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadScopedOptions() {
+			this.loading = true
+			this.scopeFailed = false
+			try {
+				const url = generateUrl(`/apps/openregister/api/objects/${encodeURIComponent(this.register)}/${encodeURIComponent(this.schema)}`)
+				const { data } = await axios.get(url, { params: { ...this.activeFilters, _limit: 200 } })
+				const rows = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : null)
+				if (rows === null) {
+					throw new Error('Not a list')
+				}
+				this.options = this.remember(this.scopedOptions(rows))
+			} catch {
+				this.options = []
+				this.scopeFailed = true
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * The owner a row is scoped to, '' when it names none.
+		 *
+		 * @param {object} row A row.
+		 * @return {string} The owner id.
+		 */
+		ownerOf(row) {
+			const value = row ? row[this.scope.field] : null
+			if (value && typeof value === 'object') {
+				return String(value.id || (value['@self'] && value['@self'].id) || '')
+			}
+			return String(value || '').trim()
+		},
+
+		/**
+		 * The rows offered under the scope, in order: the owner's own rows,
+		 * then the unscoped ones whose `dedupeOn` key no own row claims.
+		 *
+		 * @param {Array<object>} rows Every row read.
+		 * @return {Array<object>} The options.
+		 */
+		scopedOptions(rows) {
+			const all = rows.filter((row) => row && this.toOption(row).value !== '')
+			const wanted = String(this.scope.value || '').trim()
+			if (wanted === '' || wanted.startsWith('@')) {
+				return all.map((row) => this.toOption(row))
+			}
+			const own = all.filter((row) => this.ownerOf(row) === wanted)
+			const key = this.scope.dedupeOn
+			const claimed = new Set(key ? own.map((row) => String(row[key] || '').trim()).filter(Boolean) : [])
+			const shared = this.scope.includeUnscoped
+				? all.filter((row) => this.ownerOf(row) === '' && !(key && claimed.has(String(row[key] || '').trim())))
+				: []
+			return [...own, ...shared].map((row) => this.toOption(row))
+		},
+
 		/**
 		 * Seed the dropdown with a first page of options so the field can be
 		 * browsed without typing. No-op unless `preload` is set.
@@ -340,14 +518,14 @@ export default {
 			this.loading = true
 			try {
 				this.ensureRegistered()
-				const collection = await this.objectStore.fetchCollection(this.typeSlug, {
+				const collection = await this.objectStore.fetchCollectionForOptions(this.typeSlug, {
 					...this.activeFilters,
 					_limit: 20,
 				})
 				const items = Array.isArray(collection)
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
-				this.options = items.map((o) => this.toOption(o))
+				this.options = this.remember(items.map((o) => this.toOption(o)))
 			} catch {
 				this.options = []
 			} finally {
@@ -374,6 +552,9 @@ export default {
 		 */
 		async onSearch(term) {
 			this.search = term || ''
+			if (this.isScoped) {
+				return
+			}
 			if (!this.objectStore || this.search.trim().length < this.minChars) {
 				// Below the search threshold: fall back to the browsable first
 				// page when preloading, rather than blanking the list.
@@ -384,7 +565,7 @@ export default {
 			this.loading = true
 			try {
 				this.ensureRegistered()
-				const collection = await this.objectStore.fetchCollection(this.typeSlug, {
+				const collection = await this.objectStore.fetchCollectionForOptions(this.typeSlug, {
 					...this.activeFilters,
 					_search: this.search.trim(),
 					_limit: 20,
@@ -392,7 +573,7 @@ export default {
 				const items = Array.isArray(collection)
 					? collection
 					: (this.objectStore.collections[this.typeSlug] || [])
-				this.options = items.map((o) => this.toOption(o))
+				this.options = this.remember(items.map((o) => this.toOption(o)))
 			} catch {
 				this.options = []
 			} finally {
@@ -408,6 +589,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onInput(option) {
+			if (this.multiple) {
+				await this.onMultipleInput(Array.isArray(option) ? option : (option ? [option] : []))
+				return
+			}
 			if (!option) {
 				this.localSelected = null
 				/**
@@ -426,18 +611,57 @@ export default {
 		},
 
 		/**
+		 * Handle a change of a multiple selection. A synthetic create option
+		 * creates the object and adds it; the rest emit their ids.
+		 *
+		 * @param {Array<object>} chosen The selected options.
+		 * @return {Promise<void>}
+		 */
+		async onMultipleInput(chosen) {
+			const createOption = chosen.find((o) => o && o.__create)
+			const ids = chosen.filter((o) => o && !o.__create).map((o) => String(o.value))
+			this.remember(chosen.filter((o) => o && !o.__create))
+			if (!createOption) {
+				this.$emit('update:modelValue', ids)
+				return
+			}
+			const created = await this.createFromTerm(createOption.label, ids)
+			if (!created) {
+				this.$emit('update:modelValue', ids)
+			}
+		},
+
+		/**
+		 * Cache options by value so their labels survive a new search.
+		 *
+		 * @param {Array<object>} options Options to remember.
+		 * @return {Array<object>} The same options.
+		 */
+		remember(options) {
+			const next = { ...this.known }
+			for (const o of options) {
+				if (o && o.value) {
+					next[o.value] = o
+				}
+			}
+			this.known = next
+			return options
+		},
+
+		/**
 		 * Create a new object from the typed term and select it.
 		 *
 		 * @param {string} term The term to write to `labelField`.
-		 * @return {Promise<void>}
+		 * @param {string[]} [keep] Multiple mode: the ids already selected, which the new id joins.
+		 * @return {Promise<object|null>} The created object, or null.
 		 */
-		async createFromTerm(term) {
+		async createFromTerm(term, keep = []) {
 			if (!this.objectStore && !this.createHandler) {
-				return
+				return null
 			}
 			const name = (term || '').trim()
 			if (!name) {
-				return
+				return null
 			}
 			this.loading = true
 			try {
@@ -456,20 +680,26 @@ export default {
 					created = await this.objectStore.saveObject(this.typeSlug, payload)
 				}
 				if (!created) {
-					return
+					return null
 				}
 				const option = this.toOption(created)
+				this.remember([option])
 				this.options = [option, ...this.options.filter((o) => o.value !== option.value)]
 				this.localSelected = option
-				this.$emit('update:modelValue', option.value)
+				this.search = ''
+				this.$emit('update:modelValue', this.multiple
+					? [...keep.filter((id) => id !== option.value), option.value]
+					: option.value)
 				/**
 				 * @event create A new object was created from the search term.
 				 * @type {object} The created OpenRegister object.
 				 */
 				this.$emit('create', created)
+				return created
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnResourceSelect] create failed', e)
+				return null
 			} finally {
 				this.loading = false
 			}
@@ -508,7 +738,11 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async ensureSelectedLoaded() {
-			if (!this.modelValue || this.selectedOption || !this.objectStore) {
+			if (this.multiple) {
+				await this.ensureManyLoaded()
+				return
+			}
+			if (!this.modelValue || this.selectedOption || !this.objectStore || this.isScoped) {
 				return
 			}
 			try {
@@ -522,6 +756,32 @@ export default {
 				}
 			} catch {
 				// Leave the id un-labelled rather than crash.
+			}
+		},
+
+		/**
+		 * Multiple mode: fetch each selected id whose label is not known yet.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async ensureManyLoaded() {
+			if (!this.objectStore || typeof this.objectStore.fetchObject !== 'function') {
+				return
+			}
+			const missing = this.selectedIds.filter((id) => !this.known[id] && !this.options.some((o) => o.value === id))
+			if (missing.length === 0) {
+				return
+			}
+			this.ensureRegistered()
+			for (const id of missing) {
+				try {
+					const obj = await this.objectStore.fetchObject(this.typeSlug, id)
+					if (obj) {
+						this.remember([this.toOption(obj)])
+					}
+				} catch {
+					// Leave the id un-labelled rather than crash.
+				}
 			}
 		},
 	},

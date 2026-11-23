@@ -6,7 +6,7 @@
  * shape, generalised in Wave 3 of nextcloud-vue#91 for manifest actions).
  *
  * A `visibleWhen` condition is
- * `{ appInstalled?, endpoint?, source?, field?, op?, value }`.
+ * `{ appInstalled?, readerGroups?, endpoint?, source?, field?, op?, value }`.
  *
  * `appInstalled` is a precondition rather than a mode: it names the Nextcloud
  * app that backs the guarded element, and it is checked before anything else.
@@ -15,10 +15,15 @@
  * this word and `visibleWhen` did not, so the same manifest vocabulary meant
  * two different things in two places.
  *
+ * `readerGroups` is a precondition the same way: the reader must be in at least
+ * one listed Nextcloud group. It hides a control and never replaces the check
+ * of the endpoint behind it. Until the groups are known it reads false.
+ *
  * The value itself comes from one of THREE evaluation modes (first match wins):
  *
  *  1. `endpoint` — GET a same-origin JSON endpoint; `field` is a dot-path
- *     into the response body.
+ *     into the response body. `@objectId` and `@object.<field>` in the
+ *     endpoint resolve against the caller's record.
  *  2. `source` — `{ register, schema, filter? }`, an OpenRegister object
  *     query (`filter` supports the shared @-token grammar). `field` is a
  *     dot-path into the FIRST result; omit it — or use `@total` — to
@@ -29,7 +34,9 @@
  *     on the current record's state (`{ field: "lifecycleState", op: "eq",
  *     value: "approved" }`).
  *
- * `op` is `eq | neq | gt | gte | lt | lte` (default `eq`); `value` is the
+ * `op` is `eq | neq | gt | gte | lt | lte | empty | notEmpty | in | anyOf |
+ * contains` (default `eq`); `anyOf` matches a list value that shares an entry
+ * with the listed `value`, `contains` a list value that holds `value`. `value` is the
  * literal right-hand side. Evaluation is FAIL-SAFE: any fetch / shape error
  * resolves `false` (hidden) — a broken predicate never breaks a page.
  *
@@ -45,11 +52,14 @@
  */
 
 import { isAppInstalled } from './appInstalled.js'
+import { featureEnabled } from './featureFlags.js'
 import { buildHeaders, buildQueryString, prefixUrl } from './headers.js'
-import { resolveFilterTokens } from './resolveFilterTokens.js'
+import { interpolateUrlTokens } from './interpolateUrlTokens.js'
+import { resolveFilterTokens, resolveFilterValue } from './resolveFilterTokens.js'
+import { loadCurrentUserGroups, peekCurrentUserGroups } from './userGroupsPeek.js'
 
 /** Supported visibleWhen comparison operators. */
-export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
+export const VISIBLE_WHEN_OPS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty', 'in', 'anyOf', 'contains']
 
 /**
  * Read a dot-path off an object (`'a.b.c'`); the object itself when no
@@ -67,6 +77,17 @@ export function readVisibleWhenPath(data, field) {
 }
 
 /**
+ * Whether a value is a date string: not a number, and a moment `Date.parse`
+ * can read.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean}
+ */
+function isDateLike(value) {
+	return typeof value === 'string' && value.trim() !== '' && !Number.isFinite(Number(value)) && Number.isFinite(Date.parse(value))
+}
+
+/**
  * Apply a visibleWhen comparison operator. Ordering operators coerce both
  * sides to Number; equality compares loosely-normalized primitives
  * (`String(a) === String(b)` when types differ) so `"3" eq 3` holds for
@@ -75,16 +96,59 @@ export function readVisibleWhenPath(data, field) {
  * @param {unknown} actual The resolved left-hand value.
  * @param {string} op The operator (`eq` when unknown).
  * @param {unknown} expected The declared right-hand value.
+ * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] Token-resolution
+ *   context for the right-hand side, so `@object.<field>` and `@workspace.<key>` resolve
+ *   as well as `@me`. Omitted, only the context-free tokens resolve.
  * @return {boolean} Whether the comparison holds.
  */
-export function compareVisibleWhen(actual, op, expected) {
+export function compareVisibleWhen(actual, op, expected, ctx) {
 	const operator = VISIBLE_WHEN_OPS.includes(op) ? op : 'eq'
+	// `empty` takes no `value`. It is the one question eq cannot ask: an unset
+	// field arrives as undefined, null or '' depending on the store and the
+	// serialiser, and `String(null)` is the word "null" rather than blank.
+	if (operator === 'empty' || operator === 'notEmpty') {
+		const blank = actual === undefined || actual === null || actual === ''
+			|| (Array.isArray(actual) === true && actual.length === 0)
+		return operator === 'empty' ? blank : !blank
+	}
+	// The shared @-token grammar, so a condition can name the READER (`@me`)
+	// rather than a literal only the server knows.
+	const right = resolveFilterValue(expected, ctx || {})
+	// `in` holds when the left-hand value is one of the listed values
+	// (screens-page-lenses: a widget shown under several chips).
+	if (operator === 'in') {
+		const list = Array.isArray(right) ? right : [right]
+		return list.some((entry) => entry === actual || String(entry) === String(actual))
+	}
+	// `anyOf` holds when the value, or any entry of a list value, is one of
+	// the listed values: a record whose `dataCategories` holds "health" among
+	// others matches `anyOf ["health", "ethnicity"]` (DqSociaalDomein).
+	// `contains` holds when the value is a list holding the given value: a
+	// case type whose `overviewCards` list names a card switches it on.
+	if (operator === 'contains') {
+		if (!Array.isArray(actual) || right === undefined || right === null) {
+			return false
+		}
+		return actual.some((entry) => entry === right || String(entry) === String(right))
+	}
+	if (operator === 'anyOf') {
+		const list = Array.isArray(right) ? right : [right]
+		const values = Array.isArray(actual) ? actual : [actual]
+		return values.some((value) => value !== undefined && value !== null
+			&& list.some((entry) => entry === value || String(entry) === String(value)))
+	}
 	if (operator === 'eq' || operator === 'neq') {
-		const equal = actual === expected || String(actual) === String(expected)
+		const equal = actual === right || String(actual) === String(right)
 		return operator === 'eq' ? equal : !equal
 	}
-	const a = Number(actual)
-	const b = Number(expected)
+	let a = Number(actual)
+	let b = Number(right)
+	// Two dates (`dueAt` against `@today`) compare as moments; a value that
+	// is a number on either side never reads as a date.
+	if ((!Number.isFinite(a) || !Number.isFinite(b)) && isDateLike(actual) && isDateLike(right)) {
+		a = Date.parse(actual)
+		b = Date.parse(right)
+	}
 	if (!Number.isFinite(a) || !Number.isFinite(b)) {
 		return false
 	}
@@ -101,45 +165,239 @@ export function compareVisibleWhen(actual, op, expected) {
 }
 
 /**
+ * Whether the reader is in at least one of the listed groups. Unknown groups
+ * (`null`, still loading) and an empty list both read false.
+ *
+ * @param {string[]} listed The condition's `readerGroups`.
+ * @param {string[]|null} groups The reader's group ids, or null while loading.
+ * @return {boolean} Whether one listed group is the reader's.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
+ */
+export function readerInGroups(listed, groups) {
+	return Array.isArray(groups) && listed.some((id) => typeof id === 'string' && groups.includes(id))
+}
+
+/**
+ * Whether a `readerGroups` condition has nothing else to decide: no mode and
+ * no other precondition next to it.
+ *
+ * @param {object} cond The visibleWhen condition.
+ * @return {boolean} True when `readerGroups` is the whole condition.
+ */
+function isReaderGroupsOnly(cond) {
+	return !cond.field && !cond.endpoint && !cond.source && !cond.workspace && !cond.appInstalled
+}
+
+/**
+ * Whether a condition reads the page workspace context (`workspace: "<key>"`).
+ * Such a condition is answered synchronously from the reactive bag, so a
+ * widget appears and disappears the moment a page control writes its key
+ * (screens-page-lenses). A condition that also names an endpoint or a source
+ * is not a workspace condition.
+ *
+ * @param {object|null} cond The visibleWhen condition.
+ * @return {boolean} True for a workspace-mode condition.
+ * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-widget-can-be-shown-by-a-workspace-value
+ */
+export function isWorkspaceCondition(cond) {
+	return Boolean(cond) && typeof cond === 'object' && typeof cond.workspace === 'string' && cond.workspace !== ''
+		&& !cond.endpoint && !cond.source
+}
+
+/**
+ * Evaluate a workspace-mode condition against the workspace bag. No fetch.
+ * A key nobody wrote is unset, so only `empty` and `neq` hold for it.
+ *
+ * @param {{workspace: string, op?: string, value?: unknown}} cond The condition.
+ * @param {object} [workspace] The plain workspace bag.
+ * @return {boolean} Whether the guarded element shows.
+ * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-widget-can-be-shown-by-a-workspace-value
+ */
+export function evaluateWorkspaceCondition(cond, workspace) {
+	const bag = workspace && typeof workspace === 'object' ? workspace : {}
+	return compareVisibleWhen(bag[cond.workspace], cond.op || 'eq', cond.value, { workspace: bag })
+}
+
+/**
  * Resolve the condition's left-hand value from its endpoint / OpenRegister
  * source / local object context (see the module docblock for the three
  * modes). Throws on unusable conditions and failed fetches — callers that
  * want the fail-safe boolean use {@link evaluateVisibleWhen}.
  *
- * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object}, field?: string}} cond The visibleWhen condition.
+ * An `endpoint` may name the page's record (`@objectId`, `@object.<field>`),
+ * and its whole answer is the row a `sink` receives. A `source` may carry `order` (`{ field: "asc" | "desc" }`), so "the first
+ * row" is the first of an ordered query, and `extend` (OpenRegister
+ * `_extend[]` names) to inline the row's related objects. A caller that wants that row, not
+ * just the value, passes `sink`: the first result is written to `sink.row`.
+ *
+ * @param {{endpoint?: string, source?: {register: string, schema: string, filter?: object, order?: object}, field?: string}} cond The visibleWhen condition.
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
+ * @param {{row?: object}} [sink] Receives the first result of a `source` query as `row`.
  * @return {Promise<unknown>} The value `field` points at.
+ * @spec openspec/changes/screens-start-here-banner/specs/start-here-banner/spec.md#requirement-a-banner-can-name-the-first-row-of-a-query
  */
-export async function readVisibleWhenValue(cond, ctx) {
+export async function readVisibleWhenValue(cond, ctx, sink) {
 	if (cond.endpoint) {
-		const response = await fetch(prefixUrl(cond.endpoint), { headers: buildHeaders() })
+		// `@objectId` / `@object.<field>` name the record the condition sits on;
+		// without that record there is nothing to ask about.
+		if (/@object(Id|\.)/.test(cond.endpoint) && (ctx?.objectId === undefined || ctx?.objectId === null || ctx?.objectId === '')) {
+			throw new Error('endpoint names the record, and there is none')
+		}
+		const response = await fetch(prefixUrl(interpolateUrlTokens(cond.endpoint, ctx)), { headers: buildHeaders() })
 		if (!response.ok) {
 			throw new Error(`endpoint returned ${response.status}`)
 		}
 		const data = await response.json()
+		if (sink && typeof sink === 'object') {
+			sink.row = data && typeof data === 'object' && !Array.isArray(data) ? data : undefined
+		}
 		return readVisibleWhenPath(data, cond.field)
 	}
 	const src = cond.source
 	if (src && src.register && src.schema) {
 		const filter = resolveFilterTokens(src.filter || {}, ctx)
-		const qs = buildQueryString({ ...filter, _limit: 1 })
+		const order = {}
+		for (const [field, dir] of Object.entries(src.order && typeof src.order === 'object' ? src.order : {})) {
+			order[`_order[${field}]`] = dir === 'desc' ? 'desc' : 'asc'
+		}
+		// `extend` inlines related objects on the row (`_extend[]`), so the
+		// subject can name its type rather than its type's id.
+		const extend = Array.isArray(src.extend) ? { _extend: src.extend.filter((name) => typeof name === 'string' && name !== '') } : {}
+		const qs = buildQueryString({ ...filter, ...order, ...extend, _limit: 1 })
 		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
 		const response = await fetch(url, { headers: buildHeaders() })
 		if (!response.ok) {
 			throw new Error(`source returned ${response.status}`)
 		}
 		const data = await response.json()
+		const first = Array.isArray(data.results) ? data.results[0] : data
+		if (sink && typeof sink === 'object') {
+			sink.row = first && typeof first === 'object' ? first : undefined
+		}
 		if (!cond.field || cond.field === '@total') {
 			return data.total ?? (Array.isArray(data.results) ? data.results.length : 0)
 		}
-		const first = Array.isArray(data.results) ? data.results[0] : data
 		return readVisibleWhenPath(first, cond.field)
+	}
+	// `@context.<name>.<path>` reads the records the page's conditions name
+	// (a detail page's case type), which the object context carries apart
+	// from the record.
+	if (cond.field && String(cond.field).startsWith('@context.') && ctx && ctx.context && typeof ctx.context === 'object') {
+		return readVisibleWhenPath({ '@context': ctx.context }, cond.field)
 	}
 	// Local mode (Wave 3): evaluate against the caller's object context.
 	if (cond.field && ctx && ctx.object && typeof ctx.object === 'object') {
 		return readVisibleWhenPath(ctx.object, cond.field)
 	}
 	throw new Error('visibleWhen needs an endpoint, a source, or a field on the object context')
+}
+
+/**
+ * Whether a condition composes others through `all` or `any`.
+ *
+ * @param {object} cond The condition.
+ * @return {boolean} True for a composition.
+ * @spec exclude helper of evaluateWidgetConditions, no behaviour of its own
+ */
+export function isComposition(cond) {
+	return Array.isArray(cond.all) === true || Array.isArray(cond.any) === true
+}
+
+/**
+ * The parts of a composition. Reads the key that IS an array: a malformed
+ * `{ all: {}, any: [] }` is a composition on `any`, and `cond.all ?? cond.any`
+ * would hand the object to `.map`.
+ *
+ * @param {object} cond The composition.
+ * @return {Array<object>} Its parts.
+ */
+function compositionParts(cond) {
+	return Array.isArray(cond.all) === true ? cond.all : cond.any
+}
+
+/**
+ * Whether a composition's results add up to true.
+ *
+ * @param {object} cond The composition.
+ * @param {Array<boolean>} results One result per part.
+ * @return {boolean} Every result for `all`, some result for `any`.
+ */
+function compositionHolds(cond, results) {
+	return Array.isArray(cond.all) === true ? results.every(Boolean) : results.some(Boolean)
+}
+
+/**
+ * Evaluate a composition; a malformed one hides the element.
+ *
+ * @param {object} cond The composition.
+ * @param {object} [ctx] The caller's context.
+ * @return {Promise<boolean>} Whether it holds.
+ */
+async function evaluateComposition(cond, ctx) {
+	try {
+		return compositionHolds(cond, await Promise.all(compositionParts(cond).map((part) => evaluateVisibleWhen(part, ctx))))
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Evaluate a composition synchronously. A malformed one hides the one element,
+ * rather than throwing out of the computed that calls it and taking the render
+ * with it.
+ *
+ * @param {object} cond The composition.
+ * @param {object} data The live data object.
+ * @return {boolean} Whether it holds.
+ */
+function evaluateCompositionLocal(cond, data) {
+	try {
+		return compositionHolds(cond, compositionParts(cond).map((part) => evaluateVisibleWhenLocal(part, data)))
+	} catch {
+		return false
+	}
+}
+
+/**
+ * The `readerGroups` precondition: false when the reader is in none of the
+ * groups, true when the groups are the whole condition, null when the rest of
+ * the condition decides.
+ *
+ * @param {object} cond The condition.
+ * @param {string[]|null} groups The reader's groups, null without `readerGroups`.
+ * @return {boolean|null} The verdict, null for none.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
+ */
+function readerGroupsVerdict(cond, groups) {
+	if (Array.isArray(cond.readerGroups) !== true) {
+		return null
+	}
+	if (!readerInGroups(cond.readerGroups, groups)) {
+		return false
+	}
+	return isReaderGroupsOnly(cond) ? true : null
+}
+
+/**
+ * The `feature` precondition: false while the named feature toggle is off.
+ *
+ * @param {object} cond The condition.
+ * @return {boolean}
+ * @spec openspec/changes/feature-toggles/specs/feature-toggles/spec.md#requirement-a-page-widget-or-action-can-follow-a-feature-toggle
+ */
+function featureVerdict(cond) {
+	return !(typeof cond.feature === 'string' && cond.feature !== '' && !featureEnabled(cond.feature))
+}
+
+/**
+ * Whether `feature` is the whole condition (no other mode or precondition).
+ *
+ * @param {object} cond The condition.
+ * @return {boolean}
+ */
+function isFeatureOnly(cond) {
+	return typeof cond.feature === 'string' && cond.feature !== ''
+		&& !cond.field && !cond.endpoint && !cond.source && !cond.appInstalled && !Array.isArray(cond.readerGroups) && !cond.workspace
 }
 
 /**
@@ -151,10 +409,30 @@ export async function readVisibleWhenValue(cond, ctx) {
  * @param {{endpoint?: string, source?: object, field?: string, op?: string, value?: unknown}|null} cond The condition (or null).
  * @param {{objectId?: (string|number), object?: object, workspace?: object, config?: object}} [ctx] The caller's token / object context.
  * @return {Promise<boolean>} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export async function evaluateVisibleWhen(cond, ctx) {
 	if (!cond) {
 		return true
+	}
+	// `all` / `any` compose conditions, so a gate can be more than one fact.
+	// Without it a claim button could say "not closed" OR "nobody holds it",
+	// never both, and the weaker of the two is the one that ships.
+	if (isComposition(cond)) {
+		return evaluateComposition(cond, ctx)
+	}
+	if (!featureVerdict(cond)) {
+		return false
+	}
+	if (isFeatureOnly(cond)) {
+		return true
+	}
+	const groupsVerdict = readerGroupsVerdict(cond, Array.isArray(cond.readerGroups) === true ? await loadCurrentUserGroups() : null)
+	if (groupsVerdict !== null) {
+		return groupsVerdict
+	}
+	if (isWorkspaceCondition(cond)) {
+		return evaluateWorkspaceCondition(cond, ctx && ctx.workspace)
 	}
 	try {
 		// `appInstalled` is checked FIRST and on its own: it answers "is the app
@@ -176,8 +454,12 @@ export async function evaluateVisibleWhen(cond, ctx) {
 			}
 		}
 		const actual = await readVisibleWhenValue(cond, ctx)
-		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
-	} catch {
+		return compareVisibleWhen(actual, cond.op || 'eq', cond.value, ctx)
+	} catch (error) {
+		// Still false; `ctx.onError` lets a caller (a journey run) record why.
+		if (ctx && typeof ctx.onError === 'function') {
+			ctx.onError(error, cond)
+		}
 		return false
 	}
 }
@@ -197,6 +479,7 @@ export async function evaluateVisibleWhen(cond, ctx) {
  * @param {{field?: string, op?: string, value?: unknown}|null} cond The LOCAL visibleWhen condition (or null).
  * @param {object} data The live data object `field` dot-paths into (e.g. formData).
  * @return {boolean} Whether the guarded element should show.
+ * @spec openspec/changes/visible-when-reader-groups/specs/visible-when-reader-groups/spec.md#requirement-a-visiblewhen-condition-can-require-the-reader-to-be-in-a-group
  */
 export function evaluateVisibleWhenLocal(cond, data) {
 	if (cond === null || cond === undefined) {
@@ -205,8 +488,22 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	if (typeof cond !== 'object' || Array.isArray(cond)) {
 		return false
 	}
+	if (isComposition(cond)) {
+		return evaluateCompositionLocal(cond, data)
+	}
 	if (cond.endpoint || cond.source) {
 		return false
+	}
+	if (!featureVerdict(cond)) {
+		return false
+	}
+	if (isFeatureOnly(cond)) {
+		return true
+	}
+	// The peek is reactive: a computed that reads it re-runs when the groups arrive.
+	const groupsVerdict = readerGroupsVerdict(cond, Array.isArray(cond.readerGroups) === true ? peekCurrentUserGroups() : null)
+	if (groupsVerdict !== null) {
+		return groupsVerdict
 	}
 	if (typeof cond.appInstalled === 'string' && cond.appInstalled !== '') {
 		if (!isAppInstalled(cond.appInstalled)) {
@@ -221,8 +518,37 @@ export function evaluateVisibleWhenLocal(cond, data) {
 	}
 	try {
 		const actual = readVisibleWhenPath(data, cond.field)
-		return compareVisibleWhen(actual, cond.op || 'eq', cond.value)
+		// The row / form record IS the object context here, so `@object.<field>`
+		// on the right-hand side compares one field against another instead of
+		// against the literal token string.
+		return compareVisibleWhen(actual, cond.op || 'eq', cond.value, { object: data })
 	} catch {
 		return false
 	}
+}
+
+/**
+ * Whether {@link evaluateVisibleWhenLocal} can actually DECIDE a condition.
+ *
+ * It answers `false` to anything naming an `endpoint` or a `source`, because it
+ * cannot fetch. That is right for a form field, where an undecidable gate should
+ * hide — and wrong for a surface that had no gate at all before, which would
+ * simply lose the element. Callers in the second group check this first and skip
+ * the gate when it returns `false`.
+ *
+ * @param {object|null} cond The condition (or null).
+ * @return {boolean} True when every leaf is a local `field` / `appInstalled` / `readerGroups` check.
+ */
+export function isLocallyDecidableVisibleWhen(cond) {
+	if (cond === null || cond === undefined) {
+		return true
+	}
+	if (typeof cond !== 'object' || Array.isArray(cond)) {
+		return false
+	}
+	if (Array.isArray(cond.all) === true || Array.isArray(cond.any) === true) {
+		const parts = Array.isArray(cond.all) === true ? cond.all : cond.any
+		return parts.every((part) => isLocallyDecidableVisibleWhen(part))
+	}
+	return !cond.endpoint && !cond.source
 }

@@ -21,19 +21,43 @@
 		:class="[
 			{ 'cn-kpi-card--clickable': isLinked, 'cn-stat-widget--linked': isLinked },
 			'cn-kpi-card--' + cardLayout,
+			{ 'cn-kpi-card--board': isBoardLook, 'cn-kpi-card--icon-top': hasTopBadge },
 			flat ? 'cn-kpi-card--flat' : 'cn-kpi-card--filled',
 		]"
 		v-bind="linkAttrs">
 		<div
-			v-if="resolvedIcon"
+			v-if="resolvedIcon && !isStacked && !isBoardLook"
 			class="cn-kpi-card__icon cn-stat-widget__icon"
 			:style="iconCircleStyle">
 			<CnWidgetIcon :name="resolvedIcon" :size="24" />
 		</div>
 
 		<div class="cn-kpi-card__body cn-stat-widget__body">
-			<div v-if="content.label || rangePresets.length" class="cn-kpi-card__title cn-stat-widget__label">
-				<span v-if="content.label" :title="resolvedLabel">{{ resolvedLabel }}</span>
+			<!-- Board look, `content.iconPlacement: "top"`: the icon sits in a
+			     42px circle above the label, tinted by the tile's state
+			     (LqTlVandaag). -->
+			<span
+				v-if="hasTopBadge"
+				class="cn-kpi-card__badge cn-kpi-card__badge--top cn-stat-widget__badge-icon"
+				:class="'cn-kpi-card__badge--' + stateTone"
+				data-testid="cn-stat-widget-icon-top"
+				aria-hidden="true">
+				<CnWidgetIcon :name="resolvedIcon" :size="22" />
+			</span>
+			<div
+				v-if="content.label || rangePresets.length"
+				class="cn-kpi-card__title cn-stat-widget__label"
+				:class="{ 'cn-kpi-card__title--badge-end': hasEndBadge }">
+				<!-- Board look: the icon is an 18px glyph before the label, and
+				     only when the tile links to a filtered list. -->
+				<span
+					v-if="isBoardLook && isLinked && resolvedIcon && !hasEndBadge && !hasTopBadge"
+					class="cn-kpi-card__glyph cn-stat-widget__glyph"
+					data-testid="cn-stat-widget-glyph"
+					aria-hidden="true">
+					<CnWidgetIcon :name="resolvedIcon" :size="18" />
+				</span>
+				<span v-if="content.label" class="cn-kpi-card__title-text" :title="resolvedLabel">{{ resolvedLabel }}</span>
 
 				<!-- Per-tile range override. Rendered ONLY when the tile declares its
 				     own `content.dateRange.presets`; a tile that merely follows the
@@ -56,10 +80,28 @@
 						{{ effectiveTranslate(preset.label || preset.id) }}
 					</option>
 				</select>
+				<!-- Board look, `content.iconPlacement: "end"`: the icon sits in a
+				     32px circle at the right of the label row, tinted by the
+				     tile's state (DqDashboard). -->
+				<span
+					v-if="hasEndBadge"
+					class="cn-kpi-card__badge cn-stat-widget__badge-icon"
+					:class="'cn-kpi-card__badge--' + stateTone"
+					data-testid="cn-stat-widget-icon-badge"
+					aria-hidden="true">
+					<CnWidgetIcon :name="resolvedIcon" :size="18" />
+				</span>
 			</div>
 
-			<div class="cn-kpi-card__value-row cn-stat-widget__value-row">
-				<NcLoadingIcon v-if="displayLoading" :size="22" />
+			<div ref="valueRow" class="cn-kpi-card__value-row cn-stat-widget__value-row">
+				<CnEndpointNotice
+					v-if="endpointMode && epAwaitingRequest"
+					:awaitingRequest="true"
+					:requestLabel="content.endpointSource.requestLabel ? effectiveTranslate(content.endpointSource.requestLabel) : ''"
+					:requestHint="content.endpointSource.requestHint ? effectiveTranslate(content.endpointSource.requestHint) : ''"
+					:requestDisabled="epBlocked"
+					@request="epRequest" />
+				<NcLoadingIcon v-else-if="displayLoading" :size="22" />
 				<span v-else-if="displayError" class="cn-stat-widget__error" :title="displayError">—</span>
 				<template v-else>
 					<!-- Badge mode: the value is a state name, so it reads as the
@@ -72,15 +114,16 @@
 						:variant="badgeVariant" />
 					<span
 						v-else
+						ref="value"
 						class="cn-kpi-card__value cn-stat-widget__value"
 						:data-testid="isCountdown ? 'cn-stat-widget-countdown' : null"
 						:class="{ 'cn-kpi-card__value--text': isTextValue || shownValueIsText }"
 						:title="shownValueIsText ? shownValue : (isTextValue ? String(displayValue) : null)"
 						:style="valueStyle">
-						{{ shownValue }}
+						{{ limitOfText || shownValue }}
 					</span>
 					<span
-						v-if="formattedLimit !== ''"
+						v-if="formattedLimit !== '' && !limitOfText"
 						class="cn-stat-widget__limit"
 						data-testid="cn-stat-widget-limit">
 						/ {{ formattedLimit }}
@@ -93,16 +136,46 @@
 						<component :is="trendIcon" :size="14" />
 						{{ formattedTrend }}
 					</span>
+					<span
+						v-else-if="noPreviousText"
+						class="cn-stat-widget__trend cn-stat-widget__trend--none"
+						data-testid="cn-stat-widget-no-previous">
+						{{ noPreviousText }}
+					</span>
 				</template>
-				<span v-if="!displayLoading && !displayError && content.caption" class="cn-kpi-card__label cn-stat-widget__caption">
+				<span
+					v-if="!isStacked && !displayLoading && !displayError && resolvedCaption"
+					class="cn-kpi-card__label cn-stat-widget__caption"
+					:class="captionVariantClass"
+					data-testid="cn-stat-widget-caption">
 					{{ resolvedCaption }}
 				</span>
 			</div>
+			<!-- Stacked (`content.layout: "stacked"`): the caption is a line of
+			     its own under the number, as the board's "3 new this week". -->
+			<span
+				v-if="isStacked && !displayLoading && !displayError && resolvedCaption"
+				class="cn-kpi-card__label cn-stat-widget__caption cn-kpi-card__caption-line"
+				:class="captionVariantClass"
+				data-testid="cn-stat-widget-caption">
+				{{ resolvedCaption }}
+			</span>
+			<!-- A second caption line (`content.note`), as LpStart's "3
+			     deadlines this week" under the count. Static text for now. -->
+			<span
+				v-if="!displayLoading && !displayError && resolvedNote"
+				class="cn-kpi-card__label cn-stat-widget__note cn-kpi-card__caption-line"
+				:class="noteVariantClass"
+				data-testid="cn-stat-widget-note">
+				{{ resolvedNote }}
+			</span>
 		</div>
 	</component>
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, ref } from 'vue'
 import TrendingDown from 'vue-material-design-icons/TrendingDown.vue'
@@ -110,14 +183,21 @@ import TrendingNeutral from 'vue-material-design-icons/TrendingNeutral.vue'
 import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
-import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchSharedResponse, getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { normalizeLook } from '../../composables/useLook.js'
 import widgetLink from '../../mixins/widgetLink.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
+import { daysUntil } from '../../utils/dateVariant.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
-import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
+import { aggFilterParam } from '../../utils/fetchAggregate.js'
+import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { formatMetricValue, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
+import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
 
 // The canonical KPI look lives in one shared stylesheet, imported by BOTH
 // this component and CnStatsBlock, so the two cannot drift apart again.
@@ -128,6 +208,8 @@ import '../../css/kpi-card.css'
 // stylesheet. Imported here for the same reason as kpi-card.css above.
 import '../../css/badge.css'
 
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
 /**
  * Variant → CSS colour token map for the `variantWhen` threshold rules.
  * `danger` is accepted as an alias of `error` (the doriath KPI-card
@@ -135,27 +217,14 @@ import '../../css/badge.css'
  *
  * @type {Record<string, string>}
  */
-// THE `-text` TOKENS, NOT THE PLAIN ONES. These paint the NUMBER and the icon
-// tint, i.e. foreground. Nextcloud's `--color-success` / `--color-warning` /
-// `--color-error` are FILL colours meant to sit behind something; DefaultTheme
-// ships `--color-success-text` and friends for foreground use. Using a fill as
-// a text colour failed WCAG AA — axe measured #d8f3da on #f5f5f5, a contrast of
-// 1.08 against the required 3:1, serious, on filinq's dashboard (gate-33).
-//
-// kpi-card.css fixed exactly this for the CSS-class path; this inline map was
-// missed because nothing reached it — every `variant` in the fleet is on a
-// stats-block, which renders classes. The first manifest to put `variant` on a
-// `stat` or `delta` would have hit the old failure.
-//
-// Each keeps the plain token as a fallback, so a theme predating the `-text`
-// tokens degrades to the old colour rather than to none.
+// These paint the number, so they take the text-on-background tokens.
 const VARIANT_COLORS = {
 	default: '',
 	primary: 'var(--color-primary-element)',
-	success: 'var(--color-success-text, var(--color-success))',
-	warning: 'var(--color-warning-text, var(--color-warning))',
-	error: 'var(--color-error-text, var(--color-error))',
-	danger: 'var(--color-error-text, var(--color-error))',
+	success: STATUS_TEXT_COLORS.success,
+	warning: STATUS_TEXT_COLORS.warning,
+	error: STATUS_TEXT_COLORS.error,
+	danger: STATUS_TEXT_COLORS.error,
 }
 
 /**
@@ -182,6 +251,9 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** Milliseconds in a day, used only between two UTC-normalised midnights. */
 const DAY_MS = 86400000
+
+/** The smallest size `fitValue` steps a number down to, in px; below it the number wraps. */
+const MIN_FIT_FONT_SIZE = 14
 
 /**
  * The local calendar day a value names, as a UTC midnight timestamp.
@@ -270,6 +342,7 @@ function calendarDay(value) {
  *   previousField: 'previousPeriod.revenue',   // → trend sublabel (arrow + % vs previous)
  *   // deltaField: 'revenueDeltaPct',          // OR a server-computed delta percent
  *   goodDirection: 'up',                       // tints the trend good/bad (default 'up')
+ *   noPreviousText: 'No earlier period to compare with', // when the previous value is missing or 0
  *   variantWhen: [                             // first-match threshold styling
  *     { op: 'gte', value: 100000, variant: 'success' },
  *     { op: 'lt', value: 10000, variant: 'warning', icon: 'AlertOutline' },
@@ -338,6 +411,7 @@ export default {
 
 	components: {
 		NcLoadingIcon,
+		CnEndpointNotice,
 		CnWidgetIcon,
 		CnStatusBadge,
 		TrendingUp,
@@ -355,6 +429,13 @@ export default {
 		 * object. Null on dashboards (tokens then pass through unresolved).
 		 */
 		cnObjectContext: { default: null },
+		/**
+		 * The look the app is drawn in (`board` or `nextcloud`), provided by
+		 * CnAppRoot. The board look draws the screens' KPI tile.
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile
+		 */
+		cnLook: { default: 'nextcloud' },
 		/**
 		 * v2 slot-grid detail context holder (`{ value: { objectData, schema,
 		 * objectType, objectId, register, store } | null }`) provided by
@@ -423,6 +504,8 @@ export default {
 		 * payload; `previousField` (previous-period value) or `deltaField`
 		 * (server-computed percent) renders the trend sublabel (arrow +
 		 * percent-vs-previous, tinted by `goodDirection`, default `'up'`);
+		 * `noPreviousText` replaces that sublabel when `previousField` is set
+		 * but the previous value is missing, not numeric or 0;
 		 * `variantWhen` (`[{ op, value, variant, icon? }]`, first match wins)
 		 * re-tints the value/icon by threshold.
 		 *
@@ -435,8 +518,12 @@ export default {
 		 * `dateRange` opts the tile into the dashboard's period. Present and empty
 		 * (`{}`) = follow the ancestor `CnDashboardPage` range; add `presets`
 		 * (`[{ id, label?, from?, to? }]`) to render a per-tile picker that
-		 * overrides it. The active range is exposed to `endpointSource` as
-		 * `@range.from` / `@range.to` / `@range.preset` tokens. A tile that
+		 * overrides it. With presets and no page range, the tile starts on
+		 * `dateRange.default` (a preset id), else on the first preset, so the
+		 * picker never opens blank and the first request already carries a
+		 * range. The active range is exposed to `endpointSource` (and to the
+		 * tile's `route`) as `@range.from` / `@range.to` / `@range.preset`
+		 * tokens. A tile that
 		 * declares no `dateRange` is unaffected by the page range — that is
 		 * deliberate, so adding a range to a dashboard cannot silently change what
 		 * an existing tile requests.
@@ -466,7 +553,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), noPreviousText?: string, variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -506,9 +593,24 @@ export default {
 		// setup, not data(), because the ctx closure below must read it reactively
 		// — a data() property would be resolved once and never refetch.
 		const tileRange = ref(null)
-		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || null)
+		// With its own presets and no page range, the tile starts on
+		// `dateRange.default`, else the first preset. Without this the picker
+		// opened blank (its value '' matched no option unless an app added a
+		// preset with id '') and the first request carried no range. Only a
+		// tile that declares presets gets a default: one that merely follows
+		// the dashboard (`dateRange: {}`) keeps following it.
+		const defaultRange = () => {
+			const dr = props.content && props.content.dateRange
+			const presets = (dr && Array.isArray(dr.presets)) ? dr.presets.filter(Boolean) : []
+			if (presets.length === 0) {
+				return null
+			}
+			const chosen = (dr.default !== undefined && presets.find((p) => p.id === dr.default)) || presets[0]
+			return { preset: chosen.id, from: chosen.from ?? null, to: chosen.to ?? null }
+		}
+		const activeRange = () => (tileRange.value || unwrap(pageRangeRaw) || defaultRange())
 
-		const { data, loading, error, refetch } = useEndpointSource(
+		const { data, loading, error, blocked, awaitingRequest, request, refetch } = useEndpointSource(
 			() => (props.content && props.content.endpointSource) || null,
 			{
 				ctx: () => ({
@@ -521,11 +623,14 @@ export default {
 				}),
 			},
 		)
-		return { epData: data, epLoading: loading, epError: error, epRefetch: refetch, tileRange, activeRange }
+		return { epData: data, epLoading: loading, epError: error, epBlocked: blocked, epAwaitingRequest: awaitingRequest, epRequest: request, epRefetch: refetch, tileRange, activeRange }
 	},
 
 	data() {
 		return {
+			// The value's font size while the number would not fit its row at
+			// its own size; null when it fits.
+			fitFontSize: null,
 			// Resolved display label for an `objectField` that holds a reference
 			// uuid. Null until resolved, and null forever when it cannot be.
 			referenceLabel: null,
@@ -541,12 +646,29 @@ export default {
 			// status badge saw `4f2b9c10-…` flash past where a state belonged.
 			referencePending: false,
 			value: null,
+			// The caption's own count (`content.captionSource`), null until read.
+			captionValue: null,
+			// The limit `content.limitSource` counted, or null.
+			limitCount: null,
+			// The parts of a ratio caption (`captionSource.kind: "ratio"`): the
+			// numerator read (null: the tile's own value) and the denominator.
+			captionRatioParts: null,
 			loading: false,
 			error: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * Whether the app takes the board look (`cnLook` is `board`).
+		 *
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
 		/**
 		 * Effective translate function: the explicit `translate` prop when
 		 * given, else the injected `cnTranslate` (identity by default).
@@ -569,6 +691,28 @@ export default {
 		},
 
 		/**
+		 * The caption before translation: the matching override's `caption`,
+		 * else `content.caption`. A `{ singular, plural }` caption takes the
+		 * singular for a count of one and the plural otherwise, counted by the
+		 * caption's own count, or by the tile's number when it has none.
+		 *
+		 * @return {string} The source string, '' for none.
+		 * @spec openspec/changes/stat-caption-plural/specs/stat-widget/spec.md#requirement-a-stat-caption-can-take-a-singular-and-a-plural-form
+		 */
+		captionSourceText() {
+			const override = this.activeOverride
+			const caption = (override && typeof override.caption === 'string' && override.caption !== '')
+				? override.caption
+				: this.content.caption
+			if (!caption || typeof caption !== 'object') {
+				return typeof caption === 'string' ? caption : ''
+			}
+			const count = this.hasCaptionSource ? this.captionCount : this.displayValue
+			const form = Number(count) === 1 ? caption.singular : caption.plural
+			return typeof form === 'string' ? form : ''
+		},
+
+		/**
 		 * The tile caption, translated and then interpolated with the fetched
 		 * payload.
 		 *
@@ -577,6 +721,9 @@ export default {
 		 * caption can say what the number MEANS rather than repeating it:
 		 *
 		 *   caption: '{levelName} · {currentStreakDays}-day streak'
+		 *
+		 * A token may carry a template format (`{annualValue|currency}`,
+		 * `{noticeDate|longdate}`), filled as a template token is.
 		 *
 		 * WHY THIS EXISTS. Without it a tile needing a secondary line had to be
 		 * a bespoke component: it could not be expressed as config, so apps
@@ -588,26 +735,216 @@ export default {
 		 * placeholder in the source string and can move it within the sentence —
 		 * the same contract as Nextcloud's own `t()` parameters.
 		 *
+		 * `@object.<field>`, `@objectId`, `@workspace.<key>` and `@config.<key>`
+		 * read the page's contexts as a source's tokens do, so a register-counted
+		 * tile can name its record's own figure ("of @object.capacity places").
+		 *
 		 * A token with no matching field resolves to the empty string rather
 		 * than being left as `{levelName}` on screen: a caption is decoration,
 		 * and showing a reader a raw token is worse than showing them less.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/stat-caption-formats/specs/stat-widget/spec.md#requirement-a-stat-caption-token-can-carry-a-format
+		 * @spec openspec/changes/stat-caption-object-token/specs/stat-caption-object-token/spec.md#requirement-a-stat-caption-can-name-a-field-of-the-pages-record
 		 */
 		resolvedCaption() {
-			const caption = this.content.caption
+			const caption = this.captionSourceText
 			if (!caption) {
 				return ''
 			}
-			const translated = this.effectiveTranslate(caption)
+			// A caption with its own count (`captionSource`) is about that count:
+			// nothing to say while it is not read, and at zero the `zeroText`
+			// (or nothing) instead of "0 waiting".
+			const counted = this.hasCaptionSource
+			const count = this.captionCount
+			if (counted && !(Number(count) > 0)) {
+				const zero = count !== null && this.content.captionSource.zeroText
+				return typeof zero === 'string' && zero !== '' ? this.effectiveTranslate(zero) : ''
+			}
+			// `@object.<field>` names a field of the page's record (PqEvenement
+			// "van @object.capacity plaatsen" on a register-counted tile).
+			const translated = caption.indexOf('@') === -1
+				? this.effectiveTranslate(caption)
+				: this.interpolateTokens(this.effectiveTranslate(caption)).replace(/\s{2,}/g, ' ').trim()
 			if (translated.indexOf('{') === -1) {
 				return translated
 			}
 			const payload = this.endpointMode ? this.epData : null
-			return translated.replace(/\{([A-Za-z0-9_.]+)\}/g, (whole, path) => {
+			return translated.replace(/\{([A-Za-z0-9_.]+)(\|[A-Za-z]+(?::[^{}\s]+)?)?\}/g, (whole, path, format) => {
+				// `{path|tile}`: the value written as the tile writes its own
+				// number (`content.format`), e.g. a previous period's rate.
+				if (format === '|tile') {
+					const v = payload === null ? undefined : getByPath(payload, path)
+					return (v === undefined || v === null || v === '') ? '' : String(formatMetricValue(v, this.content.format, this.configCtx, this.objectCtx?.object || null, this.effectiveTranslate))
+				}
+				// `{path|format}`: the token formatted as a template token is
+				// (`{annualValue|currency}`, `{noticeDate|longdate}`).
+				if (format) {
+					return payload === null ? '' : fillTemplate(`{${path}${format}}`, payload, new Date(), { config: this.configCtx })
+				}
+				// `{count}` is the caption's own count; `{ratio}` the same
+				// for a ratio caption, as a percentage.
+				if ((path === 'count' || (path === 'ratio' && this.isCaptionRatio)) && counted) {
+					return this.isCaptionRatio ? this.formatCaptionRatio(count) : new Intl.NumberFormat(metricLocale()).format(Number(count))
+				}
+				// `{value}` is the tile's own number, so a caption can read
+				// "{value} due today" on a register-counted tile that has no
+				// payload to read fields from.
+				if (path === 'value' && (payload === null || getByPath(payload, path) === undefined)) {
+					return this.formattedValue === undefined || this.formattedValue === null ? '' : String(this.formattedValue)
+				}
 				const v = getByPath(payload, path)
 				return (v === undefined || v === null) ? '' : String(v)
 			}).replace(/\s{2,}/g, ' ').trim()
+		},
+
+		/**
+		 * Whether the caption is a share (`captionSource.kind: "ratio"`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/stat-caption-ratio/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-show-a-share
+		 */
+		isCaptionRatio() {
+			const own = this.content.captionSource
+			return !!own && typeof own === 'object' && own.kind === 'ratio'
+		},
+
+		/**
+		 * The caption's own number: its count, or for a ratio caption the
+		 * numerator (the tile's own value when it names none) over the
+		 * denominator, times 100. Null while unread, and for a zero or failed
+		 * denominator.
+		 *
+		 * @return {number|null}
+		 * @spec openspec/changes/stat-caption-ratio/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-show-a-share
+		 */
+		captionCount() {
+			if (!this.isCaptionRatio) {
+				return this.captionValue
+			}
+			const parts = this.captionRatioParts
+			if (!parts) {
+				return null
+			}
+			const num = parts.num === null ? this.displayValue : parts.num
+			const den = Number(parts.den)
+			if (num === null || num === undefined || num === '' || !Number.isFinite(Number(num)) || !Number.isFinite(den) || den === 0) {
+				return null
+			}
+			return (Number(num) / den) * 100
+		},
+
+		/**
+		 * Whether the limit is a count of its own (`content.limitSource` with
+		 * a register and schema, its own or the tile's).
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {boolean}
+		 */
+		hasLimitSource() {
+			const own = this.content.limitSource
+			const base = this.content.source || {}
+			return !!own && typeof own === 'object' && !!(own.register || base.register) && !!(own.schema || base.schema)
+		},
+
+		/**
+		 * `content.limitStyle: "of"`: the value and the limit as one
+		 * headline, "9 of 12". Empty without a limit or that style.
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {string}
+		 */
+		limitOfText() {
+			if (this.content.limitStyle !== 'of' || this.formattedLimit === '' || this.displayValue === null || this.displayValue === undefined) {
+				return ''
+			}
+			return t('nextcloud-vue', '{shown} of {total}', { shown: this.shownValue, total: this.formattedLimit })
+		},
+
+		/**
+		 * Whether the caption has a count of its own (`content.captionSource`
+		 * with a register and schema, its own or the tile's).
+		 *
+		 * @spec openspec/changes/screens-stat-caption-source/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-carry-its-own-count
+		 * @return {boolean}
+		 */
+		hasCaptionSource() {
+			const own = this.content.captionSource
+			const base = this.content.source || {}
+			return !!own && typeof own === 'object' && !!(own.register || base.register) && !!(own.schema || base.schema)
+		},
+
+		/**
+		 * The first `content.captionVariantWhen` rule the tile's value
+		 * matches (`[{ op, value, variant }]`, the `variantWhen` shape), or
+		 * null. Colours the caption on the value without recolouring the
+		 * tile: "1 due today" turns red while the number stays ink.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
+		 * @return {object|null}
+		 */
+		activeCaptionRule() {
+			const rules = this.content.captionVariantWhen
+			if (!Array.isArray(rules) || rules.length === 0) {
+				return null
+			}
+			// A caption with its own count is coloured by that count.
+			const current = this.hasCaptionSource ? this.captionCount : this.displayValue
+			if (current === null || current === undefined) {
+				return null
+			}
+			return rules.find((r) => r && this.matchesRule(current, r)) || null
+		},
+
+		/**
+		 * The second caption line: `content.note` through the host translate
+		 * function, or '' without it.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stat-tile-can-carry-a-second-caption-line
+		 * @return {string}
+		 */
+		resolvedNote() {
+			const note = this.content && this.content.note
+			return typeof note === 'string' && note !== '' ? this.effectiveTranslate(note) : ''
+		},
+
+		/**
+		 * The colour class of the second caption line (`content.noteVariant`,
+		 * the same names as `captionVariant`), or '' for the muted default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-stat-tile-can-carry-a-second-caption-line
+		 * @return {string}
+		 */
+		noteVariantClass() {
+			const variant = this.content && this.content.noteVariant
+			if (!variant || variant === 'default' || !Object.hasOwn(VARIANT_COLORS, variant)) {
+				return ''
+			}
+			return `cn-kpi-card__label--${variant === 'danger' ? 'error' : variant}`
+		},
+
+		/**
+		 * The caption's colour class: the matching override's
+		 * `captionVariant`, else `content.captionVariant`, as
+		 * `cn-kpi-card__label--<variant>`. '' for `default` or an unknown
+		 * variant, so an uncoloured caption is what it always was.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stat-tile-colours-its-caption-by-a-rule
+		 * @return {string}
+		 */
+		captionVariantClass() {
+			const override = this.activeOverride
+			const variant = (override && override.captionVariant)
+				|| (this.activeCaptionRule && this.activeCaptionRule.variant)
+				|| this.content.captionVariant
+			if (!variant || variant === 'default' || !Object.hasOwn(VARIANT_COLORS, variant)) {
+				return ''
+			}
+			// Board look: colour in a tile means a warning and nothing else.
+			if (this.isBoardLook && !['warning', 'error', 'danger'].includes(variant)) {
+				return ''
+			}
+			return `cn-kpi-card__label--${variant === 'danger' ? 'error' : variant}`
 		},
 
 		/**
@@ -1061,6 +1398,24 @@ export default {
 			return ((cur - prev) / Math.abs(prev)) * 100
 		},
 
+		/**
+		 * The translated `content.noPreviousText` when `previousField` is set
+		 * and the previous value is missing, not numeric or 0, else ''.
+		 *
+		 * @return {string}
+		 */
+		noPreviousText() {
+			const text = this.content.noPreviousText
+			if (typeof text !== 'string' || text === '' || !this.endpointMode || !this.content.previousField || this.content.deltaField) {
+				return ''
+			}
+			if (this.displayLoading || this.displayError || !this.epData) {
+				return ''
+			}
+			const prev = this.previousValue
+			return prev === null || prev === 0 ? this.effectiveTranslate(text) : ''
+		},
+
 		/** The signed trend percent, e.g. "+12.3%". */
 		formattedTrend() {
 			if (this.trendPct === null) {
@@ -1092,7 +1447,7 @@ export default {
 			const good = this.content.goodDirection || 'up'
 			const rising = this.trendPct > 0
 			const isGood = good === 'up' ? rising : !rising
-			return isGood ? 'var(--color-success)' : 'var(--color-error)'
+			return isGood ? STATUS_TEXT_COLORS.success : STATUS_TEXT_COLORS.error
 		},
 
 		/**
@@ -1178,12 +1533,81 @@ export default {
 		/**
 		 * Card orientation. Horizontal (icon beside the number) is the
 		 * canonical KPI card; `content.layout: 'vertical'` stacks the icon
-		 * above a centred number for a tile taller than it is wide.
+		 * above a centred number for a tile taller than it is wide;
+		 * `content.layout: 'stacked'` is the board look (see `isStacked`).
 		 *
-		 * @return {'horizontal'|'vertical'}
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-stat-tile-can-take-the-stacked-board-look
+		 * @return {'horizontal'|'vertical'|'stacked'}
 		 */
 		cardLayout() {
-			return (this.content || {}).layout === 'vertical' ? 'vertical' : 'horizontal'
+			const layout = (this.content || {}).layout
+			if (layout === 'vertical' || layout === 'stacked') {
+				return layout
+			}
+			// Board look: every KPI tile on the screens is stacked, so a tile
+			// that names no layout takes it. An explicit `horizontal` stays.
+			if (this.isBoardLook && layout === undefined) {
+				return 'stacked'
+			}
+			return 'horizontal'
+		},
+
+		/**
+		 * Whether the board look draws the icon in a tinted circle at the
+		 * right of the label row (`content.iconPlacement: "end"`), as the
+		 * DqDashboard tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/screens-stat-tile-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile-can-carry-its-icon-at-the-end
+		 * @return {boolean}
+		 */
+		hasEndBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'end'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
+		 * Whether the board look draws the icon in a tinted 42px circle above
+		 * the label (`content.iconPlacement: "top"`), as the learniq Today
+		 * tiles. Off without the board look and without an icon.
+		 *
+		 * @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label
+		 * @return {boolean}
+		 */
+		hasTopBadge() {
+			return this.isBoardLook
+				&& (this.content || {}).iconPlacement === 'top'
+				&& Boolean(this.resolvedIcon)
+		},
+
+		/**
+		 * The tile's state as a tone name for the end badge: the variant the
+		 * value colour comes from (`success`, `warning`, `error`), else
+		 * `primary`. A custom `valueColor` has no tone and reads as primary.
+		 *
+		 * @spec openspec/changes/screens-stat-tile-parity/specs/dashboard-page/spec.md#requirement-the-board-kpi-tile-can-carry-its-icon-at-the-end
+		 * @return {'primary'|'success'|'warning'|'error'}
+		 */
+		stateTone() {
+			const color = this.variantColor
+			if (!color) {
+				return 'primary'
+			}
+			const tone = ['success', 'warning', 'error'].find((name) => VARIANT_COLORS[name] === color)
+			return tone || 'primary'
+		},
+
+		/**
+		 * Whether the tile takes the stacked board look (`content.layout:
+		 * "stacked"`): a plain muted label, the number at 34px in the text
+		 * colour, the caption on a line of its own, and no icon circle. Off by
+		 * default.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-stat-tile-can-take-the-stacked-board-look
+		 * @return {boolean}
+		 */
+		isStacked() {
+			return this.cardLayout === 'stacked'
 		},
 
 		/**
@@ -1207,7 +1631,16 @@ export default {
 		/** Inline style for the value text (variant rule wins over valueColor). */
 		valueStyle() {
 			const color = this.variantColor || this.content.valueColor
-			return color ? { color } : {}
+			const style = color ? { color } : {}
+			if (this.fitFontSize !== null) {
+				style.fontSize = `${this.fitFontSize}px`
+				// At the smallest size a number that still does not fit wraps rather than clips.
+				if (this.fitFontSize <= MIN_FIT_FONT_SIZE) {
+					style.whiteSpace = 'normal'
+					style.overflowWrap = 'anywhere'
+				}
+			}
+			return style
 		},
 
 		/**
@@ -1220,7 +1653,7 @@ export default {
 		 * @return {string}
 		 */
 		formattedValue() {
-			return formatMetricValue(this.displayValue, this.content.format, this.configCtx)
+			return formatMetricValue(this.displayValue, this.content.format, this.configCtx, this.objectCtx?.object || null, this.effectiveTranslate)
 		},
 
 		/**
@@ -1234,8 +1667,13 @@ export default {
 		 */
 		limitValue() {
 			let raw = this.content.limit
-			if (this.endpointMode && this.content.limitField) {
+			if (this.hasLimitSource) {
+				raw = this.limitCount
+			} else if (this.endpointMode && this.content.limitField) {
 				raw = getByPath(this.epData, this.content.limitField)
+			}
+			if (raw === null || raw === undefined) {
+				return null
 			}
 			const n = Number(raw)
 			return Number.isFinite(n) ? n : null
@@ -1254,7 +1692,7 @@ export default {
 				return ''
 			}
 			const { prefix, suffix, ...rest } = (this.content.format || {})
-			return formatMetricValue(this.limitValue, rest, this.configCtx)
+			return formatMetricValue(this.limitValue, rest, this.configCtx, this.objectCtx?.object || null)
 		},
 
 		/**
@@ -1264,7 +1702,7 @@ export default {
 		 * @return {boolean}
 		 */
 		atLimit() {
-			if (this.limitValue === null) {
+			if (this.limitValue === null || this.content.limitStyle === 'of') {
 				return false
 			}
 			const current = Number(this.displayValue)
@@ -1303,6 +1741,7 @@ export default {
 		sourceKey() {
 			return JSON.stringify({
 				s: this.content.source || {},
+				cs: this.content.captionSource || null,
 				o: this.objectCtx ? this.objectCtx.objectId : null,
 				p: this.pageCtx,
 				c: this.configCtx,
@@ -1315,6 +1754,10 @@ export default {
 			this.fetchValue()
 		},
 
+		shownValue() {
+			this.$nextTick(() => this.fitValue())
+		},
+
 		objectFieldRaw: {
 			immediate: true,
 			handler() {
@@ -1325,9 +1768,60 @@ export default {
 
 	mounted() {
 		this.fetchValue()
+		// The `endpointSource` path refreshes through useEndpointSource; this
+		// covers the `source` path, which otherwise never re-read on Refresh.
+		this._onPageRefresh = (payload) => {
+			if (this.endpointMode) {
+				return
+			}
+			const done = this.fetchValue(payload)
+			payload?.waitUntil?.(done)
+		}
+		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+		if (typeof ResizeObserver === 'function' && this.$refs.valueRow) {
+			this._fitObserver = new ResizeObserver(() => this.fitValue())
+			this._fitObserver.observe(this.$refs.valueRow)
+		}
+		this.$nextTick(() => this.fitValue())
+	},
+
+	beforeUnmount() {
+		unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
+		this._fitObserver?.disconnect()
 	},
 
 	methods: {
+		/**
+		 * Step the number's font down until it fits its row, instead of the
+		 * card clipping it ("€ 1.012.4" in a narrow tile). A value that fits
+		 * keeps its own size; text values wrap and clamp on their own.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/stat-value-fits/specs/stat-tile-board-look/spec.md#requirement-a-stat-value-shrinks-instead-of-clipping
+		 */
+		fitValue() {
+			const row = this.$refs.valueRow
+			const el = this.$refs.value
+			if (!row || !el || el.classList.contains('cn-kpi-card__value--text') || typeof getComputedStyle !== 'function') {
+				this.fitFontSize = null
+				return
+			}
+			const applied = el.style.fontSize
+			const whiteSpace = el.style.whiteSpace
+			el.style.fontSize = ''
+			el.style.whiteSpace = ''
+			const natural = parseFloat(getComputedStyle(el).fontSize)
+			const overflow = row.scrollWidth - row.clientWidth
+			const width = el.offsetWidth
+			el.style.fontSize = applied
+			el.style.whiteSpace = whiteSpace
+			if (!(overflow > 0.5) || !(width > 0) || !(natural > 0)) {
+				this.fitFontSize = null
+				return
+			}
+			this.fitFontSize = Math.max(MIN_FIT_FONT_SIZE, Math.floor(natural * ((width - overflow) / width) * 10) / 10)
+		},
+
 		/**
 		 * Resolve an `objectField` that holds a reference uuid to the referenced
 		 * object's label, through the shared object store (per-schema caching and
@@ -1522,17 +2016,32 @@ export default {
 			// drop any optional `@workspace.<key>?` / `@config.<key>?` that stayed
 			// unresolved so an unset value omits the filter (show all) instead of
 			// sending a literal token.
-			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx, config: this.configCtx }
-			filter = dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
+			filter = this.resolveSourceFilter(filter)
 			for (const [k, v] of Object.entries(filter)) {
 				if (v && typeof v === 'object') {
 					for (const [op, ov] of Object.entries(v)) {
 						target[`filter[${k}][${op}]`] = ov
 					}
 				} else if (v !== '' && v !== null && v !== undefined) {
-					target[`filter[${k}]`] = v
+					// `field[gte]` goes out as `filter[field][gte]`, not `filter[field[gte]]`.
+					target[aggFilterParam(k)] = v
 				}
 			}
+		},
+
+		/**
+		 * A source filter with its @-tokens resolved against the object, page
+		 * and config contexts, and unresolved optional clauses dropped.
+		 *
+		 * @param {object} filter The raw filter map.
+		 * @return {object} The resolved filter.
+		 */
+		resolveSourceFilter(filter) {
+			if (!filter || typeof filter !== 'object') {
+				return {}
+			}
+			const ctx = { ...(this.objectCtx || {}), workspace: this.pageCtx, config: this.configCtx }
+			return dropOptionalUnresolved(resolveFilterTokens(filter, ctx))
 		},
 
 		/**
@@ -1544,9 +2053,19 @@ export default {
 		 * @param {string} metric The aggregation metric.
 		 * @param {?string} field The numeric field (non-count metrics).
 		 * @param {object} filter The filter map.
+		 * @param {string} [via] `"list"` counts through the list endpoint's total.
 		 * @return {Promise<number|null>} The aggregated value.
 		 */
-		async fetchAggregate(axios, generateUrl, s, metric, field, filter) {
+		async fetchAggregate(axios, generateUrl, s, metric, field, filter, via) {
+			// A count the aggregation endpoint cannot express (a filter holding a
+			// list of values, a test for no value (`null` or `{ isnull: true }`),
+			// or `via: "list"`) reads the list endpoint's total instead, because
+			// the aggregation endpoint has no null operator.
+			const resolved = this.resolveSourceFilter(filter)
+			const listed = Object.values(resolved).some((v) => Array.isArray(v) || (v && typeof v === 'object' && Object.values(v).some(Array.isArray)))
+			if ((!metric || metric === 'count') && (via === 'list' || listed || needsListEndpoint(resolved))) {
+				return fetchListTotal(s.register, s.schema, resolved, {})
+			}
 			const url = generateUrl(
 				'/apps/openregister/api/objects/aggregations/{register}/{schema}/value',
 				{ register: s.register, schema: s.schema },
@@ -1561,6 +2080,137 @@ export default {
 		},
 
 		/**
+		 * Read the caption's own count (`content.captionSource`:
+		 * `{ register?, schema?, metric?, field?, filter?, via?, zeroText? }`,
+		 * register and schema default to the tile's source). With `kind:
+		 * "ratio"` it reads the `denominator` part, and the `numerator` part
+		 * when one is named, as the tile's `ratio` source does. A failed read
+		 * leaves the caption out; it never shows a zero it did not count.
+		 *
+		 * @spec openspec/changes/screens-stat-caption-source/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-carry-its-own-count
+		 * @return {Promise<void>}
+		 */
+		async fetchCaptionValue() {
+			if (!this.hasCaptionSource) {
+				this.captionValue = null
+				this.captionRatioParts = null
+				return
+			}
+			const own = this.content.captionSource
+			const base = this.content.source || {}
+			const source = { register: own.register || base.register, schema: own.schema || base.schema }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				if (own.kind === 'ratio') {
+					// The parts of the tile's own `ratio` source: each names its
+					// metric, field, filter and `via`.
+					const part = (p) => this.fetchAggregate(axios, generateUrl, source, (p && p.metric) || own.metric, (p && p.field) || own.field, (p && p.filter) || {}, (p && p.via) || own.via)
+					const num = own.numerator ? await part(own.numerator) : null
+					const den = await part(own.denominator)
+					this.captionRatioParts = { num: num === undefined ? null : num, den }
+					return
+				}
+				const found = own.metric === 'daysSinceEarliest'
+					? await this.fetchDaysSinceEarliest(axios, generateUrl, source, own.field, own.filter || {})
+					: await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				this.captionValue = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
+			} catch {
+				this.captionValue = null
+				this.captionRatioParts = null
+			}
+		},
+
+		/**
+		 * The whole days from the earliest `field` date among the matching
+		 * records to today (`captionSource.metric: "daysSinceEarliest"`):
+		 * "longest: 9 days" over the days since each case entered its status.
+		 * One list read, ordered by the field, of the first record that has
+		 * it. 0 when no record matches, null when the date cannot be read.
+		 *
+		 * @spec openspec/changes/stat-caption-days-since-earliest/specs/stat-caption-days-since-earliest/spec.md#requirement-a-stat-caption-can-count-the-days-since-the-earliest-date
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} s The source (register/schema).
+		 * @param {string} field The date field.
+		 * @param {object} filter The filter map.
+		 * @return {Promise<number|null>} The days, or null.
+		 */
+		async fetchDaysSinceEarliest(axios, generateUrl, s, field, filter) {
+			if (typeof field !== 'string' || field === '') {
+				return null
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(this.resolveSourceFilter(filter))) {
+				if (value === null) {
+					params[`${key}[isnull]`] = 'true'
+				} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+					for (const [op, operand] of Object.entries(value)) {
+						params[`${key}[${op}]`] = operand
+					}
+				} else if (value !== '' && value !== undefined) {
+					params[key] = value
+				}
+			}
+			params[`${field}[isnull]`] = 'false'
+			params[`_order[${field}]`] = 'asc'
+			params._limit = 1
+			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: s.register, schema: s.schema })
+			const res = await axios.get(url, { params })
+			const first = Array.isArray(res?.data?.results) ? res.data.results[0] : undefined
+			if (!first) {
+				return 0
+			}
+			const raw = first[field] !== undefined ? first[field] : first['@self']?.[field]
+			const days = daysUntil(raw, new Date())
+			return days === null ? null : Math.max(0, -days)
+		},
+
+		/**
+		 * Read the limit's own count (`content.limitSource`: `{ register?,
+		 * schema?, metric?, field?, filter?, via? }`, register and schema
+		 * default to the tile's source). A failed read leaves the limit out.
+		 *
+		 * @spec openspec/changes/stat-limit-of-a-count/specs/stat-widget/spec.md#requirement-a-stat-tile-can-read-its-limit-as-a-count-and-show-value-of-limit
+		 * @return {Promise<void>}
+		 */
+		async fetchLimitCount() {
+			if (!this.hasLimitSource) {
+				this.limitCount = null
+				return
+			}
+			const own = this.content.limitSource
+			const base = this.content.source || {}
+			const source = { register: own.register || base.register, schema: own.schema || base.schema }
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const found = await this.fetchAggregate(axios, generateUrl, source, own.metric, own.field, own.filter || {}, own.via)
+				this.limitCount = found === null || found === undefined || Number.isNaN(Number(found)) ? null : Number(found)
+			} catch {
+				this.limitCount = null
+			}
+		},
+
+		/**
+		 * A ratio caption's share as the reader's number, with
+		 * `captionSource.decimals` fraction digits (0 by default).
+		 *
+		 * @param {number} share The percentage.
+		 * @return {string}
+		 * @spec openspec/changes/stat-caption-ratio/specs/stat-widget/spec.md#requirement-a-stat-tiles-caption-can-show-a-share
+		 */
+		formatCaptionRatio(share) {
+			const raw = Number(this.content.captionSource && this.content.captionSource.decimals)
+			const digits = Number.isInteger(raw) && raw >= 0 && raw <= 4 ? raw : 0
+			return new Intl.NumberFormat(metricLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(share)
+		},
+
+		/**
 		 * Resolve the widget's value from its `source`. Supports three source
 		 * kinds (ADR-041): a plain `aggregate` (count/sum/avg/min/max with
 		 * operator filters), a `ratio` (numerator ÷ denominator × 100, e.g. a
@@ -1568,9 +2218,14 @@ export default {
 		 * computed client-side over the fetched objects). Lazily imports
 		 * axios/router (same pattern as CnFilesWidget).
 		 *
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<void>}
 		 */
-		async fetchValue() {
+		async fetchValue(refresh) {
+			// The caption's own count and the limit's are read beside the
+			// value, whatever the value's source is.
+			this.fetchCaptionValue()
+			this.fetchLimitCount()
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the OpenRegister paths below must not fire.
 			if (this.endpointMode) {
@@ -1600,11 +2255,17 @@ export default {
 				])
 
 				if (s.kind === 'endpoint') {
-					this.value = await this.fetchEndpoint(axios, generateUrl, s)
+					this.value = await this.fetchEndpoint(s, refresh)
 				} else if (s.kind === 'ratio') {
-					const num = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.numerator && s.numerator.filter) || {})
-					const den = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, (s.denominator && s.denominator.filter) || {})
+					// Each part may name its own metric, field and `via`, so "answered
+					// in time" over "answered" is two counts, and a share of a sum is
+					// two sums.
+					const part = (p) => this.fetchAggregate(axios, generateUrl, s, (p && p.metric) || s.metric, (p && p.field) || s.field, (p && p.filter) || {}, (p && p.via) || s.via)
+					const num = await part(s.numerator)
+					const den = await part(s.denominator)
 					this.value = (den && Number(den) !== 0) ? (Number(num) / Number(den)) * 100 : null
+				} else if (s.kind === 'elapsed') {
+					this.value = await this.fetchElapsed(axios, generateUrl, s)
 				} else if (s.kind === 'computed') {
 					// Fetch each named part, then evaluate the formula over them.
 					const { evalFormula } = await import('../../utils/evalFormula.js')
@@ -1617,7 +2278,7 @@ export default {
 				} else if (s.kind === 'weighted') {
 					this.value = await this.fetchWeighted(axios, generateUrl, s)
 				} else {
-					this.value = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, s.filter || {})
+					this.value = await this.fetchAggregate(axios, generateUrl, s, s.metric, s.field, s.filter || {}, s.via)
 				}
 			} catch (e) {
 				this.error = (e && e.message) || 'error'
@@ -1625,6 +2286,56 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * The average time between two date fields of the matching objects
+		 * (`{ from, to, unit?, filter?, limit? }`): an average answer time is
+		 * `occurredAt` to `resolvedAt`. Computed client-side over the fetched
+		 * objects (capped at `limit`, default 1000), because the aggregation
+		 * endpoint averages one numeric field, not a difference. Objects missing
+		 * either date, or with `to` before `from`, are left out; null when none
+		 * is left. `unit` is `days` (default), `hours` or `minutes`.
+		 *
+		 * @param {object} axios The axios instance.
+		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * @param {object} s The elapsed source.
+		 * @return {Promise<number|null>} The average, in `unit`.
+		 * @spec openspec/changes/screens-ratio-stat/specs/ratio-stat/spec.md#requirement-a-stat-can-average-the-time-between-two-dates
+		 */
+		async fetchElapsed(axios, generateUrl, s) {
+			if (!s.from || !s.to) {
+				return null
+			}
+			const url = generateUrl(
+				'/apps/openregister/api/objects/{register}/{schema}',
+				{ register: s.register, schema: s.schema },
+			)
+			const params = { _limit: s.limit || 1000 }
+			const filter = this.resolveSourceFilter(s.filter || {})
+			for (const [k, v] of Object.entries(filter)) {
+				if (v && typeof v === 'object' && !Array.isArray(v)) {
+					for (const [op, operand] of Object.entries(v)) {
+						params[`${k}[${op}]`] = operand
+					}
+				} else if (v !== '' && v !== null && v !== undefined) {
+					params[k] = v
+				}
+			}
+			const res = await axios.get(url, { params })
+			const rows = (res && res.data && res.data.results) || []
+			const per = { minutes: 60000, hours: 3600000, days: 86400000 }[s.unit] || 86400000
+			let sum = 0
+			let n = 0
+			for (const r of rows) {
+				const from = Date.parse(r && r[s.from])
+				const to = Date.parse(r && r[s.to])
+				if (Number.isFinite(from) && Number.isFinite(to) && to >= from) {
+					sum += (to - from) / per
+					n += 1
+				}
+			}
+			return n > 0 ? sum / n : null
 		},
 
 		/**
@@ -1714,22 +2425,24 @@ export default {
 		 * to a custom-aggregation endpoint (e.g. `/api/analytics/summary`) that
 		 * OpenRegister's per-schema aggregation can't express.
 		 *
-		 * @param {object} axios The axios instance.
-		 * @param {(url: string, params?: object) => string} generateUrl The router helper.
+		 * Never served from the settled shared cache, so a tile never shows a
+		 * count from before a write. Tiles loading at once, or reached by one
+		 * page refresh, share a single request per endpoint and params.
+		 *
 		 * @param {object} s The endpoint source `{ url, path?, params?, method? }`.
+		 * @param {object} [refresh] The page refresh event's payload, when this is one.
 		 * @return {Promise<number|null>} The extracted value.
 		 */
-		async fetchEndpoint(axios, generateUrl, s) {
-			const rawUrl = this.interpolateTokens(s.url)
-			// Leave absolute URLs (http/https) untouched; route app-relative
-			// paths through generateUrl so they resolve under the NC base.
-			const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : generateUrl(rawUrl)
+		async fetchEndpoint(s, refresh) {
 			const params = {}
 			for (const [k, v] of Object.entries(s.params || {})) {
 				params[k] = typeof v === 'string' ? this.interpolateTokens(v) : v
 			}
-			const res = await axios.get(url, { params })
-			const extracted = this.getByPath(res && res.data, s.path)
+			const body = await fetchSharedResponse(
+				{ url: this.interpolateTokens(s.url), method: 'GET', params },
+				refresh ? { force: true, refresh } : { fresh: true },
+			)
+			const extracted = this.getByPath(body, s.path)
 			if (extracted === undefined || extracted === null) {
 				return null
 			}
@@ -1821,6 +2534,11 @@ export default {
 	gap: 2px;
 	font-size: var(--cn-kpi-label-size, 13px);
 	font-weight: var(--cn-kpi-title-weight, 600);
+}
+
+.cn-stat-widget__trend--none {
+	color: var(--color-text-maxcontrast);
+	font-weight: normal;
 }
 
 /* The dash shown when the number could not be fetched. It stands where the

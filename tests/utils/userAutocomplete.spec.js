@@ -11,11 +11,20 @@ jest.mock('@nextcloud/router', () => ({
 	generateOcsUrl: (path) => `/ocs/v2.php/${path}`,
 }))
 
+// The signed-in user. Null by default, so the older cases see no change.
+jest.mock('@nextcloud/auth', () => ({
+	__esModule: true,
+	getCurrentUser: jest.fn(() => null),
+}))
+
 // Import AFTER the router mock is registered.
+import { getCurrentUser } from '@nextcloud/auth'
 import { resolveNextcloudUser, searchNextcloudUsers } from '@/utils/userAutocomplete.js'
 
 beforeEach(() => {
 	axios.get = jest.fn()
+	getCurrentUser.mockReset()
+	getCurrentUser.mockReturnValue(null)
 })
 
 describe('searchNextcloudUsers', () => {
@@ -44,8 +53,8 @@ describe('searchNextcloudUsers', () => {
 		})
 		const options = await searchNextcloudUsers('')
 		expect(options).toEqual([
-			{ id: 'annemarie', label: 'Annemarie de Vries', subline: '' },
-			{ id: 'henk', label: 'Henk Bakker', subline: '' },
+			{ id: 'annemarie', label: 'Annemarie de Vries', displayName: 'Annemarie de Vries', subline: '' },
+			{ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' },
 		])
 	})
 
@@ -62,7 +71,7 @@ describe('searchNextcloudUsers', () => {
 			},
 		})
 		const options = await searchNextcloudUsers('a')
-		expect(options).toEqual([{ id: 'admin', label: 'Administrator', subline: '' }])
+		expect(options).toEqual([{ id: 'admin', label: 'Administrator', displayName: 'Administrator', subline: '' }])
 	})
 
 	it('fails soft (returns []) when the OCS call rejects', async () => {
@@ -79,12 +88,59 @@ describe('resolveNextcloudUser', () => {
 			data: { ocs: { data: [{ id: 'henk', label: 'Henk Bakker', source: 'users', shareType: 0 }] } },
 		})
 		const option = await resolveNextcloudUser('henk')
-		expect(option).toEqual({ id: 'henk', label: 'Henk Bakker', subline: '' })
+		expect(option).toEqual({ id: 'henk', label: 'Henk Bakker', displayName: 'Henk Bakker', subline: '' })
 	})
 
 	it('falls back to { id: uid, label: uid } when the name cannot be resolved', async () => {
 		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [] } } })
 		const option = await resolveNextcloudUser('ghost')
 		expect(option).toEqual({ id: 'ghost', label: 'ghost' })
+	})
+})
+
+// Core autocomplete never returns the person searching, so without these the
+// user could not pick themselves (audit D4, 7 October 2026).
+describe('the signed-in user', () => {
+	const henk = { id: 'henk', label: 'Henk Bakker', source: 'users', shareType: 0 }
+
+	beforeEach(() => {
+		getCurrentUser.mockReturnValue({ uid: 'ruben', displayName: 'Ruben van der Linde' })
+	})
+
+	it('comes first when the search matches their name', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [henk] } } })
+		const options = await searchNextcloudUsers('linde')
+		expect(options.map((o) => o.id)).toEqual(['ruben', 'henk'])
+		expect(options[0]).toEqual({ id: 'ruben', label: 'Ruben van der Linde', displayName: 'Ruben van der Linde', subline: '' })
+	})
+
+	it('comes first on the initial empty search', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [henk] } } })
+		const options = await searchNextcloudUsers('')
+		expect(options.map((o) => o.id)).toEqual(['ruben', 'henk'])
+	})
+
+	it('is left out when the search does not match', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [henk] } } })
+		const options = await searchNextcloudUsers('bakker')
+		expect(options.map((o) => o.id)).toEqual(['henk'])
+	})
+
+	it('is not listed twice when the server returns them', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [{ id: 'ruben', label: 'Ruben van der Linde', source: 'users', shareType: 0 }] } } })
+		const options = await searchNextcloudUsers('rub')
+		expect(options.map((o) => o.id)).toEqual(['ruben'])
+	})
+
+	it('is left out of a mention search', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [henk] } } })
+		const options = await searchNextcloudUsers('', { includeCurrentUser: false })
+		expect(options.map((o) => o.id)).toEqual(['henk'])
+	})
+
+	it('resolves their own uid to their display name', async () => {
+		axios.get.mockResolvedValue({ status: 200, data: { ocs: { data: [] } } })
+		const option = await resolveNextcloudUser('ruben')
+		expect(option.label).toBe('Ruben van der Linde')
 	})
 })

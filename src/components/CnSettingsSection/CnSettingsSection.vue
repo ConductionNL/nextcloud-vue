@@ -1,9 +1,11 @@
 <template>
 	<NcSettingsSection
+		v-if="open"
 		:name="name"
-		:description="description"
+		:description="shownDescription"
 		:docUrl="docUrl"
 		data-testid="cn-settings-section"
+		:class="{ 'cn-settings-section--wide': wide, 'cn-settings-section--title-actions': actionsInTitle && Boolean($slots.actions) }"
 		v-bind="$attrs">
 		<!-- Action buttons positioned top-right -->
 		<div v-if="$slots.actions" class="cn-settings-section__actions">
@@ -57,6 +59,12 @@
 		<div v-if="$slots.footer" class="cn-settings-section__footer">
 			<slot name="footer" />
 		</div>
+
+		<!-- `footerLink`: where the list in this card is managed, at the
+		     end of the card (DqVthInstellingen "Leges beheren in shillinq"). -->
+		<p v-if="footerHref" class="cn-settings-section__footer-link">
+			<a :href="footerHref" data-testid="cn-settings-section-footer-link">{{ footerLink.label }}</a>
+		</p>
 	</NcSettingsSection>
 </template>
 
@@ -65,6 +73,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import { safeHref } from '../../utils/safeHref.js'
 
 /**
  * CnSettingsSection - Admin settings section wrapper with consistent layout.
@@ -120,6 +129,17 @@ export default {
 	inheritAttrs: false,
 
 	props: {
+		/**
+		 * Draw the `actions` slot in the title row, beside the heading, as
+		 * the boards do, instead of floating it right above the content.
+		 *
+		 * @spec openspec/changes/settings-section-title-actions/specs/settings-section-title-actions/spec.md#requirement-a-settings-section-can-draw-its-actions-in-its-title-row
+		 */
+		actionsInTitle: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Section name/title */
 		name: {
 			type: String,
@@ -130,6 +150,18 @@ export default {
 		description: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Span the whole row of the settings grid instead of one column. Only
+		 * the board look draws a grid; elsewhere the section is full width
+		 * anyway.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-settings-sections-are-cards-in-a-grid
+		 */
+		wide: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Detailed description shown in a separate block below the title */
@@ -191,6 +223,81 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
 		},
+
+		/**
+		 * A link at the end of the card to where its list is managed:
+		 * `{ label, href }`, the label already translated. Drawn only with
+		 * both and a safe href.
+		 *
+		 * @spec openspec/changes/settings-section-footer-link/specs/settings-section-footer-link/spec.md#requirement-a-settings-section-can-end-with-a-link
+		 */
+		footerLink: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The row this card is opened from, already translated: the card shows
+		 * only while the page's hash names its `id` (the row's settings link,
+		 * `#<id>`), and says "Opened from the row {row}" under its title in
+		 * place of its description (DqInstellingen "Kadaster (BRK) en WOZ").
+		 * Empty: the card is always shown.
+		 *
+		 * @spec openspec/changes/settings-section-opened-from-row/specs/settings-section-opened-from-row/spec.md#requirement-a-settings-card-can-be-opened-from-a-row
+		 */
+		openedFrom: {
+			type: String,
+			default: '',
+		},
+	},
+
+	data() {
+		return { hash: typeof window !== 'undefined' ? window.location.hash : '' }
+	},
+
+	computed: {
+		/** @return {boolean} Whether the card is drawn: always, unless it opens from a row that was not followed. */
+		open() {
+			if (this.openedFrom === '') {
+				return true
+			}
+			const id = this.$attrs.id
+			return typeof id === 'string' && id !== '' && this.hash === `#${id}`
+		},
+
+		/** @return {string} The line under the title. */
+		shownDescription() {
+			return this.openedFrom === ''
+				? this.description
+				: t('nextcloud-vue', 'Opened from the row {row}', { row: this.openedFrom })
+		},
+
+		/** @return {string} The footer link's safe href, or '' for no link. */
+		footerHref() {
+			const link = this.footerLink
+			if (!link || typeof link.label !== 'string' || link.label === '' || typeof link.href !== 'string' || link.href === '') {
+				return ''
+			}
+			const href = safeHref(link.href)
+			return href === '#' ? '' : href
+		},
+	},
+
+	mounted() {
+		if (this.openedFrom !== '') {
+			window.addEventListener('hashchange', this.onHashChange)
+		}
+	},
+
+	beforeUnmount() {
+		window.removeEventListener('hashchange', this.onHashChange)
+	},
+
+	methods: {
+		/** Follow the page's hash, which names the card a row opened. */
+		onHashChange() {
+			this.hash = window.location.hash
+		},
 	},
 }
 </script>
@@ -208,6 +315,31 @@ export default {
 
 .cn-settings-section__content {
 	clear: both;
+}
+
+/* Actions in the title row (`actionsInTitle`): the heading and the actions
+   share the first row, everything else runs below across the width. */
+.cn-settings-section--title-actions {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	column-gap: 12px;
+	align-items: start;
+}
+
+.cn-settings-section--title-actions :deep(> *) {
+	grid-column: 1 / -1;
+}
+
+.cn-settings-section--title-actions :deep(> h2) {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+.cn-settings-section--title-actions > .cn-settings-section__actions {
+	grid-column: 2;
+	grid-row: 1;
+	float: none;
+	align-self: center;
 }
 
 .cn-settings-section__description-text {
@@ -262,6 +394,17 @@ export default {
 .cn-settings-section__empty-content p {
 	margin: 0;
 	font-size: 14px;
+}
+
+.cn-settings-section__footer-link {
+	margin: 16px 0 0;
+	text-align: end;
+}
+
+.cn-settings-section__footer-link a {
+	color: var(--color-primary-element-text-dark, var(--color-primary-element));
+	font-weight: 600;
+	text-decoration: underline;
 }
 
 .cn-settings-section__footer {

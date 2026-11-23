@@ -2,16 +2,24 @@
 
 ### Props
 
-| Name                | Type     | Required | Default                                                 | Description                                         |
-| ------------------- | -------- | -------- | ------------------------------------------------------- | --------------------------------------------------- |
-| `objectId`          | `string` | ✓        | —                                                       | ID of the object this tab belongs to                |
-| `register`          | `string` |          | `''`                                                    | OpenRegister register slug                          |
-| `schema`            | `string` |          | `''`                                                    | JSON Schema definition for the object               |
-| `apiBase`           | `string` |          | `'/apps/openregister/api'`                              | Base URL for the OpenRegister API                   |
-| `noAuditTrailLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'No audit trail entries')` | Text shown when there are no audit trail entries    |
-| `noMatchLabel`      | `string` |          | `() =&gt; t('nextcloud-vue', 'No matching entries')`    | Text shown when no entries match the current filter |
-| `actionFilterLabel` | `string` |          | `() =&gt; t('nextcloud-vue', 'Action')`                 | Label for the action filter control                 |
-| `userFilterLabel`   | `string` |          | `() =&gt; t('nextcloud-vue', 'User')`                   | Label for the user filter control                   |
-| `fromLabel`         | `string` |          | `() =&gt; t('nextcloud-vue', 'From')`                   | Label for the date-from filter                      |
-| `toLabel`           | `string` |          | `() =&gt; t('nextcloud-vue', 'To')`                     | Label for the date-to filter                        |
-| `loadMoreLabel`     | `string` |          | `() =&gt; t('nextcloud-vue', 'Load more')`              | Label for the load-more button                      |
+| Name                | Type      | Required | Default                                                 | Description                                                                                                                       |
+| ------------------- | --------- | -------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `objectId`          | `string`  | ✓        | —                                                       | ID of the object this tab belongs to                                                                                              |
+| `register`          | `string`  |          | `''`                                                    | OpenRegister register slug                                                                                                        |
+| `schema`            | `string`  |          | `''`                                                    | JSON Schema definition for the object                                                                                             |
+| `apiBase`           | `string`  |          | `'/apps/openregister/api'`                              | Base URL for the OpenRegister API                                                                                                 |
+| `noAuditTrailLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'No audit trail entries')` | Text shown when there are no audit trail entries                                                                                  |
+| `noMatchLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'No matching entries')`    | Text shown when no entries match the current filter                                                                               |
+| `actionFilterLabel` | `string`  |          | `() =&gt; t('nextcloud-vue', 'Action')`                 | Label for the action filter control                                                                                               |
+| `userFilterLabel`   | `string`  |          | `() =&gt; t('nextcloud-vue', 'User')`                   | Label for the user filter control                                                                                                 |
+| `fromLabel`         | `string`  |          | `() =&gt; t('nextcloud-vue', 'From')`                   | Label for the date-from filter                                                                                                    |
+| `toLabel`           | `string`  |          | `() =&gt; t('nextcloud-vue', 'To')`                     | Label for the date-to filter                                                                                                      |
+| `loadMoreLabel`     | `string`  |          | `() =&gt; t('nextcloud-vue', 'Load more')`              | Label for the load-more button                                                                                                    |
+| `allowRestore`      | `boolean` |          | `false`                                                 | Offer "Restore this version" on an expanded create or update entry. Off by default: a tab rendered without it shows no button.    |
+| `objectData`        | `union`   |          | `null`                                                  | The record as the page holds it. Read for `@self.actions` (the button is hidden when the reader may not update) and for the lock. |
+
+### Events
+
+| Name       | Payload | Description                                                  |
+| ---------- | ------- | ------------------------------------------------------------ |
+| `restored` | —       | Emitted with the restored record after a successful restore. |

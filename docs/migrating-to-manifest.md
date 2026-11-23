@@ -703,7 +703,10 @@ everything else is a literal. `register` defaults to the page's `config.register
 (`CnIndexPage` fills it in before handing the columns to `CnDataTable` — so most
 manifests can omit it). The cell shows `…` while the count is loading and `—` if the
 request fails (logged); a failed cell never blanks the page, and a stale batch is
-discarded when the rows change. `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
+discarded when the rows change. A count of zero shows `0`, unless the column
+sets `aggregate.zeroLabel`: then a zero reads as that label, translated through the
+app's `cnTranslate` (`"zeroLabel": "None"` with a Dutch catalogue entry reads "Geen",
+as the drawn boards show it). `op` is `"count"` for now (`sum`/`min`/`max`/`avg`,
 each needing a `field`, are a planned follow-up — the column-config shape is forward-compatible).
 
 > `aggregate` columns light up on a manifest `type:"index"` page because `CnIndexPage` self-fetches its `register`+`schema` collection (see below) — and also work on any consumer that passes `rows` + `columns` (with `aggregate`) to `CnDataTable` directly, or via `CnTableWidget`'s self-fetch mode.
@@ -798,6 +801,26 @@ If you want a few of the read-only defaults overridden, mix them in:
 }
 ```
 
+### Placing built-in row actions (`"builtin:<id>"` in `config.actions`)
+
+App row actions come first and the enabled built-ins (View, Edit, Copy, Delete) are appended. To place a built-in among your own actions, name it with `"builtin:view"`, `"builtin:edit"`, `"builtin:copy"` or `"builtin:delete"`:
+
+```jsonc
+"config": {
+  "actionToggles": { "showViewAction": false },
+  "actions": [
+    "builtin:edit",
+    "builtin:copy",
+    { "id": "file-list", "label": "File list", "handler": "openPublicationFiles" },
+    "builtin:delete"
+  ]
+}
+```
+
+The toggles still decide whether each built-in renders, and enabled built-ins you do not place are appended after everything else. See [CnIndexPage: Placing built-in row actions](./components/cn-index-page.md#placing-built-in-row-actions) for the full rules.
+
+**Required step: raise your library range.** The placeholders ship in manifest schema `2.50.0`. Raise your app's `@conduction/nextcloud-vue` range to the release that ships them in the same change that adds the first placeholder. An older library rejects the manifest; `useAppManifest` then keeps the unresolved bundled manifest, so the app loses its backend manifest merge and its `@resolve:` sentinel resolution on every page, not only the row order.
+
 ## Built-in cell formatters / widgets
 
 `CnAppRoot` ships a few built-in `cnFormatters` / `cnCellWidgets` so common manifest cell-rendering needs work without per-app boilerplate. Consumer-registered entries with the same id win on collision (override path).
@@ -812,8 +835,9 @@ If you want a few of the read-only defaults overridden, mix them in:
 | `currency` | `Intl.NumberFormat` currency — EUR default; the column's `formatterOptions` may set `currency` (ISO-4217, guarded — an invalid code falls back to EUR) and `decimals` (default 2). |
 | `conditionalPhrase` | Sign/zero-based phrase selection over a numeric field (generalizes `daysUntil`): `formatterOptions { negative, zero, positive }` supply pre-translated phrases; `{n}` is replaced by the absolute value (e.g. `-3` + `"{n} days overdue"` → "3 days overdue"). |
 | `count` | Summarises a collection-valued cell as an entry count instead of a truncated JSON blob — array entries or object keys, a collection persisted as a JSON string, or a present scalar counting as 1. Every empty value (`null`, `''`, `0`, `false`, an empty collection) takes the zero phrase. `formatterOptions { singular, plural, zero }` supply pre-translated phrases with `{n}` substituted; without them it renders the bare count. |
-| `connectionStatus` | Renders a connection registry status as its label: `configured` is Configured, `limited` is Limited, `unconfigured` is Not configured, `simulated` is Simulated, `disabled` is Switched off, `unavailable` is Not available, `error` is Error. Any other value passes through unchanged. Translated through the library catalogue, Dutch included. |
+| `connectionStatus` | Renders a connection registry status as its label: `configured` is Configured, `limited` is Limited, `unconfigured` is Not configured, `simulated` is Simulated, `disabled` is Switched off, `unavailable` is Not available, `error` is Error. Any other value passes through unchanged. Translated through the library catalogue, Dutch included. With `formatterOptions: { short: true }` it renders the board's three short labels instead: On (configured, limited, simulated), Off (not configured, switched off, not available) and Error; in Dutch Aan, Uit and Fout. |
 | `connectionSettingsLabel` | Renders "Open settings" when the row's `settingsUrl` is a non-empty string, and nothing otherwise. Pair it with the `link` cell widget so a connection without a settings section offers no link. |
+| `masked` | Shows all but the last `formatterOptions.visible` characters (default 4) as `*`, at most five: an IBAN reads `*****4300`. Display only, not an access control: the full value is still in the row the page received. Hide a value the reader must not have in OpenRegister. |
 
 ```jsonc
 "columns": [
@@ -1087,6 +1111,9 @@ This makes mechanical i18n key checking possible in CI — every translatable st
 import { validateManifest } from '@conduction/nextcloud-vue'
 
 const result = validateManifest(myManifest)
+for (const warning of result.warnings ?? []) {
+	console.warn('manifest warning:', warning)
+}
 if (!result.valid) {
 	console.error('manifest invalid:', result.errors)
 	process.exit(1)
@@ -1094,6 +1121,8 @@ if (!result.valid) {
 ```
 
 The same validator runs at runtime inside `useAppManifest` against any backend-merged result; failures fall back to the bundled manifest with a console.warn.
+
+`warnings` (v2 manifests only) never affect `valid`. Ajv against the raw schema cannot produce them, so an app whose `check:manifest` only runs Ajv should also call `validateManifest()` there and print `warnings`, as above, so they show in CI. A plain node script cannot load the package barrel (it throws `ERR_PACKAGE_PATH_NOT_EXPORTED`); import the built module instead with `await import('@conduction/nextcloud-vue/dist/esm/utils/validateManifest.js')`. See [validateManifest](./utilities/validate-manifest.md#printing-warnings-from-checkmanifest).
 
 ## Schema-validated config shapes
 

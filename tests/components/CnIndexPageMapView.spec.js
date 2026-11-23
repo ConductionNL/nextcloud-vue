@@ -205,3 +205,45 @@ describe('CnIndexPage map view mode', () => {
 		wrapper.unmount()
 	})
 })
+
+/**
+ * Rows sharing one address are the normal case on a case/permit index, not an
+ * edge case. Unclustered, their markers land on identical pixels: the topmost
+ * takes every click and the rest are unreachable, with nothing on screen saying
+ * they are there. Clustering is what makes the stack visible (a count) and
+ * reachable (markercluster spiderfies a cluster whose children never separate).
+ */
+describe('CnIndexPage map view — coincident markers', () => {
+	it('clusters by default, so stacked markers do not hide each other', () => {
+		const wrapper = mountPage({ viewMode: 'map', mapConfig: MAP_CONFIG })
+
+		expect(wrapper.findComponent({ name: 'CnMapWidget' }).props('clustering')).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('still plots every row of a stack, so the cluster count is truthful', () => {
+		// Three cases at one address — what several permits on one building look like.
+		const sameSpot = [
+			{ id: 'a', title: 'Permit 1', lat: 52.09, lng: 5.12 },
+			{ id: 'b', title: 'Permit 2', lat: 52.09, lng: 5.12 },
+			{ id: 'c', title: 'Permit 3', lat: 52.09, lng: 5.12 },
+		]
+		const wrapper = mountPage({ viewMode: 'map', objects: sameSpot, mapConfig: MAP_CONFIG })
+
+		const features = wrapper.findComponent({ name: 'CnMapWidget' }).props('markers').features
+		expect(features).toHaveLength(3)
+		// Not deduplicated by position: three rows, three features, three ids.
+		expect(features.map((f) => f.properties.id).sort()).toEqual(['a', 'b', 'c'])
+		wrapper.unmount()
+	})
+
+	it('lets a consumer turn clustering off explicitly', () => {
+		const wrapper = mountPage({
+			viewMode: 'map',
+			mapConfig: { ...MAP_CONFIG, clustering: false },
+		})
+
+		expect(wrapper.findComponent({ name: 'CnMapWidget' }).props('clustering')).toBe(false)
+		wrapper.unmount()
+	})
+})

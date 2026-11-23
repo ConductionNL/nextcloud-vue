@@ -191,6 +191,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
 
 /**
@@ -385,6 +386,9 @@ export default {
 		 */
 		setPath(path, value) {
 			const keys = path.split('.')
+			if (keys.some(isPrototypeKey)) {
+				return
+			}
 			const last = keys.pop()
 			let target = this.draft
 			for (const key of keys) {

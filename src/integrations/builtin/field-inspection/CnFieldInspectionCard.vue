@@ -37,10 +37,28 @@
 					@click="drain">
 					{{ t('nextcloud-vue', 'Sync {n} pending changes', { n: pendingCount }) }}
 				</NcButton>
+				<NcButton v-if="pendingCount > 0 || stuckCount > 0"
+					data-testid="cn-fi-open-queue"
+					@click="showQueue = !showQueue">
+					{{ showQueue
+						? t('nextcloud-vue', 'Hide what is waiting')
+						: t('nextcloud-vue', 'See what is waiting') }}
+				</NcButton>
+				<!-- 🔴 AN EXPIRED PLANNING USED TO READ AS A CURRENT ONE. This
+				     line only ever said "Ready offline until", in the past tense
+				     or not, so a planning downloaded three days ago looked the
+				     same as one downloaded an hour ago. In the field there is
+				     nothing else to check it against. -->
 				<span v-if="planningMeta" class="cn-field-inspection__meta" data-testid="cn-fi-planning-meta">
-					{{ t('nextcloud-vue', 'Ready offline until {time}', { time: formatTime(planningMeta.expiresAt) }) }}
+					{{ planningIsStale
+						? t('nextcloud-vue', 'This planning is out of date. It was downloaded on {time}.', { time: formatTime(planningMeta.syncedAt) })
+						: t('nextcloud-vue', 'Ready offline until {time}', { time: formatTime(planningMeta.expiresAt) }) }}
 				</span>
 			</div>
+
+			<!-- The card links to the queue rather than owning a second copy
+			     of it: one component, one set of statuses, one set of words. -->
+			<CnOfflineQueue v-if="showQueue" :deviceId="deviceId" @requeued="loadLocal" />
 
 			<NcLoadingIcon v-if="loading" :size="24" />
 
@@ -116,6 +134,13 @@
 					     (an invalid `ButtonType`, so the visual primary style never applied
 					     either). See CnFormPage.vue's inline comment for the submit-button
 					     half of this bug in detail. -->
+					<p v-if="saveError"
+						class="cn-field-inspection__error"
+						role="alert"
+						data-testid="cn-fi-save-error">
+						{{ saveError }}
+					</p>
+
 					<NcButton type="submit"
 						variant="primary"
 						data-testid="cn-fi-save"
@@ -138,9 +163,13 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardCheckOutline from 'vue-material-design-icons/ClipboardCheckOutline.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { checklistProgress, classifyGps, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
+import CnOfflineQueue from '../../../components/CnOfflineQueue/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
+import { buildChecklistSubmission } from '../../offline/checklistSubmission.js'
+import { checklistProgress, classifyGps, normaliseChecklistTemplate, syncIndicator, validateChecklistAnswers } from '../../offline/fieldCollectionHelpers.js'
 import {
 	countPending,
+	countStuck,
 	enqueueMutation,
 	getCachedObject,
 	getPlannedItems,
@@ -164,7 +193,7 @@ const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'singl
 export default {
 	name: 'CnFieldInspectionCard',
 
-	components: { CnDetailCard, NcButton, NcLoadingIcon, NcEmptyContent },
+	components: { CnDetailCard, CnOfflineQueue, NcButton, NcLoadingIcon, NcEmptyContent },
 
 	props: {
 		/** Stable integration id (forwarded from the registry — always `'field-inspection'`). */
@@ -203,6 +232,10 @@ export default {
 			plannedItems: [],
 			planningMeta: null,
 			pendingCount: 0,
+			/** Operations that will not send again without somebody acting. */
+			stuckCount: 0,
+			/** Whether the queue list is open under the card. */
+			showQueue: false,
 			loading: true,
 			syncing: false,
 			saving: false,
@@ -212,6 +245,8 @@ export default {
 			activeTemplate: null,
 			answers: {},
 			errors: [],
+			/** Why the last save could not be queued, in words. */
+			saveError: '',
 		}
 	},
 
@@ -257,8 +292,34 @@ export default {
 			return this.config.plannedSchema || this.schema || this.integrationContext.schema || ''
 		},
 
+		/**
+		 * Whether the cached planning has passed its offline lifetime.
+		 *
+		 * @return {boolean} True when it is past `expiresAt`.
+		 */
+		planningIsStale() {
+			const expiresAt = this.planningMeta?.expiresAt
+			if (typeof expiresAt !== 'string' || expiresAt === '') {
+				return false
+			}
+			const expiry = Date.parse(expiresAt)
+			return Number.isNaN(expiry) === false && expiry < Date.now()
+		},
+
+		/**
+		 * Where a conflict found during a drain is filed.
+		 *
+		 * @return {object} The drain config.
+		 */
+		drainConfig() {
+			return {
+				register: this.config.register || this.effectiveRegister,
+				conflictSchema: this.config.conflictSchema || '',
+			}
+		},
+
 		indicator() {
-			return syncIndicator(this.pendingCount, this.offline === false)
+			return syncIndicator(this.pendingCount, this.offline === false, this.stuckCount)
 		},
 
 		progress() {
@@ -319,7 +380,7 @@ export default {
 			if (!iso) {
 				return ''
 			}
-			return new Date(iso).toLocaleString()
+			return new Date(iso).toLocaleString(userLocale())
 		},
 
 		errorFor(questionId) {
@@ -342,6 +403,7 @@ export default {
 				this.plannedItems = await getPlannedItems(this.effectiveRegister, this.effectiveSchema)
 				this.planningMeta = await getPlanningMeta(this.effectiveRegister, this.effectiveSchema)
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionCard] loadLocal failed', e)
@@ -398,8 +460,13 @@ export default {
 			this.errors = []
 			const cfg = this.config
 			const templateRef = item?.[cfg.templateRefField]
+			// The app's template shape (sections, its own item keys and type
+			// words) is read into the leaf's flat item list here, once.
 			this.activeTemplate = templateRef
-				? await getCachedObject(this.effectiveRegister, cfg.referenceSchema, 'references', String(templateRef))
+				? normaliseChecklistTemplate(
+						await getCachedObject(this.effectiveRegister, cfg.referenceSchema, 'references', String(templateRef)),
+						cfg,
+					)
 				: null
 			const initial = {}
 			for (const q of (this.activeTemplate?.items || [])) {
@@ -413,6 +480,7 @@ export default {
 			this.activeTemplate = null
 			this.answers = {}
 			this.errors = []
+			this.saveError = ''
 		},
 
 		/**
@@ -434,7 +502,9 @@ export default {
 		},
 
 		/**
-		 * Validate answers, then queue a `create` mutation for the result.
+		 * Validate answers, then queue the run: an object create on
+		 * `resultSchema`, or, when the config names a `resultEndpoint`, one
+		 * `submit` to that endpoint.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -448,33 +518,32 @@ export default {
 			try {
 				const cfg = this.config
 				const gps = await this.captureGps()
-				const gpsClass = classifyGps(gps)
-				const now = new Date().toISOString()
-				const items = this.activeTemplate.items.map((q) => ({
-					questionId: q.questionId,
-					answer: this.answers[q.questionId].answer,
-					evidenceRefs: this.answers[q.questionId].evidenceRefs,
-					answeredAt: now,
-					gpsAtAnswer: gps ? { ...gps, source: gpsClass.source } : { source: 'sensorless' },
-				}))
-				const payload = {
-					inspectionRef: this.itemId(this.activeItem),
-					checklistTemplateRef: this.activeTemplate.id ?? this.activeTemplate['@self']?.id,
-					items,
-				}
+				const submission = buildChecklistSubmission(cfg, {
+					plannedItem: this.activeItem,
+					template: this.activeTemplate,
+					answers: this.answers,
+					gps,
+					gpsSource: classifyGps(gps).source,
+					capturedAt: new Date().toISOString(),
+					capturedOffline: this.offline,
+				})
 				await enqueueMutation({
 					deviceId: this.deviceId,
-					operationType: 'create',
+					operationType: submission.operationType,
 					register: this.effectiveRegister,
-					schema: cfg.resultSchema,
-					payload,
+					schema: submission.schema,
+					endpoint: submission.endpoint,
+					payload: submission.payload,
+					label: t('nextcloud-vue', '{subject}, checklist', { subject: this.itemTitle(this.activeItem) }),
 				})
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 				this.closeItem()
 				if (this.offline === false) {
 					await this.drain()
 				}
 			} catch (e) {
+				this.saveError = e?.message || t('nextcloud-vue', 'The answers could not be saved on this device.')
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionCard] saveChecklist failed', e)
 			} finally {
@@ -490,8 +559,9 @@ export default {
 		async drain() {
 			this.syncing = true
 			try {
-				await drainQueue(this.deviceId)
+				await drainQueue(this.deviceId, this.drainConfig)
 				this.pendingCount = await countPending(this.deviceId)
+				this.stuckCount = await countStuck(this.deviceId)
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.error('[CnFieldInspectionCard] drain failed', e)

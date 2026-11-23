@@ -1,0 +1,395 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * objectParties — reading the parties of a record as OpenRegister's party
+ * model answers them (`GET .../objects/{register}/{schema}/{id}/parties`:
+ * `{ primary, roles, kinds, byRole, results }`, and `GET .../parties/{uuid}`
+ * for one party with its indicators).
+ *
+ * Pure functions, so CnObjectPartiesWidget and its tests read one shape.
+ *
+ * @module utils/objectParties
+ */
+
+import { translate as t } from '@nextcloud/l10n'
+import { boardDateLocale, formatBoardDate } from './boardDate.js'
+import { readPath } from './readPath.js'
+
+/**
+ * What a role is called: the app's own word (`roleLabels`), else the label
+ * the listing declares, else the key. `other` is a party with no role.
+ *
+ * @param {string} key The role key.
+ * @param {Array<{key: string, label?: string}>} roles The roles the listing declares.
+ * @param {Record<string, string>} [roleLabels] The app's words, by key.
+ * @return {string} The label.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function roleLabel(key, roles, roleLabels = {}) {
+	if (roleLabels && typeof roleLabels[key] === 'string' && roleLabels[key] !== '') {
+		return roleLabels[key]
+	}
+	const declared = (roles || []).find((role) => role && role.key === key)
+	if (declared && declared.label) {
+		return declared.label
+	}
+	return key === 'other' ? t('nextcloud-vue', 'No role') : key
+}
+
+/**
+ * The parties of one role, the primary party first.
+ *
+ * @param {Array<object>} parties The role's rows.
+ * @param {string|null} primary The primary party's uuid.
+ * @return {Array<object>} The rows.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function partiesInOrder(parties, primary) {
+	const rows = Array.isArray(parties) ? parties.filter(Boolean) : []
+	if (!primary) {
+		return rows
+	}
+	return [
+		...rows.filter((row) => row.partyUuid === primary),
+		...rows.filter((row) => row.partyUuid !== primary),
+	]
+}
+
+/**
+ * The roles of a listing as groups, the group holding the primary party first.
+ *
+ * @param {object|null} listing The `/parties` answer.
+ * @param {Record<string, string>} [roleLabels] The app's words for the roles.
+ * @return {Array<{key: string, label: string, parties: Array<object>}>} The groups.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function rolesInOrder(listing, roleLabels = {}) {
+	if (!listing || typeof listing !== 'object') {
+		return []
+	}
+	const byRole = listing.byRole && typeof listing.byRole === 'object' ? listing.byRole : {}
+	const primary = listing.primary || null
+	const groups = Object.keys(byRole).map((key) => ({
+		key,
+		label: roleLabel(key, listing.roles, roleLabels),
+		parties: partiesInOrder(byRole[key], primary),
+	}))
+	const holdsPrimary = (group) => !!primary && group.parties.some((party) => party.partyUuid === primary)
+	return [...groups.filter(holdsPrimary), ...groups.filter((group) => !holdsPrimary(group))]
+}
+
+/**
+ * What an indicator means for what may be done: an indicator always carries
+ * its verdict, never a bare chip. `refuse-publication` and `refuse-send` are
+ * blocking (`error`); anything else asks to be read first (`warning`).
+ *
+ * @param {object} indicator The indicator (`{ key, label, effect }`).
+ * @param {object} [labels] The app's words: `verdictPublication`, `verdictSend`, `verdictWarn`.
+ * @return {{effect: string, severity: string, label: string, verdict: string}} The verdict.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function indicatorVerdict(indicator, labels = {}) {
+	const effect = String(indicator?.effect || '').trim()
+	const label = String(indicator?.label || indicator?.key || '').trim()
+	if (effect === 'refuse-publication') {
+		return { effect, severity: 'error', label, verdict: labels.verdictPublication || t('nextcloud-vue', 'Publishing a file on this record is refused') }
+	}
+	if (effect === 'refuse-send') {
+		return { effect, severity: 'error', label, verdict: labels.verdictSend || t('nextcloud-vue', 'A message to this party is refused') }
+	}
+	return { effect: effect === '' ? 'warn' : effect, severity: 'warning', label, verdict: labels.verdictWarn || t('nextcloud-vue', 'Read this before acting on the record') }
+}
+
+/**
+ * Every indicator on a set of parties, each knowing whose it is.
+ *
+ * @param {Array<object>} parties The party records.
+ * @return {Array<object>} The indicators with `party` and `partyName`.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function indicatorsOf(parties) {
+	const found = []
+	for (const party of parties || []) {
+		if (!party) {
+			continue
+		}
+		for (const indicator of Array.isArray(party.indicators) ? party.indicators : []) {
+			if (indicator) {
+				found.push({ ...indicator, party: party.id || party.uuid || '', partyName: party.name || party.displayName || '' })
+			}
+		}
+	}
+	return found
+}
+
+/**
+ * Who represents whom: participant uuid to the uuid of the party it acts for,
+ * read from role rows (`{ participant, representedParty }`).
+ *
+ * @param {Array<object>|null} rows The role rows.
+ * @return {Record<string, string>} The map.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function representedByMap(rows) {
+	const map = {}
+	for (const row of Array.isArray(rows) ? rows : []) {
+		const participant = String(row?.participant || '').trim()
+		const represented = String(row?.representedParty?.id || row?.representedParty || '').trim()
+		if (participant !== '' && represented !== '') {
+			map[participant] = represented
+		}
+	}
+	return map
+}
+
+/**
+ * The documents a party sent and received: sender is the party, or the party
+ * is among the recipients.
+ *
+ * @param {Array<object>} documents The documents.
+ * @param {string} identifier The party's uuid.
+ * @param {{senderField?: string, recipientsField?: string}} [fields] Where a document names them.
+ * @return {{sent: Array<object>, received: Array<object>}} The two lists.
+ * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
+ */
+export function documentsOfParty(documents, identifier, fields = {}) {
+	const id = String(identifier || '').trim()
+	const rows = Array.isArray(documents) ? documents : []
+	if (id === '') {
+		return { sent: [], received: [] }
+	}
+	const sender = fields.senderField || 'sender'
+	const recipients = fields.recipientsField || 'recipients'
+	return {
+		sent: rows.filter((row) => String(row?.[sender] || '').trim() === id),
+		received: rows.filter((row) => (Array.isArray(row?.[recipients]) ? row[recipients] : []).map((entry) => String(entry || '').trim()).includes(id)),
+	}
+}
+
+/**
+ * The code of a party kind (`code`, else `key`).
+ *
+ * @param {object} kind The kind.
+ * @return {string} The code.
+ */
+export function kindCode(kind) {
+	return String(kind?.code || kind?.key || '')
+}
+
+/**
+ * Whether a party's kind is among the kinds a record accepts. Two
+ * vocabularies meet here: the party's kind is its schema's (`person`,
+ * `organisation`, `colleague`), while the accepted kinds may be role kinds
+ * that name the identity shapes they take (pipelinq's `aanvrager` with
+ * `identityShapes: ["naturalPerson", "organization"]`). When the accepted
+ * kinds name shapes, the party's own kind is matched by the shapes the
+ * listing gives it; a kind that names none cannot be judged and passes.
+ * Otherwise the codes are compared.
+ *
+ * @param {string} partyKind The party's kind key.
+ * @param {Array<object>} accepted The accepted kinds.
+ * @param {Array<object>} own The listing's own kinds (`{ key, identityShapes? }`).
+ * @return {boolean} False only when the party is known not to fit.
+ * @spec openspec/changes/parties-accepted-kinds-by-shape/specs/object-parties/spec.md#requirement-a-party-is-checked-against-the-accepted-kinds-in-one-vocabulary
+ */
+export function partyKindAccepted(partyKind, accepted, own) {
+	const kinds = Array.isArray(accepted) ? accepted : []
+	const shapes = new Set(kinds.flatMap((kind) => (Array.isArray(kind?.identityShapes) ? kind.identityShapes : [])))
+	if (shapes.size === 0) {
+		return kinds.some((kind) => kindCode(kind) === partyKind)
+	}
+	const mine = (Array.isArray(own) ? own : []).find((kind) => kindCode(kind) === partyKind)?.identityShapes
+	if (!Array.isArray(mine) || mine.length === 0) {
+		return true
+	}
+	return mine.some((shape) => shapes.has(shape))
+}
+
+/**
+ * Write a value at a dotted path, creating the objects on the way.
+ *
+ * @param {object} target The object written into.
+ * @param {string} path The dotted path (`name.surname`).
+ * @param {unknown} value The value.
+ * @return {void}
+ */
+function writePath(target, path, value) {
+	const keys = String(path).split('.').filter((key) => key !== '')
+	let node = target
+	keys.slice(0, -1).forEach((key) => {
+		if (!node[key] || typeof node[key] !== 'object') {
+			node[key] = {}
+		}
+		node = node[key]
+	})
+	if (keys.length > 0) {
+		node[keys[keys.length - 1]] = value
+	}
+}
+
+/**
+ * The record a new party is saved as, from the fields a host declares.
+ *
+ * Each field `{ key, path?, address? }` writes its trimmed value at `path`
+ * (default `key`); a field with `address: { path, kind, type }` instead adds
+ * `{ kind, type, value }` to the list at that path, the shape OpenRegister's
+ * party model reads as the party's addresses. `compose` names the paths a
+ * derived field joins with a space, skipping the empty ones
+ * (`{ displayName: ["name.givenNames", "name.namePrefix", "name.surname"] }`).
+ * A field of `type: "integer"` is saved as a number when it reads as one.
+ * An empty value is left out.
+ *
+ * @param {{fields?: Array<object>, compose?: Record<string, Array<string>>}} create The declaration.
+ * @param {Record<string, string>} values The values by field key.
+ * @return {object} The record.
+ * @spec openspec/changes/object-parties-manage/specs/record-widgets/spec.md#requirement-the-parties-widget-can-add-and-remove-parties
+ */
+export function newPartyRecord(create, values) {
+	const record = {}
+	for (const field of Array.isArray(create?.fields) ? create.fields : []) {
+		const value = String(values?.[field?.key] ?? '').trim()
+		if (!field || !field.key || value === '') {
+			continue
+		}
+		if (field.address && field.address.path) {
+			const list = readPath(record, field.address.path)
+			const entry = { kind: field.address.kind || 'correspondence', type: field.address.type || 'email', value }
+			writePath(record, field.address.path, [...(Array.isArray(list) ? list : []), entry])
+			continue
+		}
+		writePath(record, field.path || field.key, field.type === 'integer' && /^-?\d+$/.test(value) ? Number(value) : value)
+	}
+	for (const [target, paths] of Object.entries(create?.compose && typeof create.compose === 'object' ? create.compose : {})) {
+		const joined = (Array.isArray(paths) ? paths : [])
+			.map((path) => String(readPath(record, path) ?? '').trim())
+			.filter((part) => part !== '')
+			.join(' ')
+		if (joined !== '') {
+			writePath(record, target, joined)
+		}
+	}
+	return record
+}
+
+/**
+ * The uuid a create answered with: `id`, `uuid` or `@self.id`.
+ *
+ * @param {object} saved The saved object.
+ * @return {string} The uuid, or ''.
+ * @spec openspec/changes/object-parties-manage/specs/record-widgets/spec.md#requirement-the-parties-widget-can-add-and-remove-parties
+ */
+export function savedUuid(saved) {
+	return String(saved?.['@self']?.id || saved?.uuid || saved?.id || '')
+}
+
+/**
+ * The role rows of a record keyed by their participant.
+ *
+ * @param {Array<object>} rows The role rows.
+ * @return {object} participant uuid → row.
+ * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-party-row-can-read-its-note-from-the-role-record
+ */
+export function roleRowsByParticipant(rows) {
+	const map = {}
+	for (const row of Array.isArray(rows) ? rows : []) {
+		const participant = String(row?.participant || '').trim()
+		if (participant !== '') {
+			map[participant] = row
+		}
+	}
+	return map
+}
+
+/**
+ * The note a board row prints: the link's note, or with `spec`
+ * (`{ from: 'roles', field }`) that field of the party's role row, and
+ * nothing when the party has no role row.
+ *
+ * @param {object} party The listing row (`partyUuid` or `contactUid`, `note`).
+ * @param {object} rolesByParticipant The role rows by participant.
+ * @param {{from?: string, field?: string}|undefined} spec Where the note comes from.
+ * @return {string} The note, or ''.
+ * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-party-row-can-read-its-note-from-the-role-record
+ */
+export function partyNoteOf(party, rolesByParticipant, spec) {
+	if (spec?.from === 'roles' && typeof spec.field === 'string' && spec.field !== '') {
+		const row = (rolesByParticipant || {})[party?.partyUuid || party?.contactUid || '']
+		const value = row ? row[spec.field] : ''
+		return typeof value === 'string' ? value.trim() : ''
+	}
+	return typeof party?.note === 'string' ? party.note : ''
+}
+
+/**
+ * The board row's meta line (DqZaakBetrokkenen "Rollen", design-system #811):
+ * the primary mark, the role, the note and the extra lines, by middots.
+ * A role that follows the primary mark reads in lower case ("Primaire partij ·
+ * verzoeker"), unless it is an abbreviation. A note that starts in lower case
+ * continues the role ("Gemachtigde namens Van Wijk B.V."). No kind word: the
+ * row's role and note already say what the party is.
+ *
+ * @param {{primary: string, role: string, note: string, extras: Array<string>}} parts The parts.
+ * @return {string} The line.
+ * @spec openspec/changes/parties-board-rows-r40/specs/record-widgets/spec.md#requirement-a-board-party-row-reads-as-design-system-811-draws-it
+ */
+export function boardMetaLine({ primary = '', role = '', note = '', extras = [] }) {
+	let shownRole = typeof role === 'string' ? role : ''
+	const abbreviation = shownRole.length > 1 && shownRole[1] === shownRole[1].toUpperCase() && shownRole[1] !== shownRole[1].toLowerCase()
+	if (primary && shownRole !== '' && !abbreviation) {
+		shownRole = shownRole[0].toLowerCase() + shownRole.slice(1)
+	}
+	let shownNote = typeof note === 'string' ? note.trim() : ''
+	const continues = shownRole !== '' && shownNote !== '' && shownNote[0] !== shownNote[0].toUpperCase()
+	if (continues) {
+		shownRole = `${shownRole} ${shownNote}`
+		shownNote = ''
+	}
+	return [primary, shownRole, shownNote, ...(Array.isArray(extras) ? extras : [])]
+		.filter((part) => typeof part === 'string' && part.trim() !== '')
+		.join(' · ')
+}
+
+/**
+ * Whether a party's row says it has no secrecy (`content.secrecy`): its kind
+ * is one of `kinds`, its record carries no indicator keyed `indicator`, and,
+ * with `primaryOnly`, it is the record's primary party.
+ *
+ * @param {object} party The listing row (`partyUuid`, `partyKind`).
+ * @param {object|undefined} record The party record with its `indicators`.
+ * @param {{indicator: string, kinds?: Array<string>, primaryOnly?: boolean}|undefined} secrecy The declaration.
+ * @param {string|null} primary The primary party's uuid.
+ * @return {boolean}
+ * @spec openspec/changes/parties-board-rows-r40/specs/record-widgets/spec.md#requirement-a-party-of-a-listed-kind-says-it-has-no-secrecy
+ */
+export function showsNoSecrecy(party, record, secrecy, primary) {
+	if (!secrecy || typeof secrecy.indicator !== 'string' || secrecy.indicator === '' || !party) {
+		return false
+	}
+	const kinds = Array.isArray(secrecy.kinds) ? secrecy.kinds : []
+	if (kinds.length > 0 && !kinds.includes(party.partyKind)) {
+		return false
+	}
+	if (secrecy.primaryOnly === true && (!primary || party.partyUuid !== primary)) {
+		return false
+	}
+	const indicators = Array.isArray(record?.indicators) ? record.indicators : []
+	return !indicators.some((indicator) => indicator && indicator.key === secrecy.indicator)
+}
+
+/**
+ * The pill that names when a party's link ends (`validUntil`), in the app's
+ * words with `{date}`: "Machtiging tot 31 dec". Empty without words or an end.
+ *
+ * @param {object} party The link row.
+ * @param {string} label The words, with `{date}`.
+ * @param {Date} [now] The reference moment, for the year.
+ * @param {string} [locale] BCP 47 tag (defaults to the user's).
+ * @return {string} The pill text, or ''.
+ * @spec openspec/changes/party-representation-end-pill/specs/record-widgets/spec.md#requirement-a-representatives-row-names-when-the-representation-ends
+ */
+export function untilPillOf(party, label, now = new Date(), locale = boardDateLocale()) {
+	const words = typeof label === 'string' ? label : ''
+	const date = words === '' ? '' : formatBoardDate(party?.validUntil, now, locale)
+	return date === '' ? '' : words.replaceAll('{date}', date)
+}

@@ -1,0 +1,391 @@
+/*
+ * The board (screens-kanban-parity, canon section 8).
+ *
+ * Opt-in: CnBoardView adds `cn-board-view--board` when the app takes the
+ * board look (`cnLook` is `board`). Every rule here is scoped under that
+ * class, so a board without the look keeps the fixed 260px columns and the
+ * field lines. The selectors carry `.cn-board-view` as well, to outrank the
+ * component's own scoped rules (same specificity, and those load later). Colours are Nextcloud variables; the dimensions come from the
+ * screens (DqWerkbord): columns of minmax(240px, 1fr) with a 16px gap, a
+ * 12px panel with 12px padding, a 10px card with 14px padding.
+ */
+
+.cn-board-view.cn-board-view--board .cn-board-view__columns {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(240px, 1fr);
+	gap: 16px;
+	align-items: start;
+	overflow-x: auto;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+	padding: 12px;
+	border-radius: 12px;
+	background-color: var(--color-background-dark);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column-head {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column-header--board {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__dot {
+	flex: none;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__badge {
+	margin-inline-start: auto;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background-color: var(--color-main-background);
+	color: var(--cn-board-text-soft, var(--color-main-text));
+	font-size: 12px;
+	font-weight: 700;
+	/* 16px tall on its 1px pad (DqWerkbord's column counts). */
+	line-height: 14px;
+}
+
+/* A column at its limit: the count in the error colour; "full" is said in words too. */
+.cn-board-view.cn-board-view--board .cn-board-view__badge.cn-board-view__badge--full {
+	color: var(--color-error-text, var(--color-error));
+	font-weight: 600;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__column-note {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__sum {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__cards {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background-color: var(--color-main-background);
+	box-shadow: 0 1px 2px var(--color-box-shadow);
+}
+
+/* A late card: a 3px inset edge in the error colour. */
+.cn-board-view.cn-board-view--board .cn-board-view__card--overdue {
+	border-color: var(--color-error);
+	box-shadow: inset 3px 0 0 var(--color-error);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+/* The title is a link drawn as a heading (board DqWerkbord): main text, no
+   underline. `!important` because a theme's `a { color; text-decoration }`
+   carries it (thematiq), and a bare `a` with `!important` beats any class. */
+.cn-board-view.cn-board-view--board .cn-board-view__card-title,
+.cn-board-view.cn-board-view--board .cn-board-view__card-title:visited {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
+	overflow-wrap: anywhere;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-title:hover {
+	color: var(--color-main-text) !important;
+	text-decoration: underline !important;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-title:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-sub {
+	font-size: 13px;
+	line-height: normal;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-cells {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__card-footer {
+	display: flex;
+	line-height: normal;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--cn-board-hairline, var(--color-border));
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__due-text {
+	font-size: 13px;
+	color: var(--color-main-text);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__due-text--soon {
+	font-weight: 600;
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__due-text--overdue {
+	font-weight: 700;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__avatar {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	margin-inline-start: auto;
+	border-radius: 50%;
+	background-color: var(--color-primary-element-light, var(--color-background-hover));
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+	font-size: 11px;
+	font-weight: 700;
+}
+
+/* The card's menu button: 34px, top right. */
+.cn-board-view.cn-board-view--board .cn-board-view__menu-wrap {
+	position: relative;
+	flex: none;
+	margin: -6px -6px 0 0;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-button:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-button:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 1px;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu {
+	position: absolute;
+	inset-block-start: 100%;
+	inset-inline-end: 0;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	min-width: 200px;
+	padding: 6px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background-color: var(--color-main-background);
+	box-shadow: 0 4px 16px var(--color-box-shadow);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-heading {
+	display: block;
+	padding: 4px 10px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	min-height: 36px;
+	margin: 0;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--color-main-text);
+	font: inherit;
+	font-size: 14px;
+	text-align: start;
+	cursor: pointer;
+}
+
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item:hover,
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item:focus-visible {
+	background-color: var(--color-background-hover);
+}
+
+/* A column cut by `columnLimit`: a dashed, full-width, 34px button. Scoped
+   under the board so it outranks Nextcloud's `button:not(.button-vue)` rule,
+   which drew it as a borderless primary-tinted button in bold 15px. */
+.cn-board-view .cn-board-view__show-more {
+	width: 100%;
+	height: 34px;
+	margin: 0;
+	padding: 0 12px;
+	border: 1px dashed var(--color-border-dark);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-main-text);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-board-view .cn-board-view__show-more:hover {
+	background-color: var(--color-background-hover);
+}
+
+.cn-board-view .cn-board-view__show-more:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+/*
+ * screens-board-reference-columns: a wide board wraps its columns onto more
+ * rows (`config.board.wrap`), as many to a row as fit at 240px, instead of
+ * one row that scrolls sideways.
+ */
+.cn-board-view.cn-board-view--wrap .cn-board-view__columns {
+	display: grid;
+	grid-auto-flow: row;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	overflow-x: visible;
+}
+
+.cn-board-view.cn-board-view--wrap:not(.cn-board-view--board) .cn-board-view__columns {
+	gap: 12px;
+}
+
+/* A column the dragged card cannot reach fades; the label stays readable. */
+.cn-board-view .cn-board-view__column--unreachable {
+	opacity: 0.45;
+}
+
+/* The selection checkbox: in the board look's card head, before the title. */
+.cn-board-view .cn-board-view__select {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 2px 0 0;
+	accent-color: var(--color-primary-element);
+	cursor: pointer;
+}
+
+/* Board look: the board draws no checkbox. It shows on a hovered card, on a
+   card holding focus (so Tab still reaches it), once anything is selected, and
+   always where there is no hover. Collapsed rather than hidden, so it stays in
+   the tab order. */
+@media (hover: hover) {
+	.cn-board-view.cn-board-view--board:not(.cn-board-view--selecting) .cn-board-view__card:not(:hover, :focus-within) .cn-board-view__select {
+		width: 0;
+		margin-inline-end: -8px;
+		opacity: 0;
+	}
+}
+
+/* A menu target the card cannot reach: still listed, greyed, with its note. */
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item.cn-board-view__menu-item--blocked {
+	color: var(--color-text-maxcontrast);
+	cursor: not-allowed;
+}
+
+.cn-board-view .cn-board-view__menu-note {
+	margin-inline-start: auto;
+	padding-inline-start: 12px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* A blocked target with the host's reason: the reason on its own line under the name. */
+.cn-board-view.cn-board-view--board .cn-board-view__menu-item.cn-board-view__menu-item--reason {
+	flex-wrap: wrap;
+	max-width: 320px;
+	padding-block: 6px;
+}
+
+.cn-board-view .cn-board-view__menu-reason {
+	flex-basis: 100%;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
+/* While a card is dragged: why it cannot land in this column, under the header.
+   The rest of the column fades; the reason stays at full contrast. */
+.cn-board-view .cn-board-view__column-reason {
+	margin: 0 0 8px;
+	padding: 6px 8px;
+	border-radius: var(--border-radius);
+	background-color: var(--color-main-background);
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--color-main-text);
+}
+
+.cn-board-view .cn-board-view__column--unreachable.cn-board-view__column--reason {
+	opacity: 1;
+}
+
+.cn-board-view .cn-board-view__column--reason > :not(.cn-board-view__column-reason) {
+	opacity: 0.45;
+}

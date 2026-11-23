@@ -142,4 +142,12 @@ describe('CnAdminSettingsShell', () => {
 			expect(broker.props('appCredentials')).toEqual(appCredentials)
 		})
 	})
+
+	it('names a test environment in a banner, and shows none for production', () => {
+		const test = mountShell({ environment: 'test' })
+		expect(test.findComponent({ name: 'CnEnvironmentBanner' }).exists()).toBe(true)
+		expect(test.findComponent({ name: 'CnEnvironmentBanner' }).props('environment')).toBe('test')
+		const production = mountShell({ environment: 'production' })
+		expect(production.findComponent({ name: 'CnEnvironmentBanner' }).exists()).toBe(false)
+	})
 })

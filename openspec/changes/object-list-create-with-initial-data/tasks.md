@@ -13,8 +13,8 @@
   - Tokens are resolved and operator or non-schema keys are dropped
   - A `$ref` field renders as a picker, not a text box, asserted on the rendered form
   - JSDoc and the component reference doc updated
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Locked parent field and create defaults
 - **spec_ref**: `openspec/changes/object-list-create-with-initial-data/specs/cn-workspace-context-widgets/spec.md#requirement-a-prefilled-parent-stays-put`
@@ -23,5 +23,5 @@
   - `lockFilterFields` (default true) renders the prefilled reference read-only with its label
   - `createDefaults` merges over the filter-derived data
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

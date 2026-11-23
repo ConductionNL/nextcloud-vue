@@ -10,6 +10,16 @@ All components exported by `@conduction/nextcloud-vue`, organized by category.
 Every component page below embeds a live demo via `<Playground />` — that's the canonical way to preview a component. If you want the full Vue Styleguidist UI on its own (no narrative, just the interactive sandbox), it's mounted by the gh-pages deploy at <a href="/styleguide/"><strong>/styleguide/</strong></a> — same component set, deep-link via <code>/styleguide/#!/CnDataTable</code>.
 :::
 
+## OpenRegister reliance
+
+Every component is scored on how much it relies on OpenRegister: the references in its own source, plus the files it reaches through its imports. The tier **none** is the shortlist of components that can move to another host first. The numbers are generated on every docs build by `scripts/openregister-reliance.js`; each component page repeats its own line under its reference.
+
+The last three columns come from the buildiq parity project on Tables. **Destination** says where a component goes: `tables` is the Tables app, `nc-vue` is a proposal to Nextcloud's own Vue library, `none` means it is dropped. **Week** is the ISO week we bring it there. **Screenshot** says whether the styleguide renders it today; a component that needs an example has a props page but nothing to show yet. The source is `docs/project/14-component-destinations.md` in the Tables fork; a component without values there is not part of that project.
+
+import RelianceTable from '@site/src/components/RelianceTable'
+
+<RelianceTable />
+
 ## Page Layout
 
 | Component | Description |
@@ -27,10 +37,17 @@ Every component page below embeds a live demo via `<Playground />` — that's th
 | [CnObjectCard](./cn-object-card.md) | Schema-driven card for object display |
 | [CnCardGrid](./cn-card-grid.md) | Responsive CSS grid for CnObjectCard instances |
 | [CnStatusBadge](./cn-status-badge.md) | Color-coded pill badge for status/priority |
+| [CnDisplayScreen](./cn-display-screen.md) | A full page without a menu, read from a distance: a title, a clock, rows and a bottom line |
 | [CnKpiGrid](./cn-kpi-grid.md) | Responsive grid layout for KPI cards |
 | [CnStatsBlock](./cn-stats-block.md) | Statistics card with icon, count, and breakdown |
+| [CnBlockListEditor](./cn-block-list-editor.md) | Typed blocks in order: a palette, drag and buttons with a spoken position, one editor slot per type, drafts |
 | [CnProgressBar](./cn-progress-bar.md) | Labeled horizontal progress bars with variant colors |
+| [CnQrCode](./cn-qr-code.md) | A QR code drawn in the browser, with a code to type in and a code that changes on a timer |
 | [CnItemCard](./cn-item-card.md) | Compact card for sidebar list items with icon, title, and actions |
+| [CnRevealField](./cn-reveal-field.md) | A protected value shown masked until the user asks, fetched on every reveal |
+| [CnChoiceMatrix](./cn-choice-matrix.md) | Rows against columns, every cell one choice from a closed set |
+| [CnGeoCaptureField](./cn-geo-capture-field.md) | Where something was recorded, from the device, with an address by hand as the fallback |
+| [CnTransferCard](./cn-transfer-card.md) | A transfer that takes a while: how far it is, its parts, and resuming after a dropped connection |
 
 ## Data Actions
 
@@ -49,7 +66,9 @@ Every component page below embeds a live demo via `<Playground />` — that's th
 | [CnCopyDialog](./cn-copy-dialog.md) | Two-phase single-item copy with naming pattern |
 | [CnFormDialog](./cn-form-dialog.md) | Schema-driven create/edit form dialog with async select and custom option slots |
 | [CnAdvancedFormDialog](./cn-advanced-form-dialog.md) | Create/edit with properties table, JSON tab, and optional metadata/store |
+| [CnMassActionDialog](./cn-mass-action-dialog.md) | Two-phase confirmation of one action on many items, with item review |
 | [CnMassDeleteDialog](./cn-mass-delete-dialog.md) | Two-phase mass delete with item review |
+| [CnDialogActions](./cn-dialog-actions.md) | Cancel and primary footer buttons for a hand-built dialog |
 | [CnMassCopyDialog](./cn-mass-copy-dialog.md) | Two-phase mass copy with pattern selector |
 | [CnMassExportDialog](./cn-mass-export-dialog.md) | Export format selection dialog |
 | [CnMassImportDialog](./cn-mass-import-dialog.md) | File upload with options and results summary |

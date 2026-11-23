@@ -16,6 +16,7 @@
 			'cn-widget-wrapper--chromeless': chromeless,
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 			'cn-widget-wrapper--high-contrast': highContrast,
+			'cn-widget-wrapper--side-title': titleTone === 'side',
 		}"
 		:data-cn-high-contrast="highContrast ? 'true' : undefined"
 		:style="wrapperStyles">
@@ -32,7 +33,7 @@
 		     `headerIsWorthIt()` carries the reasoning. -->
 		<div v-if="headerIsWorthIt()"
 			class="cn-widget-wrapper__header"
-			:class="{ 'cn-widget-wrapper__header--actions-only': !titleVisible }"
+			:class="{ 'cn-widget-wrapper__header--actions-only': !titleVisible, 'cn-widget-wrapper__header--wrap': headerWrap }"
 			:style="[headerStyles, titleIconStyle]">
 			<!-- Title icon — left: rendered before the title group. Moved
 			     INSIDE header-left so the header's `space-between` cannot pull
@@ -52,9 +53,33 @@
 					v-else-if="iconClass"
 					:class="iconClass"
 					class="cn-widget-wrapper__icon" />
-				<h3 :id="titleId" class="cn-widget-wrapper__title">
+				<!-- An eyebrow (`eyebrow`) is a muted line above the title:
+				     "Saldo per week" above "Prognose 13 weken". -->
+				<!-- A subtitle (`subtitle`) is a muted line under the title:
+				     "Dit kwartaal, beslist binnen de termijn". -->
+				<div v-if="resolvedEyebrow || resolvedSubtitle || headerLinkUnderTitle" class="cn-widget-wrapper__title-stack">
+					<span v-if="resolvedEyebrow" class="cn-widget-wrapper__eyebrow" data-testid="cn-widget-wrapper-eyebrow">{{ resolvedEyebrow }}</span>
+					<component :is="titleTag" :id="titleId" class="cn-widget-wrapper__title">
+						{{ resolvedTitle }}
+					</component>
+					<span v-if="resolvedSubtitle" class="cn-widget-wrapper__subtitle" data-testid="cn-widget-wrapper-subtitle">{{ resolvedSubtitle }}</span>
+					<!-- `headerLink.placement: "title"`: the link under the title
+					     instead of among the actions (DqDashboard "Alles bekijken"). -->
+					<component
+						:is="headerLinkTag"
+						v-if="headerLinkUnderTitle"
+						class="cn-widget-wrapper__header-link cn-widget-wrapper__header-link--under-title"
+						data-testid="cn-widget-wrapper-header-link"
+						v-bind="headerLinkAttrs">
+						{{ headerLinkLabel }}
+					</component>
+				</div>
+				<component :is="titleTag"
+					v-else
+					:id="titleId"
+					class="cn-widget-wrapper__title">
 					{{ resolvedTitle }}
-				</h3>
+				</component>
 				<!-- @slot title-meta Rendered inside the header's left group,
 				     after the title and before the spacer. Use for small
 				     contextual chips (e.g. a date-range badge on chart
@@ -69,6 +94,20 @@
 			     It used to gate both, so a caller who switched the menu off
 			     also lost the Save button for an inline edit, silently. -->
 			<div v-if="actionsAreVisible()" class="cn-widget-wrapper__actions">
+				<!-- One text link in the header (`headerLink`): "All deadlines",
+				     "To the board". A route is a router link, an href a plain
+				     anchor. Sits before the slot and the overflow menu. -->
+				<component
+					:is="headerLinkTag"
+					v-if="headerLinkTag && !headerLinkUnderTitle"
+					class="cn-widget-wrapper__header-link"
+					data-testid="cn-widget-wrapper-header-link"
+					v-bind="headerLinkAttrs">
+					{{ headerLinkLabel }}
+				</component>
+				<!-- The widget's manifest `headerActions`, provided by the
+				     detail host and drawn by the outermost card only. -->
+				<CnWidgetHeaderActionButtons v-if="declaredHeaderActions.length > 0" :actions="declaredHeaderActions" />
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
@@ -137,6 +176,19 @@
 			role="region"
 			:aria-labelledby="titleVisible ? titleId : null"
 			:aria-label="titleVisible ? null : resolvedTitle">
+			<!-- @slot notice The card's state banners, above the body (R1).
+			     Defaults to the `notices` prop, else the notices the detail
+			     host provides for the widget. -->
+			<div v-if="$slots.notice || cardNotices.list.length > 0" class="cn-widget-wrapper__notices">
+				<slot name="notice">
+					<CnCardNotices
+						:notices="cardNotices.list"
+						:objectData="cardNotices.object"
+						:objectId="cardNotices.objectId"
+						@noticeAction="(entry, notice) => $emit('notice-action', entry, notice)"
+						@noticeDismiss="onNoticeDismiss" />
+				</slot>
+			</div>
 			<slot />
 		</div>
 
@@ -157,7 +209,14 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
+import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { WIDGET_NOTICES } from '../../utils/cardNotices.js'
+import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
+import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
 import { slotRenders } from '../../utils/slotContent.js'
+import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
 
 /**
@@ -203,6 +262,29 @@ export default {
 
 	components: {
 		CnActionsMenu,
+		CnCardNotices,
+		CnWidgetHeaderActionButtons,
+	},
+
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+	 */
+	provide() {
+		return {
+			/**
+			 * Whether this card draws a title row, so a widget inside it can
+			 * leave out a heading of its own (nc-widget-header).
+			 *
+			 * @return {boolean}
+			 */
+			cnWidgetTitled: () => this.titleVisible && Boolean(this.displayTitle),
+			// A card inside this one does not draw the widget's header actions again.
+			[WIDGET_HEADER_ACTIONS]: null,
+			// Nor its notices.
+			[WIDGET_NOTICES]: null,
+			// A titled card is a heading; a card inside it is one level deeper.
+			[HEADING_LEVEL]: () => resolveHeadingLevel(this.cnHeadingLevel) + (this.titleVisible ? 1 : 0),
+		}
 	},
 
 	inject: {
@@ -214,6 +296,21 @@ export default {
 		 * function so an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The widget's manifest `headerActions`, resolved and provided by
+		 * the detail host (a ref or an array of `{ key, label, icon,
+		 * variant, run }`). Null inside another card.
+		 */
+		cnWidgetHeaderActions: { from: WIDGET_HEADER_ACTIONS, default: null },
+		/**
+		 * The widget's notices, provided by the detail host (a ref of
+		 * `{ list, object, objectId, dismiss }`). Null inside another card.
+		 */
+		cnWidgetNotices: { from: WIDGET_NOTICES, default: null },
+		/** The title's heading level, from the page or the card around this one (utils/headingLevel.js). */
+		cnHeadingLevel: { from: HEADING_LEVEL, default: DEFAULT_HEADING_LEVEL },
+		/** The app's look; the outline level applies in the board look only, the Nextcloud look keeps h3. */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -221,6 +318,35 @@ export default {
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Widget'),
+		},
+
+		/**
+		 * A short muted line above the title ("Saldo per week" above
+		 * "Prognose 13 weken"), through the host translate. Empty draws none.
+		 */
+		eyebrow: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A muted line under the title, such as the period a chart covers.
+		 * Run through the host translate function. Empty draws none.
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-dashboard-widget-card-can-carry-a-line-under-its-title
+		 */
+		subtitle: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Let the header actions drop under a title block that fills the
+		 * row, instead of squeezing it (widget `headerWrap`).
+		 */
+		headerWrap: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Whether to show the header with title */
@@ -349,6 +475,59 @@ export default {
 		buttons: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The title's tone: `side` titles the card as a side card in the
+		 * board look (a 15px muted heading), for a card in a page's right
+		 * column. Manifest: `titleTone` on the widget definition.
+		 *
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		titleTone: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Resolved header buttons, `[{ key, label, icon, variant, run }]`,
+		 * from a host that draws several cards and cannot provide them per
+		 * card (CnDashboardPage). A detail host's provided list wins.
+		 *
+		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The card's state banners, drawn at the top of the body (R1): each a
+		 * `notice` content (`{ variant, role?, layout?, title?, text,
+		 * actions?, dismissible?, visibleWhen? }`). A detail host's provided
+		 * notices come after these.
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * One text link in the header's actions group, before the overflow
+		 * menu: `{ label, route?, params?, query?, href? }`. A `route` is a
+		 * named router link (needs a router), an `href` a plain anchor. The
+		 * label goes through the host translate function. Null (the
+		 * default) draws nothing. Manifest: `headerLink` on the widget
+		 * definition or its layout entry.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @type {{label: string, route?: string, params?: object, query?: object, href?: string}|null}
+		 */
+		headerLink: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -593,9 +772,44 @@ export default {
 		},
 	},
 
-	emits: ['refresh', 'request-feature'],
+	emits: ['refresh', 'request-feature', 'notice-action', 'notice-dismiss'],
+
+	data() {
+		return {
+			titleIdSuffix: '',
+		}
+	},
 
 	computed: {
+		/**
+		 * The provided header actions, unwrapped.
+		 *
+		 * @return {Array<object>} The buttons, or none.
+		 * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-the-card-that-titles-a-widget-draws-its-header-actions
+		 */
+		/**
+		 * The notices this card draws: its own, then the detail host's.
+		 *
+		 * @return {{list: Array<object>, object: object|null, objectId: string|number}} The notices and the record they read.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		cardNotices() {
+			const provided = this.cnWidgetNotices
+			const host = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			const own = Array.isArray(this.notices) ? this.notices : []
+			const hosted = host && Array.isArray(host.list) ? host.list : []
+			return { list: [...own, ...hosted], object: (host && host.object) || null, objectId: (host && host.objectId) || '' }
+		},
+
+		declaredHeaderActions() {
+			const provided = this.cnWidgetHeaderActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			if (Array.isArray(list) && list.length > 0) {
+				return list
+			}
+			return Array.isArray(this.headerActions) ? this.headerActions : []
+		},
+
 		displayTitle() {
 			return this.title || 'Widget'
 		},
@@ -635,6 +849,68 @@ export default {
 		},
 
 		/**
+		 * The header link's tag: `router-link` for a route (when a router is
+		 * mounted), `a` for an href, '' when there is no usable link.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @return {string}
+		 */
+		headerLinkTag() {
+			return headerLinkTarget(this.headerLink, Boolean(this.$router)).tag
+		},
+
+		/**
+		 * The header link's attributes for its tag.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @return {object}
+		 */
+		headerLinkAttrs() {
+			return headerLinkTarget(this.headerLink, Boolean(this.$router)).attrs
+		},
+
+		/**
+		 * The header link's text, through the host translate function.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-widget-header-carries-a-text-link
+		 * @return {string}
+		 */
+		headerLinkLabel() {
+			const label = this.headerLink && this.headerLink.label
+			return label ? this.effectiveTranslate(label) : ''
+		},
+
+		/**
+		 * The eyebrow through the host translate, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/widget-title-eyebrow/specs/dashboard-page/spec.md#requirement-a-widget-card-can-carry-a-line-above-its-title
+		 */
+		resolvedEyebrow() {
+			return this.eyebrow ? this.effectiveTranslate(this.eyebrow) : ''
+		},
+
+		/**
+		 * The subtitle run through the host translate function.
+		 *
+		 * @return {string}
+		 */
+		resolvedSubtitle() {
+			return this.subtitle ? this.effectiveTranslate(this.subtitle) : ''
+		},
+
+		/**
+		 * Whether the header link sits under the title (`placement: "title"`)
+		 * rather than among the header's actions.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/header-link-under-title/specs/header-link-under-title/spec.md#requirement-a-header-link-can-sit-under-the-title
+		 */
+		headerLinkUnderTitle() {
+			return Boolean(this.headerLinkTag) && this.headerLink?.placement === 'title'
+		},
+
+		/**
 		 * The RENDERED widget title — `displayTitle` run through the host
 		 * translate function. Kept separate from `displayTitle` on purpose:
 		 * `resolvedWidgetId` slugifies the raw title, so identifiers (DOM
@@ -648,16 +924,16 @@ export default {
 		},
 
 		/**
-		 * Stable DOM id for the header title `<h3>`, used as the
-		 * `aria-labelledby` target of the scrollable content region so the
-		 * region gets an accessible name from the widget title (WCAG 4.1.2).
-		 * Derived from `resolvedWidgetId` so it is stable and unique per
-		 * widget instance on the page.
+		 * DOM id for the header title heading, used as the `aria-labelledby`
+		 * target of the scrollable content region so the region gets an
+		 * accessible name from the widget title (WCAG 4.1.2). Derived from
+		 * `resolvedWidgetId`; a wrapper whose id is already taken on the page
+		 * adds its instance uid (see `mounted`).
 		 *
 		 * @return {string}
 		 */
 		titleId() {
-			return `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+			return `cn-widget-wrapper-title-${this.resolvedWidgetId}${this.titleIdSuffix}`
 		},
 
 		/**
@@ -773,6 +1049,16 @@ export default {
 			return this.showTitle && !this.chromeless
 		},
 
+		/**
+		 * The title's tag: h2 directly under a page's h1, deeper when nested.
+		 * The class carries the look, so the tag never changes it.
+		 *
+		 * @return {string}
+		 */
+		titleTag() {
+			return normalizeLook(this.cnLook) === 'board' ? headingTag(this.cnHeadingLevel) : 'h3'
+		},
+
 		wrapperStyles() {
 			const styles = {}
 
@@ -820,7 +1106,32 @@ export default {
 		},
 	},
 
+	mounted() {
+		// Widgets sharing a widget id (object-data cards default to the object
+		// type) would share the title id and name every region after the first.
+		const id = `cn-widget-wrapper-title-${this.resolvedWidgetId}`
+		if (typeof document !== 'undefined' && document.querySelectorAll(`[id="${id}"]`).length > 1) {
+			this.titleIdSuffix = `-${this.$.uid}`
+		}
+	},
+
 	methods: {
+		/**
+		 * A notice was closed: tell the host (it drops a runtime notice) and
+		 * the parent.
+		 *
+		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		onNoticeDismiss(notice) {
+			const provided = this.cnWidgetNotices
+			const host = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			if (host && typeof host.dismiss === 'function') {
+				host.dismiss(notice)
+			}
+			this.$emit('notice-dismiss', notice)
+		},
+
 		/**
 		 * Whether the `actions` slot renders anything a reader can see.
 		 *
@@ -861,7 +1172,7 @@ export default {
 			if (this.titleVisible) {
 				return true
 			}
-			if (this.actionsSlotRenders()) {
+			if (this.actionsSlotRenders() || this.declaredHeaderActions.length > 0) {
 				return true
 			}
 			return this.showActions && this.hasActionsSlot
@@ -877,7 +1188,7 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders()
+			return this.showActions || this.actionsSlotRenders() || (Boolean(this.headerLinkTag) && !this.headerLinkUnderTitle) || this.declaredHeaderActions.length > 0
 		},
 
 		/**
@@ -954,6 +1265,18 @@ export default {
 	padding: 16px;
 }
 
+/* The state banners sit above the body; in a flush card they keep the
+   card's inset so they do not touch its edge. */
+.cn-widget-wrapper__notices {
+	margin-bottom: 12px;
+}
+
+.cn-widget-wrapper--flush .cn-widget-wrapper__notices,
+.cn-widget-wrapper__content:has(> .cn-table-container) > .cn-widget-wrapper__notices,
+.cn-widget-wrapper__content:has(> .cn-widget-object-table) > .cn-widget-wrapper__notices {
+	margin: 0 var(--cn-card-notice-inset, 16px) 8px;
+}
+
 /* A TABLE GOES EDGE TO EDGE. ALWAYS.
    A table drawn inside 16px of padding renders a border inside a border — two
    rectangles a few pixels apart, which reads as a mistake because it is one.
@@ -987,6 +1310,15 @@ export default {
 	padding: 0;
 }
 
+/* A form or a search list keeps its padding, the reverse of the table rule
+   above. A dashboard renders every widget `flush`, and without this their
+   fields touch the card's edges. Borderless and chromeless cards, and the
+   Nextcloud dashboard variant, keep their own padding. */
+.cn-widget-wrapper--flush:not(.cn-widget-wrapper--borderless, .cn-widget-wrapper--nc-dashboard) > .cn-widget-wrapper__content:has(> .cn-form-widget),
+.cn-widget-wrapper--flush:not(.cn-widget-wrapper--borderless, .cn-widget-wrapper--nc-dashboard) > .cn-widget-wrapper__content:has(> .cn-kb-search-widget) {
+	padding: 16px;
+}
+
 /* `chromeless` — border and background are already gone through borderless,
    and the content padding through flush. What is left on the root is the
    corner radius, which still clips: with `overflow: hidden` above, a child
@@ -1017,6 +1349,10 @@ export default {
 	padding: 12px 16px;
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
+}
+
+.cn-widget-wrapper__header--wrap {
+	flex-wrap: wrap;
 }
 
 /* Actions with no title beside them. `header-left` is not rendered at all in
@@ -1058,6 +1394,28 @@ export default {
 	height: 24px;
 	flex-shrink: 0;
 	color: var(--cn-widget-icon-color, var(--color-primary-element));
+}
+
+.cn-widget-wrapper__title-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-widget-wrapper__subtitle {
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-widget-wrapper__eyebrow {
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--color-text-maxcontrast);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cn-widget-wrapper__title {
@@ -1116,6 +1474,36 @@ export default {
 	display: flex;
 	gap: 4px;
 	flex-shrink: 0;
+}
+
+/* The header's text link (`headerLink`). Theme hooks: --cn-widget-header-link-size
+   and --cn-widget-header-link-weight. */
+.cn-widget-wrapper__header-link {
+	align-self: center;
+	padding: 0 calc(1 * var(--default-grid-baseline));
+	color: var(--color-primary-element);
+	font-size: var(--cn-widget-header-link-size, 14px);
+	font-weight: var(--cn-widget-header-link-weight, 600);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+/* Under the title it starts at the title's edge and reads as a link. */
+.cn-widget-wrapper__header-link--under-title {
+	align-self: flex-start;
+	padding: 0;
+	text-decoration: underline;
+}
+
+.cn-widget-wrapper__header-link:hover,
+.cn-widget-wrapper__header-link:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-widget-wrapper__header-link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
 }
 
 /* Every widget's header icon is coloured — `--cn-widget-icon-color` is set on

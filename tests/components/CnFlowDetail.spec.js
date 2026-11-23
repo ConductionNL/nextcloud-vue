@@ -196,6 +196,71 @@ describe('CnFlowDetail', () => {
 			expect(load).not.toHaveBeenCalled()
 		})
 	})
+	describe('the toolbar zoom', () => {
+		// REGRESSION. The `- 100% +` group moved a `zoom` number this component
+		// owned and nothing read, so the percentage counted up and down over a
+		// canvas that never moved. The canvas holds the only transform there is.
+		const zoomHarness = async () => {
+			setActivePinia(createPinia())
+			const zoomTo = jest.fn()
+			const wrapper = mount(CnFlowDetail, {
+				global: {
+					stubs: {
+						CnGraphCanvas: {
+							name: 'CnGraphCanvas',
+							props: ['nodes', 'edges'],
+							methods: { zoomTo },
+							template: '<div />',
+						},
+						NcEmptyContent: true,
+						Sitemap: true,
+					},
+					mocks: { t: (app, str) => str },
+				},
+			})
+			await wrapper.vm.$nextTick()
+			return { wrapper, zoomTo }
+		}
+
+		it('asks the CANVAS to zoom, rather than moving a number of its own', async () => {
+			const { wrapper, zoomTo } = await zoomHarness()
+
+			wrapper.vm.zoomBy(-0.1)
+			expect(zoomTo).toHaveBeenCalledWith(0.9)
+
+			wrapper.vm.zoomBy(0.25)
+			expect(zoomTo).toHaveBeenLastCalledWith(1.25)
+
+			wrapper.unmount()
+		})
+
+		it('clamps to the declared range instead of asking for an impossible zoom', async () => {
+			const { wrapper, zoomTo } = await zoomHarness()
+
+			wrapper.vm.zoomTo(99)
+			expect(zoomTo).toHaveBeenLastCalledWith(wrapper.vm.maxZoom)
+
+			wrapper.vm.zoomTo(-5)
+			expect(zoomTo).toHaveBeenLastCalledWith(wrapper.vm.minZoom)
+
+			wrapper.unmount()
+		})
+
+		it('shows the figure the canvas reports, whatever moved it', async () => {
+			const { wrapper } = await zoomHarness()
+
+			// A wheel zoom or a fit-view reaches the toolbar the same way a
+			// button does: the canvas reports, the toolbar mirrors.
+			wrapper.findComponent({ name: 'CnGraphCanvas' }).vm.$emit('zoom-change', 0.75)
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.vm.zoom).toBe(0.75)
+			expect(wrapper.text()).toContain('75%')
+
+			wrapper.unmount()
+		})
+	})
+
 	describe('persisted node positions', () => {
 		/**
 		 * THE FLOW THAT LOADED AS AN EMPTY CANVAS.

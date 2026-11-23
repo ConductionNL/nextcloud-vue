@@ -112,7 +112,7 @@ Use `reset()` from the same composable to re-enable the dialog (tests, admin "sh
 | Event | Payload | Notes |
 | ----- | ------- | ----- |
 | `close` | — | Emitted when the user dismisses the dialog (backdrop, ESC, close icon). Pair with `useSupportDialog().hide` to also persist the dismissal. |
-| `action` | `{ action, url }` | Fired alongside the native `window.open` call on each CTA click. `action` is one of `feature-request`, `app-store`, `donate`, `support`. Useful for analytics. |
+| `action` | `{ action, url, event }` | Fired on each CTA click, before the browser follows the CTA's link (a real `<a target="_blank">`, so it can also be middle-clicked or copied). `action` is one of `feature-request`, `app-store`, `donate`, `support`. Useful for analytics; calling `event.preventDefault()` in the listener cancels the navigation. |
 
 ## Copy guidance
 

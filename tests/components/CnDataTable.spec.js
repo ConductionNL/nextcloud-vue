@@ -17,6 +17,7 @@ jest.mock('@nextcloud/axios', () => ({
 const { mount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnDataTable = require('../../src/components/CnDataTable/CnDataTable.vue').default
+const { openRowTarget } = require('../../src/utils/linkNavigation.js')
 
 /**
  * Mount helper. Stubs CnCellRenderer so the test asserts the *value* the
@@ -136,6 +137,29 @@ describe('CnDataTable — columns[].aggregate', () => {
 		expect(axios.get.mock.calls[firstCalls][1]).toEqual({ params: { automation: 'c', _limit: 0 } })
 		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['1'])
 	})
+
+	// @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+	it('names a zero count with aggregate.zeroLabel, translated through cnTranslate', async () => {
+		axios.get
+			.mockResolvedValueOnce({ data: { total: 0 } })
+			.mockResolvedValueOnce({ data: { total: 4 } })
+		const column = { ...aggregateCol, aggregate: { ...aggregateCol.aggregate, zeroLabel: 'None' } }
+		const wrapper = mount(CnDataTable, {
+			propsData: { rows, columns: [column] },
+			global: { provide: { cnTranslate: (key) => (key === 'None' ? 'Geen' : key) } },
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+		})
+		await flush(wrapper)
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['Geen', '4'])
+	})
+
+	// @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+	it('keeps showing 0 for a zero count when the column sets no zeroLabel', async () => {
+		axios.get.mockResolvedValue({ data: { total: 0 } })
+		const wrapper = mountTable({ rows, columns: [aggregateCol] })
+		await flush(wrapper)
+		expect(wrapper.findAll('.cell').map((w) => w.text())).toEqual(['0', '0'])
+	})
 })
 
 describe('CnDataTable — row click selection', () => {
@@ -185,6 +209,190 @@ describe('CnDataTable — row click selection', () => {
 	})
 })
 
+describe('CnDataTable — a clickable row behaves like a link', () => {
+	const cols = [{ key: 'name', label: 'Name' }]
+	let openSpy
+
+	beforeEach(() => {
+		openSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+	})
+
+	afterEach(() => openSpy.mockRestore())
+
+	/**
+	 * Mount a navigating table with a router mock.
+	 *
+	 * @param {object} props Extra props.
+	 * @return {{ wrapper: object, $router: object }} The wrapper and router mock.
+	 */
+	function mountLinked(props = {}) {
+		const $router = {
+			resolve: jest.fn((loc) => ({ href: `/apps/x/#/items/${loc.params.id}` })),
+			push: jest.fn(() => Promise.resolve()),
+		}
+		const wrapper = mount(CnDataTable, {
+			propsData: {
+				rows,
+				columns: cols,
+				selectable: false,
+				rowClickRoute: (row) => ({ name: 'item', params: { id: row.id } }),
+				...props,
+			},
+			stubs: { CnCellRenderer: { props: ['value'], template: '<span class="cell">{{ value }}</span>' } },
+			mocks: { $router },
+		})
+		return { wrapper, $router }
+	}
+
+	it('navigates in place on a plain click and emits row-click with (row, event)', async () => {
+		const { wrapper, $router } = mountLinked()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click')
+		expect($router.push).toHaveBeenCalledWith({ name: 'item', params: { id: 'a' } })
+		expect(openSpy).not.toHaveBeenCalled()
+		const [row, event] = wrapper.emitted('row-click')[0]
+		expect(row).toEqual(rows[0])
+		expect(event).toBeInstanceOf(MouseEvent)
+	})
+
+	it.each([
+		['ctrl', { ctrlKey: true }],
+		['cmd', { metaKey: true }],
+		['shift', { shiftKey: true }],
+	])('opens the row in a new tab on a %s-click', async (_label, init) => {
+		const { wrapper, $router } = mountLinked()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', init)
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
+		expect($router.push).not.toHaveBeenCalled()
+	})
+
+	it('opens the row in a new tab on a middle click (auxclick) and emits row-aux-click, not row-click', async () => {
+		const { wrapper, $router } = mountLinked()
+		await wrapper.findAll('.cn-table-row').at(0).trigger('auxclick', { button: 1 })
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
+		expect($router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('row-aux-click')[0][1].button).toBe(1)
+		// A host whose row-click listener navigates must not hear a middle click.
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+	})
+
+	it('cancels a middle press on a clickable row so the browser does not autoscroll', async () => {
+		const { wrapper } = mountLinked()
+		const event = new MouseEvent('mousedown', { button: 1, cancelable: true, bubbles: true })
+		wrapper.findAll('.cn-table-row').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+	})
+
+	it('ignores a right-button auxclick and keeps the context menu', async () => {
+		const { wrapper, $router } = mountLinked()
+		const row = wrapper.findAll('.cn-table-row').at(0)
+		await row.trigger('auxclick', { button: 2 })
+		await row.trigger('contextmenu')
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+		expect(openSpy).not.toHaveBeenCalled()
+		expect($router.push).not.toHaveBeenCalled()
+		expect(wrapper.emitted('row-context-menu')).toHaveLength(1)
+	})
+
+	it('ignores a middle click on a nested control or the checkbox cell', async () => {
+		const { wrapper } = mountLinked({ rowClickToView: true, selectable: true })
+		const row = wrapper.findAll('.cn-table-row').at(0)
+		await row.find('.cn-table-col--checkbox').trigger('auxclick', { button: 1 })
+		const button = document.createElement('button')
+		row.find('.cell').element.appendChild(button)
+		button.dispatchEvent(new MouseEvent('auxclick', { button: 1, bubbles: true }))
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('ignores a middle click on a select-on-click table', async () => {
+		const { wrapper } = mountLinked({ selectable: true, selectedIds: [] })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('auxclick', { button: 1 })
+		expect(wrapper.emitted('row-click')).toBeFalsy()
+		expect(wrapper.emitted('select')).toBeFalsy()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('does not open a second tab when a row-click listener already opened one', async () => {
+		const { wrapper } = mountLinked({ onRowClick: (_row, event) => openRowTarget(event, 'https://example.com/a') })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
+		expect(openSpy).toHaveBeenCalledTimes(1)
+		expect(openSpy).toHaveBeenCalledWith('https://example.com/a', '_blank', 'noopener,noreferrer')
+	})
+
+	it('still opens the tab when a row-click listener only prevented the default', async () => {
+		const { wrapper } = mountLinked({ onRowClick: (_row, event) => event.preventDefault() })
+		await wrapper.findAll('.cn-table-row').at(0).trigger('click', { ctrlKey: true })
+		expect(openSpy).toHaveBeenCalledWith('/apps/x/#/items/a', '_blank', 'noopener,noreferrer')
+	})
+
+	it('renders the row as a real link, named by its first cell', () => {
+		const { wrapper } = mountLinked()
+		const link = wrapper.findAll('[data-testid="cn-row-link"]').at(0)
+		expect(link.element.tagName).toBe('A')
+		expect(link.attributes('href')).toBe('/apps/x/#/items/a')
+		expect(link.attributes('aria-label')).toBe('Welcome flow')
+		expect(wrapper.findAll('.cn-table-row').at(0).classes()).toContain('cn-table-row--linked')
+	})
+
+	it('routes once on a plain click on the link', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+		expect($router.push).toHaveBeenCalledTimes(1)
+		expect($router.push).toHaveBeenCalledWith({ name: 'item', params: { id: 'a' } })
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('leaves a ctrl-click on the link to the browser', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true })
+		const link = wrapper.findAll('[data-testid="cn-row-link"]').at(0).element
+		// Stand in for the browser opening the href, which jsdom cannot do.
+		link.addEventListener('click', (e) => e.preventDefault())
+		link.dispatchEvent(event)
+		expect($router.push).not.toHaveBeenCalled()
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('routes in place on an alt-click on the link, instead of leaving it to the browser download', async () => {
+		const { wrapper, $router } = mountLinked()
+		const event = new MouseEvent('click', { button: 0, altKey: true, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+		expect($router.push).toHaveBeenCalledTimes(1)
+		expect(openSpy).not.toHaveBeenCalled()
+	})
+
+	it('names the link generically when the first cell is empty or not plain text', () => {
+		const { wrapper } = mountLinked({ rows: [{ id: 'a', name: '' }, { id: 'b', name: ['x'] }, { id: 'c', name: { id: 1 } }] })
+		const labels = wrapper.findAll('[data-testid="cn-row-link"]').map((link) => link.attributes('aria-label'))
+		expect(labels).toEqual(['Open row', 'Open row', 'Open row'])
+	})
+
+	it('keeps the browser menu on a right-click on the link when no host renders one', () => {
+		const { wrapper } = mountLinked()
+		const event = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(false)
+		expect(wrapper.emitted('row-context-menu')).toHaveLength(1)
+	})
+
+	it('prevents the browser menu on a right-click on the link when a host listens for row-context-menu', () => {
+		const { wrapper } = mountLinked({ onRowContextMenu: jest.fn() })
+		const event = new MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })
+		wrapper.findAll('[data-testid="cn-row-link"]').at(0).element.dispatchEvent(event)
+		expect(event.defaultPrevented).toBe(true)
+	})
+
+	it('renders no link where a row click selects, or where rows have no route', () => {
+		const selecting = mountLinked({ selectable: true, selectedIds: [] }).wrapper
+		expect(selecting.find('[data-testid="cn-row-link"]').exists()).toBe(false)
+		const unrouted = mountLinked({ rowClickRoute: null }).wrapper
+		expect(unrouted.find('[data-testid="cn-row-link"]').exists()).toBe(false)
+	})
+})
+
 // OpenRegister system/metadata fields live under the object's `@self` block.
 // Sidebar-enabled metadata columns (uri, size, owner, ...) use bare keys, so
 // the table must fall back to @self for them — without it they render blank.
@@ -217,9 +425,10 @@ describe('CnDataTable — hideHeader', () => {
 		expect(wrapper.find('thead').exists()).toBe(true)
 	})
 
-	it('omits the <thead> when hideHeader is set', () => {
+	it('draws no header row when hideHeader is set, only hidden header cells', () => {
 		const wrapper = mountTable({ rows, columns: ['name'], hideHeader: true })
-		expect(wrapper.find('thead').exists()).toBe(false)
+		expect(wrapper.find('thead').classes()).toContain('cn-data-table__hidden-head')
+		expect(wrapper.find('thead button').exists()).toBe(false)
 		// Rows still render.
 		expect(wrapper.findAll('.cn-table-row').length).toBe(2)
 	})
@@ -227,6 +436,66 @@ describe('CnDataTable — hideHeader', () => {
 
 // A #footer scoped slot lets a host render its own footer link with its own
 // handler (a "+ New" create action, or an always-shown "View all") — usable
+describe('CnDataTable — a tooltip only where the cell is cut short', () => {
+	const COLUMNS = [{ key: 'email', label: 'Email' }]
+
+	/**
+	 * Hover one cell with the given measured geometry.
+	 *
+	 * jsdom lays nothing out, so `scrollWidth` and `clientWidth` are both 0 and
+	 * have to be stated for the read to mean anything.
+	 *
+	 * @param {number} scrollWidth The content width.
+	 * @param {number} clientWidth The visible width.
+	 * @return {object} The hovered cell element and its wrapper.
+	 */
+	const hoverCell = async (scrollWidth, clientWidth) => {
+		const wrapper = mountTable({ columns: COLUMNS, rows: [{ email: 'a.very.long.address@supplier.test' }] })
+		const cell = wrapper.find('tbody td').element
+		Object.defineProperty(cell, 'scrollWidth', { value: scrollWidth, configurable: true })
+		Object.defineProperty(cell, 'clientWidth', { value: clientWidth, configurable: true })
+		await wrapper.find('tbody td').trigger('mouseenter')
+		return { wrapper, cell }
+	}
+
+	it('titles a clipped cell with its full text', async () => {
+		const { wrapper, cell } = await hoverCell(420, 200)
+
+		expect(cell.getAttribute('title')).toBe('a.very.long.address@supplier.test')
+
+		wrapper.unmount()
+	})
+
+	it('leaves a cell that fits without one, rather than repeating what is on screen', async () => {
+		const { wrapper, cell } = await hoverCell(180, 200)
+
+		expect(cell.hasAttribute('title')).toBe(false)
+
+		wrapper.unmount()
+	})
+
+	it('tolerates a pixel, so sub-pixel rounding does not read as clipped', async () => {
+		const { wrapper, cell } = await hoverCell(201, 200)
+
+		expect(cell.hasAttribute('title')).toBe(false)
+
+		wrapper.unmount()
+	})
+
+	it('drops a stale title when the cell no longer overflows', async () => {
+		const { wrapper, cell } = await hoverCell(420, 200)
+		expect(cell.hasAttribute('title')).toBe(true)
+
+		// The column was widened since the last hover; the read happens again.
+		Object.defineProperty(cell, 'clientWidth', { value: 500, configurable: true })
+		await wrapper.find('tbody td').trigger('mouseenter')
+
+		expect(cell.hasAttribute('title')).toBe(false)
+
+		wrapper.unmount()
+	})
+})
+
 // outside a vue-router context, where the built-in link's $router.push no-ops.
 describe('CnDataTable — #footer slot', () => {
 	it('renders custom footer content instead of the built-in view-all link', () => {

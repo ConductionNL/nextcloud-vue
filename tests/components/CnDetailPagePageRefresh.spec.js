@@ -85,7 +85,7 @@ describe('CnDetailPage — cn:page:refresh', () => {
 
 		// THE DEFECT. Pre-fix this was 0: a successful write announced itself
 		// and the page carried on showing what it had fetched on mount.
-		expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1')
+		expect(store.fetchObject).toHaveBeenCalledWith('openbuilt-application', 'a-1', { extend: ['@self.can'] })
 	})
 
 	it('does not re-register the type, which would blank the object mid-refresh', async () => {

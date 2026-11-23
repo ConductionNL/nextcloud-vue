@@ -9,6 +9,8 @@ import GeneratedRef from './_generated/CnMassDeleteDialog.md'
 
 Two-phase mass delete confirmation dialog. Shows list of items to delete, requires confirmation, and displays results.
 
+It is [`CnMassActionDialog`](./cn-mass-action-dialog.md) with the delete texts, the `error` variant and a trash icon as defaults. Every prop of that dialog works here too.
+
 ## Try it
 
 <Playground component="CnMassDeleteDialog" />
@@ -32,6 +34,10 @@ Two-phase mass delete confirmation dialog. Shows list of items to delete, requir
 | `closeLabel` | String | `'Close'` | Label for the close button shown in the result phase |
 | `confirmLabel` | String | `'Delete'` | |
 | `removeLabel` | String | `'Remove from list'` | Tooltip/label for the per-item remove button |
+| `variant` | String | `'error'` | Variant of the primary button |
+| `confirmIcon` | String or component | trash can | Icon on the primary button: a CnIcon name or an icon component |
+| `sentence` | String | `'Are you sure you want to permanently delete {count}?'` | Board look: the question above the list, `{count}` is the bold item count |
+| `irreversible` | Boolean | `true` | Board look: end the sentence with "This action cannot be undone." |
 
 ## Events
 
@@ -100,3 +106,7 @@ Use `nameFormatter` when items don't have a simple name field:
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnMassDeleteDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnMassDeleteDialog/CnMassDeleteDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Board look
+
+The `irreversible` prop (default `true`) ends the board sentence with "This action cannot be undone."; set it to `false` for a delete that can be undone. `confirmValue` and `confirmFieldLabel` add type-to-confirm.

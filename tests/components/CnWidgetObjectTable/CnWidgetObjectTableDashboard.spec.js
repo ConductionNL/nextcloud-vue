@@ -15,7 +15,9 @@
  *   isStatsBlock branch; the entry powers the picker + cog form)
  */
 
-import { mount, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
+import { ref } from 'vue'
+import { loadLazyComponent } from '../../../src/utils/lazyComponent.js'
 
 jest.mock('../../../src/store/useObjectStore.js', () => ({
 	useObjectStore: jest.fn(() => ({ objectTypeRegistry: {}, errors: {}, registerObjectType: jest.fn() })),
@@ -44,7 +46,7 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(Array.isArray(content.columns)).toBe(true)
 	})
 
-	it('the registered renderer mounts CnWidgetObjectTable with hideWrapper (no double chrome)', () => {
+	it('the registered renderer mounts CnWidgetObjectTable with hideWrapper (no double chrome)', async () => {
 		const entry = getWidgetTypeEntry('object-table')
 		const content = { register: 'pipelinq', schema: 'case', columns: [{ key: 'title', label: 'Title' }] }
 		// Mirror CnDashboardPage's registry branch: :content + v-bind="content".
@@ -54,6 +56,7 @@ describe('object-table dashboard registration (issue #89)', () => {
 			data: () => ({ content }),
 		}
 		const wrapper = mount(Host)
+		await flushPromises()
 		const widget = wrapper.findComponent(CnWidgetObjectTable)
 		expect(widget.exists()).toBe(true)
 		expect(widget.props('hideWrapper')).toBe(true)
@@ -126,6 +129,51 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(props.actions).toEqual(content.actions)
 	})
 
+	it('listens to the page controls: the sort map and the toggle (screens-page-controls)', async () => {
+		const entry = getWidgetTypeEntry('object-table')
+		const content = {
+			register: 'pipelinq',
+			schema: 'ticket',
+			filter: { assignee: '@me', status: 'new' },
+			sort: { field: 'title', dir: 'asc' },
+			pageControls: {
+				sort: { key: 'sort', map: { deadline: { field: 'slaDeadline', dir: 'desc' } } },
+				toggle: { key: 'showDone', removes: ['status'] },
+			},
+			columns: [{ key: 'title', label: 'Title' }],
+		}
+		const workspace = ref({ sort: 'deadline', showDone: false })
+		const Host = {
+			components: { Renderer: entry.renderer },
+			template: '<Renderer :content="content" v-bind="content" />',
+			data: () => ({ content }),
+		}
+		const wrapper = mount(Host, { provide: { cnWorkspaceContext: workspace } })
+		const table = () => wrapper.findComponent({ name: 'CnDataTable' })
+		expect(table().props('fetchParams')).toMatchObject({ '_order[slaDeadline]': 'desc', status: 'new' })
+		expect(table().props('fetchParams')['_order[title]']).toBeUndefined()
+		workspace.value = { sort: 'deadline', showDone: true }
+		await wrapper.vm.$nextTick()
+		expect(table().props('fetchParams').status).toBeUndefined()
+	})
+
+	it('ignores a sort entry with a rank: a paged table cannot order by an enum rank (screens-enum-rank-sort)', () => {
+		const entry = getWidgetTypeEntry('object-table')
+		const content = {
+			register: 'pipelinq',
+			schema: 'ticket',
+			pageControls: { sort: { key: 'sort', map: { priority: { field: 'priority', rank: ['urgent', 'high'] } } } },
+			columns: [{ key: 'title', label: 'Title' }],
+		}
+		const Host = {
+			components: { Renderer: entry.renderer },
+			template: '<Renderer :content="content" v-bind="content" />',
+			data: () => ({ content }),
+		}
+		const wrapper = mount(Host, { provide: { cnWorkspaceContext: ref({ sort: 'priority' }) } })
+		expect(wrapper.findComponent({ name: 'CnDataTable' }).props('fetchParams')['_order[priority]']).toBeUndefined()
+	})
+
 	it('resolves @workspace tokens via cnWorkspaceContext on the dashboard surface', () => {
 		const entry = getWidgetTypeEntry('object-table')
 		const content = {
@@ -146,10 +194,10 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(table.props('fetchParams').client).toBe('client-7')
 	})
 
-	it('stats-block stays registered (renderer + form for the picker/cog)', () => {
+	it('stats-block stays registered (renderer + form for the picker/cog)', async () => {
 		const entry = getWidgetTypeEntry('stats-block')
 		expect(entry).not.toBeNull()
-		expect(entry.renderer && entry.renderer.name).toBe('CnStatsBlockWidget')
+		expect((await loadLazyComponent(entry.renderer)).name).toBe('CnStatsBlockWidget')
 		expect(entry.form).toBeDefined()
 		expect(getDefaultContent('stats-block').dataSource).toBeDefined()
 	})

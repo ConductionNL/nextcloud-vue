@@ -43,7 +43,9 @@ function isStale() {
 		// No schema to compare against — leave whatever is on disk alone.
 		return false
 	}
-	return fs.statSync(schemaPath).mtimeMs > fs.statSync(compiledPath).mtimeMs
+	const compiled = fs.statSync(compiledPath).mtimeMs
+	// A change to the builder (how the output is shaped) also makes it stale.
+	return fs.statSync(schemaPath).mtimeMs > compiled || fs.statSync(builderPath).mtimeMs > compiled
 }
 
 module.exports = function globalSetup() {

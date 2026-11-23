@@ -5,6 +5,7 @@
 		ref="wizard"
 		:steps="wizardSteps"
 		:dialogTitle="resolvedDialogTitle"
+		stepHeading
 		:submitLabel="submitLabel"
 		:cancelLabel="cancelLabel"
 		:nextLabel="nextLabel"
@@ -12,7 +13,8 @@
 		:successText="successText"
 		:validate="validateStep"
 		:cancellable="cancellable"
-		:initialStep="initialStepId"
+		:initialStep="dependencyBlocked ? '' : initialStepId"
+		:nextDisabled="dependencyBlocked"
 		@stepChange="onStepChange"
 		@submit="onSubmit"
 		@close="onClose">
@@ -21,9 +23,33 @@
 		     `<template>` (verified against the generated `createSlots` call)
 		     and honours it only on the child, so the rule's advice is inverted
 		     here — moving the key up would throw it away. -->
+		<!-- A required app is missing: this is the only step, and Next stays
+		     disabled until the app is there. -->
+		<template v-if="dependencyBlocked" #[dependencyStepSlot]>
+			<div class="cn-setup-step" data-step-type="dependencies" data-testid="cn-setup-dependencies">
+				<NcNoteCard type="warning">
+					{{ dependencyBlockedText }}
+				</NcNoteCard>
+				<CnLeafDependencySettings
+					:appId="appId"
+					:dependencies="dependencyEntries"
+					:isAdmin="isAdmin"
+					:sectionName="dependencySectionName"
+					sectionDescription=""
+					@installed="onDependencyInstalled" />
+			</div>
+		</template>
 		<!-- eslint-disable vue/no-v-for-template-key-on-child -->
 		<template v-for="step in setupSteps" #[stepSlot(step)]="scope">
 			<div :key="step.id" class="cn-setup-step" :data-step-type="step.type">
+				<!-- Optional apps that are missing never block, but the admin
+				     reads about them once, on the first step. -->
+				<NcNoteCard
+					v-if="step.id === firstStepId && missingOptional.length > 0"
+					type="info"
+					data-testid="cn-setup-optional-dependencies">
+					{{ optionalMissingText }}
+				</NcNoteCard>
 				<!-- @slot step-{id} Override a step's body (for `component` steps or
 				     any bespoke step). Scope: the CnWizardDialog step scope plus
 				     `{ step, runAction, saveConfig }`. -->
@@ -44,18 +70,53 @@
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
-					<NcNoteCard v-if="step.body" type="info">
+					<!-- The board sets the intro as a plain paragraph above the
+					     cards (DqInstellen); the Nextcloud look keeps the note. -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
+					<!-- In the board look the step's title is the dialog's heading,
+					     so the cards' legend is kept for assistive tech only. -->
 					<CnChoiceCards
 						v-if="isCardChoice(step)"
+						:class="{ 'cn-setup-step__choices--titled': isBoard }"
+						:layout="step.display === 'rows' ? 'rows' : 'cards'"
 						:label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
 						:disabled="isChoiceDisabled(step)"
 						:loading="isOptionsLoading(step)"
 						:modelValue="cardModel(step)"
-						@update:modelValue="(v) => onChoice(step, v)" />
+						@update:modelValue="(v) => onChoice(step, v)">
+						<!-- `loadAction`: every dataset card except "none" loads
+						     itself, so no separate run-action step is needed. -->
+						<template v-if="step.loadAction" #option-actions="{ option }">
+							<template v-if="isLoadableOption(step, option)">
+								<NcButton
+									variant="secondary"
+									:disabled="isDatasetLoading(step, option)"
+									:aria-label="loadAriaLabel(option)"
+									data-testid="cn-setup-load-dataset"
+									@click="loadDataset(step, option)">
+									<template v-if="isDatasetLoading(step, option)" #icon>
+										<NcLoadingIcon :size="20" />
+									</template>
+									{{ loadButtonLabel(step, option) }}
+								</NcButton>
+								<p
+									v-if="datasetResultFor(step, option)"
+									role="status"
+									class="cn-setup-load-result"
+									:class="datasetResultFor(step, option).success ? 'cn-setup-load-result--success' : 'cn-setup-load-result--error'"
+									data-testid="cn-setup-load-result">
+									{{ datasetResultFor(step, option).message }}
+								</p>
+							</template>
+						</template>
+					</CnChoiceCards>
 					<NcSelect
 						v-else
 						:inputLabel="stepTitle(step)"
@@ -68,33 +129,87 @@
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
+					<!-- `noteStyle: "card"` sets the note as an info card (DqInstellen). -->
+					<NcNoteCard
+						v-if="stepNote(step) && step.noteStyle === 'card'"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
+					<p v-else-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- config-fields -->
 				<template v-else-if="step.type === 'config-fields'">
+					<!-- The step's intro, drawn like choice and run-action steps:
+					     a plain paragraph in the board look (PqInstellen). -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</NcNoteCard>
 					<div
 						v-for="field in fieldsFor(step)"
 						:key="field.key"
 						class="cn-setup-field">
+						<!-- A repeatable group (`repeatable: true` on an array of
+						     objects): one row of sub-fields per entry, posted as one list. -->
+						<fieldset v-if="field.repeatable"
+							class="cn-setup-repeat"
+							data-testid="cn-setup-repeat">
+							<legend class="cn-setup-repeat__legend">
+								{{ fieldLabel(step, field) }}
+							</legend>
+							<div v-for="(row, rowIndex) in repeatRows(field)"
+								:key="rowIndex"
+								class="cn-setup-repeat__row"
+								data-testid="cn-setup-repeat-row">
+								<NcTextField
+									v-for="sub in field.repeatable.fields"
+									:key="sub.key"
+									:label="sub.label"
+									:type="sub.widget === 'number' ? 'number' : 'text'"
+									:modelValue="row[sub.key] != null ? String(row[sub.key]) : ''"
+									@update:modelValue="(v) => onRepeatInput(field, rowIndex, sub, v)" />
+								<NcButton variant="tertiary"
+									:aria-label="t('nextcloud-vue', 'Remove row {number}', { number: rowIndex + 1 })"
+									data-testid="cn-setup-repeat-remove"
+									@click="removeRepeatRow(field, rowIndex)">
+									{{ t('nextcloud-vue', 'Remove') }}
+								</NcButton>
+							</div>
+							<NcButton variant="secondary"
+								data-testid="cn-setup-repeat-add"
+								@click="addRepeatRow(field)">
+								{{ field.repeatable.addLabel || t('nextcloud-vue', 'Add row') }}
+							</NcButton>
+						</fieldset>
 						<NcCheckboxRadioSwitch
-							v-if="field.widget === 'checkbox'"
+							v-else-if="field.widget === 'checkbox'"
 							:modelValue="!!configModel[field.key]"
 							@update:modelValue="(v) => configModel[field.key] = v">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
-							:inputLabel="field.label"
+							:inputLabel="fieldLabel(step, field)"
 							:options="field.enum || []"
 							:modelValue="configModel[field.key]"
 							@update:modelValue="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
-							:label="field.label"
+							:label="fieldLabel(step, field)"
 							:type="field.widget === 'number' ? 'number' : 'text'"
 							:modelValue="configModel[field.key] != null ? String(configModel[field.key]) : ''"
 							@update:modelValue="(v) => configModel[field.key] = v" />
 					</div>
+					<p v-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- run-action -->
@@ -125,20 +240,66 @@
 
 				<!-- summary -->
 				<template v-else-if="step.type === 'summary'">
-					<NcNoteCard v-if="step.body" type="info">
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
-					<ul class="cn-setup-summary">
+					<ul v-if="readinessRows(step).length > 0"
+						class="cn-setup-readiness"
+						:aria-label="readinessLabel"
+						data-testid="cn-setup-readiness">
+						<li v-for="row in readinessRows(step)"
+							:key="row.id"
+							class="cn-setup-readiness__row"
+							data-testid="cn-setup-readiness-row">
+							<span class="cn-setup-readiness__mark"
+								:class="{ 'cn-setup-readiness__mark--done': row.done }"
+								aria-hidden="true">
+								<Check v-if="row.done" :size="14" />
+							</span>
+							<span class="cn-setup-readiness__text">
+								<strong class="cn-setup-readiness__title">{{ row.title }}</strong>
+								<span v-if="row.detail" class="cn-setup-readiness__detail">{{ row.detail }}</span>
+							</span>
+							<a v-if="row.link" class="cn-setup-readiness__link" :href="row.link.href">{{ row.link.label }}</a>
+							<NcButton v-else-if="step.summaryEditable === true && recapEditable(row.id)"
+								variant="tertiary"
+								class="cn-setup-readiness__link"
+								:aria-label="t('nextcloud-vue', 'Change {step}', { step: row.title })"
+								data-testid="cn-setup-summary-change"
+								@click="openStep(row.id)">
+								{{ t('nextcloud-vue', 'Change') }}
+							</NcButton>
+						</li>
+					</ul>
+					<ul v-else class="cn-setup-summary">
 						<li
 							v-for="item in summaryItems"
 							:key="item.id"
 							class="cn-setup-summary__item"
-							:class="{ 'cn-setup-summary__item--done': item.done }">
+							:class="{ 'cn-setup-summary__item--done': item.done, 'cn-setup-summary__item--not-run': item.notRun }">
 							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
 							<span class="cn-setup-summary__label">{{ item.title }}</span>
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
+							<NcButton v-if="step.summaryEditable === true && item.editable"
+								variant="tertiary"
+								class="cn-setup-summary__change"
+								:aria-label="t('nextcloud-vue', 'Change {step}', { step: item.title })"
+								data-testid="cn-setup-summary-change"
+								@click="openStep(item.id)">
+								{{ t('nextcloud-vue', 'Change') }}
+							</NcButton>
+							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 						</li>
 					</ul>
+					<NcNoteCard v-if="stepNote(step)"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
 				</template>
 			</div>
 		</template>
@@ -147,12 +308,23 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
+import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
+import { checkDependencies, isDependencyResolved, missingRequiredApps, readServerAppStatuses } from '../../composables/useDependencyCheck.js'
+import { useLook } from '../../composables/useLook.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
+
+/** Id of the synthetic step shown while a required app is missing. */
+const DEPENDENCY_STEP_ID = 'cn-setup-dependencies'
+
+/** The dataset value that means "seed nothing"; it never gets a Load button. */
+const NONE_DATASET = 'none'
 
 /**
  * CnSetupWizard — abstract, manifest-driven first-time setup wizard (ADR-042).
@@ -181,8 +353,10 @@ export default {
 	name: 'CnSetupWizard',
 
 	components: {
+		Check,
 		CnWizardDialog,
 		CnChoiceCards,
+		CnLeafDependencySettings,
 		NcButton,
 		NcNoteCard,
 		NcSelect,
@@ -201,6 +375,11 @@ export default {
 		 * standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The app manifest, provided by CnAppRoot. Read only for its
+		 * `dependencies` when the `dependencies` prop is empty.
+		 */
+		cnManifest: { default: null },
 	},
 
 	props: {
@@ -310,6 +489,33 @@ export default {
 			type: Array,
 			default: () => [],
 		},
+
+		/**
+		 * The app's dependencies, in the manifest's own shape (app-id strings
+		 * or `{ id, name?, required? }`). Falls back to the injected manifest's
+		 * `dependencies`. A missing REQUIRED one replaces every step with the
+		 * dependency list and disables Next; a missing optional one is listed
+		 * on the first step and does not block.
+		 *
+		 * @type {Array<string|object>}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 */
+		dependencies: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** Load button label on a dataset card (`loadAction`). */
+		loadLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Load'),
+		},
+
+		/** Load button label once that dataset loaded in this session. */
+		reloadLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Load again'),
+		},
 	},
 
 	emits: ['complete', 'close', 'step-change', 'action-result'],
@@ -328,12 +534,13 @@ export default {
 	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
 	 */
 	setup(props) {
-		const wantsSource = (props.steps || []).some((s) => s && s.optionsSource)
+		const { isBoard } = useLook()
+		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen))
 		if (!wantsSource) {
-			return {}
+			return { isBoard }
 		}
 		const { status, loading } = useSetupStatus(props.appId, { setup: { steps: props.steps } })
-		return { setupStatus: status, setupStatusLoading: loading }
+		return { isBoard, setupStatus: status, setupStatusLoading: loading }
 	},
 
 	data() {
@@ -345,33 +552,186 @@ export default {
 			actionResult: {},
 			localDone: {},
 			userTouched: {},
+			// Per-card load state for `loadAction` steps, keyed by `loadKey()`.
+			datasetRunning: {},
+			datasetResult: {},
 		}
 	},
 
 	computed: {
 		/**
 		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
-		 * when a display name was passed, otherwise whatever `dialogTitle`
-		 * resolves to (a caller override, or its own generic default).
+		 * when a display name was passed (the name through the host's
+		 * translate), otherwise whatever `dialogTitle` resolves to (a caller
+		 * override, or its own generic default). In the board look it is the
+		 * eyebrow's context and the current step's title is the heading.
 		 *
 		 * @return {string}
 		 */
 		resolvedDialogTitle() {
 			return this.appName
-				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				? t('nextcloud-vue', 'Set up {app}', { app: this.cnTranslate(this.appName) })
 				: this.dialogTitle
 		},
 
-		setupSteps() {
+		/**
+		 * Every well-formed step, before `requires` is applied.
+		 *
+		 * @return {Array<object>}
+		 */
+		declaredSteps() {
 			return (this.steps || []).filter((s) => s && s.id && s.type)
 		},
 
+		/**
+		 * Steps that declare `requires` on an app that is not installed and
+		 * enabled. They are not offered; the summary names them as skipped.
+		 *
+		 * @return {Array<{ step: object, missing: Array<string> }>}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 * @spec openspec/changes/optional-step-requires/specs/cn-setup-wizard/spec.md#requirement-a-step-whose-required-apps-are-absent-is-not-applicable
+		 */
+		skippedSteps() {
+			return this.declaredSteps
+				.filter((s) => Array.isArray(s.requires) && s.requires.length > 0)
+				.map((step) => {
+					const known = Object.fromEntries(this.dependencyRows.map((d) => [d.id, d]))
+					const missing = missingRequiredApps(step.requires, this.serverAppStatuses)
+						.map((row) => (known[row.id] || row).name || row.id)
+					return { step, missing }
+				})
+				.filter((entry) => entry.missing.length > 0)
+		},
+
+		setupSteps() {
+			const skipped = new Set(this.skippedSteps.map((entry) => entry.step.id))
+			return this.declaredSteps.filter((s) => !skipped.has(s.id) && this.stepConditionHolds(s))
+		},
+
+		/**
+		 * Id of the first offered step: where the optional-apps note shows.
+		 *
+		 * @return {string}
+		 */
+		firstStepId() {
+			return this.setupSteps.length > 0 ? this.setupSteps[0].id : ''
+		},
+
+		/**
+		 * The dependency declarations to check: the prop, else the manifest's.
+		 *
+		 * @return {Array<string|object>}
+		 */
+		dependencyEntries() {
+			if (Array.isArray(this.dependencies) && this.dependencies.length > 0) {
+				return this.dependencies
+			}
+			const fromManifest = this.cnManifest && this.cnManifest.dependencies
+			return Array.isArray(fromManifest) ? fromManifest : []
+		},
+
+		/**
+		 * The `dependency_statuses` initial state an app may inject from PHP.
+		 * Same source CnAppRoot reads; `{}` when the app injects none.
+		 *
+		 * @return {object}
+		 */
+		serverAppStatuses() {
+			return readServerAppStatuses(this.appId)
+		},
+
+		/**
+		 * The declared dependencies with their live status.
+		 *
+		 * @return {Array<object>}
+		 */
+		dependencyRows() {
+			return checkDependencies(this.dependencyEntries, this.serverAppStatuses)
+		},
+
+		/** @return {Array<object>} Required dependencies that are missing or disabled. */
+		missingRequired() {
+			return this.dependencyRows.filter((d) => d.required && !isDependencyResolved(d))
+		},
+
+		/** @return {Array<object>} Optional dependencies that are missing or disabled. */
+		missingOptional() {
+			return this.dependencyRows.filter((d) => !d.required && !isDependencyResolved(d))
+		},
+
+		/**
+		 * Whether a required app is missing, so the wizard shows the
+		 * dependency list instead of its steps and refuses to continue.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-the-wizard-checks-dependencies-before-any-step
+		 */
+		dependencyBlocked() {
+			return this.missingRequired.length > 0
+		},
+
+		dependencyStepSlot() {
+			return 'step-' + DEPENDENCY_STEP_ID
+		},
+
+		dependencySectionName() {
+			return t('nextcloud-vue', 'Apps this app needs')
+		},
+
+		dependencyBlockedText() {
+			return t('nextcloud-vue', 'Setup can start once these apps are installed and enabled: {apps}.', {
+				apps: this.missingRequired.map((d) => d.name).join(', '),
+			})
+		},
+
+		optionalMissingText() {
+			return t('nextcloud-vue', 'Optional, not installed: {apps}. You can add them later.', {
+				apps: this.missingOptional.map((d) => d.name).join(', '),
+			})
+		},
+
+		/**
+		 * Whether the current user is a Nextcloud admin; only admins get the
+		 * install and enable buttons.
+		 *
+		 * @return {boolean}
+		 */
+		isAdmin() {
+			try {
+				const user = getCurrentUser()
+				return !!(user && user.isAdmin)
+			} catch {
+				return false
+			}
+		},
+
+		/** @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it */
 		wizardSteps() {
+			if (this.dependencyBlocked) {
+				return [{
+					id: DEPENDENCY_STEP_ID,
+					label: t('nextcloud-vue', 'Required apps'),
+					optional: false,
+				}]
+			}
 			return this.setupSteps.map((s) => ({
 				id: s.id,
 				label: this.stepTitle(s),
 				optional: s.required !== true,
+				skippable: s.skippable === true,
+				cancelLabel: s.cancelLabel ? this.cnTranslate(s.cancelLabel) : undefined,
+				submitLabel: s.submitLabel ? this.cnTranslate(s.submitLabel) : undefined,
 			}))
+		},
+
+		/**
+		 * The accessible name of the readiness list.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessLabel() {
+			return t('nextcloud-vue', 'Readiness')
 		},
 
 		/**
@@ -380,9 +740,27 @@ export default {
 		 * a done marker (info steps always done; choice steps done when picked;
 		 * run-action steps done when the action succeeded).
 		 *
-		 * @return {Array<{ id: string, title: string, value: string, done: boolean }>}
+		 * An on-demand step (`onDemand: true`) is the exception: it is done
+		 * only when its action succeeded in THIS session. Apps report such a
+		 * step as `done` on purpose so it never auto-runs (learniq's "Remove
+		 * the example data"), and reading that flag here ticked a removal
+		 * nobody ran. When it did not run it gets `notRun: true` and the value
+		 * "Not run" instead.
+		 *
+		 * @return {Array<{ id: string, title: string, value: string, done: boolean, notRun: boolean }>}
 		 */
 		summaryItems() {
+			const skipped = this.skippedSteps
+				.filter((entry) => entry.step.type !== 'summary' && entry.step.type !== 'info')
+				.map((entry) => ({
+					id: entry.step.id,
+					title: this.stepTitle(entry.step),
+					value: t('nextcloud-vue', 'Skipped, needs {apps}', { apps: entry.missing.join(', ') }),
+					hint: '',
+					editable: false,
+					done: false,
+					notRun: true,
+				}))
 			return this.setupSteps
 				.filter((s) => s.type !== 'summary')
 				.map((step) => {
@@ -395,9 +773,27 @@ export default {
 							value = this.choiceLabel(step, raw)
 						}
 					} else if (step.type === 'config-fields') {
+						// Only the fields the reader filled in: a row of empty
+						// "Name: , KvK: ," reads as broken, not as "not set".
 						value = this.fieldsFor(step)
-							.map((f) => `${f.label}: ${this.configModel[f.key] !== null && this.configModel[f.key] !== undefined ? this.configModel[f.key] : ''}`)
-							.join(', ')
+							.map((f) => ({ f, v: f.repeatable ? this.repeatSummary(f) : this.configModel[f.key] }))
+							.filter(({ v }) => v !== null && v !== undefined && String(v).trim() !== '')
+							.map(({ f, v }) => `${f.label}: ${v}`)
+							.join(', ') || t('nextcloud-vue', 'Not set')
+					}
+					const hint = step.summaryHint ? this.cnTranslate(step.summaryHint) : ''
+					const editable = step.type !== 'info'
+					if (this.isOnDemand(step)) {
+						const ran = this.ranThisSession(step.id)
+						return {
+							id: step.id,
+							title: this.stepTitle(step),
+							value: ran ? '' : t('nextcloud-vue', 'Not run'),
+							hint,
+							editable,
+							done: ran,
+							notRun: !ran,
+						}
 					}
 					let done
 					if (step.type === 'info') {
@@ -407,8 +803,9 @@ export default {
 					} else {
 						done = this.isStepDone(step.id)
 					}
-					return { id: step.id, title: this.stepTitle(step), value, done }
+					return { id: step.id, title: this.stepTitle(step), value, hint, editable, done, notRun: false }
 				})
+				.concat(skipped)
 		},
 
 		/**
@@ -427,7 +824,9 @@ export default {
 			if (this.completedStepIds.length === 0) {
 				return ''
 			}
-			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary')
+			// An on-demand step is never outstanding work, so it is never the
+			// step to resume on.
+			const actionable = this.setupSteps.filter((s) => s.type !== 'info' && s.type !== 'summary' && !this.isOnDemand(s))
 			const firstUnmetIndex = actionable.findIndex((s) => {
 				if (s.type === 'choice') {
 					return !(this.hasChoice(s) || this.isServerDone(s.id))
@@ -445,6 +844,12 @@ export default {
 		},
 	},
 
+	created() {
+		for (const step of this.setupSteps) {
+			this.applyDefault(step)
+		}
+	},
+
 	mounted() {
 		// Covers a RESUMED wizard opening straight onto its run-action step
 		// (`initialStepId`) — `onStepChange` only fires on later navigation,
@@ -459,14 +864,21 @@ export default {
 		 * the step has nothing else for the user to decide by then (the
 		 * choice it acts on was already made on an earlier step), so
 		 * requiring a click before showing progress just adds a stall.
-		 * No-ops for any other step type, or one already run/running.
+		 * No-ops for any other step type, or one already run/running, and
+		 * never fires an on-demand step (`onDemand: true`): those run only
+		 * when the user clicks Run.
 		 *
 		 * @param {string} stepId The step id becoming current.
 		 * @return {void}
 		 */
 		maybeAutoRunStep(stepId) {
+			// Nothing runs while a required app is missing: every action
+			// would fail with an error that does not name the app.
+			if (this.dependencyBlocked) {
+				return
+			}
 			const step = this.setupSteps.find((s) => s.id === stepId)
-			if (step && step.type === 'run-action' && !this.isStepDone(step.id) && !this.running[step.id]) {
+			if (step && step.type === 'run-action' && !this.isOnDemand(step) && !this.isStepDone(step.id) && !this.running[step.id]) {
 				this.runAction(step)
 			}
 		},
@@ -514,6 +926,125 @@ export default {
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
 
+		/**
+		 * The footnote under a choice step's options, from the step's `note`
+		 * (or `footnote`), translated like the body.
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {string} The translated footnote, or ''.
+		 */
+		stepNote(step) {
+			const raw = (step && (step.note || step.footnote)) || ''
+			return raw === '' ? '' : this.cnTranslate(raw)
+		},
+
+		/**
+		 * A config field's label; with the step's `optionalLabels`, a field
+		 * the step's schema does not require reads "(optional)" after it.
+		 *
+		 * @param {object} step The step.
+		 * @param {object} field The field.
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-mark-its-fields-optional
+		 */
+		/**
+		 * The rows of a repeatable group: what was entered, else one empty row.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {Array<object>} The rows.
+		 * @spec openspec/changes/setup-wizard-recap-and-repeatable/specs/setup-wizard/spec.md#requirement-a-config-fields-step-can-hold-a-repeatable-group
+		 */
+		repeatRows(field) {
+			const rows = this.configModel[field.key]
+			return Array.isArray(rows) && rows.length > 0 ? rows : [{}]
+		},
+
+		/**
+		 * Write one sub-field of one row of a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @param {number} rowIndex The row.
+		 * @param {object} sub The sub-field.
+		 * @param {string} value The typed value.
+		 */
+		onRepeatInput(field, rowIndex, sub, value) {
+			const rows = this.repeatRows(field).map((row) => ({ ...row }))
+			rows[rowIndex] = { ...rows[rowIndex], [sub.key]: sub.widget === 'number' && value !== '' ? Number(value) : value }
+			this.configModel[field.key] = rows
+		},
+
+		/**
+		 * Add an empty row to a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 */
+		addRepeatRow(field) {
+			this.configModel[field.key] = [...this.repeatRows(field), {}]
+		},
+
+		/**
+		 * Remove one row of a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @param {number} rowIndex The row.
+		 */
+		removeRepeatRow(field, rowIndex) {
+			this.configModel[field.key] = this.repeatRows(field).filter((row, index) => index !== rowIndex)
+		},
+
+		/**
+		 * The rows of a repeatable group that hold a value, without the empty ones.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {Array<object>} The filled rows.
+		 */
+		filledRepeatRows(field) {
+			return (Array.isArray(this.configModel[field.key]) ? this.configModel[field.key] : [])
+				.filter((row) => row && Object.values(row).some((v) => v !== null && v !== undefined && String(v).trim() !== ''))
+		},
+
+		/**
+		 * A repeatable group in the recap: each filled row's first value.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {string|null} The recap, or null when nothing was entered.
+		 */
+		repeatSummary(field) {
+			const rows = this.filledRepeatRows(field)
+			const first = field.repeatable.fields[0]
+			return rows.length === 0 ? null : rows.map((row) => (first ? row[first.key] : '') || '').filter(Boolean).join('; ')
+		},
+
+		/**
+		 * Whether the recap row of a step can open that step again.
+		 *
+		 * @param {string} stepId The step.
+		 * @return {boolean}
+		 */
+		recapEditable(stepId) {
+			const recap = this.summaryItems.find((item) => item.id === stepId)
+			return Boolean(recap && recap.editable)
+		},
+
+		/**
+		 * Open a step from the recap (`summaryEditable`), without validating.
+		 *
+		 * @param {string} stepId The step.
+		 * @spec openspec/changes/setup-wizard-recap-and-repeatable/specs/setup-wizard/spec.md#requirement-the-recap-can-say-why-and-open-a-step-again
+		 */
+		openStep(stepId) {
+			if (this.$refs.wizard && typeof this.$refs.wizard.jumpTo === 'function') {
+				this.$refs.wizard.jumpTo(stepId)
+			}
+		},
+
+		fieldLabel(step, field) {
+			const required = Array.isArray(step?.schema?.required) && step.schema.required.includes(field.key)
+			return step?.optionalLabels === true && !required
+				? t('nextcloud-vue', '{label} (optional)', { label: field.label })
+				: field.label
+		},
+
 		stepSlot(step) {
 			return 'step-' + step.id
 		},
@@ -524,7 +1055,23 @@ export default {
 
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
-				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
+				const props = step.schema.properties || {}
+				return fieldsFromSchema(step.schema, { translate: this.cnTranslate }).map((field) => {
+					const prop = props[field.key]
+					const items = prop && prop.type === 'array' && prop.repeatable === true ? prop.items : null
+					if (!items || items.type !== 'object') {
+						return field
+					}
+					return {
+						...field,
+						repeatable: {
+							// In the order the items declare their properties: the first names the row in the recap.
+							fields: fieldsFromSchema(items, { translate: this.cnTranslate })
+								.sort((a, b) => Object.keys(items.properties || {}).indexOf(a.key) - Object.keys(items.properties || {}).indexOf(b.key)),
+							addLabel: prop.addLabel ? this.cnTranslate(prop.addLabel) : '',
+						},
+					}
+				})
 			}
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
@@ -569,6 +1116,84 @@ export default {
 		},
 
 		/**
+		 * Whether a step's `visibleWhen` holds: the value at that path in the
+		 * setup status (`"flags.hasPayouts"`, dots walk into objects) is truthy,
+		 * or equals `equals` when the step gives `{ path, equals }`. A step
+		 * without `visibleWhen` always shows; one with it stays hidden until the
+		 * status says so, also while the status loads (DqInstellen: the dwangsom
+		 * step only when the app pays penalties).
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {boolean}
+		 */
+		stepConditionHolds(step) {
+			const when = step && step.visibleWhen
+			if (when === undefined || when === null || when === '') {
+				return true
+			}
+			const path = typeof when === 'string' ? when : when.path
+			if (typeof path !== 'string' || path === '') {
+				return true
+			}
+			let node = this.setupStatus
+			for (const key of path.split('.')) {
+				if (node === null || node === undefined || typeof node !== 'object') {
+					return false
+				}
+				node = node[key]
+			}
+			if (typeof when === 'object' && Object.hasOwn(when, 'equals')) {
+				return node === when.equals
+			}
+			return Boolean(node)
+		},
+
+		/**
+		 * The readiness rows of a `summary` step under the board look: its
+		 * declared `rows` in order. A row naming a `step` takes the recap of that
+		 * step; any other row is done when `doneWhen` holds in the setup status.
+		 *
+		 * @param {object} step The summary step.
+		 * @return {Array<{ id: string, title: string, detail: string, done: boolean, link: (object|null) }>}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRows(step) {
+			if (!this.isBoard || !Array.isArray(step.rows)) {
+				return []
+			}
+			return step.rows.map((row) => {
+				const recap = this.summaryItems.find((item) => item.id === row.step)
+				const done = recap ? recap.done : this.readinessRowDone(row)
+				const detail = (!done && row.detailWhenOpen) || row.detail
+				const fallback = recap ? recap.value : ''
+				return {
+					id: row.step || row.id,
+					title: row.title ? this.cnTranslate(row.title) : (recap ? recap.title : ''),
+					detail: detail ? this.cnTranslate(detail) : fallback,
+					done,
+					link: row.link ? { label: this.cnTranslate(row.link.label), href: row.link.href } : null,
+				}
+			})
+		},
+
+		/**
+		 * Whether a row without a step is done: the setup status `readiness`
+		 * item it names, else its `doneWhen`. A row naming neither stays open.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRowDone(row) {
+			if (row.readinessItem) {
+				const items = (this.setupStatus && this.setupStatus.readiness) || []
+				const item = Array.isArray(items) ? items.find((entry) => entry.id === row.readinessItem) : null
+				return Boolean(item && item.done)
+			}
+			return row.doneWhen !== undefined && this.stepConditionHolds({ visibleWhen: row.doneWhen })
+		},
+
+		/**
 		 * The option list a `choice` step declares `optionsSource` for, read
 		 * from the setup status document the app already serves.
 		 *
@@ -610,13 +1235,14 @@ export default {
 		},
 
 		/**
-		 * Whether a choice step renders as a card grid rather than a dropdown.
+		 * Whether a choice step renders as CnChoiceCards (a card grid, or radio
+		 * rows with `display: "rows"`) rather than a dropdown.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {boolean} True for `display: "cards"`.
+		 * @return {boolean} True for `display: "cards"` and `display: "rows"`.
 		 */
 		isCardChoice(step) {
-			return step.display === 'cards'
+			return step.display === 'cards' || step.display === 'rows'
 		},
 
 		/**
@@ -721,6 +1347,36 @@ export default {
 		},
 
 		/**
+		 * Preselect a `choice` step's `default` option. Skipped once the user
+		 * picked here, when a value is already chosen, and for a step the
+		 * server already completed (its stored value must not be overwritten
+		 * by a Next). A card step holds the plain value; a dropdown holds the
+		 * option object, or the value while the options are still loading.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {void}
+		 */
+		applyDefault(step) {
+			if (!step || step.type !== 'choice' || step.default === undefined || step.default === null) {
+				return
+			}
+			if (this.userTouched[step.id] === true || this.hasChoice(step) || this.isServerDone(step.id)) {
+				return
+			}
+			const wanted = step.multiple === true ? [].concat(step.default) : step.default
+			if (this.isCardChoice(step)) {
+				this.choiceModel[step.id] = wanted
+			} else {
+				const options = this.optionsFor(step)
+				const pick = (value) => options.find((o) => o.value === value) || value
+				this.choiceModel[step.id] = Array.isArray(wanted) ? wanted.map(pick) : pick(wanted)
+			}
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
+			}
+		},
+
+		/**
 		 * Auto-fill a `choice` step's suggested default from an earlier choice
 		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
 		 * the user has manually picked here, so a suggestion never clobbers an
@@ -751,7 +1407,9 @@ export default {
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
 		 * the active step before advancing. `choice`/`config-fields` steps
-		 * POST their value via the setup contract; required `choice` steps
+		 * POST their value via the setup contract (a `config-fields` step only
+		 * the fields the person filled in, and nothing when they filled in
+		 * none); required `choice` steps
 		 * block advance until a value is picked; required `run-action` steps
 		 * block until the action has succeeded. Returns `true` to advance or
 		 * an error string to surface above the step and block navigation.
@@ -785,10 +1443,27 @@ export default {
 				}
 			}
 			if (step.type === 'config-fields') {
+				// Only what the person filled in is written: a field left alone
+				// keeps what is stored, and a step left alone writes nothing.
+				const patch = {}
+				for (const field of this.fieldsFor(step)) {
+					if (Object.hasOwn(this.configModel, field.key)) {
+						patch[field.key] = field.repeatable ? this.filledRepeatRows(field) : this.configModel[field.key]
+					}
+				}
+				if (Object.keys(patch).length === 0) {
+					return true
+				}
 				try {
-					const patch = {}
-					for (const field of this.fieldsFor(step)) {
-						patch[field.key] = this.configModel[field.key]
+					if (step.action) {
+						// A config-fields step with an `action` posts its values to that action, not to the config.
+						const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+						const { data } = await axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`), patch)
+						if (data && data.success === false) {
+							return data.message || t('nextcloud-vue', 'The step could not be saved.')
+						}
+						this.localDone[step.id] = true
+						return true
 					}
 					await this.saveConfig(patch)
 					this.localDone[step.id] = true
@@ -847,6 +1522,154 @@ export default {
 			}
 		},
 
+		/**
+		 * Key for one card's load state.
+		 *
+		 * @param {object} step The choice step.
+		 * @param {object} option The card's option.
+		 * @return {string}
+		 */
+		loadKey(step, option) {
+			return step.id + '::' + String(option && option.value)
+		},
+
+		/**
+		 * Whether a card gets a Load button: the step declares `loadAction`
+		 * and the option is not the "seed nothing" answer.
+		 *
+		 * @param {object} step The choice step.
+		 * @param {object} option The card's option.
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-a-dataset-card-loads-itself
+		 */
+		isLoadableOption(step, option) {
+			return !!(step && step.loadAction) && !!option && String(option.value) !== NONE_DATASET
+		},
+
+		isDatasetLoading(step, option) {
+			return this.datasetRunning[this.loadKey(step, option)] === true
+		},
+
+		datasetResultFor(step, option) {
+			return this.datasetResult[this.loadKey(step, option)] || null
+		},
+
+		loadButtonLabel(step, option) {
+			if (this.isDatasetLoading(step, option)) {
+				return this.runningLabel
+			}
+			const result = this.datasetResultFor(step, option)
+			return (result && result.success) ? this.reloadLabel : this.loadLabel
+		},
+
+		loadAriaLabel(option) {
+			return t('nextcloud-vue', 'Load {name}', { name: option.label })
+		},
+
+		/**
+		 * Load one dataset from its card: POST `{ dataset }` to the step's
+		 * `loadAction`, spinner on the button while it runs, the result on the
+		 * card after. A successful load also selects the card, so the summary
+		 * and the stored choice name what was loaded.
+		 *
+		 * @param {object} step The choice step declaring `loadAction`.
+		 * @param {object} option The card's option.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/setup-wizard-card-load-and-dependency-gate/specs/cn-setup-wizard/spec.md#requirement-a-dataset-card-loads-itself
+		 */
+		async loadDataset(step, option) {
+			if (!this.isLoadableOption(step, option) || this.isDatasetLoading(step, option)) {
+				return
+			}
+			const key = this.loadKey(step, option)
+			this.datasetRunning[key] = true
+			this.datasetResult[key] = null
+			let result
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const { data } = await axios.post(
+					generateUrl(`/apps/${this.appId}/api/setup/action/${step.loadAction}`),
+					{ dataset: option.value },
+				)
+				result = {
+					success: !!data && data.success !== false,
+					message: (data && data.message) || t('nextcloud-vue', 'Loaded.'),
+				}
+			} catch (err) {
+				result = { success: false, message: this.errorMessage(err) }
+			} finally {
+				this.datasetRunning[key] = false
+			}
+			this.datasetResult[key] = result
+			if (result.success) {
+				this.selectLoadedOption(step, option)
+				this.localDone[step.id] = true
+			}
+			this.$emit('action-result', {
+				stepId: step.id,
+				action: step.loadAction,
+				dataset: option.value,
+				...result,
+			})
+		},
+
+		/**
+		 * Select a card that just loaded, adding to (never replacing) the
+		 * selection of a `multiple` step.
+		 *
+		 * @param {object} step The choice step.
+		 * @param {object} option The loaded option.
+		 * @return {void}
+		 */
+		selectLoadedOption(step, option) {
+			if (step.multiple === true) {
+				const current = this.cardModel(step)
+				if (current.some((v) => String(v) === String(option.value))) {
+					return
+				}
+				this.onChoice(step, current.concat([option.value]))
+				return
+			}
+			this.onChoice(step, option.value)
+		},
+
+		/**
+		 * A required app was installed from the dependency list. A new app's
+		 * scripts and its `OC.appswebroots` entry exist only after a full page
+		 * load, and `useAppStatus` caches per page, so reload.
+		 *
+		 * @return {void}
+		 */
+		onDependencyInstalled() {
+			window.location.reload()
+		},
+
+		/**
+		 * Whether a step is marked on-demand (`onDemand: true`): it runs only
+		 * when the user asks, never automatically, and the summary ticks it
+		 * only when it ran in this session.
+		 *
+		 * @param {object} step The manifest step.
+		 * @return {boolean}
+		 */
+		isOnDemand(step) {
+			return !!step && step.onDemand === true
+		},
+
+		/**
+		 * Whether a step's action succeeded in the CURRENT session, ignoring
+		 * whatever the server reports.
+		 *
+		 * @param {string} id Step id.
+		 * @return {boolean}
+		 */
+		ranThisSession(id) {
+			return !!(this.actionResult[id] && this.actionResult[id].success)
+		},
+
 		isStepDone(id) {
 			return this.isServerDone(id) || this.localDone[id] === true || (this.actionResult[id] && this.actionResult[id].success)
 		},
@@ -877,6 +1700,15 @@ export default {
 			const step = this.setupSteps.find((s) => s.id === payload.stepId)
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
+			}
+			// A default seeded before a dropdown's options arrived is a bare
+			// value; swap in its option object now the step opens.
+			if (step && step.default !== undefined && this.userTouched[step.id] !== true && !this.isCardChoice(step)) {
+				const held = this.choiceModel[step.id]
+				const option = this.optionsFor(step).find((o) => o.value === held)
+				if (option && held !== null && typeof held !== 'object') {
+					this.choiceModel[step.id] = option
+				}
 			}
 			this.maybeAutoRunStep(payload.stepId)
 			/**
@@ -911,6 +1743,30 @@ export default {
 	gap: 12px;
 }
 
+.cn-setup-step__intro {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.cn-setup-step__choices--titled :deep(.cn-choice-cards__legend) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.cn-setup-step__note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-setup-step__nav {
 	display: flex;
 	justify-content: flex-end;
@@ -925,6 +1781,19 @@ export default {
 	gap: 8px;
 	padding: 24px 0;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-setup-load-result {
+	margin: 0;
+	font-size: var(--font-size-small, 13px);
+}
+
+.cn-setup-load-result--success {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-setup-load-result--error {
+	color: var(--color-error-text, var(--color-error));
 }
 
 .cn-setup-field {
@@ -959,9 +1828,108 @@ export default {
 	flex: 0 0 auto;
 }
 
+.cn-setup-summary__hint {
+	flex-basis: 100%;
+	margin-inline-start: 24px;
+	color: var(--color-text-maxcontrast);
+	font-size: var(--font-size-small, 13px);
+}
+
+.cn-setup-repeat {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.cn-setup-repeat__legend {
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.cn-setup-repeat__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+}
+
 .cn-setup-summary__value {
 	margin-inline-start: auto;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+/* The closing step under the board look: one bordered row per item, with a
+   mark, what was set and the screen to change it on. */
+.cn-setup-readiness {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-setup-readiness__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+}
+
+.cn-setup-readiness__mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 24px;
+	height: 24px;
+	border: 2px solid var(--color-warning-text);
+	border-radius: 12px;
+}
+
+.cn-setup-readiness__mark--done {
+	border: 0;
+	background: var(--color-success-light, var(--color-background-hover));
+	color: var(--color-success-text);
+}
+
+.cn-setup-readiness__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-setup-readiness__title {
+	font-size: 15px;
+}
+
+.cn-setup-readiness__detail {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-setup-readiness__link {
+	flex: none;
+	color: var(--color-primary-element);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
+	white-space: nowrap;
+}
+
+/* An on-demand step that did not run says so quietly: it is a choice the
+   user did not make, not a failure. */
+.cn-setup-summary__item--not-run .cn-setup-summary__value {
+	font-weight: normal;
+	color: var(--color-text-maxcontrast);
 }
 </style>

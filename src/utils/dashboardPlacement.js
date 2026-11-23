@@ -181,3 +181,44 @@ export function placeNewWidget(spec, layout, options = {}) {
 
 	return { x: 0, y: 0, w, h, pushed }
 }
+
+/**
+ * Close the vertical holes left when a host drops layout items.
+ *
+ * Only for a layout something was removed from: `float: true` keeps an authored
+ * gap on purpose, but rows the HOST freed belong to nobody.
+ *
+ * Gravity, not a re-pack — an item rises until it meets something in its own
+ * columns and never moves sideways. Returns new objects; the caller's is untouched.
+ *
+ * @param {Array<object>} items Layout items (`gridX` / `gridY` / `gridWidth` / `gridHeight`).
+ *
+ * @return {Array<object>} The same items, floated up, in top-to-bottom order.
+ */
+export function compactLayoutRows(items) {
+	const placed = []
+
+	return [...(items || [])]
+		.map((item) => ({
+			item,
+			x: Number.isFinite(item?.gridX) ? item.gridX : 0,
+			y: Number.isFinite(item?.gridY) ? item.gridY : 0,
+			w: Number.isFinite(item?.gridWidth) ? item.gridWidth : DEFAULT_WIDGET_W,
+			h: Number.isFinite(item?.gridHeight) ? item.gridHeight : DEFAULT_WIDGET_H,
+		}))
+		// A tie goes to the left-most, as GridStack's own column conversion does.
+		.sort((a, b) => (a.y - b.y) || (a.x - b.x))
+		.map((entry) => {
+			let y = 0
+			for (const other of placed) {
+				const overlaps = other.x < (entry.x + entry.w) && entry.x < (other.x + other.w)
+				if (overlaps) {
+					y = Math.max(y, other.y + other.h)
+				}
+			}
+
+			const next = { ...entry, y }
+			placed.push(next)
+			return { ...entry.item, gridY: y }
+		})
+}

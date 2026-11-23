@@ -25,24 +25,26 @@ describe('CnGaugeWidget', () => {
 		const ok = mount({ thresholds: { warn: 80, danger: 100 } })
 		ok.setData({ value: 50, target: 100 })
 		await ok.vm.$nextTick()
-		expect(ok.vm.barColor).toBe('var(--color-success)')
+		expect(ok.vm.barColor).toBe('var(--color-element-success, var(--color-success))')
+		expect(ok.vm.pctColor).toBe('var(--color-text-success, var(--color-success-text))')
 
 		const warn = mount({ thresholds: { warn: 80, danger: 100 } })
 		warn.setData({ value: 90, target: 100 })
 		await warn.vm.$nextTick()
-		expect(warn.vm.barColor).toBe('var(--color-warning)')
+		expect(warn.vm.barColor).toBe('var(--color-element-warning, var(--color-warning))')
 
 		const danger = mount({ thresholds: { warn: 80, danger: 100 } })
 		danger.setData({ value: 110, target: 100 })
 		await danger.vm.$nextTick()
-		expect(danger.vm.barColor).toBe('var(--color-error)')
+		expect(danger.vm.barColor).toBe('var(--color-element-error, var(--color-error))')
+		expect(danger.vm.pctColor).toBe('var(--color-text-error, var(--color-error-text))')
 	})
 
 	it('inverts bands when low is bad', async () => {
 		const w = mount({ thresholds: { warn: 80, danger: 100, invert: true } })
 		w.setData({ value: 50, target: 100 })
 		await w.vm.$nextTick()
-		expect(w.vm.barColor).toBe('var(--color-error)')
+		expect(w.vm.barColor).toBe('var(--color-element-error, var(--color-error))')
 	})
 
 	it('returns null ratio when target is zero', async () => {

@@ -75,7 +75,49 @@
 -->
 <template>
 	<NcAppNavigation :aria-label="ariaLabel" data-testid="cn-nav">
-		<template v-if="$slots.search || $slots.search" #search>
+		<template v-if="$slots.search || $slots.brand || navBrand" #search>
+			<!--
+				@slot brand
+				@description Replace the brand block at the very top of the
+				navigation. Default content: the logo, name and caption from
+				the `brand` prop or the manifest's `nav.brand`. Renders
+				nothing when neither is set.
+				@binding {object|null} brand The resolved brand (`{ logo, name, caption, alt }`), or null.
+			-->
+			<slot name="brand" :brand="resolvedBrand">
+				<div
+					v-if="navBrand"
+					class="cn-app-nav__brand"
+					data-testid="cn-nav-brand">
+					<!-- Decorative beside a name: the name already says whose
+					     app this is, and an alt text would say it twice. A logo
+					     on its own carries the name as its alt text. -->
+					<!-- An emblem (`nav.brand.emblem`) stands in for the logo:
+					     the municipality's mark beside the app name, distinct
+					     from the wordmark in the top bar. `true` draws the
+					     theme's emblem from --nldesign-emblem-url. -->
+					<img
+						v-if="typeof resolvedBrand.emblem === 'string' && resolvedBrand.emblem !== ''"
+						class="cn-app-nav__brand-emblem"
+						data-testid="cn-nav-brand-emblem"
+						:src="resolvedBrand.emblem"
+						:alt="resolvedBrand.name ? '' : resolvedBrand.alt">
+					<span
+						v-else-if="resolvedBrand.emblem === true"
+						class="cn-app-nav__brand-emblem cn-app-nav__brand-emblem--theme"
+						data-testid="cn-nav-brand-emblem"
+						aria-hidden="true" />
+					<img
+						v-else-if="resolvedBrand.logo"
+						class="cn-app-nav__brand-logo"
+						:src="resolvedBrand.logo"
+						:alt="resolvedBrand.name ? '' : resolvedBrand.alt">
+					<span v-if="resolvedBrand.name || resolvedBrand.caption" class="cn-app-nav__brand-text">
+						<strong v-if="resolvedBrand.name" class="cn-app-nav__brand-name">{{ resolvedBrand.name }}</strong>
+						<span v-if="resolvedBrand.caption" class="cn-app-nav__brand-caption">{{ resolvedBrand.caption }}</span>
+					</span>
+				</div>
+			</slot>
 			<!--
 				@slot search
 				@description Forwarded into NcAppNavigation's #search slot.
@@ -91,8 +133,42 @@
 		     OR nav root). Omitted entirely when neither the slot nor any
 		     resolvable primaryAction is present. -->
 		<slot name="primary-action">
+			<!-- A primary action that carries an `action` runs a page action
+			     (open-form opens the create dialog, navigate pushes a route)
+			     through CnActionButtons, so "New case" can live in the
+			     navigation without a create page. Drawn as one solid,
+			     full-width primary button. -->
+			<div
+				v-if="activePrimaryAction && primaryDispatchEntry"
+				class="app-navigation-new cn-app-nav__primary-action cn-app-nav__primary-action--solid"
+				data-testid="cn-nav-primary-action">
+				<CnActionButtons
+					:actions="[primaryDispatchEntry]"
+					data-testid="cn-nav-primary-action-dispatch"
+					@created="onPrimaryActionCreated" />
+			</div>
+			<!-- A primary action with an href or route is a real link.
+			     NcAppNavigationNew cannot render one, so this mirrors its
+			     wrapper and button. `solid: true` takes this same solid,
+			     full-width button for an action with neither. -->
+			<div
+				v-else-if="activePrimaryAction && (primaryActionLink || activePrimaryAction.solid === true)"
+				class="app-navigation-new cn-app-nav__primary-action"
+				:class="{ 'cn-app-nav__primary-action--solid': activePrimaryAction.solid === true }"
+				data-testid="cn-nav-primary-action">
+				<NcButton
+					variant="primary"
+					wide
+					v-bind="primaryActionLink || {}"
+					@click="onPrimaryActionClick">
+					<template #icon>
+						<component :is="primaryActionIconComponent" :size="20" />
+					</template>
+					{{ resolveLabel(activePrimaryAction) }}
+				</NcButton>
+			</div>
 			<NcAppNavigationNew
-				v-if="activePrimaryAction"
+				v-else-if="activePrimaryAction"
 				:text="resolveLabel(activePrimaryAction)"
 				data-testid="cn-nav-primary-action"
 				@click="onPrimaryActionClick">
@@ -107,13 +183,46 @@
 					v-if="isCaption(item)"
 					:key="item.id"
 					:name="resolveLabel(item)"
-					:data-testid="`cn-nav-caption-${item.id}`" />
+					:data-testid="`cn-nav-caption-${item.id}`">
+					<template v-if="item.href || item.action === 'user-settings'" #actions>
+						<NcActionLink
+							v-if="item.href"
+							:href="item.href"
+							:aria-label="captionEditLabel(item)"
+							:data-testid="`cn-nav-caption-edit-${item.id}`">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+							{{ captionEditLabel(item) }}
+						</NcActionLink>
+						<NcActionButton
+							v-else
+							:aria-label="captionEditLabel(item)"
+							:data-testid="`cn-nav-caption-edit-${item.id}`"
+							@click="cnOpenUserSettings()">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+							{{ captionEditLabel(item) }}
+						</NcActionButton>
+					</template>
+				</NcAppNavigationCaption>
+				<!-- `type: "hint"`: a muted line, no link, as the empty "My
+				     filters" group says how to add a filter. -->
+				<li
+					v-else-if="item.type === 'hint'"
+					:key="item.id"
+					class="cn-app-nav__hint"
+					:data-testid="`cn-nav-hint-${item.id}`">
+					{{ resolveLabel(item) }}
+				</li>
 				<NcAppNavigationItem
 					v-else
 					:key="item.id"
 					:name="resolveLabel(item)"
-					:to="itemTo(item)"
-					:href="itemHref(item)"
+					:title="itemTooltip(item)"
+					:to="linkTo(item)"
+					:href="linkHref(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:pinned="Boolean(item.pinned)"
@@ -129,9 +238,18 @@
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
+						<span
+							v-if="isBoard"
+							class="cn-app-nav__count"
+							:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+							:data-testid="`cn-nav-count-${item.id}`">
+							{{ resolveCount(item) }}
+						</span>
 						<NcCounterBubble
+							v-else
 							:count="resolveCount(item)"
-							:active="isActive(item)" />
+							:active="isActive(item)"
+							:type="isAttention(item) ? 'highlighted' : undefined" />
 					</template>
 					<template v-if="hasItemActionsSlot(item)" #actions>
 						<!--
@@ -148,8 +266,8 @@
 						v-for="child in visibleChildren(item)"
 						:key="child.id"
 						:name="resolveLabel(child)"
-						:to="itemTo(child)"
-						:href="itemHref(child)"
+						:to="linkTo(child)"
+						:href="linkHref(child)"
 						:icon="cssIconClass(child)"
 						:active="isActive(child)"
 						:pinned="Boolean(child.pinned)"
@@ -162,15 +280,49 @@
 							<CnMenuItemIcon v-else :icon="child.icon" :size="20" />
 						</template>
 						<template v-if="resolveCount(child)" #counter>
+							<span
+								v-if="isBoard"
+								class="cn-app-nav__count"
+								:class="{ 'cn-app-nav__count--attention': isAttention(child) }"
+								:data-testid="`cn-nav-count-${child.id}`">
+								{{ resolveCount(child) }}
+							</span>
 							<NcCounterBubble
+								v-else
 								:count="resolveCount(child)"
-								:active="isActive(child)" />
+								:active="isActive(child)"
+								:type="isAttention(child) ? 'highlighted' : undefined" />
 						</template>
 					</NcAppNavigationItem>
 				</NcAppNavigationItem>
 			</template>
 		</template>
-		<template v-if="footerItems.length > 0 || showSettingsFoldout" #footer>
+		<template v-if="footerItems.length > 0 || showSettingsFoldout || resolvedCard || showsHelp" #footer>
+			<!--
+				@slot card
+				@description Replace the card above the footer entries
+				(`nav.card`). Default content: a title, a line of text and one
+				link. Renders nothing when neither the slot nor `nav.card` is set.
+				@binding {object|null} card The resolved card, or null.
+			-->
+			<slot name="card" :card="resolvedCard">
+				<div
+					v-if="resolvedCard"
+					class="cn-app-nav__card"
+					data-testid="cn-nav-card">
+					<strong class="cn-app-nav__card-title">{{ resolvedCard.title }}</strong>
+					<span v-if="resolvedCard.text" class="cn-app-nav__card-text">{{ resolvedCard.text }}</span>
+					<component
+						:is="resolvedCard.linkTag"
+						v-if="resolvedCard.linkTag"
+						class="cn-app-nav__card-link"
+						data-testid="cn-nav-card-link"
+						v-bind="resolvedCard.linkAttrs"
+						@click="onCardLinkClick">
+						{{ resolvedCard.linkLabel }}
+					</component>
+				</div>
+			</slot>
 			<!-- Footer-section entries (Documentation, Features & Roadmap,
 			     About) live in NcAppNavigation's #footer slot — OUTSIDE the
 			     scrollable list — so they stay visible above the settings
@@ -181,13 +333,30 @@
 			     hover highlight are scoped to itself, so they survive being
 			     slotted. The main list's inset comes from NcAppNavigation's
 			     scope, which slot content does not carry. -->
-			<NcAppNavigationList v-if="footerItems.length > 0" class="cn-app-nav__footer-list">
+			<NcAppNavigationList
+				v-if="footerItems.length > 0 || showsHelp"
+				class="cn-app-nav__footer-list"
+				:class="{ 'cn-app-nav__footer-list--after-settings': settingsFirst }">
+				<!-- The help entry (`nav.help`): a link to the app's own help
+				     with a help icon, above the footer entries (or after them,
+				     when a declared `nav.footer` names it last). -->
+				<NcAppNavigationItem
+					v-if="showsHelp && !helpAfterItems"
+					:name="resolvedHelp.label"
+					:to="resolvedHelp.to"
+					:href="resolvedHelp.href"
+					:target="resolvedHelp.href ? '_blank' : undefined"
+					data-testid="cn-nav-help">
+					<template #icon>
+						<HelpCircleOutline :size="20" />
+					</template>
+				</NcAppNavigationItem>
 				<NcAppNavigationItem
 					v-for="item in footerItems"
 					:key="item.id"
 					:name="resolveLabel(item)"
-					:to="itemTo(item)"
-					:href="itemHref(item)"
+					:to="linkTo(item)"
+					:href="linkHref(item)"
 					:icon="cssIconClass(item)"
 					:active="isActive(item)"
 					:data-testid="`cn-nav-entry-${item.id}`"
@@ -199,9 +368,29 @@
 						<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 					</template>
 					<template v-if="resolveCount(item)" #counter>
+						<span
+							v-if="isBoard"
+							class="cn-app-nav__count"
+							:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+							:data-testid="`cn-nav-count-${item.id}`">
+							{{ resolveCount(item) }}
+						</span>
 						<NcCounterBubble
+							v-else
 							:count="resolveCount(item)"
-							:active="isActive(item)" />
+							:active="isActive(item)"
+							:type="isAttention(item) ? 'highlighted' : undefined" />
+					</template>
+				</NcAppNavigationItem>
+				<NcAppNavigationItem
+					v-if="showsHelp && helpAfterItems"
+					:name="resolvedHelp.label"
+					:to="resolvedHelp.to"
+					:href="resolvedHelp.href"
+					:target="resolvedHelp.href ? '_blank' : undefined"
+					data-testid="cn-nav-help">
+					<template #icon>
+						<HelpCircleOutline :size="20" />
 					</template>
 				</NcAppNavigationItem>
 			</NcAppNavigationList>
@@ -212,6 +401,7 @@
 			<NcAppNavigationSettings
 				v-if="showSettingsFoldout"
 				:name="settingsFoldoutLabel"
+				:class="{ 'cn-app-nav__settings--first': settingsFirst }"
 				data-testid="cn-nav-settings">
 				<ul class="cn-app-nav__settings-list">
 					<NcAppNavigationItem
@@ -267,13 +457,36 @@
 							v-if="isCaption(item)"
 							:key="item.id"
 							:name="resolveLabel(item)"
-							:data-testid="`cn-nav-caption-${item.id}`" />
+							:data-testid="`cn-nav-caption-${item.id}`">
+							<template v-if="item.href || item.action === 'user-settings'" #actions>
+								<NcActionLink
+									v-if="item.href"
+									:href="item.href"
+									:aria-label="captionEditLabel(item)"
+									:data-testid="`cn-nav-caption-edit-${item.id}`">
+									<template #icon>
+										<Pencil :size="20" />
+									</template>
+									{{ captionEditLabel(item) }}
+								</NcActionLink>
+								<NcActionButton
+									v-else
+									:aria-label="captionEditLabel(item)"
+									:data-testid="`cn-nav-caption-edit-${item.id}`"
+									@click="cnOpenUserSettings()">
+									<template #icon>
+										<Pencil :size="20" />
+									</template>
+									{{ captionEditLabel(item) }}
+								</NcActionButton>
+							</template>
+						</NcAppNavigationCaption>
 						<NcAppNavigationItem
 							v-else
 							:key="item.id"
 							:name="resolveLabel(item)"
-							:to="itemTo(item)"
-							:href="itemHref(item)"
+							:to="linkTo(item)"
+							:href="linkHref(item)"
 							:icon="cssIconClass(item)"
 							:active="isActive(item)"
 							:data-cn-route="item.route"
@@ -285,9 +498,18 @@
 								<CnMenuItemIcon v-else :icon="item.icon" :size="20" />
 							</template>
 							<template v-if="resolveCount(item)" #counter>
+								<span
+									v-if="isBoard"
+									class="cn-app-nav__count"
+									:class="{ 'cn-app-nav__count--attention': isAttention(item) }"
+									:data-testid="`cn-nav-count-${item.id}`">
+									{{ resolveCount(item) }}
+								</span>
 								<NcCounterBubble
+									v-else
 									:count="resolveCount(item)"
-									:active="isActive(item)" />
+									:active="isActive(item)"
+									:type="isAttention(item) ? 'highlighted' : undefined" />
 							</template>
 						</NcAppNavigationItem>
 					</template>
@@ -300,20 +522,25 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcCounterBubble } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
+import { toRaw } from 'vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 // ADR-077 rule 4: visible fallback for an unresolvable icon name.
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import MapMarkerPath from 'vue-material-design-icons/MapMarkerPath.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ShieldAccountOutline from 'vue-material-design-icons/ShieldAccountOutline.vue'
 import { ICON_MAP } from '../CnIcon/CnIcon.vue'
 import CnMenuItemIcon from '../CnMenuWidget/CnMenuItemIcon.vue'
+import { useLook } from '../../composables/useLook.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isSvgPath } from '../../utils/iconUtils.js'
+import { resolveBrand } from '../../utils/resolveBrand.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
+import { CnActionButtons } from '../CnActionButtons/index.js'
 // The legacy `icon-*` → MDI bridge lives beside CnIcon now, so the menu EDITOR
 // resolves a seeded `icon-comment` the same way this nav does. It used to be a
 // map local to this file, which is why the nav drew a proper glyph and the
@@ -348,17 +575,60 @@ function byManifestOrder(a, b) {
 	return a.order - b.order
 }
 
+/** A `:name` page-path segment: name, optional `(regexp)`, optional modifier. */
+const PARAM_SEGMENT = /^:(\w+)(\([^)]*\))?([?*+])?$/
+
+/**
+ * Whether a `PARAM_SEGMENT` match may be left out (`?` or `*`).
+ *
+ * @param {Array<string>} param The match.
+ * @return {boolean} True for an optional segment.
+ */
+function isOptionalParam(param) {
+	return param[3] === '?' || param[3] === '*'
+}
+
+/**
+ * Whether a route param value fills its segment.
+ *
+ * @param {unknown} value The value.
+ * @return {boolean} False for undefined, null and the empty string.
+ */
+function isFilled(value) {
+	return value !== undefined && value !== null && value !== ''
+}
+
+/**
+ * Decode one percent-encoded path segment, or keep it as is when it is not
+ * valid percent-encoding.
+ *
+ * @param {string} segment The segment.
+ * @return {string} The decoded segment.
+ */
+function decodeSegment(segment) {
+	try {
+		return decodeURIComponent(segment)
+	} catch {
+		return segment
+	}
+}
+
 export default {
 	name: 'CnAppNav',
 
 	components: {
+		NcActionButton,
+		NcActionLink,
+		Pencil,
 		NcAppNavigation,
 		NcAppNavigationCaption,
 		NcAppNavigationItem,
 		NcAppNavigationList,
 		NcAppNavigationNew,
 		NcAppNavigationSettings,
+		NcButton,
 		NcCounterBubble,
+		CnActionButtons,
 		CnMenuItemIcon,
 		Cog,
 		HelpCircleOutline,
@@ -370,6 +640,12 @@ export default {
 
 	inject: {
 		cnManifest: { default: null },
+		/**
+		 * Provided by CnAppRoot as true while the board look draws the brand
+		 * block in Nextcloud's header (screens-brand-block-top-bar): the
+		 * navigation then skips its own.
+		 */
+		cnBrandInHeader: { default: false },
 		cnTranslate: { default: () => (key) => key },
 		/**
 		 * Provided by CnAppRoot — opens the host app's
@@ -405,9 +681,32 @@ export default {
 		 * @type {{ [register: string]: { [schema: string]: number } }}
 		 */
 		cnMenuCounts: { default: () => ({}) },
+		/**
+		 * Provided by CnAppRoot — reactive `{ [menuItemId]: number }` totals
+		 * for every menu entry whose `count` is an object
+		 * (`{ register, schema, filter? }`): the total of that filtered
+		 * list, fetched under the entry's own key so an index page's
+		 * whole-schema total is left alone. Empty outside a CnAppRoot.
+		 *
+		 * @type {{ [itemId: string]: number }}
+		 */
+		cnMenuItemCounts: { default: () => ({}) },
 	},
 
 	props: {
+		/**
+		 * The look the navigation is drawn in: `board` or `nextcloud`. Empty
+		 * follows the `cnLook` that CnAppRoot provides. Under `board` the
+		 * navigation takes the anatomy of the screens (264px, 42px entries,
+		 * attention counts, Help before Advanced).
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-the-navigation-takes-the-board-anatomy
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Manifest object. Falls back to injected `cnManifest`. Provide
 		 * explicitly when mounting CnAppNav outside of CnAppRoot.
@@ -512,10 +811,36 @@ export default {
 			type: String,
 			default: () => t('nextcloud-vue', 'Main navigation'),
 		},
+
+		/**
+		 * The brand block at the top of the navigation:
+		 * `{ logo?, name?, caption?, alt? }`. `logo` is an image URL, `name`
+		 * the app or organisation name, `caption` a line under it. Falls back
+		 * to the manifest's `nav.brand`. `null` (the default) with no manifest
+		 * brand renders nothing.
+		 *
+		 * @type {{logo?: string, name?: string, caption?: string, alt?: string}|null}
+		 */
+		brand: {
+			type: Object,
+			default: null,
+		},
 	},
 
-	emits: ['primary-action', 'primary-action-click'],
+	emits: ['primary-action', 'primary-action-click', 'primary-action-created', 'card-action'],
 
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
+	},
+
+	/**
+	 * The navigation's own state: which groups are open, and which entry
+	 * of a route the reader last used.
+	 *
+	 * @return {object} The state.
+	 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+	 */
 	data() {
 		return {
 			/**
@@ -528,6 +853,16 @@ export default {
 			 * alongside the navigation — see `onItemClick`).
 			 */
 			openState: {},
+
+			/**
+			 * Per route name, the key of the entry that was last active on
+			 * that route in this session. Read by `subRouteParent` to keep
+			 * "the list I came from" marked on a page below it. In memory
+			 * only: a reload starts empty and falls back to menu order.
+			 *
+			 * @type {Record<string, string>}
+			 */
+			lastActiveEntryByRoute: {},
 		}
 	},
 
@@ -538,6 +873,88 @@ export default {
 
 		effectiveTranslate() {
 			return this.translate ?? this.cnTranslate
+		},
+
+		/**
+		 * The brand the navigation draws itself: the resolved brand, or null
+		 * while the app's top bar draws it.
+		 *
+		 * @spec openspec/changes/screens-brand-block-top-bar/specs/layout-components/spec.md#requirement-the-navigation-does-not-draw-a-brand-block-the-bar-already-draws
+		 * @return {object|null}
+		 */
+		navBrand() {
+			return this.cnBrandInHeader ? null : this.resolvedBrand
+		},
+
+		/**
+		 * The brand to draw: the `brand` prop, else the manifest's
+		 * `nav.brand`. Name and caption go through the translate function,
+		 * like every other manifest label. Null when there is nothing to
+		 * show, which is what keeps the block out of a navigation that
+		 * declares no brand.
+		 *
+		 * @return {{logo: string, name: string, caption: string, alt: string}|null} The brand, or null.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-navigation-brand
+		 */
+		resolvedBrand() {
+			return resolveBrand(this.brand ?? this.effectiveManifest?.nav?.brand, (value) => this.effectiveTranslate(value))
+		},
+
+		/**
+		 * The card above the footer entries (`nav.card`): `{ title, text?,
+		 * link?: { label, route?, params?, href?, action? } }`. Title, text
+		 * and link label go through the translate function. The link is a
+		 * router link for a `route` (with a router), an anchor for an
+		 * `href`, and a button emitting `card-action` with the `action` id
+		 * otherwise. Null without a title.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-navigation-carries-a-card-and-a-help-entry
+		 * @return {object|null}
+		 */
+		resolvedCard() {
+			const declared = this.effectiveManifest?.nav?.card
+			if (!declared || typeof declared !== 'object' || typeof declared.title !== 'string' || declared.title === '') {
+				return null
+			}
+			const text = (value) => (typeof value === 'string' && value !== '' ? this.effectiveTranslate(value) : '')
+			const card = { title: text(declared.title), text: text(declared.text), linkTag: '', linkAttrs: {}, linkLabel: '', action: '' }
+			const link = declared.link
+			if (link && typeof link === 'object' && typeof link.label === 'string' && link.label !== '') {
+				card.linkLabel = text(link.label)
+				if (link.route && this.$router) {
+					card.linkTag = 'router-link'
+					card.linkAttrs = { to: { name: link.route, ...(link.params && typeof link.params === 'object' ? { params: link.params } : {}) } }
+				} else if (typeof link.href === 'string' && link.href !== '') {
+					card.linkTag = 'a'
+					card.linkAttrs = { href: link.href }
+				} else if (typeof link.action === 'string' && link.action !== '') {
+					card.linkTag = 'button'
+					card.linkAttrs = { type: 'button' }
+					card.action = link.action
+				}
+			}
+			return card
+		},
+
+		/**
+		 * The help entry (`nav.help`): `{ label, route?, href? }` rendered as
+		 * a footer entry with a help icon. Null without a label or a target.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-navigation-carries-a-card-and-a-help-entry
+		 * @return {{label: string, to?: object, href?: string}|null}
+		 */
+		resolvedHelp() {
+			const declared = this.effectiveManifest?.nav?.help
+			if (!declared || typeof declared !== 'object' || typeof declared.label !== 'string' || declared.label === '') {
+				return null
+			}
+			if (declared.route && this.$router) {
+				return { label: this.effectiveTranslate(declared.label), to: { name: declared.route }, href: undefined }
+			}
+			if (typeof declared.href === 'string' && declared.href !== '') {
+				return { label: this.effectiveTranslate(declared.label), to: undefined, href: declared.href }
+			}
+			return null
 		},
 
 		/**
@@ -558,20 +975,30 @@ export default {
 		 *  2. `manifest.nav.primaryAction` as app-wide default
 		 *  3. `null` — no primary-action button renders
 		 *
-		 * Page-scoped declarations always win over the nav-root default.
+		 * Page-scoped declarations always win over the nav-root default. An
+		 * action declaring `permission` or `visibleIf` is gated like a menu
+		 * entry.
 		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
 		 * @return {object|null}
 		 */
 		activePrimaryAction() {
 			const pages = this.effectiveManifest?.pages ?? []
 			const routeName = this.$route?.name
+			// The same `permission` / `visibleIf` gate a menu entry has: an
+			// action the reader may not take, or that a condition hides, is
+			// not drawn. A gated-out page action falls back to the nav one.
+			const gated = (action) => (action && this.passesPermission(action) && this.passesVisibleIf(action) ? action : null)
 			if (routeName) {
 				const page = pages.find((p) => p.id === routeName)
 				if (page && page.primaryAction) {
-					return page.primaryAction
+					const pageAction = gated(page.primaryAction)
+					if (pageAction) {
+						return pageAction
+					}
 				}
 			}
-			return this.effectiveManifest?.nav?.primaryAction ?? null
+			return gated(this.effectiveManifest?.nav?.primaryAction ?? null)
 		},
 
 		/**
@@ -586,14 +1013,59 @@ export default {
 		},
 
 		/**
+		 * The CnActionButtons entry for a primary action that carries an
+		 * `action` (`$defs/action`: open-form, navigate, api-call, ...):
+		 * the action with the primary action's `id`, `label` and `icon`
+		 * folded in and `variant: "primary"`. Null for a plain primary
+		 * action, which keeps its link or button.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
+		 * @return {object|null}
+		 */
+		primaryDispatchEntry() {
+			const action = this.activePrimaryAction
+			const inner = action && action.action
+			if (!inner || typeof inner !== 'object' || typeof inner.type !== 'string') {
+				return null
+			}
+			return {
+				icon: action.icon || 'Plus',
+				...inner,
+				id: inner.id || action.id || 'primary-action',
+				label: action.label,
+				variant: 'primary',
+			}
+		},
+
+		/**
+		 * Link props for the primary action's button: an `href` opens in a
+		 * new tab, a `route` is a router link. Null when the action is
+		 * neither (or there is no router), so it stays a plain button.
+		 *
+		 * @return {object|null}
+		 */
+		primaryActionLink() {
+			const action = this.activePrimaryAction
+			if (!action) {
+				return null
+			}
+			if (action.href) {
+				return { href: action.href, target: '_blank' }
+			}
+			if (action.route && this.$router) {
+				return { to: { name: action.route } }
+			}
+			return null
+		},
+
+		/**
 		 * All visible items (filtered by permission and visibleIf conditions,
 		 * sorted by order). Retained for backwards-compat with the previous
 		 * public API and tests that read this computed; new code should use
 		 * `mainItems` / `settingsItems` instead.
 		 */
 		visibleItems() {
-			const items = this.effectiveManifest?.menu ?? []
-			return items
+			return (this.effectiveManifest?.menu ?? [])
 				.filter((item) => this.passesPermission(item) && this.passesVisibleIf(item))
 				.slice()
 				.sort(byManifestOrder)
@@ -622,17 +1094,118 @@ export default {
 		 * Documentation, Features & Roadmap, About.
 		 */
 		footerItems() {
-			return this.visibleItems.filter((item) => item.section === 'footer')
+			const footer = this.visibleItems.filter((item) => item.section === 'footer')
+			const declared = this.declaredFooter
+			if (declared === null) {
+				return footer
+			}
+			// A declared footer (`nav.footer`) keeps only the entries it names,
+			// in the order it names them.
+			return declared
+				.map((id) => footer.find((item) => item.id === id))
+				.filter(Boolean)
+		},
+
+		/**
+		 * The footer the manifest declares (`nav.footer`): an ordered list of
+		 * menu entry ids plus the reserved ids `help` (the `nav.help` entry)
+		 * and `settings` (the settings foldout). Null when the manifest
+		 * declares none, which keeps today's footer: the help entry, then
+		 * every `section: "footer"` entry, then the foldout.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {Array<string>|null}
+		 */
+		declaredFooter() {
+			const declared = this.effectiveManifest?.nav?.footer
+			if (!Array.isArray(declared)) {
+				return null
+			}
+			return declared.filter((id) => typeof id === 'string' && id !== '')
+		},
+
+		/**
+		 * Footer-section entries a declared footer leaves out. They move into
+		 * the settings foldout rather than disappearing, so a page such as
+		 * Store or Reports stays reachable. Empty without `nav.footer`.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {Array<object>}
+		 */
+		undeclaredFooterItems() {
+			const declared = this.declaredFooter
+			if (declared === null) {
+				return []
+			}
+			return this.visibleItems.filter((item) => item.section === 'footer' && !declared.includes(item.id))
+		},
+
+		/**
+		 * Whether the help entry renders: whenever it resolves, unless a
+		 * declared footer leaves `help` out.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {boolean}
+		 */
+		showsHelp() {
+			if (!this.resolvedHelp) {
+				return false
+			}
+			return this.declaredFooter === null || this.declaredFooter.includes('help')
+		},
+
+		/**
+		 * Whether the help entry goes AFTER the footer entries. Only a declared
+		 * footer that names an entry before `help` puts it there; by default
+		 * it leads the list.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {boolean}
+		 */
+		helpAfterItems() {
+			const declared = this.declaredFooter
+			if (declared === null) {
+				return false
+			}
+			const help = declared.indexOf('help')
+			return this.footerItems.some((item) => declared.indexOf(item.id) < help)
+		},
+
+		/**
+		 * Whether the settings foldout goes ABOVE the footer list: only when a
+		 * declared footer names `settings` before every other entry
+		 * (`["settings", "help"]`, the board's "Instellingen" then "Hulp en
+		 * uitleg"). Done with CSS `order` on the two siblings, so the markup
+		 * of both stays as it is.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {boolean}
+		 */
+		settingsFirst() {
+			// Under the board look Help always comes first and Advanced last,
+			// whatever order the manifest declares.
+			if (this.isBoard) {
+				return false
+			}
+			const declared = this.declaredFooter
+			return declared !== null && declared.indexOf('settings') === 0
 		},
 
 		/**
 		 * Items that render INSIDE the NcAppNavigationSettings foldout
 		 * (section: "settings"). The foldout is the NC-native gear-icon
 		 * button that slides a panel open; these entries are app-level
-		 * configuration pages (Forms, Pipelines, Automations, …).
+		 * configuration pages (Forms, Pipelines, Automations, …). A declared
+		 * footer (`nav.footer`) adds the footer entries it leaves out.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-the-navigation-footer-can-be-declared
+		 * @return {Array<object>}
 		 */
 		settingsItems() {
-			return this.visibleItems.filter((item) => item.section === 'settings')
+			return [
+				...this.visibleItems.filter((item) => item.section === 'settings'),
+				...this.undeclaredFooterItems,
+			]
 		},
 
 		/**
@@ -665,7 +1238,7 @@ export default {
 
 		/**
 		 * Label for the foldout's gear button. Manifest override:
-		 * `nav.settingsLabel`; defaults to "Settings".
+		 * `nav.settingsLabel`; defaults to "Advanced".
 		 *
 		 * @return {string}
 		 */
@@ -674,7 +1247,7 @@ export default {
 			if (typeof custom === 'string' && custom.length > 0) {
 				return this.effectiveTranslate(custom)
 			}
-			return t('nextcloud-vue', 'Settings')
+			return t('nextcloud-vue', 'Advanced')
 		},
 
 		/**
@@ -801,7 +1374,9 @@ export default {
 		 * `/expenses/:id`) light up — and auto-expand — their index entry
 		 * even though the detail route name is not in the menu. Longest
 		 * prefix disambiguates nested namespaces (e.g. `/pos` vs
-		 * `/pos/refunds`). Returns null when nothing matches.
+		 * `/pos/refunds`). An entry with `params` matches by its page path
+		 * with those params filled in (see `pageMatchDepth`). Returns null
+		 * when nothing matches.
 		 *
 		 * @return {string|null}
 		 */
@@ -822,23 +1397,114 @@ export default {
 				return routeName ?? null
 			}
 			let best = null
-			let bestLen = -1
+			let bestDepth = 0
 			for (const it of flat) {
 				if (!it.route) {
 					continue
 				}
-				const pagePath = this.pageForItem(it)?.route
-				if (!pagePath || pagePath === '/' || pagePath.includes(':')) {
-					continue
-				}
-				if (path === pagePath || path.startsWith(pagePath + '/')) {
-					if (pagePath.length > bestLen) {
-						best = it.route
-						bestLen = pagePath.length
-					}
+				const depth = this.pageMatchDepth(it, path)
+				if (depth > bestDepth) {
+					best = it.route
+					bestDepth = depth
 				}
 			}
 			return best ?? routeName ?? null
+		},
+
+		/**
+		 * Every visible entry and child, flat, in menu order.
+		 *
+		 * @return {Array<object>} The entries.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		flatEntries() {
+			const flat = []
+			for (const item of this.visibleItems) {
+				flat.push(item, ...this.visibleChildren(item))
+			}
+			return flat
+		},
+
+		/**
+		 * The entry the query rule marks while the reader is on a menu
+		 * route itself (not on a page below it). Watched, so the nav can
+		 * remember which entry of a route the reader last used.
+		 *
+		 * @return {object|null} The entry, or null on a page below a route.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		entryActiveOnOwnRoute() {
+			const routeName = this.$route?.name
+			if (!routeName || routeName !== this.activeRouteName) {
+				return null
+			}
+			return this.flatEntries.find((entry) => this.isActiveByRule(entry)) ?? null
+		},
+
+		/**
+		 * The one entry to mark on a page BELOW a menu route when the query
+		 * rule marks none.
+		 *
+		 * On a detail page (`/cases/123`) the active route is found by path
+		 * prefix, and the address carries the detail page's query, not the
+		 * list's. When every entry on that list has a `query` ("My work",
+		 * "Queue"), none of them matched and the menu showed no place at
+		 * all. Marking all of them is the defect the query rule ended, so
+		 * this picks exactly one: the entry the reader last had active on
+		 * that route, else the first in menu order.
+		 *
+		 * Null whenever the existing rule already marks an entry, so a list
+		 * with an entry without a `query` behaves as it did. An entry with
+		 * `params` is a candidate only when the current path sits below its
+		 * own filled-in page path, so another param value is never marked.
+		 *
+		 * @return {object|null} The entry to mark, or null.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		subRouteParent() {
+			const active = this.activeRouteName
+			if (!active || this.$route?.name === active) {
+				return null
+			}
+			const path = this.$route?.path
+			const entries = this.flatEntries.filter((entry) => !entry.href && entry.route === active
+				&& (!this.hasParams(entry) || this.pageMatchDepth(entry, path) > 0))
+			if (entries.length === 0 || entries.some((entry) => this.isActiveByRule(entry))) {
+				return null
+			}
+			const remembered = this.lastActiveEntryByRoute[active]
+			return entries.find((entry) => this.entryKey(entry) === remembered) ?? entries[0]
+		},
+	},
+
+	watch: {
+		activeRouteName: {
+			immediate: true,
+			handler(_current, previous) {
+				this.pinGroupsEntered(previous)
+			},
+		},
+
+		// The manifest can arrive after the route did.
+		visibleItems() {
+			this.pinGroupsEntered(this.activeRouteName)
+		},
+
+		entryActiveOnOwnRoute: {
+			immediate: true,
+			/**
+			 * Remember which entry of a route the reader used, for
+			 * `subRouteParent`.
+			 *
+			 * @param {object|null} entry The entry active on its own route.
+			 * @return {void}
+			 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+			 */
+			handler(entry) {
+				if (entry && entry.route) {
+					this.lastActiveEntryByRoute[entry.route] = this.entryKey(entry)
+				}
+			},
 		},
 	},
 
@@ -852,9 +1518,24 @@ export default {
 		// stays out of `data()`: a reactive Set mutated inside render would
 		// re-trigger the render effect.
 		this._autoCountWarned = new Set()
+		// Same latch, for warnUnfilledRouteParam() (`itemTo()` runs during render).
+		this._unfilledParamWarned = new Set()
 	},
 
 	methods: {
+		/**
+		 * Whether an entry's count asks for attention (`counterVariant:
+		 * "attention"`): the red pill under the board look, the counter
+		 * bubble's highlighted state without it.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/layout-components/spec.md#requirement-a-navigation-count-can-ask-for-attention
+		 * @param {object} item Menu entry descriptor.
+		 * @return {boolean}
+		 */
+		isAttention(item) {
+			return item?.counterVariant === 'attention'
+		},
+
 		/**
 		 * Resolve a menu item's `icon` string to an MDI Vue component. MDI names
 		 * resolve via the per-app `registerIcons()` registry; legacy Nextcloud
@@ -866,6 +1547,18 @@ export default {
 		 * @param {{ icon?: string }} item Menu item descriptor.
 		 * @return {import('vue').Component|null}
 		 */
+		/**
+		 * The tooltip of a menu entry: its `description` (a saved view's, say),
+		 * else null, which leaves NcAppNavigationItem's own (the name).
+		 *
+		 * @param {{ description?: string }} item Menu item descriptor.
+		 * @return {string|null}
+		 * @spec openspec/changes/saved-view-icon-description-count/specs/saved-view-icon-description-count/spec.md#requirement-a-saved-view-has-an-icon-and-a-description
+		 */
+		itemTooltip(item) {
+			return typeof item?.description === 'string' && item.description !== '' ? item.description : null
+		},
+
 		mdiIconComponent(item) {
 			const icon = item?.icon
 			if (typeof icon !== 'string' || icon.length === 0) {
@@ -1060,28 +1753,268 @@ export default {
 				.sort(byManifestOrder)
 		},
 
+		/**
+		 * The label an entry shows: run through the translate function, or
+		 * as written when the entry sets `translateLabel: false` (a
+		 * user-authored title that may equal a translation key). Every
+		 * place the nav shows an entry's label reads it from here.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string} The label to render as text.
+		 */
 		resolveLabel(item) {
+			if (item.translateLabel === false) {
+				return item.label
+			}
 			return this.effectiveTranslate(item.label)
 		},
 
+		/**
+		 * Whether a menu entry is the page the reader is on.
+		 *
+		 * Two entries may share a route and differ only in `query` ("My
+		 * work" and "Queue" on one list). The route name alone lit both. An
+		 * entry with a `query` is active only when the address carries that
+		 * query; an entry without one steps back when a sibling's query
+		 * matches, so exactly one of them is marked. `params` work the
+		 * same way against the route's params, so of several entries on a
+		 * `/items/:slug` route only the one whose `slug` is in the address
+		 * is marked.
+		 *
+		 * On a page below a list where that rule marks nothing, the one
+		 * entry `subRouteParent` picks is active instead.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the entry is the current page.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
 		isActive(item) {
+			if (this.isActiveByRule(item)) {
+				return true
+			}
+			const parent = this.subRouteParent
+			return parent !== null && toRaw(parent) === toRaw(item)
+		},
+
+		/**
+		 * The route, query and params rule on its own, without the fallback
+		 * for a page below a list. `subRouteParent` asks this to see whether
+		 * the rule already marks an entry.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the rule marks the entry.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		isActiveByRule(item) {
 			if (item.href || !item.route) {
 				return false
 			}
-			return item.route === this.activeRouteName
+			if (item.route !== this.activeRouteName) {
+				return false
+			}
+			if (this.isNarrowed(item)) {
+				return this.narrowingMatches(item)
+			}
+			return !this.flatEntries.some((entry) => entry !== item
+				&& entry.route === item.route
+				&& this.isNarrowed(entry)
+				&& this.narrowingMatches(entry))
+		},
+
+		/**
+		 * Whether an entry narrows its route with a `query` or `params`.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the entry declares either.
+		 */
+		isNarrowed(item) {
+			return Boolean(item.query && typeof item.query === 'object') || this.hasParams(item)
+		},
+
+		/**
+		 * Whether the address carries every `query` key and every `params`
+		 * key the entry declares.
+		 *
+		 * @param {object} item Menu entry that narrows its route.
+		 * @return {boolean} True when everything it declares matches.
+		 */
+		narrowingMatches(item) {
+			const queryOk = !(item.query && typeof item.query === 'object') || this.queryMatches(item)
+			const paramsOk = !this.hasParams(item) || this.paramsMatch(item)
+			return queryOk && paramsOk
+		},
+
+		/**
+		 * Whether an entry declares a non-empty `params` object.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when it has route params.
+		 */
+		hasParams(item) {
+			return Boolean(item?.params) && typeof item.params === 'object' && Object.keys(item.params).length > 0
+		},
+
+		/**
+		 * Whether the route's params carry every key of an entry's
+		 * `params`. Values are compared as strings.
+		 *
+		 * @param {object} item Menu entry with `params`.
+		 * @return {boolean} True when every declared key matches.
+		 */
+		paramsMatch(item) {
+			const current = this.$route?.params ?? {}
+			return Object.keys(item.params).every((key) => String(current[key] ?? '') === String(item.params[key]))
+		},
+
+		/**
+		 * The segments of an entry's page path with its `params` filled in,
+		 * as plain values. A missing optional `:name?` segment is dropped;
+		 * null when a required one has no param, or without a page.
+		 *
+		 * @param {object} item Menu entry with `params`.
+		 * @return {Array<string>|null} The segments, or null.
+		 */
+		filledPageSegments(item) {
+			const pagePath = this.pageForItem(item)?.route
+			if (!pagePath) {
+				return null
+			}
+			const segments = []
+			for (const part of pagePath.split('/').filter(Boolean)) {
+				const param = PARAM_SEGMENT.exec(part)
+				if (!param) {
+					segments.push(part)
+					continue
+				}
+				const value = item.params?.[param[1]]
+				if (isFilled(value)) {
+					segments.push(String(value))
+				} else if (!isOptionalParam(param)) {
+					return null
+				}
+			}
+			return segments
+		},
+
+		/**
+		 * The required route param the router cannot fill when it resolves
+		 * an entry's link on its manifest page. vue-router fills a named
+		 * link's required params from the current route, then overlays every
+		 * key the entry declares, empty or null included. So a declared key
+		 * decides on its own value, and only an undeclared one falls back
+		 * to the current route. Null without a known page, or when every
+		 * required segment is filled. Reads `$route`, so it follows
+		 * navigation.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string|null} The param name, or null.
+		 */
+		unfilledRouteParam(item) {
+			const pagePath = this.pageForItem(item)?.route
+			if (!pagePath) {
+				return null
+			}
+			const declared = item.params && typeof item.params === 'object' ? item.params : {}
+			const current = this.$route?.params ?? {}
+			for (const part of pagePath.split('/')) {
+				const param = PARAM_SEGMENT.exec(part)
+				if (!param || isOptionalParam(param)) {
+					continue
+				}
+				const value = param[1] in declared ? declared[param[1]] : current[param[1]]
+				if (!isFilled(value)) {
+					return param[1]
+				}
+			}
+			return null
+		},
+
+		/**
+		 * How deep a path sits on an entry's page path: the page path's
+		 * segment count when the path is that page or below it, else 0.
+		 * A `/` page path, or one with an unfilled `:name`, never matches.
+		 *
+		 * Without `params` the page path is compared as written. With
+		 * `params`, segments are compared decoded, because the router
+		 * percent-encodes param values in the path and the entry holds them
+		 * plain.
+		 *
+		 * @param {object} item Menu entry.
+		 * @param {string|undefined} path The path to test.
+		 * @return {number} The depth of the match, or 0.
+		 */
+		pageMatchDepth(item, path) {
+			if (!path) {
+				return 0
+			}
+			if (!this.hasParams(item)) {
+				const pagePath = this.pageForItem(item)?.route
+				if (!pagePath || pagePath === '/' || pagePath.includes(':')) {
+					return 0
+				}
+				const below = path === pagePath || path.startsWith(pagePath + '/')
+				return below ? pagePath.split('/').filter(Boolean).length : 0
+			}
+			const segments = this.filledPageSegments(item)
+			if (!segments || segments.length === 0) {
+				return 0
+			}
+			const current = path.split('/').filter(Boolean).map(decodeSegment)
+			return segments.every((segment, index) => current[index] === segment) ? segments.length : 0
+		},
+
+		/**
+		 * What an entry is remembered by: its `id`, else its label.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string} The key.
+		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
+		 */
+		entryKey(item) {
+			return String(item.id ?? item.label ?? '')
+		},
+
+		/**
+		 * Whether the address carries every key of an entry's `query`.
+		 * Values are compared as strings, since an address has no numbers.
+		 *
+		 * @param {object} item Menu entry with a `query`.
+		 * @return {boolean} True when every declared key matches.
+		 * @spec openspec/changes/link-cards-page/specs/link-cards-page/spec.md#requirement-menu-entries-that-differ-in-query
+		 */
+		queryMatches(item) {
+			const current = this.$route?.query ?? {}
+			const keys = Object.keys(item.query)
+			return keys.length > 0 && keys.every((key) => String(current[key] ?? '') === String(item.query[key]))
 		},
 
 		/**
 		 * Whether a menu entry renders as a `NcAppNavigationCaption`
 		 * (`type: "caption"`) rather than a clickable
-		 * `NcAppNavigationItem`. Caption entries ignore `route`, `href`,
-		 * `action`, `icon`, `count`, `children`, and `pinned`.
+		 * `NcAppNavigationItem`. Caption entries ignore `route`, `action`,
+		 * `icon`, `count`, `children`, and `pinned`. A caption's `href` is
+		 * drawn as a pencil link beside the heading: the place where what
+		 * stands under it is changed (a user's own choice of entries, say).
+		 * `action: "user-settings"` draws the same pencil as a button that
+		 * opens the user settings dialog.
 		 *
 		 * @param {{ type?: string }} item Menu entry descriptor.
 		 * @return {boolean}
 		 */
 		isCaption(item) {
 			return item?.type === 'caption'
+		},
+
+		/**
+		 * The accessible name of a caption's pencil link.
+		 *
+		 * @param {object} item The caption entry.
+		 * @return {string} "Change {caption}", translated.
+		 */
+		captionEditLabel(item) {
+			return t('nextcloud-vue', 'Change {name}', { name: this.resolveLabel(item) })
 		},
 
 		/**
@@ -1108,6 +2041,9 @@ export default {
 		 * `NcAppNavigationItem`).
 		 *
 		 *  - Literal positive integer in `item.count` → return as-is.
+		 *  - `item.count` is an object (`{ register, schema, filter? }`) →
+		 *    `cnMenuItemCounts[item.id] ?? null`, the filtered total CnAppRoot
+		 *    fetched for this entry.
 		 *  - `item.count === "auto"` → look up the entry's resolved page;
 		 *    when that page is `type: "index"` with a `register`/`schema`
 		 *    in its `config`, return
@@ -1130,6 +2066,11 @@ export default {
 			}
 			if (typeof raw === 'number') {
 				return raw > 0 ? raw : null
+			}
+			if (raw && typeof raw === 'object') {
+				// A filtered count: CnAppRoot fetched it per entry id.
+				const value = this.cnMenuItemCounts?.[item.id]
+				return (typeof value === 'number' && value > 0) ? value : null
 			}
 			if (raw !== 'auto') {
 				return null
@@ -1167,6 +2108,27 @@ export default {
 		},
 
 		/**
+		 * One-shot `console.warn` per menu entry whose link cannot fill a
+		 * required route param. Keyed by `id`, else route and label, so
+		 * entries without an id each get their own warning.
+		 *
+		 * @param {{ id?: string, route: string, label?: string }} item Menu entry descriptor.
+		 * @param {string} param The unfilled param name.
+		 * @return {void}
+		 * @private
+		 */
+		warnUnfilledRouteParam(item, param) {
+			const key = item.id ?? `${item.route}|${item.label ?? ''}`
+			if (this._unfilledParamWarned.has(key)) {
+				return
+			}
+			this._unfilledParamWarned.add(key)
+			const name = item.id ?? item.label ?? item.route
+			// eslint-disable-next-line no-console
+			console.warn(`[CnAppNav] Menu entry "${name}" cannot fill the required route param "${param}" of page "${item.route}" from its params or the current route — the entry renders without a link.`)
+		},
+
+		/**
 		 * Look up an item's resolved page (`pages[]` entry whose `id`
 		 * matches the menu item's `route`) — used to decide whether the
 		 * NcAppNavigationItem should match its router-link `exact`.
@@ -1188,11 +2150,17 @@ export default {
 		 * items (`action: "user-settings"`) and `href` items return
 		 * `null` so the entry is NOT a vue-router link: action items
 		 * fall through to the click handler, `href` items render a real
-		 * anchor via `itemHref`. Route items return a named route.
+		 * anchor via `itemHref`. Route items return a named route that
+		 * carries the item's `params` and `query` when it declares them.
+		 *
+		 * An item whose manifest page has a required segment that neither
+		 * its `params` nor the current route fill also returns null, with a
+		 * one-time warning: the router throws resolving such a link, which
+		 * would take the whole navigation down rather than that one entry.
 		 *
 		 * @param {object} item Menu item being rendered.
-		 * @return {object|null} A `{ name }` route object, or null for
-		 *   action / href / route-less items.
+		 * @return {object|null} A `{ name, params?, query? }` route object,
+		 *   or null for action / href / route-less / unfillable items.
 		 */
 		itemTo(item) {
 			if (item.action) {
@@ -1204,9 +2172,88 @@ export default {
 			if (!item.route) {
 				return null
 			}
-			// Carry optional query params so a nav entry can deep-link to a
-			// pre-filtered index page (e.g. one entry per case type → Cases?caseType=…).
-			return item.query ? { name: item.route, query: item.query } : { name: item.route }
+			const unfilled = this.unfilledRouteParam(item)
+			if (unfilled) {
+				this.warnUnfilledRouteParam(item, unfilled)
+				return null
+			}
+			const to = { name: item.route }
+			// Params fill a parameterised route (one entry per catalog →
+			// /catalogs/:slug); query deep-links to a pre-filtered index page
+			// (one entry per case type → Cases?caseType=…).
+			if (this.hasParams(item)) {
+				to.params = item.params
+			}
+			if (item.query) {
+				to.query = item.query
+			}
+			return to
+		},
+
+		/**
+		 * Whether another visible entry links to the same route, so the two
+		 * differ only in `query` or `params` ("All cases" and "Woo requests"
+		 * on one list).
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {boolean} True when the route is shared.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		sharesRoute(item) {
+			if (!item || item.href || item.action || !item.route) {
+				return false
+			}
+			return this.flatEntries.some((entry) => entry !== item && !entry.href && !entry.action && entry.route === item.route)
+		},
+
+		/**
+		 * The app's router, or null when the nav is mounted without one. Read
+		 * from the app's global properties: `this.$router` warns during render
+		 * on an instance that has none.
+		 *
+		 * @return {object|null} The router.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		appRouter() {
+			return this.$?.appContext?.config?.globalProperties?.$router ?? null
+		},
+
+		/**
+		 * The `:to` an entry renders with. An entry that shares its route
+		 * renders as a plain link instead (see `linkHref`): NcAppNavigationItem
+		 * marks a router link active whenever vue-router calls it active, and
+		 * vue-router ignores the query, so "Woo requests" lit up beside "All
+		 * cases" on the unfiltered list. As a plain link only `isActive`
+		 * decides, which marks the entry that matches best.
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {object|null} The router target, or null.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		linkTo(item) {
+			if (this.appRouter() && this.sharesRoute(item)) {
+				return null
+			}
+			return this.itemTo(item)
+		},
+
+		/**
+		 * The `:href` an entry renders with: `itemHref`, or for an entry that
+		 * shares its route the address vue-router resolves its target to (a
+		 * click on it is still routed in the app, see `onItemClick`).
+		 *
+		 * @param {object} item Menu entry.
+		 * @return {string|null} The address, or null.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-only-the-best-matching-menu-entry-is-active
+		 */
+		linkHref(item) {
+			const own = this.itemHref(item)
+			const router = this.appRouter()
+			if (own || !router || !this.sharesRoute(item)) {
+				return own
+			}
+			const to = this.itemTo(item)
+			return to ? router.resolve(to).href : null
 		},
 
 		/**
@@ -1216,14 +2263,18 @@ export default {
 		 * cursor. `NcAppNavigationItem` adds `target="_blank"` itself for
 		 * external (`scheme://`) URLs, so those open in a new tab while
 		 * internal app paths (e.g. `/index.php/apps/foo/`) navigate in the
-		 * same tab — no `window.open` interception. Action items never
-		 * carry an href. Returns `null` for non-href items so the entry
-		 * stays a router-link / button.
+		 * same tab — no `window.open` interception. The `admin-settings`
+		 * action links to `adminSettingsHref` (absolute, so it opens in a
+		 * new tab); other action items carry no href. Returns `null` for
+		 * non-href items so the entry stays a router-link / button.
 		 *
 		 * @param {object} item Menu item being rendered.
 		 * @return {string|null} The destination URL, or null.
 		 */
 		itemHref(item) {
+			if (item.action === 'admin-settings') {
+				return this.adminSettingsHref || null
+			}
 			if (item.action) {
 				return null
 			}
@@ -1232,10 +2283,11 @@ export default {
 
 		/**
 		 * Whether a menu group renders expanded. Local `openState` (set
-		 * by the chevron or a title click) wins; otherwise the group
-		 * auto-expands when it contains the active route — so deep-linking
-		 * to a child page reveals which group it lives in — and finally
-		 * falls back to the manifest's `item.open` for the initial render.
+		 * by the chevron, a title click, or `pinGroupsEntered`) wins;
+		 * otherwise the group auto-expands when it contains the active
+		 * route — so deep-linking to a child page reveals which group it
+		 * lives in — and finally falls back to the manifest's `item.open`
+		 * for the initial render.
 		 *
 		 * @param {{ id: string, open?: boolean }} item Menu entry descriptor.
 		 * @return {boolean}
@@ -1276,11 +2328,36 @@ export default {
 		},
 
 		/**
+		 * Pin open every group the active route just entered.
+		 *
+		 * Auto-expansion used to be read off the route alone, so a group
+		 * opened for a deep link collapsed the moment the route left it. A
+		 * group opened for you stays open until you close it. Only a group
+		 * the route ENTERS is pinned: one you closed while on one of its
+		 * children stays closed while you move between them.
+		 *
+		 * @param {string|null} previousRoute The active route before this change, or undefined at first render.
+		 */
+		pinGroupsEntered(previousRoute) {
+			for (const item of this.visibleItems) {
+				const children = this.visibleChildren(item)
+				if (children.length === 0 || !this.hasActiveChild(item)) {
+					continue
+				}
+				const wasInside = children.some((child) => child.route === previousRoute)
+				if (!wasInside || this.openState[item.id] === undefined) {
+					this.openState[item.id] = true
+				}
+			}
+		},
+
+		/**
 		 * Click handler. Dispatch order: action keyword → group
 		 * open/toggle. For `action: "user-settings"` invokes the injected
 		 * `cnOpenUserSettings` (provided by CnAppRoot) and prevents
-		 * default; for `action: "admin-settings"` opens
-		 * `/settings/admin/<appId>` in a new tab and prevents default; for `action:
+		 * default; `action: "admin-settings"` is a real link to
+		 * `/settings/admin/<appId>` (see `itemHref`) and is left to the
+		 * browser; for `action:
 		 * "replay-walkthrough"` invokes the injected
 		 * `cnReplayWalkthrough(item.tourId)` and prevents default. `href`
 		 * items with no children are NOT handled here — they render a real
@@ -1313,16 +2390,11 @@ export default {
 				return
 			}
 			if (item.action === 'admin-settings') {
-				if (event && typeof event.preventDefault === 'function') {
+				// ADR-079: a real link to Nextcloud's own settings (see
+				// itemHref), followed natively in a new tab. Without an app
+				// id there is no href, and the click does nothing.
+				if (!this.adminSettingsHref && event && typeof event.preventDefault === 'function') {
 					event.preventDefault()
-				}
-				// ADR-079: admin config lives in Nextcloud's settings
-				// framework, not in an in-app modal. A NEW tab (same as the
-				// auto-prepended entry) so the app — and any unsaved state in
-				// it — stays open. No-op when the app id is unresolvable —
-				// better than sending the user to a broken URL.
-				if (this.adminSettingsHref) {
-					window.open(this.adminSettingsHref, '_blank', 'noopener')
 				}
 				return
 			}
@@ -1332,6 +2404,22 @@ export default {
 				}
 				this.cnReplayWalkthrough(item.tourId)
 				return
+			}
+			// An entry that shares its route is a plain link (see linkTo); a
+			// plain click still navigates inside the app. A modified click
+			// (new tab, new window) is left to the browser.
+			if (this.appRouter() && this.sharesRoute(item) && event && !event.defaultPrevented
+				&& !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) && event.button !== 1) {
+				const to = this.itemTo(item)
+				if (to) {
+					event.preventDefault()
+					this.appRouter().push(to).catch(() => {})
+				}
+			}
+			// An entry left without a link (see itemTo) renders a `#` anchor;
+			// following it would change the address, so the click goes nowhere.
+			if (!item.href && this.unfilledRouteParam(item) && event && typeof event.preventDefault === 'function') {
+				event.preventDefault()
 			}
 			if (this.visibleChildren(item).length === 0) {
 				return
@@ -1363,16 +2451,48 @@ export default {
 		/**
 		 * Click handler for the manifest-declared primary action. Emits
 		 * `@primary-action` AND the back-compat `@primary-action-click`
-		 * event for host-side handling, then performs default navigation:
-		 * external `href` opens in a new tab; a `route` pushes the named
-		 * vue-router route. No-op when neither is set. Not invoked when
-		 * the host overrides the `#primary-action` slot (it provides its
-		 * own handler).
+		 * event for host-side handling. Navigation is the link's own: an
+		 * `href` or `route` action renders as a real link (see
+		 * `primaryActionLink`), so the browser or router follows it after
+		 * these events. Not invoked when the host overrides the
+		 * `#primary-action` slot (it provides its own handler).
 		 *
-		 * @param {Event} [event] Native click event.
 		 * @return {void}
 		 */
-		onPrimaryActionClick(event) {
+		/**
+		 * Re-emit the object an `open-form` primary action created, so the
+		 * host can refresh a list or open the record.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-navigation-primary-action-runs-a-page-action
+		 * @param {object} created The created object.
+		 * @return {void}
+		 */
+		onPrimaryActionCreated(created) {
+			/**
+			 * @event primary-action-created Emitted after an `open-form` primary action saves. Payload: the created object.
+			 */
+			this.$emit('primary-action-created', created)
+		},
+
+		/**
+		 * A card link that is a button (an `action` id) emits `card-action`
+		 * with that id for the host to run; links and anchors navigate on
+		 * their own.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-the-navigation-carries-a-card-and-a-help-entry
+		 * @return {void}
+		 */
+		onCardLinkClick() {
+			const card = this.resolvedCard
+			if (card && card.action) {
+				/**
+				 * @event card-action Emitted when the nav card's link is an action button. Payload: the action id.
+				 */
+				this.$emit('card-action', card.action)
+			}
+		},
+
+		onPrimaryActionClick() {
 			const action = this.activePrimaryAction
 			if (!action) {
 				return
@@ -1395,22 +2515,127 @@ export default {
 			 * @event primary-action-click Back-compat alias for `@primary-action`. Payload is the resolved primary action object as declared in the manifest.
 			 */
 			this.$emit('primary-action-click', action)
-			if (action.href) {
-				if (event && typeof event.preventDefault === 'function') {
-					event.preventDefault()
-				}
-				window.open(action.href, '_blank', 'noopener,noreferrer')
-				return
-			}
-			if (action.route && this.$router) {
-				this.$router.push({ name: action.route })
-			}
 		},
 	},
 }
 </script>
 
 <style>
+.cn-app-nav__hint {
+	list-style: none;
+	padding: 4px 12px 8px 16px;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
+/* The emblem beside the app name (`nav.brand.emblem`). A theme sets
+   --nldesign-emblem-url for `emblem: true`, and --cn-nav-emblem-size for both. */
+.cn-app-nav__brand-emblem {
+	flex: none;
+	height: var(--cn-nav-emblem-size, 34px);
+	width: auto;
+	object-fit: contain;
+}
+
+.cn-app-nav__brand-emblem--theme {
+	display: inline-block;
+	width: var(--cn-nav-emblem-size, 34px);
+	background: var(--nldesign-emblem-url) center / contain no-repeat;
+}
+
+/* The solid primary action (`solid: true`, or an action that dispatches):
+   one full-width primary button, as the board draws "New case". */
+.cn-app-nav__primary-action--solid .cn-action-buttons,
+.cn-app-nav__primary-action--solid .cn-action-buttons .button-vue,
+.cn-app-nav__primary-action--solid .button-vue {
+	width: 100%;
+	justify-content: center;
+}
+
+/* The card above the footer entries (`nav.card`). Theme hooks:
+   --cn-nav-card-background and --cn-nav-card-radius. */
+.cn-app-nav__card {
+	display: flex;
+	flex-direction: column;
+	gap: calc(2 * var(--default-grid-baseline));
+	margin: calc(2 * var(--default-grid-baseline));
+	padding: calc(4 * var(--default-grid-baseline));
+	border-radius: var(--cn-nav-card-radius, var(--border-radius-large));
+	background: var(--cn-nav-card-background, var(--color-background-hover));
+}
+
+.cn-app-nav__card-title {
+	color: var(--color-main-text);
+	font-weight: 700;
+}
+
+.cn-app-nav__card-text {
+	color: var(--color-text-maxcontrast);
+	line-height: 1.4;
+}
+
+.cn-app-nav__card-link {
+	align-self: flex-start;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-primary-element);
+	font: inherit;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.cn-app-nav__card-link:hover,
+.cn-app-nav__card-link:focus-visible {
+	text-decoration: underline;
+}
+
+.cn-app-nav__card-link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+	border-radius: var(--border-radius-small, 4px);
+}
+
+/* The brand block at the top of the navigation. */
+.cn-app-nav__brand {
+	align-items: center;
+	display: flex;
+	gap: calc(2.5 * var(--default-grid-baseline));
+	min-width: 0;
+	padding: calc(2 * var(--default-grid-baseline)) calc(2 * var(--default-grid-baseline)) calc(3 * var(--default-grid-baseline));
+}
+
+.cn-app-nav__brand-logo {
+	flex: none;
+	height: 34px;
+	max-width: 50%;
+	object-fit: contain;
+	width: auto;
+}
+
+.cn-app-nav__brand-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.15;
+	min-width: 0;
+}
+
+.cn-app-nav__brand-name {
+	color: var(--color-main-text);
+	font-size: 1.2em;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.cn-app-nav__brand-caption {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	overflow-wrap: anywhere;
+}
+
 /*
  * The legacy `icon-*` classes in Nextcloud render a background-image
  * with a hardcoded dark fill, so they stay grey when an entry becomes
@@ -1422,6 +2647,27 @@ export default {
  */
 .app-navigation-entry.active .app-navigation-entry-icon[class*="icon-"] {
 	filter: brightness(0) invert(1);
+}
+
+/* The link form of the primary action, matching NcAppNavigationNew's scoped layout. */
+.cn-app-nav__primary-action {
+	display: block;
+	padding: calc(var(--default-grid-baseline, 4px) * 2);
+}
+
+/*
+ * The primary action never shrinks out of sight. NcAppNavigation renders it in
+ * `.app-navigation__body`, a flex child with `overflow-y: scroll` (so its
+ * minimum height is 0) beside a list of `height: 100%` and the footer. With a
+ * card and footer entries below the list, the column overflows and the body
+ * gives up its share of the shrink: "New case" showed as a 24px sliver of a
+ * 42px button. All three forms carry `.app-navigation-new` (the solid and
+ * link wrappers mirror NcAppNavigationNew's class), and the rule is scoped to
+ * this component's navigation, so a navigation without a primary action lays
+ * out exactly as before.
+ */
+.app-navigation[data-testid="cn-nav"] .app-navigation__body:has(> .app-navigation-new) {
+	flex-shrink: 0;
 }
 
 /*
@@ -1445,6 +2691,20 @@ export default {
 	margin: 0;
 	flex-shrink: 0 !important;
 	overflow: visible !important;
+}
+
+/*
+ * A declared footer that names `settings` first (`nav.footer`) puts the
+ * foldout above the footer list. The two are siblings in NcAppNavigation's
+ * flex column, so `order` moves them without changing either's markup; the
+ * card above keeps order 0 and stays first.
+ */
+.cn-app-nav__settings--first {
+	order: 1;
+}
+
+.cn-app-nav__footer-list--after-settings {
+	order: 2;
 }
 
 /*

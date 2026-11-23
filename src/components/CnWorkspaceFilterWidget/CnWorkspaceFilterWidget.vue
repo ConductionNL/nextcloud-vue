@@ -4,33 +4,158 @@
 -->
 
 <template>
-	<div class="cn-workspace-filter-widget" data-testid="cn-workspace-filter-widget">
-		<p v-if="label" class="cn-workspace-filter-widget__label">
-			{{ label }}
+	<div
+		class="cn-workspace-filter-widget"
+		:class="{
+			'cn-workspace-filter-widget--start': isStart,
+			'cn-workspace-filter-widget--chips': style === 'chips',
+			'cn-workspace-filter-widget--bar': isBar,
+			'cn-workspace-filter-widget--inline': content.inline === true,
+			'cn-workspace-filter-widget--end': content.align === 'end',
+		}"
+		data-testid="cn-workspace-filter-widget">
+		<!-- The start card (`layout: "start"`): a title and one line of
+		     guidance beside the control, as the "Contact starten" card. -->
+		<div v-if="isStart && (title || description)" class="cn-workspace-filter-widget__text">
+			<h3 v-if="title" class="cn-workspace-filter-widget__title">
+				{{ title }}
+			</h3>
+			<p v-if="description" class="cn-workspace-filter-widget__description">
+				{{ description }}
+			</p>
+		</div>
+
+		<!-- A bar (`layout: "bar"`): its `controls` side by side in one row,
+		     each a workspace filter of its own (chips, a switch, a select). -->
+		<template v-if="isBar">
+			<CnWorkspaceFilterWidget
+				v-for="(control, index) in barControls"
+				:key="index"
+				:content="control"
+				@change="$emit('change', $event)" />
+		</template>
+
+		<!-- An input with a load button (`style: "input"`): the value goes to
+		     the workspace only when it is loaded, and only when it is valid. -->
+		<form
+			v-if="!isBar && style === 'input'"
+			class="cn-workspace-filter-widget__form"
+			novalidate
+			data-testid="cn-workspace-filter-form"
+			@submit.prevent="submitInput">
+			<div class="cn-workspace-filter-widget__field">
+				<label :for="inputId" class="cn-workspace-filter-widget__field-label">{{ tr(label) }}</label>
+				<input
+					:id="inputId"
+					v-model="draft"
+					class="cn-workspace-filter-widget__input"
+					type="text"
+					:inputmode="inputType === 'year' ? 'numeric' : 'text'"
+					:aria-invalid="inputError ? 'true' : 'false'"
+					:aria-describedby="inputError ? `${inputId}-error` : undefined"
+					data-testid="cn-workspace-filter-input">
+				<p
+					v-if="inputError"
+					:id="`${inputId}-error`"
+					class="cn-workspace-filter-widget__input-error"
+					data-testid="cn-workspace-filter-input-error">
+					{{ inputError }}
+				</p>
+			</div>
+			<NcButton type="submit" variant="primary" data-testid="cn-workspace-filter-submit">
+				{{ tr(content.submitLabel || '') || loadLabel }}
+			</NcButton>
+			<NcButton
+				v-if="exportTableId"
+				type="button"
+				variant="secondary"
+				class="cn-workspace-filter-widget__export"
+				data-testid="cn-workspace-filter-export"
+				@click="exportTable">
+				{{ tr(content.exportTable.label || '') || exportLabel }}
+			</NcButton>
+		</form>
+
+		<p v-if="!isBar && label && style !== 'chips' && style !== 'toggle' && style !== 'input'" class="cn-workspace-filter-widget__label">
+			{{ tr(label) }}
 		</p>
 
-		<div v-if="loading" class="cn-workspace-filter-widget__status">
+		<!-- An object picker (`objectSource`): searches OpenRegister on the
+		     server, so it reaches every object, not a fetched page. -->
+		<!-- The start card draws the picker as a search: a person-search
+		     icon in front and no open chevron (PqDashboard "Contact starten"). -->
+		<AccountSearch
+			v-if="isStart && !isBar && style !== 'input' && objectSource"
+			:size="20"
+			class="cn-workspace-filter-widget__search-icon"
+			aria-hidden="true" />
+		<CnResourceSelect
+			v-if="!isBar && style !== 'input' && objectSource"
+			class="cn-workspace-filter-widget__control"
+			:class="{ 'cn-workspace-filter-widget__control--search': isStart }"
+			:register="objectSource.register"
+			:schema="objectSource.schema"
+			:labelField="objectSource.labelField || 'title'"
+			:modelValue="selected === undefined || selected === null ? '' : String(selected)"
+			:placeholder="tr(objectSource.placeholder || '')"
+			:ariaLabelCombobox="tr(objectSource.ariaLabel || '') || title || label || writeKey"
+			:preload="objectSource.preload !== false"
+			:clearable="Boolean(content.allLabel)"
+			:allowCreate="false"
+			data-testid="cn-workspace-filter-object"
+			@update:modelValue="applySelection($event || '')" />
+
+		<div v-else-if="loading && style !== 'input'" class="cn-workspace-filter-widget__status">
 			{{ loadingLabel }}
 		</div>
+
+		<!-- Chips style (screens-page-lenses): one compact segmented group,
+		     a count after each label, arrow keys move the choice. -->
+		<CnSegmentedControl
+			v-else-if="style === 'chips'"
+			class="cn-workspace-filter-widget__chips"
+			size="compact"
+			:options="chipOptions"
+			:modelValue="selected === undefined || selected === null ? null : String(selected)"
+			:ariaLabel="tr(label) || writeKey"
+			:phonePills="content.chipsOnPhone === 'pills'"
+			data-testid="cn-workspace-filter-chips"
+			@update:modelValue="applySelection" />
+
+		<!-- Toggle style (screens-page-controls): a switch that writes
+		     `onValue` / `offValue` (true / false) to the key; a checkbox with
+		     `control: "checkbox"`. -->
+		<NcCheckboxRadioSwitch
+			v-else-if="style === 'toggle'"
+			class="cn-workspace-filter-widget__toggle"
+			:class="{ 'cn-workspace-filter-widget__toggle--checkbox': toggleAsCheckbox }"
+			:type="toggleAsCheckbox ? 'checkbox' : 'switch'"
+			:modelValue="toggleOn"
+			data-testid="cn-workspace-filter-toggle"
+			@update:modelValue="onToggle">
+			{{ tr(label) }}
+		</NcCheckboxRadioSwitch>
 
 		<!-- Select style -->
 		<NcSelect
 			v-else-if="style === 'select'"
 			:modelValue="selectedOption"
-			:options="displayOptions"
+			:options="selectOptions"
 			:clearable="false"
-			:inputLabel="label || writeKey"
+			:inputLabel="content.inline ? '' : (tr(label) || writeKey)"
+			:labelOutside="content.inline === true"
+			:ariaLabelCombobox="tr(label) || writeKey"
 			label="label"
 			data-testid="cn-workspace-filter-select"
 			@update:modelValue="onSelect" />
 
 		<!-- Radio-list style (default) -->
-		<ul v-else
+		<ul v-else-if="!isBar && style !== 'input'"
 			class="cn-workspace-filter-widget__list"
 			role="radiogroup"
-			:aria-label="label || writeKey">
+			:aria-label="tr(label) || writeKey">
 			<li
-				v-for="option in displayOptions"
+				v-for="option in selectOptions"
 				:key="String(option.value)"
 				class="cn-workspace-filter-widget__item">
 				<NcCheckboxRadioSwitch
@@ -47,13 +172,37 @@
 				</NcCheckboxRadioSwitch>
 			</li>
 		</ul>
+
+		<button
+			v-if="startLink && startLink.value !== undefined"
+			type="button"
+			class="cn-workspace-filter-widget__link cn-workspace-filter-widget__link--pick"
+			data-testid="cn-workspace-filter-link"
+			@click="applySelection(startLink.value)">
+			{{ startLink.label }}
+		</button>
+		<component
+			:is="startLink.to ? 'router-link' : 'a'"
+			v-else-if="startLink"
+			:to="startLink.to || undefined"
+			:href="startLink.href || undefined"
+			class="cn-workspace-filter-widget__link"
+			data-testid="cn-workspace-filter-link">
+			{{ startLink.label }}
+		</component>
 	</div>
 </template>
 
 <script>
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcSelect } from '@nextcloud/vue'
+import AccountSearch from 'vue-material-design-icons/AccountSearch.vue'
+import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
+import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { quarterKey } from '../../utils/periodOptions.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 
 /**
@@ -84,7 +233,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * content: {
  *   label: 'Queue',
  *   writes: '@workspace.queue',
- *   style: 'radio',                 // 'radio' (default) | 'select'
+ *   style: 'radio',                 // 'radio' (default) | 'select' | 'chips'
  *   allLabel: 'All',
  *   showCounts: true,
  *   source: { register: 'pipelinq', schema: 'werkitem', groupBy: 'queue' },
@@ -94,7 +243,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
-	components: { NcSelect, NcCheckboxRadioSwitch },
+	components: { AccountSearch, CnResourceSelect, CnSegmentedControl, NcButton, NcSelect, NcCheckboxRadioSwitch },
 
 	inject: {
 		/**
@@ -104,13 +253,46 @@ export default {
 		 * Null on pages without one (the widget then just emits `@change`).
 		 */
 		cnWorkspaceContext: { default: null },
+		/** Host translate function, for the start card's texts. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
 		/**
 		 * Persisted configuration blob.
 		 *
-		 * @type {{label?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, default?: (string|number)}}
+		 * Start card keys (abstract-start-card): `layout: "start"` draws
+		 * `title` and `description` beside the control, and `link`
+		 * (`{ label, route? | href? | value? }`) after it; with `value` the link
+		 * picks that value (`"@config.example_client?"` names an app setting,
+		 * and an unset one draws no link). `objectSource`
+		 * (`{ register, schema, labelField?, placeholder?, ariaLabel?, preload? }`)
+		 * makes the control an OpenRegister object picker that searches on the
+		 * server and writes the picked object's id; without a selection and
+		 * without `allLabel` it selects the first object.
+		 *
+		 * Chips (screens-page-lenses): `style: "chips"` draws the options as one
+		 * compact segmented group with a count after each label. An option's
+		 * `countFrom` (`{ register, schema, filter? }`, or a list of them that
+		 * are added up) counts that list; a static `count` is used otherwise.
+		 * `urlKey` keeps the choice in the address (`?<urlKey>=<value>`), and
+		 * the address wins over `default` on load.
+		 *
+		 * Page controls (screens-page-controls): `style: "toggle"` is a switch
+		 * that writes `onValue` / `offValue` (true / false); `layout: "bar"`
+		 * with `controls` draws several controls side by side in one row, and
+		 * `align: "end"` pushes a control to the right edge.
+		 *
+		 * Input (workspace-filter-input): `style: "input"` draws a labelled text
+		 * field and a load button (`submitLabel`). The value is written only
+		 * when it is loaded and only when valid: `inputType: "quarter"` reads
+		 * `YYYY-Qn` and `"year"` reads `YYYY`, both seeded with the current one;
+		 * any other input takes a `pattern` (a regular expression) if given.
+		 * `exportTable: { exportId, label? }` adds a button beside the load
+		 * button that asks the object table with that `exportId` for its rows
+		 * as CSV (DqTermijnen "CSV exporteren").
+		 *
+		 * @type {{label?: string, submitLabel?: string, exportTable?: {exportId: string, label?: string}, inputType?: string, pattern?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -122,12 +304,18 @@ export default {
 
 	data() {
 		return {
+			/** The input's text before it is loaded (`style: "input"`). */
+			draft: '',
+			/** Why the input's text was refused, or ''. */
+			inputError: '',
 			/** Fetched options (from source / endpointSource); static options use content.options directly. */
 			fetchedOptions: null,
 			/** True while options are being fetched. */
 			loading: false,
 			/** The currently-selected value (mirrors the workspace key). */
 			selected: undefined,
+			/** Counted totals of the options that ask (`countFrom`), by option position. */
+			optionCounts: {},
 		}
 	},
 
@@ -137,14 +325,190 @@ export default {
 			return this.content.label || ''
 		},
 
-		/** Choice style: 'select' or 'radio' (default). */
+		/** Whether the widget draws the start card. */
+		isStart() {
+			return this.content.layout === 'start'
+		},
+
+		/** The start card's title, translated. */
+		title() {
+			return this.tr(this.content.title || '')
+		},
+
+		/** The start card's guidance line, translated. */
+		description() {
+			return this.tr(this.content.description || '')
+		},
+
+		/**
+		 * The link after the control, or null.
+		 *
+		 * @return {{label: string, to?: object, href?: string}|null}
+		 */
+		startLink() {
+			const link = this.content.link
+			if (!link || typeof link !== 'object' || !link.label) {
+				return null
+			}
+			// `value`: the link picks that value, as if chosen in the control
+			// (an example client, often from an app setting); none, no link.
+			if ('value' in link) {
+				const value = link.value
+				return (typeof value === 'string' && value !== '' && !value.startsWith('@')) || typeof value === 'number'
+					? { label: this.tr(link.label), value }
+					: null
+			}
+			if (link.route && typeof link.route === 'object' && link.route.name) {
+				return { label: this.tr(link.label), to: link.route }
+			}
+			if (typeof link.href === 'string' && link.href !== '') {
+				return { label: this.tr(link.label), href: link.href }
+			}
+			return null
+		},
+
+		/**
+		 * The object picker declaration, or null.
+		 *
+		 * @return {{register: string, schema: string, labelField?: string}|null}
+		 */
+		objectSource() {
+			const src = this.content.objectSource
+			return src && typeof src === 'object' && src.register && src.schema ? src : null
+		},
+
+		/**
+		 * Whether a toggle draws as a checkbox (`control: "checkbox"`) instead of a switch.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/workspace-toggle-as-checkbox/specs/workspace-filter/spec.md#requirement-a-toggle-can-draw-as-a-checkbox
+		 */
+		toggleAsCheckbox() {
+			return this.content.control === 'checkbox'
+		},
+
+		/** Choice style: 'chips', 'select' or 'radio' (default). */
 		style() {
-			return this.content.style === 'select' ? 'select' : 'radio'
+			return ['select', 'chips', 'toggle', 'input'].includes(this.content.style) ? this.content.style : 'radio'
+		},
+
+		/**
+		 * The chips: each option with its label translated and its count,
+		 * the static one or the counted one.
+		 *
+		 * @return {Array<{value: string, label: string, count?: number}>}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-workspace-filter-can-draw-chips-with-counts
+		 */
+		chipOptions() {
+			return this.displayOptions.map((option, index) => {
+				const counted = this.optionCounts[index]
+				const count = counted !== undefined && counted !== null ? counted : option.count
+				const chip = { value: String(option.value), label: this.tr(option.label) }
+				if (this.showCounts && Number.isFinite(count)) {
+					chip.count = count
+				}
+				return chip
+			})
+		},
+
+		/**
+		 * Whether the widget is a bar of controls (`layout: "bar"`).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-page-controls/specs/page-controls/spec.md#requirement-a-bar-holds-the-pages-controls-in-one-row
+		 */
+		isBar() {
+			return this.content.layout === 'bar' && Array.isArray(this.content.controls)
+		},
+
+		/**
+		 * The bar's controls, each an inline workspace filter of its own.
+		 *
+		 * @return {Array<object>}
+		 */
+		barControls() {
+			return this.content.controls
+				.filter((control) => control && typeof control === 'object')
+				.map((control) => ({ ...control, inline: true }))
+		},
+
+		/** @return {unknown} The value a switch writes when on. */
+		onValue() {
+			return this.content.onValue !== undefined ? this.content.onValue : true
+		},
+
+		/** @return {unknown} The value a switch writes when off. */
+		offValue() {
+			return this.content.offValue !== undefined ? this.content.offValue : false
+		},
+
+		/** @return {boolean} Whether the switch is on. */
+		toggleOn() {
+			return this.selected !== undefined && String(this.selected) === String(this.onValue)
+		},
+
+		/**
+		 * The address key that carries the choice (`urlKey`), or ''.
+		 *
+		 * @return {string}
+		 */
+		urlKey() {
+			return typeof this.content.urlKey === 'string' ? this.content.urlKey : ''
 		},
 
 		/** Whether to render per-option counts. */
 		showCounts() {
 			return this.content.showCounts !== false
+		},
+
+		/**
+		 * What an input reads: `quarter`, `year` or `text`.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workspace-filter-input/specs/workspace-filter-input/spec.md#requirement-a-workspace-filter-can-be-an-input-loaded-by-a-button
+		 */
+		inputType() {
+			return ['quarter', 'year'].includes(this.content.inputType) ? this.content.inputType : 'text'
+		},
+
+		/**
+		 * The form an input's text must have, or null for any.
+		 *
+		 * @return {RegExp|null}
+		 */
+		inputPattern() {
+			if (this.inputType === 'quarter') {
+				return /^\d{4}-Q[1-4]$/
+			}
+			if (this.inputType === 'year') {
+				return /^\d{4}$/
+			}
+			try {
+				return this.content.pattern ? new RegExp(this.content.pattern) : null
+			} catch {
+				return null
+			}
+		},
+
+		/** The input's id, unique per key. */
+		inputId() {
+			return `cn-wsf-input-${this.writeKey || 'value'}`
+		},
+
+		/** The load button's label when the content names none. */
+		loadLabel() {
+			return t('nextcloud-vue', 'Load')
+		},
+
+		/** @return {string} The library label of the table export button. */
+		exportLabel() {
+			return t('nextcloud-vue', 'Export CSV')
+		},
+
+		/** @return {string} The `exportId` of the table the input exports, or ''. */
+		exportTableId() {
+			const target = this.content && this.content.exportTable
+			return target && typeof target.exportId === 'string' ? target.exportId : ''
 		},
 
 		/** The bare workspace key the selection writes (strips a `@workspace.` / `@page.` prefix). */
@@ -175,9 +539,21 @@ export default {
 			return raw.map((o) => this.normaliseOption(o)).filter((o) => o.value !== undefined && o.value !== null)
 		},
 
+		/**
+		 * The options a select or the radio list draws, each label run through
+		 * the host's translate (the chips did already; the bar's sort select
+		 * showed its English keys beside a translated switch).
+		 *
+		 * @return {Array<{value: unknown, label: string, count?: number}>}
+		 * @spec openspec/changes/screens-workspace-filter-translate/specs/workspace-filter/spec.md#requirement-every-workspace-filter-style-translates-its-texts
+		 */
+		selectOptions() {
+			return this.displayOptions.map((option) => ({ ...option, label: this.tr(option.label) }))
+		},
+
 		/** The selected option object (for NcSelect). */
 		selectedOption() {
-			return this.displayOptions.find((o) => String(o.value) === String(this.selected)) || null
+			return this.selectOptions.find((o) => String(o.value) === String(this.selected)) || null
 		},
 
 		/**
@@ -220,17 +596,124 @@ export default {
 		// Seed the selection: existing workspace value → content.default → the
 		// "All" clear option (empty) when present, else the first option once
 		// loaded (handled in loadOptions).
+		const fromAddress = this.readAddress()
 		const existing = this.readWorkspace()
-		if (existing !== undefined) {
+		if (this.style === 'input') {
+			const seed = existing !== undefined && existing !== null && existing !== '' ? String(existing) : this.inputDefault()
+			this.draft = seed
+			this.selected = seed
+			if (seed !== '' && seed !== existing) {
+				this.writeWorkspace(seed)
+			}
+			return
+		}
+		if (fromAddress !== undefined) {
+			this.selected = fromAddress
+			this.writeWorkspace(fromAddress)
+		} else if (existing !== undefined) {
 			this.selected = existing
 		} else if (this.content.default !== undefined) {
 			this.selected = this.content.default
 			this.writeWorkspace(this.content.default)
+		} else if (this.style === 'toggle') {
+			// A switch starts off, and says so, so a condition on its key holds.
+			this.selected = this.offValue
+			this.writeWorkspace(this.offValue)
 		}
 		this.loadOptions()
 	},
 
+	mounted() {
+		this.onPageRefresh = () => this.loadCounts()
+		subscribe('cn:page:refresh', this.onPageRefresh)
+		this.loadCounts()
+	},
+
+	beforeUnmount() {
+		unsubscribe('cn:page:refresh', this.onPageRefresh)
+	},
+
 	methods: {
+		/**
+		 * The choice named in the address (`?<urlKey>=…`), when it is one of
+		 * the options; undefined otherwise.
+		 *
+		 * @return {string|undefined}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-the-choice-is-in-the-address
+		 */
+		readAddress() {
+			if (!this.urlKey || !this.$route || !this.$route.query) {
+				return undefined
+			}
+			const raw = this.$route.query[this.urlKey]
+			if (this.style === 'toggle') {
+				if (raw === undefined) {
+					return undefined
+				}
+				return [this.onValue, this.offValue].find((value) => String(value) === String(raw))
+			}
+			const known = this.displayOptions.some((option) => String(option.value) === String(raw))
+			return known ? String(raw) : undefined
+		},
+
+		/**
+		 * Write the choice to the address, replacing the history entry and
+		 * keeping the other query keys.
+		 *
+		 * @param {unknown} value The chosen value.
+		 * @return {void}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-the-choice-is-in-the-address
+		 */
+		writeAddress(value) {
+			if (!this.urlKey || !this.$router || !this.$route) {
+				return
+			}
+			const query = this.$route.query || {}
+			if (String(query[this.urlKey]) === String(value)) {
+				return
+			}
+			const result = this.$router.replace({ query: { ...query, [this.urlKey]: String(value) } })
+			if (result && typeof result.catch === 'function') {
+				result.catch(() => {})
+			}
+		},
+
+		/**
+		 * Count the lists behind the options that ask (`countFrom`: a list
+		 * `{ register, schema, filter? }`, or several that are added up). One
+		 * list request each; an option whose count failed shows none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-page-lenses/specs/page-lenses/spec.md#requirement-a-workspace-filter-can-draw-chips-with-counts
+		 */
+		async loadCounts() {
+			const options = this.displayOptions
+			const seq = (this.countSeq = (this.countSeq || 0) + 1)
+			const ctx = { workspace: this.readWorkspaceBag() }
+			await Promise.all(options.map(async (option, index) => {
+				const raw = (Array.isArray(this.content.options) ? this.content.options : [])
+					.find((candidate) => candidate && typeof candidate === 'object' && String(candidate.value ?? candidate.id) === String(option.value))
+				const from = raw ? raw.countFrom : null
+				const lists = (Array.isArray(from) ? from : [from]).filter((list) => list && typeof list === 'object' && list.register && list.schema)
+				if (lists.length === 0) {
+					return
+				}
+				let total
+				try {
+					const parts = await Promise.all(lists.map((list) => fetchListTotal(list.register, list.schema, list.filter || {}, ctx)))
+					if (parts.some((part) => part === null)) {
+						throw new Error('no total')
+					}
+					total = parts.reduce((sum, part) => sum + part, 0)
+				} catch {
+					total = null
+				}
+				if (seq === this.countSeq) {
+					this.optionCounts = { ...this.optionCounts, [index]: total }
+				}
+			}))
+		},
+
 		/**
 		 * Normalise a raw option into `{ value, label, count? }`. Accepts
 		 * `{ value, label, count }`, `{ id, name }`, `{ key, count }` (OR
@@ -263,6 +746,10 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadOptions() {
+			if (this.objectSource) {
+				await this.seedFirstObject()
+				return
+			}
 			if (this.content.endpointSource && this.content.endpointSource.url) {
 				await this.loadFromEndpoint()
 			} else if (this.content.source && this.content.source.schema) {
@@ -278,6 +765,51 @@ export default {
 					this.selected = first.value
 					this.writeWorkspace(first.value)
 				}
+			}
+		},
+
+		/**
+		 * Translate a manifest string through the host app.
+		 *
+		 * @param {string} text The text.
+		 * @return {string}
+		 */
+		tr(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * The object picker's default: with nothing selected, no `default` and
+		 * no `allLabel`, select the first object the source lists, so the page
+		 * always has one in focus. Fail-safe: a failed read selects nothing.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async seedFirstObject() {
+			if ((this.selected !== undefined && this.selected !== '') || this.content.allLabel || this.content.default !== undefined) {
+				return
+			}
+			const src = this.objectSource
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: src.register, schema: src.schema })
+				const res = await axios.get(url, { params: { _limit: 1 } })
+				const data = res && res.data
+				const rows = Array.isArray(data) ? data : ((data && data.results) || [])
+				const first = rows[0]
+				const id = first && (first.id || (first['@self'] && first['@self'].id))
+				if (id && (this.selected === undefined || this.selected === '') && this.readWorkspace() === undefined) {
+					this.selected = String(id)
+					this.writeWorkspace(String(id))
+				}
+			} catch {
+				// Nothing selected: the siblings wait for a pick.
 			}
 		},
 
@@ -359,6 +891,17 @@ export default {
 		},
 
 		/**
+		 * Switch handler: write `onValue` or `offValue`.
+		 *
+		 * @param {boolean} on Whether the switch is on.
+		 * @return {void}
+		 * @spec openspec/changes/screens-page-controls/specs/page-controls/spec.md#requirement-a-toggle-and-a-select-are-page-controls
+		 */
+		onToggle(on) {
+			this.applySelection(on ? this.onValue : this.offValue)
+		},
+
+		/**
 		 * NcSelect input handler.
 		 *
 		 * @param {object|null} option The picked option object.
@@ -375,9 +918,64 @@ export default {
 		 * @param {unknown} value The new value.
 		 * @return {void}
 		 */
+		/**
+		 * The value an input starts with: `content.default`, else the current
+		 * quarter or year for those types, else empty. For a quarter or year
+		 * input, `default: "previous"` is the last complete one (DqTermijnen
+		 * opens on the last complete quarter).
+		 *
+		 * @return {string}
+		 */
+		inputDefault() {
+			const today = new Date()
+			if (this.content.default === 'previous' && this.inputType === 'quarter') {
+				return quarterKey(new Date(today.getFullYear(), today.getMonth() - 3, 1))
+			}
+			if (this.content.default === 'previous' && this.inputType === 'year') {
+				return String(today.getFullYear() - 1)
+			}
+			if (this.content.default !== undefined && this.content.default !== null) {
+				return String(this.content.default)
+			}
+			if (this.inputType === 'quarter') {
+				return quarterKey(today)
+			}
+			return this.inputType === 'year' ? String(today.getFullYear()) : ''
+		},
+
+		/**
+		 * Ask the table named by `exportTable.exportId` for its rows as CSV.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/workspace-filter-export-table/specs/workspace-filter-export-table/spec.md#requirement-a-workspace-filter-input-can-export-the-table-it-loads
+		 */
+		exportTable() {
+			emit('cn:widget:export', { exportId: this.exportTableId })
+		},
+
+		/**
+		 * Load the input's text into the workspace, or say why it is refused.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/workspace-filter-input/specs/workspace-filter-input/spec.md#requirement-a-workspace-filter-can-be-an-input-loaded-by-a-button
+		 */
+		submitInput() {
+			const value = String(this.draft || '').trim()
+			const pattern = this.inputPattern
+			if (value === '' || (pattern && !pattern.test(value))) {
+				this.inputError = this.inputType === 'quarter'
+					? t('nextcloud-vue', 'Enter a quarter as YYYY-Qn, for example 2026-Q3.')
+					: (this.inputType === 'year' ? t('nextcloud-vue', 'Enter a year as four digits, for example 2026.') : t('nextcloud-vue', 'This value has the wrong form.'))
+				return
+			}
+			this.inputError = ''
+			this.applySelection(value)
+		},
+
 		applySelection(value) {
 			this.selected = value
 			this.writeWorkspace(value)
+			this.writeAddress(value)
 			/**
 			 * @event change Emitted when the selection changes. Payload: `{ key, value }`.
 			 */
@@ -438,6 +1036,47 @@ export default {
 </script>
 
 <style scoped>
+.cn-workspace-filter-widget__form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px 16px;
+}
+
+.cn-workspace-filter-widget__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.cn-workspace-filter-widget__field-label {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-workspace-filter-widget__input {
+	box-sizing: border-box;
+	min-height: var(--default-clickable-area, 34px);
+	margin: 0;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font: inherit;
+}
+
+.cn-workspace-filter-widget__input[aria-invalid='true'] {
+	border-color: var(--color-error);
+}
+
+.cn-workspace-filter-widget__input-error {
+	margin: 0;
+	color: var(--color-error-text, var(--color-error));
+	font-size: 13px;
+}
+
 .cn-workspace-filter-widget {
 	display: flex;
 	flex-direction: column;
@@ -465,6 +1104,124 @@ export default {
 	gap: 2px;
 }
 
+/* The chips: the compact segmented group, left, in the card the grid draws. */
+.cn-workspace-filter-widget--chips {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+/* A bar: its controls in one row, an `align: "end"` control pushed right. */
+.cn-workspace-filter-widget--bar {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+}
+
+/* An inline control sits in a bar: label left of the control, width to its content. */
+.cn-workspace-filter-widget--inline {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	width: auto;
+}
+
+.cn-workspace-filter-widget--inline .cn-workspace-filter-widget__label {
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-workspace-filter-widget--end {
+	margin-inline-start: auto;
+}
+
+.cn-workspace-filter-widget--end ~ .cn-workspace-filter-widget--end {
+	margin-inline-start: 0;
+}
+
+.cn-workspace-filter-widget__toggle {
+	font-weight: 600;
+}
+
+/* The start card: text left, control (and link) right, as PqDashboard's
+   "Contact starten". It is the card's whole body, so it carries the card's
+   inner spacing (20px 22px). */
+.cn-workspace-filter-widget--start {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 20px;
+	padding: 20px 22px;
+	box-sizing: border-box;
+}
+
+.cn-workspace-filter-widget__text {
+	flex: 1 1 300px;
+	min-width: 0;
+}
+
+.cn-workspace-filter-widget__title {
+	margin: 0 0 2px;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
+	color: var(--color-main-text);
+}
+
+.cn-workspace-filter-widget__description {
+	margin: 0;
+	max-width: 420px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-workspace-filter-widget--start .cn-workspace-filter-widget__control,
+.cn-workspace-filter-widget--start > .v-select {
+	flex: 1 1 360px;
+	min-width: 240px;
+}
+
+/* The search look: the icon sits over the field's start, the field makes
+   room for it, and the chevron goes. */
+.cn-workspace-filter-widget__search-icon {
+	position: relative;
+	z-index: 1;
+	flex: none;
+	width: 0;
+	overflow: visible;
+	color: var(--color-text-maxcontrast);
+	/* The row gap (20px) plus the 12px inset inside the field. */
+	transform: translateX(32px);
+}
+
+.cn-workspace-filter-widget__control--search :deep(.vs__dropdown-toggle) {
+	padding-inline-start: 36px;
+}
+
+.cn-workspace-filter-widget__control--search :deep(.vs__open-indicator-button),
+.cn-workspace-filter-widget__control--search :deep(.vs__open-indicator) {
+	display: none;
+}
+
+.cn-workspace-filter-widget__link {
+	font-weight: 600;
+	color: var(--color-primary-element);
+	text-decoration: underline;
+	white-space: nowrap;
+}
+
+/* A link that picks a value is a button drawn as the link. */
+.cn-workspace-filter-widget__link--pick {
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
 .cn-workspace-filter-widget__count {
 	margin-inline-start: 6px;
 	padding: 0 6px;
@@ -472,5 +1229,30 @@ export default {
 	background: var(--color-background-hover);
 	color: var(--color-text-maxcontrast);
 	font-size: 0.85em;
+}
+
+/* On a phone the bar's controls take a row each (the chips already wrap), and
+   a switch and a select are 44px touch targets. */
+@media (max-width: 640px) {
+	.cn-workspace-filter-widget--bar > .cn-workspace-filter-widget--inline {
+		flex: 1 1 100%;
+	}
+
+	.cn-workspace-filter-widget--bar > .cn-workspace-filter-widget--end {
+		margin-inline-start: 0;
+	}
+
+	.cn-workspace-filter-widget--inline .cn-workspace-filter-widget__toggle {
+		min-height: 44px;
+	}
+
+	.cn-workspace-filter-widget--inline :deep(.v-select) {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.cn-workspace-filter-widget--inline :deep(.vs__dropdown-toggle) {
+		min-height: 44px;
+	}
 }
 </style>

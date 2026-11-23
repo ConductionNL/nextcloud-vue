@@ -1,0 +1,2 @@
+- [x] 1.1 CnFlowRunsWidget options and the ruled pill style
+- [x] 1.2 tests (CnFlowRunsWidgetPills.spec.js) and docs

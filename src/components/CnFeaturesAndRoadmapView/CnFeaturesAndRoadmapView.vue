@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-features-and-roadmap-view">
+	<div class="cn-features-and-roadmap-view" :class="{ 'cn-features-and-roadmap-view--board': isBoardLook && !disabled }">
 		<div v-if="disabled" class="cn-features-and-roadmap-view__disabled">
 			<NcEmptyContent :name="disabledTitle" :description="disabledDescription">
 				<template #icon>
@@ -7,6 +7,19 @@
 				</template>
 			</NcEmptyContent>
 		</div>
+		<CnFeaturesBoard
+			v-else-if="isBoardLook"
+			:features="features"
+			:categories="categories"
+			:repo="repo"
+			:title="title"
+			:appVersion="appVersion"
+			:documentationUrl="resolvedDocumentationUrl"
+			:suggestUrl="resolvedSuggestUrl"
+			:openbuiltUrl="resolvedOpenbuiltUrl"
+			:llmSkillsUrl="resolvedLlmSkillsUrl"
+			v-bind="boardOptions"
+			@support="openSupportDialog" />
 		<template v-else>
 			<header class="cn-features-and-roadmap-view__header">
 				<h2 class="cn-features-and-roadmap-view__title">
@@ -15,7 +28,8 @@
 				<div class="cn-features-and-roadmap-view__actions">
 					<NcButton @click="toggleView">
 						<template #icon>
-							<RoadVariant v-if="activeView === 'features'" :size="20" />
+							<TableSearch v-if="nextView === 'capabilities'" :size="20" />
+							<RoadVariant v-else-if="nextView === 'roadmap'" :size="20" />
 							<FormatListBulleted v-else :size="20" />
 						</template>
 						{{ toggleLabel }}
@@ -28,8 +42,7 @@
 						v-if="resolvedSuggestUrl"
 						variant="primary"
 						:href="resolvedSuggestUrl"
-						target="_blank"
-						rel="noopener noreferrer">
+						target="_blank">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
@@ -52,21 +65,23 @@
 
 			<main class="cn-features-and-roadmap-view__panel">
 				<CnFeaturesTab v-if="activeView === 'features'" :features="features" />
-				<CnRoadmapTab v-else :repo="repo" />
+				<CnCapabilityTable
+					v-else-if="activeView === 'capabilities'"
+					:comparison="capabilityComparison" />
+				<CnRoadmapTab v-else :repo="repo" v-bind="roadmapTabOptions" />
 			</main>
-
-			<CnSupportDialog
-				v-if="showSupportDialog"
-				:appName="resolvedAppName"
-				:appSlug="resolvedAppSlug"
-				:appStoreUrl="resolvedAppStoreUrl"
-				:featureRequestUrl="resolvedFeatureRequestUrl"
-				:donateUrl="donateUrl"
-				:supportUrl="supportUrl"
-				:founderName="founderName"
-				:founderTitle="founderTitle"
-				@close="showSupportDialog = false" />
 		</template>
+		<CnSupportDialog
+			v-if="showSupportDialog && !disabled"
+			:appName="resolvedAppName"
+			:appSlug="resolvedAppSlug"
+			:appStoreUrl="resolvedAppStoreUrl"
+			:featureRequestUrl="resolvedFeatureRequestUrl"
+			:donateUrl="donateUrl"
+			:supportUrl="supportUrl"
+			:founderName="founderName"
+			:founderTitle="founderTitle"
+			@close="showSupportDialog = false" />
 	</div>
 </template>
 
@@ -105,10 +120,15 @@ import FormatListBulleted from 'vue-material-design-icons/FormatListBulleted.vue
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import RoadVariant from 'vue-material-design-icons/RoadVariant.vue'
+import TableSearch from 'vue-material-design-icons/TableSearch.vue'
+import CnCapabilityTable from '../CnCapabilityTable/CnCapabilityTable.vue'
 import CnFeaturesAndRoadmapSidebar from '../CnFeaturesAndRoadmapSidebar/CnFeaturesAndRoadmapSidebar.vue'
+import CnFeaturesBoard from '../CnFeaturesBoard/CnFeaturesBoard.vue'
 import CnFeaturesTab from '../CnFeaturesTab/CnFeaturesTab.vue'
 import CnRoadmapTab from '../CnRoadmapTab/CnRoadmapTab.vue'
 import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
+import { normalizeLook } from '../../composables/useLook.js'
+import { warnCapabilityComparisonDeprecated } from '../../utils/capabilityComparison.js'
 import { buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
 
 const DEFAULT_OPENBUILT_PATH = '/apps/openbuilt'
@@ -129,6 +149,9 @@ export default {
 		LockOutline,
 		Plus,
 		RoadVariant,
+		TableSearch,
+		CnCapabilityTable,
+		CnFeaturesBoard,
 		CnFeaturesTab,
 		CnRoadmapTab,
 		CnSupportDialog,
@@ -150,9 +173,26 @@ export default {
 		 * unmount. Same holder CnIndexPage uses.
 		 */
 		cnIndexSidebarConfig: { default: () => ({ value: null }) },
+		/** The app's look, provided by CnAppRoot (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
+		/**
+		 * How the Roadmap tab draws its issues (`config.roadmapLayout`): `grid`
+		 * (default) or `columns` (Planned, In development, Available). See CnRoadmapTab.
+		 */
+		roadmapLayout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/** Labels that put an open issue under In development (`config.roadmapInProgressLabels`). */
+		roadmapInProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
+
 		/**
 		 * `<owner>/<repo>` of the app's repository on the forge.
 		 */
@@ -185,12 +225,78 @@ export default {
 		},
 
 		/**
+		 * Feature category key to caption, in the order the board look shows
+		 * the groups. A feature names its group with `category`.
+		 *
+		 * @type {object}
+		 */
+		categories: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Board look options, passed to CnFeaturesBoard: `layout` (`cards` or
+		 * `rows`), `tabs`, `filter` (`chips` or `segmented`), `statusLabels`, `statusVariants`,
+		 * `next`, `issueLabels`, `subtitle`, `notice`, `noticeLink`,
+		 * `summaries`, `documentationButton` and `suggestButton`. Ignored in the default look.
+		 *
+		 * @type {object}
+		 */
+		board: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Page title in the board look. Empty reads "Features and roadmap".
+		 */
+		title: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The app version, for `{appVersion}` in the board look's subtitle.
+		 */
+		appVersion: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * Admin opt-out flag — when true the entire view collapses to a
 		 * single "disabled by admin" empty state.
 		 */
 		disabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Optional capability comparison. When supplied, the header toggle
+		 * gains a third stop that renders `CnCapabilityTable`: a searchable
+		 * table of the rows, grouped by feature or by area, with a
+		 * provided-by column naming which app or platform delivers each one.
+		 *
+		 * Shape: `{systems, areas, features?, providers?, capabilities}`. The
+		 * rows carry the competitor ratings they already carry, plus the
+		 * optional `provider`, `providerHow`, `feature` and
+		 * `featureConfidence` fields.
+		 *
+		 * When null (default) the toggle keeps its two stops and the view
+		 * renders exactly as it does for every app that passes nothing.
+		 *
+		 * Deprecated: publish the comparison on the app's docs site and link to it (as dossiq #3312 and pipelinq #2195 did). Still rendered; removal waits for a major version.
+		 * A development build warns once when it is set.
+		 *
+		 * @deprecated since 2.66.0, publish the comparison on the app's docs site and link to it.
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-the-in-app-capability-comparison-is-deprecated
+		 * @type {object|null}
+		 */
+		capabilityComparison: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -353,14 +459,88 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The roadmap options for the board, only those set away from their defaults.
+		 *
+		 * @return {object}
+		 */
+		roadmapBoardOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { roadmapLayout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { roadmapInProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
+		/**
+		 * The Roadmap tab's layout options, only those set away from their
+		 * defaults, so a page that sets none renders the tab as before.
+		 *
+		 * @return {object}
+		 */
+		roadmapTabOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { layout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { inProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
+		/**
+		 * Whether the page is drawn in the board look.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The board options CnFeaturesBoard declares, so an unknown key in the
+		 * manifest never lands on its root element as an attribute.
+		 *
+		 * @return {object}
+		 */
+		boardOptions() {
+			const keys = ['layout', 'tabs', 'filter', 'filterLabel', 'statusLabels', 'statusVariants', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'summaries', 'documentationButton', 'suggestButton', 'actionsMenu']
+			const options = {}
+			for (const key of keys) {
+				if (this.board && this.board[key] !== undefined && this.board[key] !== null) {
+					options[key] = this.board[key]
+				}
+			}
+			return { ...options, ...this.roadmapBoardOptions }
+		},
+
+		/**
+		 * The stops the header toggle cycles through. Without a capability
+		 * comparison this is the two-stop list every consumer has today, and
+		 * the toggle behaves exactly as it did.
+		 *
+		 * @return {Array<string>} The views, in cycle order.
+		 */
+		availableViews() {
+			return this.capabilityComparison
+				? ['features', 'capabilities', 'roadmap']
+				: ['features', 'roadmap']
+		},
+
+		/**
+		 * @return {string} The view the toggle moves to next.
+		 */
+		nextView() {
+			const views = this.availableViews
+			const index = views.indexOf(this.activeView)
+			return views[(index + 1) % views.length]
+		},
+
 		headerTitle() {
-			return this.activeView === 'features'
-				? t('nextcloud-vue', 'Features')
-				: t('nextcloud-vue', 'Roadmap')
+			return this.viewTitle(this.activeView)
 		},
 
 		toggleLabel() {
-			return this.activeView === 'features'
+			if (this.nextView === 'capabilities') {
+				return t('nextcloud-vue', 'Show capabilities')
+			}
+			return this.nextView === 'roadmap'
 				? t('nextcloud-vue', 'Show roadmap')
 				: t('nextcloud-vue', 'Show features')
 		},
@@ -462,8 +642,23 @@ export default {
 		},
 	},
 
+	watch: {
+		// A comparison that goes away leaves the reader on a stop that no
+		// longer exists: the panel's v-else-if still matches, so it renders an
+		// empty CnCapabilityTable under a "Capabilities" heading until the
+		// reader thinks to press the toggle.
+		availableViews(views) {
+			if (!views.includes(this.activeView)) {
+				this.activeView = views[0]
+			}
+		},
+	},
+
 	mounted() {
 		this.publishHoistedSidebar()
+		if (this.capabilityComparison) {
+			warnCapabilityComparisonDeprecated('CnFeaturesAndRoadmapView `capabilityComparison`')
+		}
 	},
 
 	beforeUnmount() {
@@ -475,8 +670,21 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * @param {string} view One of the `availableViews`.
+		 * @return {string} The heading for that view.
+		 */
+		viewTitle(view) {
+			if (view === 'capabilities') {
+				return t('nextcloud-vue', 'Capabilities')
+			}
+			return view === 'roadmap'
+				? t('nextcloud-vue', 'Roadmap')
+				: t('nextcloud-vue', 'Features')
+		},
+
 		toggleView() {
-			this.activeView = this.activeView === 'features' ? 'roadmap' : 'features'
+			this.activeView = this.nextView
 		},
 
 		openSupportDialog() {
@@ -495,7 +703,9 @@ export default {
 			if (!this.cnHostsIndexSidebar || !this.cnIndexSidebarConfig) {
 				return
 			}
-			if (this.disabled) {
+			// The board look has no right-hand column: its links sit in the
+			// board's Actions menu.
+			if (this.disabled || this.isBoardLook) {
 				this.cnIndexSidebarConfig.value = null
 				return
 			}
@@ -526,6 +736,14 @@ export default {
 	max-width: 1200px;
 	margin: 0 auto;
 	padding: 24px 16px;
+}
+
+/* The board draws its own page padding; the view adds none around it, so
+   the title stands where every other board page puts it (DqFunctionaliteiten). */
+.cn-features-and-roadmap-view--board {
+	max-width: none;
+	margin: 0;
+	padding: 0;
 }
 
 .cn-features-and-roadmap-view__header {

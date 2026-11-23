@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFieldInspectionCard from './field-inspection/CnFieldInspectionCard.vue'
-import CnFieldInspectionTab from './field-inspection/CnFieldInspectionTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnFieldInspectionCard = lazyComponent(() => import('./field-inspection/CnFieldInspectionCard.vue'), 'CnFieldInspectionCard')
+const CnFieldInspectionTab = lazyComponent(() => import('./field-inspection/CnFieldInspectionTab.vue'), 'CnFieldInspectionTab')
 
 /**
  * Default offline configuration for the field-inspection leaf.
@@ -47,6 +49,36 @@ export const DEFAULT_FIELD_INSPECTION_CONFIG = {
 	dateField: 'scheduledAt',
 	// Property on a planned item used as its display title.
 	titleField: 'caseRef',
+	// Register the leaf writes its own bookkeeping to. Empty falls back to the
+	// register each queued operation already names.
+	register: '',
+	// Schema holding queue records, for a consuming app that wants the queue
+	// itself readable server-side. Empty writes nothing.
+	queueSchema: '',
+	// Schema holding conflict records. Empty keeps a conflict on the device,
+	// and the queue row says so rather than pretending it was filed.
+	conflictSchema: '',
+	// How a template's items are read (normaliseChecklistTemplate). Empty
+	// `sectionsField` reads a flat `items[]`; set it when the items sit inside
+	// ordered sections, each with its own `items[]`.
+	sectionsField: '',
+	itemKeyField: 'questionId',
+	itemTextField: 'text',
+	itemTypeField: 'type',
+	// The app's own item type words onto the leaf's (`yes_no`,
+	// `photo_required`; anything else renders as free text).
+	itemTypeMap: {},
+	// An item whose `photoRequiredField` equals `photoRequiredValue` needs a
+	// photo as well as an answer. Empty switches the gate off.
+	photoRequiredField: '',
+	photoRequiredValue: '',
+	// Where a finished run goes (checklistSubmission). Empty queues an object
+	// create on `resultSchema`. Set, it is a path under the Nextcloud root with
+	// `{field}` placeholders from the planned item, and the run replays as one
+	// POST there, naming the template and the planned item under these keys.
+	resultEndpoint: '',
+	resultTemplateParam: 'templateId',
+	resultPlannedItemParam: 'plannedItem',
 }
 
 /**

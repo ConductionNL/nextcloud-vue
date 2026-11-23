@@ -88,21 +88,31 @@ describe('CnWalkthrough', () => {
 		expect(w.vm.step.id).toBe('done')
 	})
 
-	it('emits dismiss + complete handler on backdrop/ESC', () => {
+	it('pauses (does not end) the tour on backdrop/ESC', () => {
 		const w = factory()
 		w.vm.onBackdrop()
-		expect(w.emitted('dismiss')).toBeTruthy()
+		expect(w.emitted('pause')).toBeTruthy()
+		expect(w.emitted('dismiss')).toBeFalsy()
 		expect(w.vm.wt.running.value).toBe(false)
+		expect(w.vm.wt.paused.value).toBe(true)
 	})
 
-	it('renders a corner close button that ends the tour for good (complete, not just dismiss)', async () => {
+	// Ruben, 7 October 2026: the corner X pauses and keeps the step; only
+	// finishing the last step completes the tour.
+	it('renders a corner close button that pauses the tour and keeps its step', async () => {
 		const w = factory()
 		await w.vm.$nextTick()
 		const closeBtn = w.find('.cn-walkthrough__close')
 		expect(closeBtn.exists()).toBe(true)
-		w.vm.close()
-		expect(w.emitted('complete')).toBeTruthy()
+		w.vm.advance()
+		const stepId = w.vm.step.id
+		await closeBtn.trigger('click')
+		expect(w.emitted('complete')).toBeFalsy()
+		expect(w.emitted('pause')).toBeTruthy()
 		expect(w.vm.wt.running.value).toBe(false)
+		expect(w.vm.wt.paused.value).toBe(true)
+		expect(w.vm.wt.resumePaused()).toBe(true)
+		expect(w.vm.step.id).toBe(stepId)
 	})
 
 	it('exposes an aria-live step announcement', async () => {
@@ -168,7 +178,9 @@ describe('CnWalkthrough', () => {
 
 	it('reveals a target hidden in a collapsed nav group by clicking its expand toggle', async () => {
 		// Build a minimal collapsed NcAppNavigation group: the child link the step
-		// targets is present in the DOM but inside a collapsed (display:none) group.
+		// targets is rendered in the DOM but inside a collapsed (display:none)
+		// group, so it resolves with a zero-size rect — the shape revealTarget()
+		// walks up from.
 		const nav = document.createElement('div')
 		nav.className = 'app-navigation'
 		nav.innerHTML = `
@@ -177,7 +189,7 @@ describe('CnWalkthrough', () => {
 					<a class="app-navigation-entry-link" aria-expanded="false" href="#">Bookkeeping</a>
 					<button class="icon-collapse" aria-label="Open menu"></button>
 					<ul class="app-navigation-entry__children" style="display:none">
-						<!-- child for 'accounts-receivable' is NOT rendered while collapsed -->
+						<li><a data-cn-route="accounts-receivable" href="#">Accounts Receivable</a></li>
 					</ul>
 				</li>
 			</ul>`

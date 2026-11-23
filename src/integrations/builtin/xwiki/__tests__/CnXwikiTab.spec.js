@@ -55,6 +55,15 @@ describe('CnXwikiTab', () => {
 		delete global.fetch
 	})
 
+	it('gives a page with an unsafe URL no link', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
+		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
+		await flushPromises()
+		expect(wrapper.vm.pageHref({ url: 'javascript:alert(1)' })).toBe('')
+		expect(wrapper.vm.pageHref({ url: 'https://wiki.example/p' })).toBe('https://wiki.example/p')
+		wrapper.unmount()
+	})
+
 	it('renders the empty state when no pages are linked', async () => {
 		global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) })
 		const wrapper = mount(CnXwikiTab, { propsData: { ...DEFAULT_PROPS } })
@@ -101,6 +110,10 @@ describe('CnXwikiTab', () => {
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--unconfigured')
 		expect(wrapper.text()).toContain('XWiki connection not configured')
 		expect(wrapper.text()).toContain('Configure XWiki connection')
+		// The configure CTA is a real link to the Integriq sources page.
+		const cta = banner.find('.cn-xwiki-tab__banner-cta')
+		expect(cta.attributes('href')).toBe('/index.php/apps/openconnector/sources')
+		expect(cta.attributes('target')).toBe('_blank')
 		// No rows fall through.
 		expect(wrapper.find('.cn-xwiki-tab__row').exists()).toBe(false)
 		wrapper.unmount()
@@ -139,6 +152,12 @@ describe('CnXwikiTab', () => {
 		expect(banner.classes()).toContain('cn-xwiki-tab__banner--upstream')
 		expect(wrapper.text()).toContain('XWiki is currently unavailable')
 		expect(wrapper.text()).toContain('Retry')
+		// Retry is an action, not a link, and re-fetches on click.
+		const cta = banner.find('.cn-xwiki-tab__banner-cta')
+		expect(cta.attributes('href')).toBeUndefined()
+		global.fetch = jest.fn().mockResolvedValueOnce(unavailable('upstream-service-down'))
+		await cta.trigger('click')
+		expect(global.fetch).toHaveBeenCalledTimes(1)
 		wrapper.unmount()
 	})
 

@@ -1,28 +1,96 @@
 <template>
-	<div class="cn-tabs" :class="{ 'cn-tabs--card': card }">
+	<div class="cn-tabs" :class="[{ 'cn-tabs--card': card, 'cn-tabs--segmented': variant === 'segmented', 'cn-tabs--underline': variant === 'underline', 'cn-tabs--board': boardStrip }, boardClass]">
 		<div class="cn-tabs__bar">
 			<div
-				class="cn-tabs__nav"
-				:class="{ 'cn-tabs__nav--justified': justified }"
-				role="tablist"
-				:aria-label="ariaLabel || null"
-				@keydown="onNavKeydown">
+				class="cn-tabs__strip"
+				:class="{ 'cn-tabs__strip--more-start': moreStart, 'cn-tabs__strip--more-end': moreEnd }">
+				<div
+					ref="nav"
+					class="cn-tabs__nav"
+					:class="{ 'cn-tabs__nav--justified': justified }"
+					role="tablist"
+					:aria-label="ariaLabel || null"
+					@keydown="onNavKeydown"
+					@wheel="onNavWheel"
+					@scroll="measureOverflow">
+					<button
+						v-for="tab in visibleTabs"
+						:id="tab.tabId"
+						:key="tab.uid"
+						ref="navButtons"
+						type="button"
+						role="tab"
+						class="cn-tabs__nav-item"
+						:class="{ 'cn-tabs__nav-item--active': isActive(tab.uid) }"
+						:aria-selected="isActive(tab.uid) ? 'true' : 'false'"
+						:aria-controls="tab.panelId"
+						:tabindex="isActive(tab.uid) ? 0 : -1"
+						:disabled="tab.disabled || null"
+						@click="tab.onActivate()">
+						<!-- The space before the count is load-bearing: it keeps
+						     the tab's accessible name "Documents 5" rather than
+						     "Documents5". The margin separates the two for the eye
+						     only, so keep both tags on one line. -->
+						<component :is="tab.titleRender" /> <span
+							v-if="hasCount(tab)"
+							class="cn-tabs__count"
+							:aria-hidden="tab.countLabel ? 'true' : null"
+							data-testid="cn-tabs-count">{{ tab.count }}</span><span
+								v-if="hasCount(tab) && tab.countLabel"
+								class="hidden-visually"
+								data-testid="cn-tabs-count-label">{{ tab.countLabel }}</span>
+					</button>
+				</div>
+				<!-- Mouse-only affordances: keyboard users already have the arrow
+				     keys, and the tabs themselves stay in the accessibility tree. -->
 				<button
-					v-for="tab in tabs"
-					:id="tab.tabId"
-					:key="tab.uid"
-					ref="navButtons"
+					v-if="moreStart"
 					type="button"
-					role="tab"
-					class="cn-tabs__nav-item"
-					:class="{ 'cn-tabs__nav-item--active': isActive(tab.uid) }"
-					:aria-selected="isActive(tab.uid) ? 'true' : 'false'"
-					:aria-controls="tab.panelId"
-					:tabindex="isActive(tab.uid) ? 0 : -1"
-					:disabled="tab.disabled || null"
-					@click="tab.onActivate()">
-					<component :is="tab.titleRender" />
+					class="cn-tabs__scroll cn-tabs__scroll--start"
+					aria-hidden="true"
+					tabindex="-1"
+					@click="scrollStrip(-1)">
+					<ChevronLeft :size="20" />
 				</button>
+				<button
+					v-if="moreEnd"
+					type="button"
+					class="cn-tabs__scroll cn-tabs__scroll--end"
+					aria-hidden="true"
+					tabindex="-1"
+					@click="scrollStrip(1)">
+					<ChevronRight :size="20" />
+				</button>
+			</div>
+			<!-- The tabs that did not make the strip. OUTSIDE the tablist, like
+			     `#nav-end`: a menu button nested in it would be announced as
+			     one more tab. A tab picked here joins the strip while it is
+			     selected, so the open panel always has a real tab to be
+			     labelled by. -->
+			<div v-if="overflowTabs.length > 0" class="cn-tabs__more">
+				<NcActions
+					:forceMenu="true"
+					:forceName="true"
+					:menuName="moreLabel"
+					:aria-label="moreAriaLabel"
+					variant="tertiary"
+					data-testid="cn-tabs-more">
+					<template #icon>
+						<ChevronDown :size="20" />
+					</template>
+					<NcActionButton
+						v-for="tab in overflowTabs"
+						:key="tab.uid"
+						:disabled="tab.disabled || null"
+						:closeAfterClick="true"
+						data-testid="cn-tabs-more-item"
+						@click="onOverflowPick(tab)">
+						<template #icon>
+							<span class="cn-tabs__more-spacer" />
+						</template>
+						{{ overflowLabel(tab) }}
+					</NcActionButton>
+				</NcActions>
 			</div>
 			<div v-if="$slots['nav-end']" class="cn-tabs__nav-end">
 				<!-- @slot nav-end Rendered at the right-hand end of the tab bar, deliberately OUTSIDE the `role="tablist"` element. A widget Actions menu belongs beside the strip, not inside it: anything nested in the tablist is announced as one of the tabs, so a screen-reader user counting six tabs would hear seven. -->
@@ -104,12 +172,42 @@
  * wiring, a roving `tabindex` (only the selected tab is in the tab order), and
  * Left/Right/Home/End keyboard navigation within the strip. Pass `aria-label`
  * (or `ariaLabel`) so screen-reader users hear what the strip is for.
+ *
+ * ## Counts and the "More" menu
+ *
+ * A `CnTab` with `count` shows that number after its title. A `CnTab` with
+ * `overflow` is listed under a "More" menu beside the strip instead of in it:
+ *
+ * ```vue
+ * <CnTabs aria-label="Case details">
+ *   <CnTab title="Documents" :count="5">…</CnTab>
+ *   <CnTab title="Archiving" overflow>…</CnTab>
+ * </CnTabs>
+ * ```
+ *
+ * Picking a tab from the menu selects it and shows it in the strip for as long
+ * as it is selected. With no overflow tab the menu does not render, and the
+ * strip is exactly what it was before these props existed.
  */
-import { computed, defineComponent, provide, reactive, ref } from 'vue'
+import { translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActions } from '@nextcloud/vue'
+import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, onUpdated, provide, reactive, ref, watch } from 'vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import { useLook } from '../../composables/useLook.js'
 import { CN_TABS_INJECTION_KEY } from './tabsKey.js'
 
 export default defineComponent({
 	name: 'CnTabs',
+
+	components: {
+		ChevronDown,
+		ChevronLeft,
+		ChevronRight,
+		NcActionButton,
+		NcActions,
+	},
 
 	props: {
 		/** Extra class applied to the panel container (bootstrap-vue's `content-class`). */
@@ -131,12 +229,63 @@ export default defineComponent({
 		},
 
 		/**
+		 * How the strip is drawn: `line` (the default: folder tabs joined to
+		 * the panel below), `segmented` (a compact pill switch, for a view
+		 * switch such as "My work / My team") or `underline` (plain labels on
+		 * a rule, the open one underlined; board LpBeheerAlgemeen). An
+		 * `underline` strip wraps instead of scrolling. Roles and keyboard
+		 * behaviour are the same in all three.
+		 *
+		 * @type {'line'|'segmented'|'underline'}
+		 * @spec openspec/changes/admin-settings-underline-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-an-underline-tab-strip
+		 */
+		variant: {
+			type: String,
+			default: 'line',
+			validator: (v) => ['line', 'segmented', 'underline'].includes(v),
+		},
+
+		/**
 		 * Accessible name for the tab strip, applied to the `role="tablist"`
 		 * element. Screen readers announce it when focus enters the strip.
 		 */
 		ariaLabel: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The look the strip is drawn in (`nextcloud` or `board`). Empty takes
+		 * the look the app provides. In the board look a `line` strip draws the
+		 * screens' folder tabs and never moves a tab under "More": the strip
+		 * scrolls instead.
+		 *
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-folder-tabs-take-the-board-strip
+		 */
+		look: { // eslint-disable-line vue/no-unused-properties -- read through useLook(props) in setup
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Leave the `overflow` tabs to the host's `#nav-end` menu instead of a
+		 * "More" menu of the strip's own. The strip then draws only the tabs
+		 * that are not `overflow`, and an overflow tab that is selected joins
+		 * it just before the last of them (board DqZaakBesluiten: Overview,
+		 * Files, Contact, Tasks, Decisions, History). The host lists the
+		 * overflow tabs and selects one through its `CnTab`'s `active`.
+		 *
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
+		 */
+		overflowInNavEnd: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Name of the menu that lists the `overflow` tabs. */
+		moreLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'More'),
 		},
 	},
 
@@ -146,10 +295,17 @@ export default defineComponent({
 	],
 
 	setup(props, { emit }) {
+		const { isBoard, lookClass: boardClass } = useLook(props)
+		// The board strip: a `line` strip in the board look.
+		const boardStrip = computed(() => isBoard.value && props.variant === 'line')
 		// Registered children, in mount order.
 		const tabs = reactive([])
 		const activeUid = ref(null)
 		const navButtons = ref([])
+		const nav = ref(null)
+		// Whether the selection was chosen (a tab declared `active`, or the
+		// user picked one) rather than defaulted to the first tab registered.
+		let selectionChosen = false
 
 		/**
 		 * Register a child tab. The first child to register wins the initial
@@ -165,8 +321,23 @@ export default defineComponent({
 			if (tab.disabled) {
 				return
 			}
-			if (activeUid.value === null || tab.active) {
+			if (tab.active) {
 				activeUid.value = tab.uid
+				selectionChosen = true
+				return
+			}
+			if (activeUid.value === null) {
+				activeUid.value = tab.uid
+				return
+			}
+			// A tab under "More" only held the default selection because it
+			// registered first. The first tab that is actually in the strip
+			// takes it over, unless somebody chose.
+			if (!selectionChosen && !tab.overflow) {
+				const current = tabs.find((candidate) => candidate.uid === activeUid.value)
+				if (current && current.overflow) {
+					activeUid.value = tab.uid
+				}
 			}
 		}
 
@@ -198,6 +369,7 @@ export default defineComponent({
 		 * @return {void}
 		 */
 		function select(uid) {
+			selectionChosen = true
 			if (activeUid.value === uid) {
 				return
 			}
@@ -219,6 +391,89 @@ export default defineComponent({
 		const activeIndex = computed(() => tabs.findIndex((tab) => tab.uid === activeUid.value))
 
 		/**
+		 * The tabs drawn in the strip: every tab that is not `overflow`, plus
+		 * an overflow tab for as long as it is the selected one.
+		 *
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		const visibleTabs = computed(() => {
+			if (props.overflowInNavEnd) {
+				return navEndStrip()
+			}
+			return tabs.filter((tab) => boardStrip.value || !tab.overflow || tab.uid === activeUid.value)
+		})
+
+		/**
+		 * The strip under `overflowInNavEnd`: the tabs that are not
+		 * `overflow`, with a selected overflow tab placed before the last.
+		 *
+		 * @return {object[]} The tabs to draw, in order.
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-an-opened-overflow-tab-joins-the-strip-before-the-last-tab
+		 */
+		function navEndStrip() {
+			const pinned = tabs.filter((tab) => !tab.overflow)
+			const opened = tabs.find((tab) => tab.overflow && tab.uid === activeUid.value)
+			if (!opened) {
+				return pinned
+			}
+			const at = Math.max(0, pinned.length - 1)
+			return [...pinned.slice(0, at), opened, ...pinned.slice(at)]
+		}
+
+		/**
+		 * The tabs listed under "More": overflow tabs that are not selected.
+		 *
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		const overflowTabs = computed(() => (boardStrip.value || props.overflowInNavEnd ? [] : tabs.filter((tab) => tab.overflow && tab.uid !== activeUid.value)))
+
+		/**
+		 * Whether a tab declares a count. `0` is a count; null and '' are not.
+		 *
+		 * @param {object} tab Child descriptor.
+		 *
+		 * @return {boolean} True when the count renders.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		function hasCount(tab) {
+			return tab.count !== null && tab.count !== undefined && tab.count !== ''
+		}
+
+		/**
+		 * A "More" entry's text: the tab's title, and its count when it has one.
+		 *
+		 * @param {object} tab Child descriptor.
+		 *
+		 * @return {string} The menu label.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		function overflowLabel(tab) {
+			return hasCount(tab) ? `${tab.label} (${tab.count})` : tab.label
+		}
+
+		/**
+		 * Select a tab picked from "More" and move focus to it in the strip,
+		 * so a keyboard user lands on the tab they chose rather than on a menu
+		 * button that no longer lists it.
+		 *
+		 * @param {object} tab Child descriptor.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+		 */
+		function onOverflowPick(tab) {
+			tab.onActivate()
+			nextTick(() => {
+				const button = nav.value?.querySelector(`#${tab.tabId}`)
+				if (button && typeof button.focus === 'function') {
+					button.focus()
+				}
+			})
+		}
+
+		const moreAriaLabel = computed(() => t('nextcloud-vue', 'More tabs'))
+
+		/**
 		 * Move the selection and DOM focus to a tab by index, skipping disabled
 		 * ones. Focus has to move with the selection: in the WAI-ARIA tabs
 		 * pattern only the selected tab is in the tab order, so leaving focus on
@@ -229,14 +484,16 @@ export default defineComponent({
 		 * @return {void}
 		 */
 		function focusTab(index) {
-			const enabled = tabs.filter((tab) => !tab.disabled)
+			// The strip's own tabs only: the arrow keys walk what is drawn, and
+			// the "More" menu has its own keyboard handling.
+			const enabled = visibleTabs.value.filter((tab) => !tab.disabled)
 			if (enabled.length === 0) {
 				return
 			}
 			const wrapped = ((index % enabled.length) + enabled.length) % enabled.length
 			const target = enabled[wrapped]
+			const position = visibleTabs.value.indexOf(target)
 			select(target.uid)
-			const position = tabs.indexOf(target)
 			const button = navButtons.value?.[position]
 			if (button && typeof button.focus === 'function') {
 				button.focus()
@@ -251,7 +508,7 @@ export default defineComponent({
 		 * @return {void}
 		 */
 		function onNavKeydown(event) {
-			const enabled = tabs.filter((tab) => !tab.disabled)
+			const enabled = visibleTabs.value.filter((tab) => !tab.disabled)
 			const current = enabled.findIndex((tab) => tab.uid === activeUid.value)
 			let next = null
 
@@ -272,9 +529,119 @@ export default defineComponent({
 			focusTab(next)
 		}
 
+		/**
+		 * Scroll the strip so the selected tab is wholly in view.
+		 *
+		 * @return {void}
+		 */
+		function revealActiveTab() {
+			const strip = nav.value
+			const button = strip?.querySelector('[role="tab"][aria-selected="true"]')
+			if (!strip || !button) {
+				return
+			}
+			const stripRect = strip.getBoundingClientRect()
+			const rect = button.getBoundingClientRect()
+			if (rect.left < stripRect.left) {
+				strip.scrollLeft -= stripRect.left - rect.left
+			} else if (rect.right > stripRect.right) {
+				strip.scrollLeft += rect.right - stripRect.right
+			}
+		}
+
+		watch(activeUid, revealActiveTab, { flush: 'post' })
+
+		// Whether tabs are hidden past the start or end edge of the strip.
+		const moreStart = ref(false)
+		const moreEnd = ref(false)
+
+		/**
+		 * Recompute which edges hide tabs; 1px of tolerance absorbs sub-pixel rounding.
+		 *
+		 * @return {void}
+		 */
+		function measureOverflow() {
+			const strip = nav.value
+			if (!strip) {
+				return
+			}
+			moreStart.value = strip.scrollLeft > 1
+			moreEnd.value = strip.scrollWidth - strip.clientWidth - strip.scrollLeft > 1
+		}
+
+		let resizeObserver = null
+
+		onMounted(() => {
+			measureOverflow()
+			if (typeof ResizeObserver === 'undefined' || !nav.value) {
+				return
+			}
+			resizeObserver = new ResizeObserver(measureOverflow)
+			resizeObserver.observe(nav.value)
+		})
+
+		// A title change or a tab added can tip the strip into overflowing without resizing it.
+		onUpdated(measureOverflow)
+
+		onBeforeUnmount(() => {
+			resizeObserver?.disconnect()
+			resizeObserver = null
+		})
+
+		/**
+		 * Scroll the strip most of a viewport towards one edge.
+		 *
+		 * @param {number} direction -1 towards the start, 1 towards the end.
+		 *
+		 * @return {void}
+		 */
+		function scrollStrip(direction) {
+			const strip = nav.value
+			if (!strip) {
+				return
+			}
+			strip.scrollLeft += direction * Math.max(1, Math.round(strip.clientWidth * 0.6))
+		}
+
+		/**
+		 * Turn a vertical wheel into a horizontal scroll while the strip overflows.
+		 *
+		 * @param {WheelEvent} event The wheel event.
+		 *
+		 * @return {void}
+		 */
+		function onNavWheel(event) {
+			const strip = event.currentTarget
+			if (strip.scrollWidth <= strip.clientWidth || event.deltaX !== 0 || event.deltaY === 0) {
+				return
+			}
+			event.preventDefault()
+			strip.scrollLeft += event.deltaY
+		}
+
 		provide(CN_TABS_INJECTION_KEY, { register, unregister, select, isActive })
 
-		return { tabs, isActive, activeIndex, navButtons, onNavKeydown }
+		return {
+			boardStrip,
+			boardClass,
+			tabs,
+			visibleTabs,
+			overflowTabs,
+			hasCount,
+			overflowLabel,
+			onOverflowPick,
+			moreAriaLabel,
+			isActive,
+			activeIndex,
+			nav,
+			navButtons,
+			moreStart,
+			moreEnd,
+			measureOverflow,
+			scrollStrip,
+			onNavKeydown,
+			onNavWheel,
+		}
 	},
 })
 </script>
@@ -285,28 +652,143 @@ export default defineComponent({
    nav-end content the nav is the bar's only child and the result is pixel
    identical to the rule living on the nav itself. */
 .cn-tabs__bar {
-	/* flex-START, not flex-end. The nav is a SIBLING that grows taller when its
-	   tabs wrap, so bottom-aligning drops the `#nav-end` control down beside
-	   the LAST row. Measured on a 9-tab dossiq case strip: Actions landed next
-	   to the single wrapped tab and read as that one tab's own control rather
-	   than the strip's. Top-aligning keeps it on the first row, where the
-	   widget's title used to be. */
+	/* Top-aligned so the `#nav-end` control sits on the tab row, not below it,
+	   should the two sides ever differ in height. */
 	align-items: flex-start;
 	border-bottom: 1px solid var(--color-border);
 	display: flex;
 	gap: 8px;
 }
 
+/* The strip holds the scrolling nav and the edge affordances drawn over it. */
+.cn-tabs__strip {
+	flex: 1 1 auto;
+	min-width: 0;
+	position: relative;
+}
+
 .cn-tabs__nav {
 	display: flex;
-	flex: 1 1 auto;
 	gap: 4px;
-	min-width: 0;
-	/* Wrap before scrolling. A horizontally scrolling strip hides tabs behind
-	   an edge with nothing to say they are there, and beside a `#nav-end`
-	   control the clipped tab reads as sitting UNDER the control. Wrapping
-	   keeps every tab reachable without a gesture. */
-	flex-wrap: wrap;
+	/* One row that scrolls, never a wrap: in a narrow sidebar a nine-tab strip
+	   wrapped into a stack taller than the panel under it. The scrollbar is
+	   hidden because it would sit between the tabs and the bar's rule and break
+	   the open tab's join with its panel; a fade and a chevron on the clipped
+	   edge say there is more, and the strip follows the wheel. */
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+	/* Overhang the bar's 1px rule so the open tab's own bottom edge, drawn in
+	   the panel's colour, covers it and the tab joins its panel. */
+	margin-bottom: -1px;
+}
+
+.cn-tabs__nav::-webkit-scrollbar {
+	display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-tabs__nav {
+		scroll-behavior: auto;
+	}
+}
+
+/* A fade over the clipped edge, only on the side that hides tabs. Stops a
+   pixel above the bar's rule so the rule keeps its full colour.
+
+   z-index 2 so the fades outrank a lifted tab: CnTabsWidget puts the open tab
+   at 1, and a tie goes to DOM order, which would draw that tab over the start
+   fade (it precedes the tabs) while the end fade still covered it. */
+.cn-tabs__strip::before,
+.cn-tabs__strip::after {
+	content: '';
+	display: none;
+	inset-block: 0 1px;
+	pointer-events: none;
+	position: absolute;
+	width: 56px;
+	z-index: 2;
+}
+
+.cn-tabs__strip::before {
+	background: linear-gradient(to right, var(--color-main-background) 30%, transparent);
+	inset-inline-start: 0;
+}
+
+.cn-tabs__strip::after {
+	background: linear-gradient(to left, var(--color-main-background) 30%, transparent);
+	inset-inline-end: 0;
+}
+
+.cn-tabs__strip--more-start::before,
+.cn-tabs__strip--more-end::after {
+	display: block;
+}
+
+/* Doubled selector for the same reason as `.cn-tabs__nav .cn-tabs__nav-item`:
+   Nextcloud's own `button` rule would otherwise give this a border, a fill
+   and a margin. */
+.cn-tabs__strip .cn-tabs__scroll {
+	align-items: center;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	color: var(--color-main-text);
+	cursor: pointer;
+	display: flex;
+	/* Pushed down a little so the chevron sits level with the tab labels. */
+	inset-block: 2px 0;
+	justify-content: center;
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	position: absolute;
+	width: 28px;
+	z-index: 3;
+}
+
+/* Nextcloud's `button:hover` rule would otherwise fill the chevron. */
+.cn-tabs__strip .cn-tabs__scroll:hover,
+.cn-tabs__strip .cn-tabs__scroll:focus {
+	background: none;
+}
+
+.cn-tabs__scroll--start {
+	inset-inline-start: 0;
+}
+
+.cn-tabs__scroll--end {
+	inset-inline-end: 0;
+}
+
+/* The count behind a tab's title. Full-contrast text on the page background,
+   so it reads on the idle tab's darker fill and on the open tab alike. */
+.cn-tabs__count {
+	background-color: var(--color-main-background);
+	border: 1px solid var(--color-border-dark);
+	border-radius: var(--border-radius-pill, 100px);
+	color: var(--color-main-text);
+	display: inline-block;
+	font-size: 0.85em;
+	line-height: 1.4;
+	margin-inline-start: 6px;
+	min-width: 1.4em;
+	padding: 0 6px;
+	text-align: center;
+}
+
+.cn-tabs__more {
+	align-items: center;
+	display: flex;
+	flex: 0 0 auto;
+}
+
+/* Keeps a "More" entry's text on the menu's text column without drawing an icon. */
+.cn-tabs__more-spacer {
+	display: inline-block;
+	width: 20px;
 }
 
 .cn-tabs__nav-end {
@@ -348,11 +830,6 @@ export default defineComponent({
 	color: var(--color-main-text);
 	cursor: pointer;
 	font-weight: normal;
-	/* Overlap the bar's 1px rule so the active tab's own bottom edge can cover
-	   it. Harmless on a wrapped second row: the 4px nav gap absorbs it. */
-	margin-bottom: -1px;
-	/* See `.cn-tabs__nav .cn-tabs__nav-item` below for why this alone is not
-	   enough inside a Nextcloud page. */
 	padding: 8px 12px;
 	white-space: nowrap;
 	/* Match the `#nav-end` control's own height. The bar is a flex row, so
@@ -367,20 +844,12 @@ export default defineComponent({
 	min-height: var(--default-clickable-area, 34px);
 }
 
-/* Nextcloud's server stylesheet sets `margin-bottom: 3px` on every plain
-   `button`, and its selector
-   `button:not(.button-vue, [class^="vs__"]):not(.app-navigation-entry-button)`
-   scores (0,2,1) against the (0,2,0) of the scoped rule above. So inside a real
-   Nextcloud page the tabs sat 4px ABOVE the bar's rule and the open tab never
-   met its panel: the join this whole treatment is built on was only ever
-   visible outside the app.
-   Measured on a running instance, not inferred: the e2e harness is a bare vite
-   page that does not load Nextcloud's CSS, so it cannot see this conflict and
-   reported the gap as 1px while the app showed 5px.
-   Adding the parent class takes the selector to (0,3,0), which wins on
+/* Nextcloud's server stylesheet gives every plain `button` a 3px bottom margin
+   with a selector that outscores the scoped rule above, which floated the tabs
+   above the bar's rule inside a real page. The parent class wins on
    specificity rather than on `!important` or source order. */
 .cn-tabs__nav .cn-tabs__nav-item {
-	margin-bottom: -1px;
+	margin-block-end: 0;
 }
 
 .cn-tabs__nav--justified .cn-tabs__nav-item {
@@ -391,6 +860,11 @@ export default defineComponent({
 .cn-tabs__nav-item:focus-visible {
 	background-color: var(--color-background-hover);
 	color: var(--color-main-text);
+}
+
+/* Inside the box: the scrolling strip clips anything drawn outside a tab. */
+.cn-tabs__nav-item:focus-visible {
+	outline-offset: -2px;
 }
 
 .cn-tabs__nav-item[disabled] {
@@ -427,5 +901,106 @@ export default defineComponent({
 	border: 1px solid var(--color-border);
 	border-top: none;
 	padding: 12px;
+}
+
+/* Segmented variant: the strip is a pill switch that stands on its own, so
+   the bar's rule and the tab-joins-panel treatment are both dropped. */
+.cn-tabs--segmented .cn-tabs__bar {
+	border-bottom: none;
+}
+
+.cn-tabs--segmented .cn-tabs__strip {
+	flex: 0 1 auto;
+}
+
+.cn-tabs--segmented .cn-tabs__nav {
+	gap: 4px;
+	margin-bottom: 0;
+	padding: 4px;
+	border-radius: var(--border-radius-container, var(--border-radius-large, 10px));
+	background-color: var(--color-background-dark);
+}
+
+.cn-tabs--segmented .cn-tabs__nav-item {
+	border: 1px solid transparent;
+	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
+	background-color: transparent;
+	font-weight: 600;
+	padding: 6px 16px;
+}
+
+.cn-tabs--segmented .cn-tabs__nav-item:hover {
+	background-color: var(--color-background-hover);
+}
+
+/* The open segment is the raised one. Its border survives forced-colours
+   mode, which drops the background and the shadow. */
+.cn-tabs--segmented .cn-tabs__nav-item--active {
+	border: 1px solid var(--color-border-dark);
+	background-color: var(--color-main-background);
+	box-shadow: 0 1px 2px var(--color-box-shadow);
+	font-weight: 600;
+	padding-top: 6px;
+}
+
+/* Underline variant (board LpBeheerAlgemeen): plain labels on the bar's rule,
+   the open one carried by a 3px primary underline that sits on that rule. The
+   strip wraps onto a second row rather than scrolling. */
+.cn-tabs--underline .cn-tabs__nav {
+	flex-wrap: wrap;
+	overflow: visible;
+}
+
+/* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
+   every plain button a 3px margin, which put the tabs 7px apart and 3px low
+   (DqInstellingen: 4px apart, on the strip's top). The nldesign theme sets a
+   button's weight, corner and border width with `!important` through its
+   button tokens, which drew every tab bold with a 1px underline; the tab
+   hands its own values to those tokens. */
+.cn-tabs--underline .cn-tabs__nav-item {
+	--nldesign-component-button-font-weight: 500;
+	--nldesign-component-button-border-radius: 0;
+	--nldesign-component-button-border-width: 0 0 3px;
+	background-color: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	color: var(--cn-board-text-soft, var(--color-main-text));
+	font-size: 14px;
+	font-weight: 500;
+	gap: 8px;
+	margin: 0;
+	min-height: 44px;
+	padding: 0 9px;
+}
+
+.cn-tabs--underline .cn-tabs__nav-item:hover,
+.cn-tabs--underline .cn-tabs__nav-item:focus-visible {
+	background-color: transparent;
+	border-bottom-color: var(--color-border-dark);
+	color: var(--color-main-text);
+}
+
+.cn-tabs--underline .cn-tabs__nav-item[disabled]:hover {
+	background-color: transparent;
+	border-bottom-color: transparent;
+}
+
+.cn-tabs--underline .cn-tabs__nav-item--active,
+.cn-tabs--underline .cn-tabs__nav-item--active:hover,
+.cn-tabs--underline .cn-tabs__nav-item--active:focus-visible {
+	--nldesign-component-button-font-weight: 700;
+	border-bottom: 3px solid var(--color-primary-element);
+	color: var(--color-main-text);
+	font-weight: 700;
+	padding-top: 0;
+}
+
+.cn-tabs--underline .cn-tabs__count {
+	margin-inline-start: 0;
+}
+
+.cn-tabs--underline .cn-tabs__content {
+	padding-top: 20px;
 }
 </style>

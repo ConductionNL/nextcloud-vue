@@ -63,13 +63,13 @@ function manifestWith(steps, version = 1) {
 	}
 }
 
-function mountRoot(manifest) {
+function mountRoot(manifest, route = { name: 'home' }) {
 	return mount(CnAppRoot, {
 		// `requiresApps: []` opts out of the capabilities-API availability guard,
 		// which otherwise holds the render at its loading state and never reaches
 		// the setup/shell phases these tests are about.
 		propsData: { manifest, appId: 'myapp', requiresApps: [] },
-		mocks: { $route: { name: 'home' } },
+		mocks: { $route: route },
 		stubs: {
 			'router-view': { template: '<div class="router-view-stub" />' },
 			CnSetupWizard: {
@@ -152,6 +152,18 @@ describe('CnAppRoot setup wizard', () => {
 			expect(wrapper.vm.optionalSetupPending).toBe(false)
 			expect(wrapper.vm.setupWizardOpen).toBe(false)
 			expect(wizardOf(wrapper).exists()).toBe(false)
+		})
+
+		it('ignores on-demand steps, which are never outstanding work', () => {
+			// An on-demand step (onDemand: true) runs only when the user asks, so
+			// a server that reports it not done must not auto-open the wizard.
+			mockSetupState = setupState([
+				{ ...CURRENCY, done: true },
+				{ id: 'wipe', type: 'run-action', onDemand: true, done: false },
+			])
+			const wrapper = mountRoot(manifestWith([CURRENCY, { id: 'wipe', type: 'run-action' }]))
+			expect(wrapper.vm.optionalSetupPending).toBe(false)
+			expect(wrapper.vm.setupWizardOpen).toBe(false)
 		})
 
 		it('passes the server-done step ids through so the wizard resumes', () => {
@@ -259,6 +271,27 @@ describe('CnAppRoot setup wizard', () => {
 				getItem.mockRestore()
 				setItem.mockRestore()
 			}
+		})
+	})
+
+	describe('opened from the address (?setup=open)', () => {
+		it('opens a finished setup again', () => {
+			mockSetupState = setupState([
+				{ ...CURRENCY, done: true },
+				{ ...DEMO, done: true },
+			])
+			const finished = manifestWith([CURRENCY, DEMO])
+			expect(mountRoot(finished).vm.setupWizardOpen).toBe(false)
+			const wrapper = mountRoot(finished, { name: 'home', query: { setup: 'open' } })
+			expect(wrapper.vm.phase).toBe('shell')
+			expect(wrapper.vm.setupWizardOpen).toBe(true)
+			expect(wizardOf(wrapper).props('cancellable')).toBe(true)
+		})
+
+		it('ignores the query for an app without setup steps', () => {
+			mockSetupState = setupState([])
+			const wrapper = mountRoot(manifestWith([]), { name: 'home', query: { setup: 'open' } })
+			expect(wrapper.vm.setupWizardOpen).toBe(false)
 		})
 	})
 })

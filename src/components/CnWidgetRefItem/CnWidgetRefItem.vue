@@ -55,6 +55,7 @@ import axios from '@nextcloud/axios'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
+import { prefixUrl } from '../../utils/headers.js'
 
 /**
  * Pattern for `openregister://widget/<schemaSlug>/<widgetSlug>`.
@@ -172,7 +173,7 @@ export default {
 			}
 
 			const { schemaSlug, widgetSlug } = parsed
-			const url = `/index.php/apps/openregister/api/schemas/${schemaSlug}/widgets/${widgetSlug}`
+			const url = prefixUrl(`/apps/openregister/api/schemas/${schemaSlug}/widgets/${widgetSlug}`)
 
 			let apiData
 			try {

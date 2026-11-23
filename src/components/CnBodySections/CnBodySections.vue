@@ -32,6 +32,7 @@
 			v-for="entry in resolvedSections"
 			:key="entry.id"
 			class="cn-body-sections__section"
+			:class="{ 'cn-body-sections__section--card': entry.card }"
 			:style="sectionStyle(entry)"
 			:data-section-id="entry.id"
 			data-testid="cn-body-section">
@@ -67,6 +68,9 @@
 import { translate as t } from '@nextcloud/l10n'
 import { provide, ref, watch } from 'vue'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
+import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
+import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import CnSectionBoundary from './CnSectionBoundary.js'
 
 export default {
@@ -81,16 +85,24 @@ export default {
 		cnRegistry: { default: () => ({}) },
 		/** Legacy custom-component map provided by CnAppRoot. */
 		cnCustomComponents: { default: () => ({}) },
+		/** The host's translate function for manifest-authored strings, provided by CnAppRoot. */
+		cnTranslate: { default: null },
 	},
 
 	props: {
 		/**
 		 * Declarative in-body section descriptors. Each entry:
-		 * `{ id, component, title?, props?, placement?, colSpan? }`.
+		 * `{ id, component, title?, props?, placement?, colSpan?, card? }`.
+		 * `card: true` draws the section in the same card as the grid's
+		 * widgets, for a component that has no card of its own.
 		 * `component` is the registry name of a host-app component
-		 * (resolved from `cnRegistry` then `cnCustomComponents`).
+		 * (resolved from `cnRegistry` then `cnCustomComponents`). Instead of
+		 * `component`, `type` names a library widget type (`handoff`, `facts`,
+		 * `field-list`, ...) that renders with `content` and the page's record.
+		 * `visibleWhen` (a condition on the record) leaves a section out while it
+		 * does not hold.
 		 *
-		 * @type {Array<{id?: string, component: string, title?: string, props?: object, placement?: string, colSpan?: number}>}
+		 * @type {Array<{id?: string, component?: string, type?: string, content?: object, title?: string, props?: object, placement?: string, colSpan?: number, card?: boolean}>}
 		 */
 		sections: {
 			type: Array,
@@ -176,7 +188,9 @@ export default {
 		 * @return {Array}
 		 */
 		filteredSections() {
-			const list = Array.isArray(this.sections) ? this.sections : []
+			const object = (this.context && this.context.object) || {}
+			const list = (Array.isArray(this.sections) ? this.sections : [])
+				.filter((s) => !s || !s.visibleWhen || evaluateVisibleWhenLocal(s.visibleWhen, object))
 			if (this.placement === null || this.placement === undefined) {
 				return list
 			}
@@ -193,22 +207,43 @@ export default {
 		 */
 		resolvedSections() {
 			return this.filteredSections.map((section, index) => {
-				const name = section && section.component
+				const widgetType = section && !section.component && typeof section.type === 'string' ? section.type : ''
+				const name = widgetType || (section && section.component)
 				const id = (section && section.id) || name || `section-${index}`
 				return {
 					id,
 					name,
-					title: (section && section.title) || '',
+					title: this.translateTitle((section && section.title) || ''),
+					card: !!(section && section.card),
 					colSpan: section && section.colSpan,
 					placement: section && section.placement,
-					component: this.resolveSectionComponent(name),
-					props: this.resolveSectionProps(section),
+					component: widgetType ? this.resolveWidgetRenderer(widgetType) : this.resolveSectionComponent(name),
+					props: widgetType ? this.widgetProps(section) : this.resolveSectionProps(section),
 				}
 			})
 		},
 	},
 
 	methods: {
+		/**
+		 * A manifest-authored section title in the reader's language.
+		 *
+		 * The title is written in the manifest, so it belongs to the host
+		 * app's catalogue, the same as every other manifest title the detail
+		 * page shows. A section heading printed raw read "Asked about" to a
+		 * Dutch handler on a pipelinq ticket (Zuiddrecht live round 3).
+		 *
+		 * @param {string} title The title as written in the manifest.
+		 * @return {string} The translated title, or '' when there is none.
+		 * @spec openspec/changes/detail-page-strings-dutch/specs/detail-page-strings-dutch/spec.md#requirement-the-detail-page-speaks-the-readers-language
+		 */
+		translateTitle(title) {
+			if (title === '' || typeof this.cnTranslate !== 'function') {
+				return title
+			}
+			return this.cnTranslate(title)
+		},
+
 		/**
 		 * Resolve a section's host-app component by registry name. Precedence
 		 * matches CnPageRenderer.resolveCustomComponent: the v2 `cnRegistry`
@@ -229,6 +264,33 @@ export default {
 			}
 			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
 			return legacy || null
+		},
+
+		/**
+		 * The renderer of a library widget type, or null when none is registered.
+		 *
+		 * @param {string} type The widget type (an alias resolves to its canonical type).
+		 * @return {object|null} The renderer component.
+		 */
+		resolveWidgetRenderer(type) {
+			const entry = getWidgetTypeEntry(canonicalWidgetType(type))
+			return (entry && entry.renderer) || null
+		},
+
+		/**
+		 * The props a library widget renderer takes: its `content` and the
+		 * page's record.
+		 *
+		 * @param {object} section The section descriptor.
+		 * @return {{content: object, objectId: (string|number|null), objectData: (object|null)}} The props.
+		 */
+		widgetProps(section) {
+			const ctx = this.context || {}
+			return {
+				content: (section && section.content && typeof section.content === 'object') ? section.content : {},
+				objectId: ctx.objectId ?? null,
+				objectData: ctx.object || null,
+			}
 		},
 
 		/**
@@ -303,6 +365,21 @@ export default {
 
 .cn-body-sections__section {
 	min-width: 0;
+}
+
+/* Same card as the grid's widgets, so a section reads as one of them. */
+.cn-body-sections__section--card {
+	padding: 12px 16px 16px;
+	background: var(--color-main-background);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+}
+
+.cn-body-sections__section--card > .cn-body-sections__title {
+	margin: 0 -16px 12px;
+	padding: 0 16px 12px;
+	font-size: 14px;
+	border-bottom: 1px solid var(--color-border);
 }
 
 .cn-body-sections__title {

@@ -11,10 +11,15 @@
 - **acceptance_criteria**:
   - `viewMode` accepts `board` and `dateAxis`, default stays `table`
   - The toggle gains the segments only for the modes `config.viewModes` lists
-  - `board.statusField` naming a field with no enum and no lifecycle fails validation naming the page
+  - `board.statusField` naming a field with no enum and no lifecycle fails
+    validation naming the page — NOT DONE, and it cannot be: the stages live
+    in the register schema and the manifest does not contain it, so no
+    manifest-time check can see them. The schema refuses the structural half
+    (a board with no `statusField` at all), and `CnBoardView` says so on
+    screen rather than drawing empty columns.
   - A page listing neither mode renders exactly as before
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: `CnBoardView`, columns from the field
 - **spec_ref**: `openspec/changes/status-board-and-date-axis/specs/index-page/spec.md#requirement-the-index-page-offers-a-board-bound-to-the-status-field`
@@ -24,8 +29,8 @@
   - A status the schema hides is not a column
   - Cards render the fields `board.cardFields` names and click through like a table row
   - Each column pages and labels its count as the loaded count when the total is unconfirmed
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: A drop runs a transition
 - **spec_ref**: `openspec/changes/status-board-and-date-axis/specs/index-page/spec.md#requirement-moving-a-card-runs-a-transition-and-a-refusal-is-shown`
@@ -35,8 +40,8 @@
   - A refused transition returns the card and renders the guard's own message
   - A card moved by somebody else is re-read, and the move is not forced
   - Move to on the card menu runs the same transition from the keyboard
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: The second axis
 - **spec_ref**: `openspec/changes/status-board-and-date-axis/specs/index-page/spec.md#requirement-a-board-groups-into-rows-by-a-second-field`
@@ -46,8 +51,8 @@
   - No `swimlaneField` renders one row and no row headers
   - A row collapses and stays collapsed while the user is on the view
   - Cards with no value for the field land in one named row, never dropped
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: `CnDateAxisView`
 - **spec_ref**: `openspec/changes/status-board-and-date-axis/specs/index-page/spec.md#requirement-the-date-axis-shows-overlapping-work-and-hides-nothing`
@@ -57,8 +62,8 @@
   - Rows missing a date land in a visible unplanned lane
   - The window is the user's choice and nothing reschedules from the view
   - The view is operable from the keyboard and every bar carries an accessible name
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 6: A filter per mode, docs and the dossiq handover
 - **spec_ref**: `openspec/changes/status-board-and-date-axis/specs/index-page/spec.md#requirement-each-view-mode-keeps-its-own-filter`
@@ -68,5 +73,5 @@
   - JSDoc and the three reference docs list every new prop, event and config key
   - dossiq is told the manifest key and the transition contract so `WorkflowBoard.vue` can be replaced
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

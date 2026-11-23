@@ -82,6 +82,9 @@ const BUNDLES = {
 }
 const APP_NAME = 'nextcloud-vue'
 
+/** Whether this page registered the translations already. */
+let registered = false
+
 /**
  * A bundle's plurals, keyed the way @nextcloud/l10n looks them up.
  *
@@ -120,4 +123,18 @@ export function registerTranslations() {
 	const lang = (getLanguage() || 'en').split(/[-_]/)[0]
 	const bundle = BUNDLES[lang] ?? BUNDLES.en
 	register(APP_NAME, { ...bundle.translations, ...pluralEntries(bundle) })
+	registered = true
+}
+
+/**
+ * Register the translations unless this page already did. For a component that
+ * can be an entry's only library surface, such as an admin settings page, so
+ * its strings read in the user's language even when the app never called
+ * `registerTranslations()`. Does nothing where `@nextcloud/l10n` offers no
+ * `register` or `getLanguage`, as in a test that mocks only `translate`.
+ */
+export function ensureTranslations() {
+	if (!registered && typeof register === 'function' && typeof getLanguage === 'function') {
+		registerTranslations()
+	}
 }

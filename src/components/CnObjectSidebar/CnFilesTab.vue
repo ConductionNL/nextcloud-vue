@@ -7,10 +7,40 @@
 		<CnFilesBrowser
 			v-if="browserRoot !== null"
 			:rootPath="browserRoot"
-			:rootLabel="browserRootLabel"
+			:rootLabel="effectiveBrowserRootLabel"
+			:source="browserSource"
+			:deleteLabel="deleteLabel"
+			:uploadButton="uploadButton"
+			:newMenu="newMenu"
+			:folderButton="folderButton"
+			:dropOverlay="dropOverlay"
+			:dropLabel="dropLabel"
+			:dropDetail="dropDetail"
+			:dropDetailValues="dropDetailValues"
+			:dropHint="dropHint"
 			:rowActions="rowActions"
 			:newActions="newActions"
+			:headerActions="headerActions"
+			:rowButton="rowButton"
+			:reviewSummary="reviewSummary"
+			:footnote="footnote"
+			:nameSecondary="nameSecondary"
+			:secondLine="secondLine"
 			:linkedItems="linkedItems"
+			:columns="columns"
+			:rowData="rowDataSource"
+			:preferenceApp="preferenceApp"
+			:preferenceKey="preferenceKey"
+			:bulkActions="bulkActions"
+			:toolbarSelectionActions="toolbarSelectionActions"
+			:selectionLabel="selectionLabel"
+			:selectionLabelOne="selectionLabelOne"
+			:showClearSelection="showClearSelection"
+			:sideCards="sideCards"
+			:sideCardsPlacement="sideCardsPlacement"
+			:groupBy="groupBy"
+			:facets="facets"
+			:facetPresentation="facetPresentation"
 			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
@@ -33,7 +63,11 @@
 			<div
 				class="cn-sidebar-tab__dropzone"
 				:class="{ 'cn-sidebar-tab__dropzone--active': isDragOver }"
+				role="button"
+				tabindex="0"
 				@click="triggerFileInput"
+				@keydown.enter.prevent="triggerFileInput"
+				@keydown.space.prevent="triggerFileInput"
 				@dragover.prevent="onDragOver"
 				@dragleave.prevent="onDragLeave"
 				@drop.prevent="onDrop">
@@ -67,6 +101,7 @@
 					type="file"
 					multiple
 					class="cn-sidebar-tab__file-input"
+					:aria-label="dropZoneLabel"
 					@change="onFileUpload">
 				<Upload :size="24" class="cn-sidebar-tab__dropzone-icon" />
 				<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
@@ -130,6 +165,18 @@
 							</template>
 							{{ openLabel }}
 						</NcActionButton>
+						<!-- OpenRegister's Office page applies the object rule:
+						     update edits, read views, no read is a 404. -->
+						<NcActionLink
+							v-if="officeOpens(file)"
+							:href="officeUrlFor(file)"
+							target="_blank"
+							:closeAfterClick="true">
+							<template #icon>
+								<FileDocumentEditOutline :size="20" />
+							</template>
+							{{ openInOfficeLabel }}
+						</NcActionLink>
 						<NcActionLink
 							v-if="file.id"
 							:href="downloadUrlFor(file)"
@@ -153,7 +200,6 @@
 							v-if="file.id"
 							:href="showInFilesUrl(file)"
 							target="_blank"
-							rel="noopener noreferrer"
 							:closeAfterClick="true">
 							<template #icon>
 								<FolderOutline :size="20" />
@@ -189,12 +235,14 @@
 				{{ loadMoreLabel }}
 			</NcButton>
 		</template>
+		<CnFilePreview v-if="previewFile" :file="previewFile" @close="previewFile = null" />
 	</div>
 </template>
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
+import { getCapabilities } from '@nextcloud/capabilities'
 import { translate as t } from '@nextcloud/l10n'
 import { generateRemoteUrl, generateUrl } from '@nextcloud/router'
 import {
@@ -210,6 +258,7 @@ import {
 } from '@nextcloud/vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import Download from 'vue-material-design-icons/Download.vue'
+import FileDocumentEditOutline from 'vue-material-design-icons/FileDocumentEditOutline.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
@@ -217,15 +266,35 @@ import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
+import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import CnFilesBrowser from '../CnFilesBrowser/CnFilesBrowser.vue'
+import { useFileOpener } from '../../composables/useFileOpener.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
-import { safeHref } from '../../utils/safeHref.js'
-import { resolveObjectFolder } from '../CnFilesBrowser/filesBrowser.js'
+import { indexRowData, objectDisplayName, resolveObjectFolderInfo } from '../CnFilesBrowser/filesBrowser.js'
+import { createOpenRegisterSource } from '../CnFilesBrowser/openRegisterSource.js'
+
+/**
+ * The mime types Nextcloud Office opens by default for the current person.
+ *
+ * richdocuments publishes its capabilities only to a person it lets use
+ * Office, so an empty list means no Office here, or none for them.
+ *
+ * @return {Array<string>} The mime types, or an empty list.
+ */
+function readOfficeMimetypes() {
+	try {
+		const mimetypes = getCapabilities()?.richdocuments?.mimetypes
+		return Array.isArray(mimetypes) ? mimetypes.filter((mime) => typeof mime === 'string') : []
+	} catch {
+		return []
+	}
+}
 
 export default {
 	name: 'CnFilesTab',
 
 	components: {
+		CnFilePreview,
 		CnFilesBrowser,
 		NcActionButton,
 		NcActionLink,
@@ -238,6 +307,7 @@ export default {
 		NcLoadingIcon,
 		Delete,
 		Download,
+		FileDocumentEditOutline,
 		FileOutline,
 		FolderOutline,
 		InformationOutline,
@@ -262,10 +332,47 @@ export default {
 		noFilesLabel: { type: String, default: () => t('nextcloud-vue', 'No files attached') },
 		/** Label for the open/view file action */
 		openLabel: { type: String, default: () => t('nextcloud-vue', 'Open') },
+		/**
+		 * Label of the action that opens a document in Nextcloud Office through
+		 * OpenRegister's Office page. Shown only when Office is there for this
+		 * person and opens the file's type; the page opens it for editing or
+		 * read-only by the object's own rule.
+		 */
+		openInOfficeLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Office') },
 		/** Label for the delete action */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
-		/** What the files browser's root crumb reads; null shows the folder's own name, as the Files app does. */
+		/** What the files browser's root crumb reads; null shows the object's name, else the folder's own name. */
 		browserRootLabel: { type: String, default: null },
+		/**
+		 * Where the files browser reads the object's folder from.
+		 * `openregister` (the default) goes through OpenRegister's files API under
+		 * the object's access rule, so anyone who may read the object sees its
+		 * files, without a share. `webdav` is the earlier behaviour: the folder is
+		 * looked up in the person's own Files over WebDAV and the browser shows
+		 * only when it is shared with them.
+		 */
+		source: {
+			type: String,
+			default: 'openregister',
+			validator: (value) => ['openregister', 'webdav'].includes(value),
+		},
+
+		/** Forwarded to CnFilesBrowser: a primary "Add files" button beside the New menu. */
+		uploadButton: { type: Boolean, default: false },
+		/** Whether the bar has the New menu; `false` leaves it out (CnFilesBrowser `newMenu`). */
+		newMenu: { type: Boolean, default: true },
+		/** Whether the bar has a New folder button (CnFilesBrowser `folderButton`). */
+		folderButton: { type: Boolean, default: false },
+		/** Forwarded to CnFilesBrowser: the drop state drawn over the list ("Drop to add") and announced. */
+		dropOverlay: { type: Boolean, default: false },
+		/** Forwarded to CnFilesBrowser: the drop state's line ("Laat los om toe te voegen"); the library's own without it. */
+		dropLabel: { type: String, default: undefined },
+		/** Forwarded to CnFilesBrowser: the drop state's second line, `{count}` the files dragged; it also makes the overlay fill the panel. */
+		dropDetail: { type: [String, Array], default: '' },
+		/** Forwarded to CnFilesBrowser: named values filled into `dropDetail`. */
+		dropDetailValues: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: "Or drag files onto this list." under the list. */
+		dropHint: { type: Boolean, default: false },
 		/**
 		 * The host's own actions on each file row of the browser, forwarded
 		 * to CnFilesBrowser's `rowActions`: declared like any manifest action
@@ -292,6 +399,78 @@ export default {
 		 * Null fetches nothing.
 		 */
 		linkedItemsUrl: { type: String, default: null },
+		/**
+		 * Forwarded to CnFilesBrowser: the columns the browser shows, built-in
+		 * names or declared columns (`{ key, label, source, formatter }`).
+		 * A `source: 'row'` column reads the host's record for the file from
+		 * `rowDataUrl`. None keeps name, size and modified.
+		 *
+		 * @type {Array<string|object>}
+		 */
+		columns: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the app id the user's column choice is stored under; unset offers no Columns chooser. */
+		preferenceApp: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the key the column choice is stored under. */
+		preferenceKey: { type: String, default: 'files-browser-columns' },
+		/**
+		 * An app endpoint that answers the host's own record per file, for the
+		 * browser's `source: 'row'` columns. App-relative; `{objectId}` is
+		 * replaced. Read once per listing. The answer is a list of records
+		 * (or the list at `rowDataPath`, or under `items` or `results`), each
+		 * naming its file in `rowDataKey`. Null reads nothing.
+		 */
+		rowDataUrl: { type: String, default: null },
+		/**
+		 * Forwarded to CnFilesBrowser: the host's actions on a selection of
+		 * files. With at least one, files get checkboxes and a bulk bar.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
+		 */
+		bulkActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: bulk actions as toolbar buttons, off while nothing is ticked. */
+		toolbarSelectionActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the bulk bar's count, a template with `{count}`. */
+		selectionLabel: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the bulk bar's count for one file. */
+		selectionLabelOne: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: whether the bulk bar ends in "Clear selection". */
+		showClearSelection: { type: Boolean, default: true },
+		/**
+		 * Forwarded to CnFilesBrowser: cards beside the list about the last
+		 * selected file.
+		 *
+		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
+		 */
+		sideCards: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: `page-side` puts the side cards in the detail page's side column. */
+		sideCardsPlacement: { type: String, default: 'beside' },
+		/** Forwarded to CnFilesBrowser: the key of a declared column to group the files on. */
+		groupBy: { type: String, default: '' },
+		/**
+		 * Forwarded to CnFilesBrowser: keys of declared columns to filter on,
+		 * a chip per value in use.
+		 *
+		 * @type {string[]}
+		 */
+		facets: { type: Array, default: () => [] },
+		/** How the facets are drawn: `chips` or `menu` (CnFilesBrowser `facetPresentation`). */
+		facetPresentation: { type: String, default: 'chips' },
+		/** Forwarded to CnFilesBrowser: the host's own buttons in the bar. */
+		headerActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: one visible button on every file row. */
+		rowButton: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the review summary above the list. */
+		reviewSummary: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the host's own line under the list. */
+		footnote: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line under each file's name. */
+		nameSecondary: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line as a list of fields, or variants. */
+		secondLine: { type: Array, default: null },
+		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
+		rowDataPath: { type: String, default: '' },
+		/** The record field that holds the Nextcloud file id. */
+		rowDataKey: { type: String, default: 'fileId' },
 		/** Label of the Download action. */
 		downloadLabel: { type: String, default: () => t('nextcloud-vue', 'Download') },
 		/** Label of the action that opens the Files sidebar on the file. */
@@ -323,6 +502,7 @@ export default {
 
 	data() {
 		return {
+			previewFile: null,
 			files: [],
 			loading: false,
 			loadingMore: false,
@@ -334,6 +514,9 @@ export default {
 			share: false,
 			/** The object's folder as a user-relative path, or null while unresolved or absent. */
 			browserRoot: null,
+			/** The browser's data source for `source: 'openregister'`, or null for WebDAV. */
+			browserSource: null,
+			browserObjectName: null,
 			linkedItems: [],
 			/** File ids whose preview request failed, so the row falls back to the mime icon. */
 			previewFailed: {},
@@ -347,7 +530,43 @@ export default {
 			 * @type {HTMLInputElement|null}
 			 */
 			fileInputEl: null,
+			/** The mime types Nextcloud Office opens for this person; empty without Office. */
+			officeMimetypes: readOfficeMimetypes(),
 		}
+	},
+
+	computed: {
+		/**
+		 * The browser's `rowData`: a function that reads the host's records
+		 * from `rowDataUrl` and keys them by file id, or null without a url.
+		 * The browser calls it once per listing.
+		 *
+		 * @return {(function(): Promise<object>)|null} The row data source.
+		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
+		 */
+		rowDataSource() {
+			if (!this.rowDataUrl || !this.objectId) {
+				return null
+			}
+			const url = generateUrl(this.rowDataUrl.replace('{objectId}', encodeURIComponent(this.objectId)))
+			const path = this.rowDataPath
+			const key = this.rowDataKey
+			return async () => {
+				const { data } = await axios.get(url)
+				return indexRowData(data, { path, key })
+			}
+		},
+
+		/**
+		 * The root crumb: the host's label, else the object's name (its folder
+		 * on disk is called after its uuid), else the folder's own name.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/dutch-library-strings-and-files-crumb/specs/dutch-library-strings-and-files-crumb/spec.md#requirement-the-files-browser-names-the-object-in-its-root-crumb
+		 */
+		effectiveBrowserRootLabel() {
+			return this.browserRootLabel || this.browserObjectName || null
+		},
 	},
 
 	watch: {
@@ -369,6 +588,10 @@ export default {
 
 		linkedItemsUrl() {
 			this.fetchLinkedItems()
+		},
+
+		source() {
+			this.resolveBrowserRoot()
 		},
 	},
 
@@ -430,7 +653,13 @@ export default {
 
 		async resolveBrowserRoot() {
 			this.browserRoot = null
+			this.browserSource = null
+			this.browserObjectName = null
 			if (!this.objectId || !this.register || !this.schema) {
+				return
+			}
+			if (this.source === 'openregister') {
+				await this.resolveOpenRegisterSource()
 				return
 			}
 			let remoteUrl
@@ -439,7 +668,7 @@ export default {
 			} catch {
 				return
 			}
-			this.browserRoot = await resolveObjectFolder({
+			const info = await resolveObjectFolderInfo({
 				apiBase: this.apiBase,
 				register: this.register,
 				schema: this.schema,
@@ -447,6 +676,62 @@ export default {
 				uid: getCurrentUser()?.uid || '',
 				remoteUrl,
 			})
+			this.browserRoot = info === null ? null : info.path
+			this.browserObjectName = info === null ? null : info.name
+		},
+
+		/**
+		 * Use OpenRegister's files API for the browser, when this person may read
+		 * the object's folder through it. A listing that fails (no read on the
+		 * object, or an OpenRegister without the folder endpoints) leaves the
+		 * legacy list, as an unresolved WebDAV folder did.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/files-browser-openregister-source/specs/files-browser/spec.md
+		 */
+		async resolveOpenRegisterSource() {
+			const objectId = this.objectId
+			const source = createOpenRegisterSource({
+				apiBase: this.apiBase,
+				register: this.register,
+				schema: this.schema,
+				objectId,
+			})
+			try {
+				await source.list('/')
+			} catch {
+				return
+			}
+			if (objectId !== this.objectId) {
+				return
+			}
+			this.browserSource = source
+			this.browserRoot = '/'
+			this.fetchObjectName()
+		},
+
+		/**
+		 * Read the object's name for the root crumb, by the same rule the WebDAV
+		 * path uses (`objectDisplayName`: never the uuid). The OpenRegister path
+		 * has no folder lookup to piggyback on, so this is its one object read.
+		 * A failure keeps the crumb on its default.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fetchObjectName() {
+			const objectId = this.objectId
+			try {
+				const { data } = await axios.get(generateUrl(`${this.apiBase}/objects/{register}/{schema}/{objectId}`, {
+					register: this.register,
+					schema: this.schema,
+					objectId,
+				}))
+				if (objectId === this.objectId) {
+					this.browserObjectName = objectDisplayName(data, objectId)
+				}
+			} catch {
+				// The crumb keeps its default.
+			}
 		},
 
 		async fetchFiles(append = false) {
@@ -704,6 +989,30 @@ export default {
 		},
 
 		/**
+		 * Whether Nextcloud Office opens this file for this person.
+		 *
+		 * @param {object} file The file row.
+		 * @return {boolean} true when the Office action applies.
+		 */
+		officeOpens(file) {
+			const mime = file.type || file.mimetype || file.mimeType || ''
+			return Boolean(file.id) && mime !== '' && this.officeMimetypes.includes(mime)
+		},
+
+		/**
+		 * OpenRegister's Office page for a file of this object, which checks the
+		 * object rule and opens the document editable or read-only.
+		 *
+		 * @param {object} file The file row.
+		 * @return {string} The url.
+		 */
+		officeUrlFor(file) {
+			const appBase = /\/api\/?$/.test(this.apiBase) ? this.apiBase.replace(/\/api\/?$/, '') : '/apps/openregister'
+			const segments = [this.register, this.schema, this.objectId, String(file.id)].map((part) => encodeURIComponent(String(part)))
+			return prefixUrl(`${appBase}/office/${segments.join('/')}`)
+		},
+
+		/**
 		 * The Files app's permalink for a file: opens the Files app at the
 		 * file's folder with the file selected.
 		 *
@@ -747,49 +1056,30 @@ export default {
 		},
 
 		/**
-		 * Whether Nextcloud's Viewer is on this page and handles the file.
+		 * Show a file in the in-page preview.
 		 *
-		 * The Viewer is there when the host page dispatched `LoadViewer`
-		 * server-side; it lists the mime types it can show, and a type it
-		 * cannot falls through to the next way of opening the file.
-		 *
-		 * @param {object} file The file row.
-		 * @return {boolean} true when the Viewer can open it in place.
+		 * @param {object} file The file to preview.
 		 */
-		viewerHandles(file) {
-			const viewer = typeof window !== 'undefined' ? window.OCA?.Viewer : null
-			if (!viewer || typeof viewer.open !== 'function' || !file.path) {
-				return false
-			}
-			const mime = file.type || file.mimetype || file.mimeType || ''
-			const mimetypes = Array.isArray(viewer.mimetypes) ? viewer.mimetypes : null
-			return mimetypes === null ? true : mimetypes.includes(mime)
+		showPreview(file) {
+			this.previewFile = file
 		},
 
+		/**
+		 * Open a file through the shared opener (Viewer, preview, browser, Files).
+		 *
+		 * @param {object} file The file row.
+		 */
 		openFile(file) {
-			// The Viewer first: it opens the file over this page, so the reader
-			// stays on the object. A public share link and the Files app come
-			// after, in that order, when the Viewer is absent or cannot show
-			// the type.
-			if (this.viewerHandles(file)) {
-				window.OCA.Viewer.open({ path: this.userRelativePath(file.path) })
-				return
-			}
-			if (file.accessUrl) {
-				// Security: accessUrl originates from the OR files API and may be
-				// attacker-controlled. Validate the scheme via safeHref before
-				// opening (C4) — this blocks javascript: / data: payloads. Add
-				// noopener,noreferrer to prevent the opened tab from accessing
-				// window.opener (reverse-tabnabbing) and to strip the Referer header.
-				const safe = safeHref(file.accessUrl)
-				if (safe !== '#') {
-					window.open(safe, '_blank', 'noopener,noreferrer')
-				}
-			} else if (file.id) {
-				const dirPath = file.path ? file.path.substring(0, file.path.lastIndexOf('/')) : ''
-				const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')
-				window.open(`/index.php/apps/files/files/${file.id}?dir=${encodeURIComponent(cleanPath)}&openfile=true`, '_blank')
-			}
+			useFileOpener({
+				onPreview: this.showPreview,
+				userRelativePath: this.userRelativePath,
+				anyAccessUrl: true,
+				filesAppUrl: (f) => {
+					const dirPath = f.path ? f.path.substring(0, f.path.lastIndexOf('/')) : ''
+					const cleanPath = dirPath.replace(/^\/admin\/files\//, '/')
+					return `/index.php/apps/files/files/${f.id}?dir=${encodeURIComponent(cleanPath)}&openfile=true`
+				},
+			}).open(file)
 		},
 
 		async deleteFile(file) {
@@ -857,6 +1147,10 @@ export default {
 .cn-sidebar-tab__dropzone--active {
 	border-color: var(--color-primary-element);
 	background-color: var(--color-primary-element-light, rgba(0, 130, 201, 0.12));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-sidebar-tab__dropzone { transition: none; }
 }
 
 .cn-sidebar-tab__share { margin-bottom: 12px; }

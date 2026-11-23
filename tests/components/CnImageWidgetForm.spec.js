@@ -19,6 +19,27 @@ describe('CnImageWidget renderer', () => {
 		const wrapper = mount(CnImageWidget, { propsData: { content: { url: 'https://x.test/a.png' } } })
 		expect(wrapper.find('.cn-image-widget__img').exists()).toBe(true)
 	})
+
+	it('renders the cell as a new-tab link when a link is set', () => {
+		const wrapper = mount(CnImageWidget, { propsData: { content: { url: 'https://x.test/a.png', link: 'https://x.test/page' } } })
+		const root = wrapper.find('.cn-image-widget')
+		expect(root.element.tagName).toBe('A')
+		expect(root.attributes('href')).toBe('https://x.test/page')
+		expect(root.attributes('target')).toBe('_blank')
+		expect(root.attributes('rel')).toBe('noopener noreferrer')
+	})
+
+	it('neutralises a javascript: link', () => {
+		const wrapper = mount(CnImageWidget, { propsData: { content: { url: 'https://x.test/a.png', link: 'javascript:alert(1)' } } })
+		expect(wrapper.find('.cn-image-widget').attributes('href')).toBe('#')
+	})
+
+	it('renders a plain div without a link', () => {
+		const wrapper = mount(CnImageWidget, { propsData: { content: { url: 'https://x.test/a.png' } } })
+		const root = wrapper.find('.cn-image-widget')
+		expect(root.element.tagName).toBe('DIV')
+		expect(root.attributes('href')).toBeUndefined()
+	})
 })
 
 describe('CnImageWidgetForm', () => {

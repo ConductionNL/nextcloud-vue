@@ -6,13 +6,15 @@
  * into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnQuicklinksWidgetForm from '../CnQuicklinksWidgetForm/CnQuicklinksWidgetForm.vue'
-import CnQuicklinksWidget from './CnQuicklinksWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnQuicklinksWidgetForm = lazyComponent(() => import('../CnQuicklinksWidgetForm/CnQuicklinksWidgetForm.vue'), 'CnQuicklinksWidgetForm')
+const LazyCnQuicklinksWidget = lazyComponent(() => import('./CnQuicklinksWidget.vue'), 'CnQuicklinksWidget')
+
 registerDashboardWidget('quicklinks', {
-	renderer: CnQuicklinksWidget,
-	form: CnQuicklinksWidgetForm,
+	renderer: LazyCnQuicklinksWidget,
+	form: LazyCnQuicklinksWidgetForm,
 	defaultContent: {
 		links: [],
 		iconSize: 'medium',
@@ -27,5 +29,5 @@ registerDashboardWidget('quicklinks', {
 	icon: 'Star',
 })
 
-export { CnQuicklinksWidget }
-export default CnQuicklinksWidget
+export { default as CnQuicklinksWidget } from './CnQuicklinksWidget.vue'
+export { default } from './CnQuicklinksWidget.vue'

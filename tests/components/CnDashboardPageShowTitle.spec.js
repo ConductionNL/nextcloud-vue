@@ -62,3 +62,27 @@ describe('CnDashboardPage — showTitle / showActions def fallback', () => {
 		expect(mountWith({ def: { showTitle: false }, placement: { showTitle: true } }).find('.ww').attributes('data-show-title')).toBe('true')
 	})
 })
+
+describe('CnDashboardPage — a banner without a title draws no title row', () => {
+	function mountBanner(def = {}, placement = {}) {
+		return mount(CnDashboardPage, {
+			propsData: {
+				widgets: [{ id: 'attention-first', type: 'banner', content: { text: 'x' }, ...def }],
+				layout: [{ id: '1', widgetId: 'attention-first', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2, ...placement }],
+			},
+			stubs,
+		})
+	}
+
+	it('hides the title row when the banner has no title', () => {
+		expect(mountBanner().find('.ww').attributes('data-show-title')).toBe('false')
+	})
+
+	it('keeps the title row when the banner names a title', () => {
+		expect(mountBanner({ title: 'First today' }).find('.ww').attributes('data-show-title')).toBe('true')
+	})
+
+	it('lets showTitle: true on the placement bring the row back', () => {
+		expect(mountBanner({}, { showTitle: true }).find('.ww').attributes('data-show-title')).toBe('true')
+	})
+})

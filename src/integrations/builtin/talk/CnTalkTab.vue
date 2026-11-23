@@ -57,7 +57,10 @@
 		<div v-else-if="rooms.length === 0" class="cn-sidebar-tab__empty cn-talk-tab__empty">
 			<ChatOutline :size="32" class="cn-talk-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openTalkApp">
+			<NcButton
+				variant="primary"
+				:href="talkAppUrl"
+				target="_blank">
 				<template #icon>
 					<ChatOutline :size="20" />
 				</template>
@@ -100,12 +103,15 @@
 					</NcCounterBubble>
 				</template>
 				<template #actions>
-					<NcActionButton :closeAfterClick="true" @click="openRoom(room)">
+					<NcActionLink
+						:closeAfterClick="true"
+						:href="roomUrl(room)"
+						target="_blank">
 						<template #icon>
 							<OpenInNew :size="20" />
 						</template>
 						{{ t('nextcloud-vue', 'Open in Talk') }}
-					</NcActionButton>
+					</NcActionLink>
 					<NcActionButton :closeAfterClick="true" @click="unlinkRoom(room)">
 						<template #icon>
 							<Close :size="20" />
@@ -132,7 +138,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcAvatar, NcButton, NcCounterBubble, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcAvatar, NcButton, NcCounterBubble, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import ChatOutline from 'vue-material-design-icons/ChatOutline.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -141,7 +147,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnTalkRoomCreate from '../../../components/CnTalkRoomCreate/CnTalkRoomCreate.vue'
 import CnTalkRoomPicker from '../../../components/CnTalkRoomPicker/CnTalkRoomPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 /**
@@ -158,6 +164,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcAvatar,
 		NcButton,
 		NcCounterBubble,
@@ -238,8 +245,9 @@ export default {
 			return stripMarker(raw) || String(this.roomKey(room))
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		roomUrl(room) {
-			if (room.url) {
+			if (room.url && safeHref(room.url) !== '#') {
 				return room.url
 			}
 			const token = room.roomToken ?? room.token ?? room.id ?? ''
@@ -381,18 +389,6 @@ export default {
 			}
 			const parsed = new Date(raw).getTime()
 			return Number.isNaN(parsed) ? 0 : parsed
-		},
-
-		openRoom(room) {
-			if (typeof window !== 'undefined') {
-				window.open(this.roomUrl(room), '_blank', 'noopener')
-			}
-		},
-
-		openTalkApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.talkAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

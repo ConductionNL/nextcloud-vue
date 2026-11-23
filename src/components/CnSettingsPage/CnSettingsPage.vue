@@ -45,10 +45,67 @@
 			<CnPageHeader
 				v-if="title"
 				:title="title"
-				:description="description"
+				:description="resolvedDescription"
 				:icon="icon"
-				:visuallyHidden="!showTitle" />
+				:breadcrumb="breadcrumb"
+				:meta="headerMeta"
+				:visuallyHidden="!showTitle">
+				<!-- Board look: the buildiq square, then the page Save as the
+				     last header button. -->
+				<template v-if="headerButtonsInHeader" #extra>
+					<div class="cn-settings-page__header-buttons" data-testid="cn-settings-page-header-buttons">
+						<CnBuildiqEditButton v-if="isBoard" />
+						<NcButton
+							v-if="pageSave"
+							variant="primary"
+							:disabled="saving || !dirty"
+							data-testid="cn-settings-page-save"
+							@click="save">
+							<template #icon>
+								<NcLoadingIcon v-if="saving" :size="20" />
+								<ContentSave v-else :size="20" />
+							</template>
+							{{ saveLabel }}
+						</NcButton>
+					</div>
+				</template>
+			</CnPageHeader>
 		</slot>
+
+		<!-- The same buttons when the header itself is hidden or replaced. -->
+		<div
+			v-if="headerButtonsOutside"
+			class="cn-settings-page__header-buttons"
+			data-testid="cn-settings-page-header-buttons">
+			<CnBuildiqEditButton v-if="isBoard" />
+			<NcButton
+				v-if="pageSave"
+				variant="primary"
+				:disabled="saving || !dirty"
+				data-testid="cn-settings-page-save"
+				@click="save">
+				<template #icon>
+					<NcLoadingIcon v-if="saving" :size="20" />
+					<ContentSave v-else :size="20" />
+				</template>
+				{{ saveLabel }}
+			</NcButton>
+		</div>
+
+		<!-- The Changes card of a page that saves in its header. -->
+		<div
+			v-if="pageSave && changedFields.length > 0"
+			class="cn-settings-page__changes"
+			data-testid="cn-settings-page-changes">
+			<h2 class="cn-settings-page__changes-title">
+				{{ changesLabel }}
+			</h2>
+			<ul>
+				<li v-for="field in changedFields" :key="field.key">
+					{{ field.label }}
+				</li>
+			</ul>
+		</div>
 
 		<!-- Actions slot for save / discard / reset overrides -->
 		<div v-if="$slots.actions || $slots.actions" class="cn-settings-page__actions">
@@ -80,116 +137,110 @@
 		</div>
 
 		<!-- Sections — rendered for the active tab when `tabs[]` is
-			 set, otherwise the flat `sections[]` (back-compat). -->
-		<CnSettingsCard
-			v-for="(section, sectionIndex) in activeSections"
-			:key="`section-${activeTabId || 'flat'}-${sectionIndex}`"
-			:title="resolveLabel(section.title)"
-			:icon="section.icon || ''"
-			:collapsible="section.collapsible || false">
-			<!--
-				Body resolution — see `sectionBodyKind(section)` in the
-				script: returns 'fields' (default + back-compat),
-				'component', or 'widgets'.
-			-->
+			 set, otherwise the flat `sections[]` (back-compat). The wrapper
+			 draws no box of its own (`display: contents`); the board look
+			 turns it into the card grid. -->
+		<div class="cn-settings-page__sections">
+			<CnSettingsCard
+				v-for="(section, sectionIndex) in activeSections"
+				:key="`section-${activeTabId || 'flat'}-${sectionIndex}`"
+				:title="resolveLabel(section.title)"
+				:icon="section.icon || ''"
+				:collapsible="section.collapsible || false">
+				<!--
+					Body resolution — see `sectionBodyKind(section)` in the
+					script: returns 'fields' (default + back-compat),
+					'component', or 'widgets'.
+				-->
 
-			<!-- Body: bare fields[] (back-compat). Wrapped in a
-				 CnSettingsSection mirroring the pre-rich-sections layout. -->
-			<CnSettingsSection
-				v-if="sectionBodyKind(section) === 'fields'"
-				:name="resolveLabel(section.title)"
-				:description="resolveLabel(section.description)"
-				:docUrl="section.docUrl || ''">
-				<div class="cn-settings-page__fields">
-					<div
-						v-for="field in section.fields"
-						:key="field.key"
-						class="cn-settings-page__field">
-						<!-- Per-field slot — `field-<key>` lets a consumer override the input entirely. -->
-						<slot
-							:name="`field-${field.key}`"
-							:field="field"
-							:value="formData[field.key]"
-							:onInput="(v) => updateField(field.key, v)">
-							<NcCheckboxRadioSwitch
-								v-if="field.type === 'boolean'"
-								:modelValue="!!formData[field.key]"
-								@update:modelValue="updateField(field.key, $event)">
-								{{ resolveLabel(field.label) }}
-							</NcCheckboxRadioSwitch>
-							<NcTextField
-								v-else-if="field.type === 'number'"
-								:label="resolveLabel(field.label)"
-								type="number"
-								:modelValue="String(fieldValue(field.key, ''))"
-								@update:modelValue="updateField(field.key, $event === '' ? null : Number($event))" />
-							<NcTextField
-								v-else-if="field.type === 'password'"
-								:label="resolveLabel(field.label)"
-								type="password"
-								:modelValue="fieldValue(field.key, '')"
-								@update:modelValue="updateField(field.key, $event)" />
-							<NcSelect
-								v-else-if="field.type === 'enum' && Array.isArray(field.options)"
-								:modelValue="selectedOption(field)"
-								:options="field.options"
-								:inputLabel="resolveLabel(field.label)"
-								@update:modelValue="updateField(field.key, optionValue($event))" />
-							<NcTextField
-								v-else
-								:label="resolveLabel(field.label)"
-								:modelValue="fieldValue(field.key, '')"
-								@update:modelValue="updateField(field.key, $event)" />
-						</slot>
-						<small
-							v-if="field.help"
-							class="cn-settings-page__field-help">
-							{{ resolveLabel(field.help) }}
-						</small>
+				<!-- Body: bare fields[] (back-compat). Wrapped in a
+					 CnSettingsSection mirroring the pre-rich-sections layout. -->
+				<CnSettingsSection
+					v-if="sectionBodyKind(section) === 'fields'"
+					:name="resolveLabel(section.title)"
+					:description="resolveLabel(section.description)"
+					:docUrl="section.docUrl || ''"
+					:wide="Boolean(section.wide)">
+					<div class="cn-settings-page__fields">
+						<div
+							v-for="field in section.fields"
+							:key="field.key"
+							class="cn-settings-page__field">
+							<!-- Per-field slot — `field-<key>` lets a consumer override the input entirely. -->
+							<slot
+								:name="`field-${field.key}`"
+								:field="field"
+								:value="formData[field.key]"
+								:onInput="(v) => updateField(field.key, v)">
+								<CnSettingsField
+									:field="{ ...field, label: resolveLabel(field.label) }"
+									:modelValue="formData[field.key]"
+									@update:modelValue="updateField(field.key, $event)" />
+							</slot>
+							<small
+								v-if="field.help"
+								class="cn-settings-page__field-help">
+								{{ resolveLabel(field.help) }}
+							</small>
+						</div>
 					</div>
-				</div>
-			</CnSettingsSection>
+					<template v-if="sectionSave" #footer>
+						<div class="cn-settings-section__save" data-testid="cn-settings-section-save">
+							<NcButton
+								variant="primary"
+								:disabled="saving || !dirty"
+								@click="save">
+								<template #icon>
+									<NcLoadingIcon v-if="saving" :size="20" />
+									<ContentSave v-else :size="20" />
+								</template>
+								{{ saveLabel }}
+							</NcButton>
+						</div>
+					</template>
+				</CnSettingsSection>
 
-			<!-- Body: a single registry-resolved component. The
-				 component is responsible for its own chrome — we do
-				 NOT wrap it in CnSettingsSection because the existing
-				 widget shape (CnVersionInfoCard, CnRegisterMapping)
-				 already wraps itself. Custom components are expected
-				 to do the same OR opt in by adding their own section
-				 wrapper.
+				<!-- Body: a single registry-resolved component. The
+					 component is responsible for its own chrome — we do
+					 NOT wrap it in CnSettingsSection because the existing
+					 widget shape (CnVersionInfoCard, CnRegisterMapping)
+					 already wraps itself. Custom components are expected
+					 to do the same OR opt in by adding their own section
+					 wrapper.
 
-				 Wrapped in CnSettingsWidgetMount so the child's $emit
-				 is intercepted and re-emitted as @widget-event on this
-				 page (manifests can't carry inline JS). -->
-			<CnSettingsWidgetMount
-				v-else-if="sectionBodyKind(section) === 'component' && resolveSectionComponent(section)"
-				:component="resolveSectionComponent(section)"
-				:componentProps="section.props || {}"
-				:widgetType="section.component"
-				:sectionIndex="sectionIndex"
-				:widgetIndex="0"
-				@widgetEvent="onWidgetEvent" />
-
-			<!-- Body: ordered list of widgets. Each widget is its own
-				 mounted component with v-bind props + bubbled events
-				 via CnSettingsWidgetMount. Built-ins (version-info,
-				 register-mapping) wrap themselves in CnSettingsSection;
-				 custom widgets are expected to do the same. -->
-			<template v-else-if="sectionBodyKind(section) === 'widgets'">
+					 Wrapped in CnSettingsWidgetMount so the child's $emit
+					 is intercepted and re-emitted as @widget-event on this
+					 page (manifests can't carry inline JS). -->
 				<CnSettingsWidgetMount
-					v-for="entry in resolvedWidgetEntries(section, sectionIndex)"
-					:key="entry.key"
-					:component="entry.component"
-					:componentProps="entry.props"
-					:widgetType="entry.widgetType"
+					v-else-if="sectionBodyKind(section) === 'component' && resolveSectionComponent(section)"
+					:component="resolveSectionComponent(section)"
+					:componentProps="section.props || {}"
+					:widgetType="section.component"
 					:sectionIndex="sectionIndex"
-					:widgetIndex="entry.widgetIndex"
+					:widgetIndex="0"
 					@widgetEvent="onWidgetEvent" />
-			</template>
-		</CnSettingsCard>
+
+				<!-- Body: ordered list of widgets. Each widget is its own
+					 mounted component with v-bind props + bubbled events
+					 via CnSettingsWidgetMount. Built-ins (version-info,
+					 register-mapping) wrap themselves in CnSettingsSection;
+					 custom widgets are expected to do the same. -->
+				<template v-else-if="sectionBodyKind(section) === 'widgets'">
+					<CnSettingsWidgetMount
+						v-for="entry in resolvedWidgetEntries(section, sectionIndex)"
+						:key="entry.key"
+						:component="entry.component"
+						:componentProps="entry.props"
+						:widgetType="entry.widgetType"
+						:sectionIndex="sectionIndex"
+						:widgetIndex="entry.widgetIndex"
+						@widgetEvent="onWidgetEvent" />
+				</template>
+			</CnSettingsCard>
+		</div>
 
 		<!-- Save bar -->
-		<div v-if="showSaveBar" class="cn-settings-page__save-bar">
+		<div v-if="showSaveBar && !saveMode && !autosave" class="cn-settings-page__save-bar">
 			<NcButton
 				variant="primary"
 				:disabled="saving || !dirty"
@@ -221,14 +272,16 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import {
 	NcButton,
-	NcCheckboxRadioSwitch,
 	NcLoadingIcon,
-	NcSelect,
-	NcTextField,
 } from '@nextcloud/vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnRegisterMapping from '../CnRegisterMapping/CnRegisterMapping.vue'
+import CnSettingsField from '../CnSettingsField/CnSettingsField.vue'
+import CnToggleTableWidget from '../CnToggleTableWidget/CnToggleTableWidget.vue'
 import CnVersionInfoCard from '../CnVersionInfoCard/CnVersionInfoCard.vue'
+import { useLook } from '../../composables/useLook.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnSettingsCard } from '../CnSettingsCard/index.js'
 import { CnSettingsSection } from '../CnSettingsSection/index.js'
@@ -263,6 +316,8 @@ const COMPONENT_DISCRIMINATOR = Symbol('cn-settings-component-widget')
 const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
 	'version-info': CnVersionInfoCard,
 	'register-mapping': CnRegisterMapping,
+	// Rows with a switch: objects (`bind.mode: 'each'`) or a config map (`'map'`).
+	'toggle-table': CnToggleTableWidget,
 	component: COMPONENT_DISCRIMINATOR,
 })
 
@@ -274,7 +329,7 @@ const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
  * three body kinds:
  *
  *  - `fields[]`    — flat form fields (back-compat default).
- *    Each field's `type` controls which input renders:
+ *    Each field's `type` controls which input CnSettingsField renders:
  *      - `boolean` → NcCheckboxRadioSwitch
  *      - `number` → NcTextField (type=number)
  *      - `string` → NcTextField (default)
@@ -290,7 +345,8 @@ const BUILTIN_SETTINGS_WIDGETS = Object.freeze({
  *  - `widgets[]`   — ordered list of widgets. Each entry has a `type`
  *    string and optional `props`. Built-in widget types resolve
  *    first (`version-info` → `CnVersionInfoCard`, `register-mapping`
- *    → `CnRegisterMapping`); unknown types fall back to the
+ *    → `CnRegisterMapping`, `toggle-table` → `CnToggleTableWidget`);
+ *    unknown types fall back to the
  *    `customComponents` registry.
  *
  * Widget events (e.g. CnRegisterMapping's `@save`, CnVersionInfoCard's
@@ -326,11 +382,10 @@ export default {
 
 	components: {
 		NcButton,
-		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
-		NcSelect,
-		NcTextField,
 		ContentSave,
+		CnSettingsField,
+		CnBuildiqEditButton,
 		CnSettingsCard,
 		CnSettingsSection,
 		CnPageHeader,
@@ -350,10 +405,71 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The look the page is drawn in: `board` or `nextcloud`. Empty follows
+		 * the `cnLook` that CnAppRoot (or the page's `config.look`) provides.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/app-look/spec.md#requirement-an-app-can-take-the-board-look
+		 */
+		look: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Where the page saves (`config.saveMode`): `section` ends each section
+		 * that has fields in its own Save button, `page` draws one Save as the
+		 * last header button and a Changes card, and empty keeps the save bar
+		 * under the last section. Never both a section and a page save.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-a-settings-page-saves-in-one-declared-place
+		 * @type {'section'|'page'|''}
+		 */
+		saveMode: {
+			type: String,
+			default: '',
+			validator: (value) => ['', 'section', 'page'].includes(value),
+		},
+
+		/**
+		 * The page saves on change (`config.autosave`): no save button at all,
+		 * and the description ends with "Changes are saved automatically."
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-a-settings-page-saves-in-one-declared-place
+		 */
+		autosave: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Page title. */
 		title: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Settings'),
+		},
+
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`).
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
 		},
 
 		/** Description shown under the title when `showTitle` is set. */
@@ -495,6 +611,11 @@ export default {
 
 	emits: ['save', 'error', 'input', 'widget-event', 'tab-change'],
 
+	setup(props) {
+		const { isBoard } = useLook(props)
+		return { isBoard }
+	},
+
 	data() {
 		// Resolve the initial active-tab id synchronously so the very
 		// first render has the correct tab active (otherwise tests
@@ -517,10 +638,75 @@ export default {
 			saving: false,
 			lastError: null,
 			activeTabId,
+			autosaveTimer: null,
 		}
 	},
 
 	computed: {
+		/** @return {boolean} The page saves from its header (`saveMode: "page"`, not autosave). */
+		pageSave() {
+			return this.saveMode === 'page' && !this.autosave
+		},
+
+		/** @return {boolean} Each section with fields saves on its own (`saveMode: "section"`). */
+		sectionSave() {
+			return this.saveMode === 'section' && !this.autosave
+		},
+
+		/**
+		 * The description, with the autosave note appended when the page saves
+		 * on change.
+		 *
+		 * @return {string}
+		 */
+		resolvedDescription() {
+			if (!this.autosave) {
+				return this.description
+			}
+			const note = t('nextcloud-vue', 'Changes are saved automatically.')
+			return this.description ? `${this.description} ${note}` : note
+		},
+
+		/** @return {boolean} The header buttons render inside the visible page header. */
+		headerButtonsInHeader() {
+			return Boolean(this.title && this.showTitle && !this.$slots.header && (this.isBoard || this.pageSave))
+		},
+
+		/** @return {boolean} The header buttons need a row of their own (header hidden or replaced). */
+		headerButtonsOutside() {
+			return Boolean((this.isBoard || this.pageSave) && !this.headerButtonsInHeader)
+		},
+
+		/** @return {string} Title of the Changes card. */
+		changesLabel() {
+			return t('nextcloud-vue', 'Changes')
+		},
+
+		/**
+		 * The fields that differ from their saved value, across every section,
+		 * labelled for the Changes card.
+		 *
+		 * @return {Array<{key: string, label: string}>}
+		 */
+		changedFields() {
+			const labels = {}
+			const sections = [...(this.sections || [])]
+			for (const tab of this.tabs || []) {
+				if (tab && Array.isArray(tab.sections)) {
+					sections.push(...tab.sections)
+				}
+			}
+			for (const section of sections) {
+				for (const field of (section && section.fields) || []) {
+					labels[field.key] = this.resolveLabel(field.label) || field.key
+				}
+			}
+			const keys = new Set([...Object.keys(this.formData), ...Object.keys(this.originalData)])
+			return [...keys]
+				.filter((key) => JSON.stringify(this.formData[key]) !== JSON.stringify(this.originalData[key]))
+				.map((key) => ({ key, label: labels[key] || key }))
+		},
+
 		/** Whether any field has changed since load. */
 		dirty() {
 			return JSON.stringify(this.formData) !== JSON.stringify(this.originalData)
@@ -603,58 +789,11 @@ export default {
 		},
 	},
 
+	beforeUnmount() {
+		clearTimeout(this.autosaveTimer)
+	},
+
 	methods: {
-		// Coalesce a field value to a fallback when null / undefined.
-		// Used in template bindings instead of `formData[key] ?? ''` because
-		// vue-template-es2015-compiler (the Rollup VuePlugin's parser) does
-		// not accept ES2020 nullish-coalescing inside template expressions.
-		fieldValue(key, fallback) {
-			const v = this.formData[key]
-			return (v === null || v === undefined) ? fallback : v
-		},
-
-		// Resolve the currently-selected option for an enum field.
-		// `field.options` may be an array of strings/numbers OR an array
-		// of `{ label, value }`-shaped objects. NcSelect needs the actual
-		// option entry (not the bare value) to render the selection
-		// correctly, so this resolver looks up the matching object form
-		// when a primitive value is stored. Returns `null` when nothing
-		// is selected so NcSelect renders the empty state instead of
-		// emitting a Vue warning about an undefined `value` prop.
-		selectedOption(field) {
-			const v = this.formData[field.key]
-			if (v === null || v === undefined) {
-				return null
-			}
-			if (!Array.isArray(field.options)) {
-				return v
-			}
-			for (const opt of field.options) {
-				if (opt && typeof opt === 'object') {
-					if (opt.value === v) {
-						return opt
-					}
-				} else if (opt === v) {
-					return opt
-				}
-			}
-			return v
-		},
-
-		// Inverse of `selectedOption` — extract the storable value from
-		// whatever NcSelect emits. NcSelect emits the full option entry
-		// when options are objects, the primitive when options are
-		// primitives, or `null` on clear.
-		optionValue(emitted) {
-			if (emitted === null || emitted === undefined) {
-				return null
-			}
-			if (typeof emitted === 'object' && 'value' in emitted) {
-				return emitted.value
-			}
-			return emitted
-		},
-
 		cloneInitial() {
 			const merged = { ...(this.initialValues || {}) }
 			// Collect every section across both modes (flat
@@ -699,6 +838,9 @@ export default {
 		updateField(key, value) {
 			this.formData[key] = value
 			this.$emit('input', { key, value })
+			if (this.autosave) {
+				this.queueAutosave()
+			}
 		},
 
 		/**
@@ -897,6 +1039,22 @@ export default {
 			this.$emit('widget-event', payload)
 		},
 
+		/**
+		 * Save shortly after the last change (`autosave`): a burst of typing
+		 * is one request.
+		 *
+		 * @return {void}
+		 */
+		queueAutosave() {
+			clearTimeout(this.autosaveTimer)
+			this.autosaveTimer = setTimeout(() => {
+				this.autosaveTimer = null
+				if (this.dirty && !this.saving) {
+					this.save()
+				}
+			}, 600)
+		},
+
 		reset() {
 			this.formData = this.cloneInitial()
 			this.lastError = null
@@ -907,7 +1065,7 @@ export default {
 			this.lastError = null
 			try {
 				if (this.saveEndpoint) {
-					await axios.put(this.saveEndpoint, this.formData)
+					await axios.put(prefixUrl(this.saveEndpoint), this.formData)
 				}
 				this.originalData = JSON.parse(JSON.stringify(this.formData))
 				this.$emit('save', this.formData)
@@ -923,6 +1081,18 @@ export default {
 </script>
 
 <style scoped>
+/* The section wrapper draws no box; the board look makes it the card grid. */
+.cn-settings-page__sections {
+	display: contents;
+}
+
+.cn-settings-page__header-buttons {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-inline-start: auto;
+}
+
 .cn-settings-page {
 	display: flex;
 	flex-direction: column;

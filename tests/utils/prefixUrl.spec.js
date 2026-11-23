@@ -3,62 +3,60 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * `prefixUrl()` is applied at hundreds of call sites across the component
- * fleet (WOO-560), which changes what has to be true of it. A helper used
- * once only has to be right for the one value it is given; a helper wrapped
- * around every API path in the library has to be INERT on everything that is
- * not an app-relative path, because sooner or later one of those call sites
- * will hand it an absolute URL, a data: URI, or a path it already prefixed.
+ * fleet (WOO-560), so it has to be INERT on everything that is not an
+ * app-absolute path, and idempotent on a path it already prefixed.
  *
- * The two failure modes that matter, and that these tests pin:
- *
- *   1. Double-prefixing — `/index.php/index.php/apps/...`, a 404 that looks
- *      like a routing bug rather than a string bug.
- *   2. Mangling a non-path — `/index.phphttps://host/...`, which is not even
- *      a URL, from a call site that passed a fully-qualified address.
- *
- * The prefix itself is decided from `window.location.pathname`, so the
- * instance's own URL shape drives it: on a pretty-URL instance nothing is
- * added, and on an instance without mod_rewrite the page itself is served
- * under `/index.php` and the API paths must match it.
+ * The prefix itself comes from `@nextcloud/router`'s `generateUrl()`: the
+ * instance webroot, plus `/index.php` unless Nextcloud reports working URL
+ * rewriting. Only the prefix is taken from it, so `{placeholders}` in the path
+ * are never URL-encoded.
  */
 const { prefixUrl } = require('../../src/utils/headers.js')
 
 /**
- * Point `window.location.pathname` at a page URL.
+ * Describe the instance the way Nextcloud does on every page.
  *
- * jsdom's `window.location` is neither writable nor configurable: `delete`
- * fails silently and `Object.defineProperty` throws. Navigating with
- * `history.pushState` is the one supported way to move the pathname, and it
- * works on every jsdom version.
- *
- * @param {string} pathname The pathname the page is served under.
+ * @param {object} opts Instance shape.
+ * @param {boolean} opts.rewrite Whether URL rewriting works (pretty URLs).
+ * @param {string} [opts.webroot] The webroot, '' at the domain root.
  */
-function servePageAt(pathname) {
-	window.history.pushState({}, '', pathname)
+function instance({ rewrite, webroot = '' }) {
+	window.OC.config.modRewriteWorking = rewrite
+	window._oc_webroot = webroot
 }
 
 describe('prefixUrl', () => {
 	afterEach(() => {
-		servePageAt('/apps/openregister/')
+		instance({ rewrite: true })
 	})
 
-	describe('on an instance WITHOUT pretty URLs (page served under /index.php)', () => {
+	describe('on an instance WITHOUT pretty URLs', () => {
 		beforeEach(() => {
-			servePageAt('/index.php/apps/portaliq/portals/42')
+			instance({ rewrite: false })
 		})
 
-		it('prefixes an app-relative API path', () => {
+		it('prefixes an app-relative API path with /index.php', () => {
 			expect(prefixUrl('/apps/openregister/api/objects'))
 				.toBe('/index.php/apps/openregister/api/objects')
 		})
 
 		it('is idempotent — a path that already carries the prefix is returned unchanged', () => {
-			// The regression guard for double-wrapping: a call site that was
-			// already correct must not break when the sweep wraps it again.
 			const already = '/index.php/apps/openregister/api/objects'
 			expect(prefixUrl(already)).toBe(already)
 			expect(prefixUrl(prefixUrl('/apps/openregister/api/objects')))
 				.toBe('/index.php/apps/openregister/api/objects')
+		})
+
+		it('never puts /index.php in front of OCS or WebDAV', () => {
+			expect(prefixUrl('/ocs/v2.php/cloud/users/details')).toBe('/ocs/v2.php/cloud/users/details')
+			expect(prefixUrl('/remote.php/dav/files/admin')).toBe('/remote.php/dav/files/admin')
+		})
+
+		it('leaves {placeholders} and JSON query values unencoded', () => {
+			expect(prefixUrl('/apps/openregister/api/credentials/{id}/session-request'))
+				.toBe('/index.php/apps/openregister/api/credentials/{id}/session-request')
+			expect(prefixUrl('/apps/x/api?_filter={"a":1}'))
+				.toBe('/index.php/apps/x/api?_filter={"a":1}')
 		})
 
 		it.each([
@@ -73,8 +71,6 @@ describe('prefixUrl', () => {
 		})
 
 		it('leaves a document-relative path alone', () => {
-			// Prefixing would change what the path resolves against, which is a
-			// different bug from the one this helper exists to fix.
 			expect(prefixUrl('api/objects')).toBe('api/objects')
 			expect(prefixUrl('./api/objects')).toBe('./api/objects')
 			expect(prefixUrl('../api/objects')).toBe('../api/objects')
@@ -82,27 +78,37 @@ describe('prefixUrl', () => {
 	})
 
 	describe('on an instance WITH pretty URLs', () => {
-		beforeEach(() => {
-			servePageAt('/apps/portaliq/portals/42')
-		})
-
 		it('returns an app-relative path untouched', () => {
+			instance({ rewrite: true })
 			expect(prefixUrl('/apps/openregister/api/objects'))
 				.toBe('/apps/openregister/api/objects')
 		})
 
 		it('still returns an explicitly prefixed path untouched', () => {
-			// Both forms route here, so a path that names /index.php itself is
-			// left as the caller wrote it rather than being "corrected".
+			instance({ rewrite: true })
 			expect(prefixUrl('/index.php/apps/openregister/api/objects'))
 				.toBe('/index.php/apps/openregister/api/objects')
 		})
 	})
 
+	describe('in a subdirectory webroot', () => {
+		it('adds the webroot, and /index.php without rewriting', () => {
+			instance({ rewrite: false, webroot: '/nextcloud' })
+			expect(prefixUrl('/apps/openregister/api/objects'))
+				.toBe('/nextcloud/index.php/apps/openregister/api/objects')
+			expect(prefixUrl('/ocs/v2.php/cloud/capabilities'))
+				.toBe('/nextcloud/ocs/v2.php/cloud/capabilities')
+		})
+
+		it('is idempotent on a path that already carries the webroot', () => {
+			instance({ rewrite: false, webroot: '/nextcloud' })
+			const once = prefixUrl('/apps/openregister/api/objects')
+			expect(prefixUrl(once)).toBe(once)
+		})
+	})
+
 	describe('degenerate input', () => {
 		it('returns non-strings and the empty string unchanged', () => {
-			// Call sites build these from props; an undefined apiBase should
-			// surface as its own error, not as the string "/index.phpundefined".
 			expect(prefixUrl('')).toBe('')
 			expect(prefixUrl(undefined)).toBeUndefined()
 			expect(prefixUrl(null)).toBeNull()

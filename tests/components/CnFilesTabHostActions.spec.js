@@ -55,4 +55,22 @@ describe('CnFilesTab host actions', () => {
 		expect(browser.props('newActions')).toEqual(NEW_ACTIONS)
 		wrapper.unmount()
 	})
+
+	it('hands the upload button, the drop state and the drop hint through, off unless asked', async () => {
+		const wrapper = mount(CnFilesTab, {
+			propsData: { objectId: 'obj-1', register: 'r', schema: 's', uploadButton: true, dropOverlay: true, dropHint: true },
+		})
+		await flushPromises()
+		wrapper.vm.browserRoot = '/Open Registers/Cases/obj-1'
+		await wrapper.vm.$nextTick()
+
+		const browser = wrapper.findComponent(CnFilesBrowser)
+		expect(browser.props('uploadButton')).toBe(true)
+		expect(browser.props('dropOverlay')).toBe(true)
+		expect(browser.props('dropHint')).toBe(true)
+		expect(CnFilesTab.props.uploadButton.default).toBe(false)
+		expect(CnFilesTab.props.dropOverlay.default).toBe(false)
+		expect(CnFilesTab.props.dropHint.default).toBe(false)
+		wrapper.unmount()
+	})
 })

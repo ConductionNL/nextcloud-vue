@@ -60,12 +60,13 @@
 		<div
 			v-if="visible"
 			class="cn-ai-chat-window"
-			:class="`cn-ai-chat-window--${position}`"
-			role="dialog"
+			:class="[embedded ? 'cn-ai-chat-window--embedded' : `cn-ai-chat-window--${position}`, { 'cn-ai-chat-window--has-mark': assistantMark, 'cn-ai-chat-window--titled': titled }]"
+			:role="embedded ? 'region' : 'dialog'"
 			:aria-label="agentLabel"
 			data-testid="cn-ai-panel"
-			@keydown.esc="onClose">
-			<header class="cn-ai-chat-window__titlebar">
+			@keydown.esc="onEscape">
+			<!-- In a titled card the card names the panel; its controls go to the card's menu (`menu` event). -->
+			<header v-if="!titled" class="cn-ai-chat-window__titlebar">
 				<!--
 			  Identity FIRST in source order and left-aligned: a long agent name
 			  gets the whole remaining row, and the controls are pushed right by
@@ -195,6 +196,7 @@
 					</NcActions>
 
 					<NcButton
+						v-if="!embedded"
 						:aria-label="cnTranslate('Close')"
 						:title="cnTranslate('Close')"
 						variant="tertiary"
@@ -247,13 +249,14 @@
 						:key="approval.id"
 						class="cn-ai-approval">
 						<div class="cn-ai-approval__head">
-							<span class="cn-ai-approval__title">{{ approval.title }}</span>
+							<span class="cn-ai-approval__title">{{ approvalTitle(approval) }}</span>
 							<!--
 							  Reach is a FACT about the tool. The reason below is
 							  agent-authored text aimed at the person holding the
 							  permission, so the two are kept visually distinct.
+							  The boards draw no reach, so a host opts in.
 							-->
-							<span class="cn-ai-approval__reach">{{ approval.reach }}</span>
+							<span v-if="showApprovalReach" class="cn-ai-approval__reach">{{ approval.reach }}</span>
 						</div>
 						<p v-if="approval.reason" class="cn-ai-approval__reason">
 							{{ approval.reason }}
@@ -264,23 +267,51 @@
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-allow-' + approval.id"
 								@click="onApprovalDecision(approval, 'granted')">
-								{{ cnTranslate('Allow') }}
+								{{ approvalWording.allow || cnTranslate('Allow') }}
 							</NcButton>
 							<NcButton
 								variant="tertiary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-deny-' + approval.id"
 								@click="onApprovalDecision(approval, 'refused')">
-								{{ cnTranslate('Decline') }}
+								{{ approvalWording.deny || cnTranslate('Decline') }}
 							</NcButton>
 						</div>
 					</li>
 				</ul>
 
+				<!--
+				  Say why a turn failed, where the answer would have been.
+
+				  The stream already carries `{code, message}` for a refused or
+				  broken turn, and nothing rendered it: measured 2026-09-18 on a
+				  dev instance, an agent whose tool grants resolved to no tools
+				  answered with an SSE `error` event, and the window showed
+				  "Thinking", then nothing at all. Silence reads as a hung app.
+				-->
+				<p
+					v-if="streamState.error"
+					class="cn-ai-chat-window__error"
+					role="alert"
+					data-testid="cn-ai-panel-error">
+					{{ streamState.error.message || cnTranslate('The assistant could not answer.') }}
+				</p>
+
+				<p
+					v-if="note"
+					class="cn-ai-chat-window__note"
+					data-testid="cn-ai-panel-note">
+					<InformationOutline :size="18" class="cn-ai-chat-window__note-icon" />
+					<span>{{ note }}</span>
+				</p>
+
 				<div class="cn-ai-chat-window__input">
 					<CnAiInput
 						ref="input"
 						:disabled="streamState.isStreaming"
+						:placeholder="inputPlaceholder"
+						:sendLabel="sendLabel"
+						:stacked="titled"
 						:chatAppId="chatAppId"
 						:speechInputEngine="speechPolicy.inputEngine"
 						:dictationSilenceTimeout="speechPolicy.silenceTimeout"
@@ -302,6 +333,24 @@
 					@select="onConversationSelect"
 					@renamed="onConversationRenamed" />
 			</div>
+
+			<!--
+			  The organisation's approved-assistant mark (thematiq). Rendered
+			  only when thematiq reports it on; the label arrives translated
+			  and is shown as received. Present in the chat and history views.
+			-->
+			<div
+				v-if="assistantMark"
+				class="cn-ai-chat-window__mark"
+				role="note"
+				data-testid="cn-ai-panel-mark">
+				<img
+					v-if="assistantMark.logo"
+					class="cn-ai-chat-window__mark-logo"
+					:src="assistantMark.logo.url"
+					:alt="assistantMark.logo.alt">
+				<span class="cn-ai-chat-window__mark-label">{{ assistantMark.label }}</span>
+			</div>
 		</div>
 	</transition>
 </template>
@@ -315,6 +364,7 @@ import Cog from 'vue-material-design-icons/Cog.vue'
 import Creation from 'vue-material-design-icons/Creation.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import History from 'vue-material-design-icons/History.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
@@ -336,6 +386,8 @@ import {
 	SPEECH_LOCAL,
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
+import { getAssistantMark } from '../../utils/assistantMark.js'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 /**
  * Shown when an agent has no `icon` set, which is most of them. Matches the
@@ -368,6 +420,7 @@ export default {
 		NcEmptyContent,
 		Plus,
 		History,
+		InformationOutline,
 		Creation,
 		Close,
 		Check,
@@ -381,7 +434,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {
@@ -392,11 +445,69 @@ export default {
 		},
 
 		/**
-		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid }`.
+		 * Draw the window in the page's flow, as a panel of the page (a tab
+		 * of a detail page), instead of floating above it from the launcher:
+		 * no pointer, no close button, and Escape does not close it.
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The panel stands in a card that draws its title: no titlebar of its
+		 * own, and the session controls (new chat, conversations, read aloud,
+		 * agent) are reported through the `menu` event for the card's menu.
+		 */
+		titled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** A line above the input, already translated (what the assistant can see). */
+		note: {
+			type: String,
+			default: '',
+		},
+
+		/** The input's placeholder, already translated; '' keeps the default. */
+		inputPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated; '' keeps the icon. */
+		sendLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The approval cards' wording, already translated: `titlePrefix` before
+		 * the tool's name, `allow` and `deny` on the buttons. A missing entry
+		 * keeps the default.
+		 */
+		approvalWording: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.
 		 */
 		streamState: {
 			type: Object,
 			required: true,
+		},
+
+		/**
+		 * Show each approval's reach (`instance`, `write`) as a label beside its
+		 * title. Off by default: the proposal cards the boards draw name the
+		 * proposal, the reason and the buttons only.
+		 */
+		showApprovalReach: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -445,10 +556,12 @@ export default {
 	 * component's outward surface without grepping for `$emit`. These four were
 	 * always emitted; only the declaration is new.
 	 */
-	emits: ['close', 'send', 'new-thread', 'load-conversation'],
+	emits: ['close', 'send', 'new-thread', 'load-conversation', 'menu'],
 
 	data() {
 		return {
+			/** The approved-assistant mark from thematiq, or null when there is none. */
+			assistantMark: null,
 			activeView: 'chat',
 			activeConversationUuid: null,
 			/**
@@ -696,9 +809,48 @@ export default {
 		isOnNewChatScreen() {
 			return !this.streamState.isStreaming && this.streamState.messages.length === 0
 		},
+
+		/**
+		 * The titlebar's controls as menu items, for a titled panel's card.
+		 *
+		 * @return {Array<{label: string, icon: string, run: () => void}>} The items.
+		 */
+		menuActions() {
+			const actions = []
+			if (!this.isOnNewChatScreen) {
+				actions.push({ label: this.cnTranslate('Start new chat'), icon: 'Plus', run: () => this.onNewChat() })
+			}
+			actions.push(this.activeView === 'history'
+				? { label: this.cnTranslate('Back to the chat'), icon: 'MessageTextOutline', run: () => { this.activeView = 'chat' } }
+				: { label: this.cnTranslate('View all conversations'), icon: 'History', run: () => { this.activeView = 'history' } })
+			if (this.speechSynthesisSupported) {
+				actions.push(this.speakReplies
+					? { label: this.cnTranslate('Stop reading replies aloud'), icon: 'VolumeOff', run: () => this.onSpeakRepliesToggled(false) }
+					: { label: this.cnTranslate('Read replies aloud'), icon: 'VolumeHigh', run: () => this.onSpeakRepliesToggled(true) })
+			}
+			for (const agent of this.agentOptions) {
+				if (agent.id !== this.selectedAgentUuid) {
+					actions.push({ label: this.cnTranslate('Talk to {agent}', { agent: agent.label }), icon: agent.icon || DEFAULT_AGENT_ICON, run: () => this.onAgentSelected(agent.id) })
+				}
+			}
+			return actions
+		},
 	},
 
 	watch: {
+		menuActions: {
+			immediate: true,
+			handler(actions) {
+				if (this.titled) {
+					/**
+					 * @event menu The session controls of a titled panel, for its card's menu.
+					 * @type {Array<{label: string, icon: string, run: () => void}>}
+					 */
+					this.$emit('menu', actions)
+				}
+			},
+		},
+
 		visible(newVal) {
 			if (newVal) {
 				this.$nextTick(() => {
@@ -754,6 +906,7 @@ export default {
 		this.fetchConversations()
 		this.restoreSpeakPreference()
 		this.probeLocalSpeech()
+		this.loadAssistantMark()
 	},
 
 	beforeUnmount() {
@@ -762,6 +915,15 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Load the approved-assistant mark; stays null when there is none.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadAssistantMark() {
+			this.assistantMark = await getAssistantMark()
+		},
+
 		/**
 		 * Read the remembered read-aloud preference.
 		 *
@@ -977,6 +1139,18 @@ export default {
 		},
 
 		/**
+		 * An approval card's title: the tool's name after the widget's prefix.
+		 *
+		 * @param {object} approval The approval.
+		 * @return {string} The title.
+		 * @spec openspec/changes/ai-chat-approval-wording/specs/ai-chat-approval-wording/spec.md#requirement-an-app-can-word-the-approval-card
+		 */
+		approvalTitle(approval) {
+			const prefix = this.approvalWording.titlePrefix
+			return prefix ? `${prefix} ${approval.title}` : approval.title
+		},
+
+		/**
 		 * Record the owner's decision on an approval, then let the agent carry on.
 		 *
 		 * Posts to the approval's OWN `resolveUrl` rather than to a URL built
@@ -1022,6 +1196,18 @@ export default {
 			}
 
 			this.resolvingApprovalId = ''
+		},
+
+		/**
+		 * Escape closes the floating window; an embedded panel is part of the
+		 * page and stays.
+		 *
+		 * @return {void}
+		 */
+		onEscape() {
+			if (!this.embedded) {
+				this.onClose()
+			}
 		},
 
 		onClose() {
@@ -1108,11 +1294,22 @@ export default {
 
 		/**
 		 * Fetch the agent list for the agent menu. Defaults the selection to the
-		 * first accessible agent — the agents API has no "default agent"
+		 * first agent this page has a use for, which is the same subset the menu
+		 * shows: `relevantAgentOptions`. The agents API has no "default agent"
 		 * indicator to prefer instead (verified against hermiq's
-		 * AgentsController::index()/serializeAgent()). Degrades gracefully on
-		 * failure: the menu shows an inline notice but the rest of the window
-		 * (history, message input) stays usable.
+		 * AgentsController::index()/serializeAgent()), so page relevance is the
+		 * best signal available.
+		 *
+		 * Defaulting to the raw first agent instead, as this did, is not a
+		 * cosmetic difference. On a Buildiq page it handed the user an agent
+		 * holding no Buildiq tools, so the first thing the assistant did was
+		 * fail to do the one thing the page is for, and the fix was a settings
+		 * menu the user had no reason to open. `relevantAgentOptions` already
+		 * falls back to every agent when nothing matches, so on a page with no
+		 * relevant agent this still selects exactly what it selected before.
+		 *
+		 * Degrades gracefully on failure: the menu shows an inline notice but
+		 * the rest of the window (history, message input) stays usable.
 		 *
 		 * @returns {Promise<void>}
 		 */
@@ -1125,7 +1322,8 @@ export default {
 				const list = Array.isArray(data) ? data : (data.results || [])
 				this.agents = list
 				if (!this.selectedAgentUuid && list.length > 0) {
-					this.selectedAgentUuid = list[0].uuid || list[0].id || null
+					const preferred = this.relevantAgentOptions[0]
+					this.selectedAgentUuid = (preferred && preferred.id) || list[0].uuid || list[0].id || null
 				}
 			} catch {
 				this.agentsFetchError = true
@@ -1226,6 +1424,19 @@ export default {
 .cn-ai-chat-window--top-left {
 	top: 108px;
 	left: 44px;
+}
+
+/* Embedded: a panel in the page's flow (a detail page tab), not a window over
+   it. It fills its container's width and takes no pointer, since no position
+   class is set. The doubled class outranks the window's `!important` rules. */
+.cn-ai-chat-window.cn-ai-chat-window--embedded {
+	position: relative !important;
+	z-index: auto !important;
+	width: auto;
+	max-width: none;
+	height: 520px;
+	max-height: none;
+	box-shadow: none;
 }
 
 /* The pointer: a white triangle under the window, aimed at the hex, so the
@@ -1388,6 +1599,58 @@ export default {
 	margin-top: 10px;
 }
 
+.cn-ai-chat-window__error {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 8px 12px;
+	color: var(--color-error-text, #a10000);
+	background: var(--color-error-hover, #f7e5e5);
+	font-size: 0.9em;
+}
+
+.cn-ai-chat-window__note {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	margin: 0 8px 8px;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--color-primary-element-light, #eaf0f7);
+	color: var(--color-primary-element-light-text, #234a78);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* The icon font's own align-self: center would centre it on a long note. */
+.cn-ai-chat-window__note-icon {
+	flex: none;
+	align-self: flex-start;
+	margin-top: 1px;
+}
+
+/* A titled panel is the body of its card: the card draws border and corners. */
+.cn-ai-chat-window.cn-ai-chat-window--titled {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.cn-ai-chat-window--titled .cn-ai-chat-window__input {
+	padding: 0;
+	border-top: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+/* In a card the panel's body takes the card's 16px 18px inset. */
+.cn-ai-chat-window--titled .cn-ai-chat-window__messages {
+	padding: 16px 18px;
+}
+
+.cn-ai-chat-window--titled .cn-ai-chat-window__note {
+	margin: 0 18px 16px;
+}
+
 .cn-ai-chat-window__input {
 	flex: 0 0 auto;
 	padding: 8px;
@@ -1395,6 +1658,29 @@ export default {
 	/* Mirrors the titlebar: clips its own bottom corners. */
 	border-radius: 0 0 11px 11px;
 	background: var(--color-main-background, #ffffff);
+}
+
+/* The approved-assistant mark: same colour pair as the panel body. */
+.cn-ai-chat-window--has-mark .cn-ai-chat-window__input {
+	border-radius: 0;
+}
+
+.cn-ai-chat-window__mark {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	border-top: 1px solid var(--color-border, #d0d0d0);
+	border-radius: 0 0 11px 11px;
+	background: var(--color-main-background, #ffffff);
+	color: var(--color-main-text, #222222);
+	font-size: 0.85em;
+}
+
+.cn-ai-chat-window__mark-logo {
+	max-height: 24px;
+	width: auto;
 }
 
 /* ── The pop animation ──────────────────────────────────────────────────────

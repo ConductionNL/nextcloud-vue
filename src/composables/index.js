@@ -32,7 +32,15 @@ export {
 	useContextMenu,
 } from './useContextMenu.js'
 export { useAppManifest } from './useAppManifest.js'
+export { LOOKS, normalizeLook, useLook } from './useLook.js'
 export { useAppStatus } from './useAppStatus.js'
+export { useChildRecords } from './useChildRecords.js'
+export { COPY_LINK_KINDS, copyKindsOf, useObjectCopy } from './useObjectCopy.js'
+export { useFileComments } from './useFileComments.js'
+export { useFileOpener } from './useFileOpener.js'
+export { useRefLabels } from './useRefLabels.js'
+export { useRestoreVersion } from './useRestoreVersion.js'
+export { useWriteFeedback } from './useWriteFeedback.js'
 export { useAppInstaller } from './useAppInstaller.js'
 export { useSetupStatus } from './useSetupStatus.js'
 export { compareSemver, interpolateTokens, loadWalkthroughSeenVersion, normaliseSeenVersion, persistWalkthroughSeenVersion, readLocalWalkthroughSeenVersion, useWalkthrough, WALKTHROUGH_SEEN_STORAGE_PREFIX, walkthroughPreferenceUrl } from './useWalkthrough.js'
@@ -57,6 +65,7 @@ export {
 } from './useEndpointSource.js'
 export { useObjectSubscription } from './useObjectSubscription.js'
 export { LockConflictError, PermissionError, useObjectLock } from './useObjectLock.js'
+export { useObjectPresence } from './useObjectPresence.js'
 export { cnRenderFormField } from './cnFormFieldRenderer.js'
 export { cnRenderMarkdown } from './cnRenderMarkdown.js'
 export { useIntegrationRegistry } from './useIntegrationRegistry.js'
@@ -73,3 +82,16 @@ export {
 export { useManifestEditHistory } from './useManifestEditHistory.js'
 export { useScopedTheme } from './useScopedTheme.js'
 export { useFlowStore } from './useFlowStore.js'
+export {
+	FLOW_LAYOUT_COLUMN_WIDTH,
+	FLOW_LAYOUT_MARGIN,
+	FLOW_LAYOUT_ROW_HEIGHT,
+	FLOW_LAYOUT_TOP,
+	layoutFlowNodes,
+	needsFullLayout,
+	placeLooseNodes,
+	readNodePoint,
+} from './flowGraphLayout.js'
+export { NOTIFICATION_PREFERENCES_URL, NOTIFICATION_TEST_SEND_URL, useNotificationPreferencesStore } from './useNotificationPreferencesStore.js'
+export { useOfflineQueue } from './useOfflineQueue.js'
+export { useObjectActions } from './useObjectActions.js'

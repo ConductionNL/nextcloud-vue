@@ -1,17 +1,31 @@
 import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
 
 /**
+ * The field values a page's `copy.overrides` gives every copy, as a plain
+ * object; `{}` for anything else.
+ *
+ * @param {unknown} overrides The page's `copy.overrides`.
+ * @return {object} The values.
+ * @spec openspec/changes/index-copy-overrides/specs/index-copy-overrides/spec.md#requirement-a-copy-can-start-with-field-values-of-its-own
+ */
+export function copyOverrideValues(overrides) {
+	return overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? { ...overrides } : {}
+}
+
+/**
  * Build a copy-ready payload from a source object — strips identity so the
- * store treats the save as a create, then writes `newName` into `nameField`.
+ * store treats the save as a create, applies the page's copy `overrides`,
+ * then writes `newName` into `nameField`.
  *
  * @param {object} source Row to copy from.
  * @param {string} newName Name to set on the copy.
  * @param {string} nameField Property on the object holding its name.
+ * @param {object} [overrides] Field values the copy starts with (`copy.overrides`).
  * @return {object}
  */
-export function cloneObjectForCopy(source, newName, nameField) {
+export function cloneObjectForCopy(source, newName, nameField, overrides = {}) {
 	const { id, uuid, '@self': _self, ...rest } = source
-	const clone = JSON.parse(JSON.stringify(rest))
+	const clone = { ...JSON.parse(JSON.stringify(rest)), ...copyOverrideValues(overrides) }
 	if (nameField) {
 		clone[nameField] = newName
 	}
@@ -48,16 +62,20 @@ export function parseDispositionFilename(disposition, fallback) {
 }
 
 /**
- * @param {{ register: string, schema: string, format: string }} params The export
+ * @param {{ register: string, schema: string, format: string, ids?: Array<string|number>, query?: object }} params The export
  *   target: the OpenRegister `register` and `schema` slugs, plus the export
  *   `format` (`'csv'`, `'excel'`, …) sent as the `type` query parameter. `'excel'`
- *   is the only format whose downloaded extension differs (`xlsx`).
+ *   is the only format whose downloaded extension differs (`xlsx`). With `ids`
+ *   only those rows are exported; otherwise `query` (the list's own query,
+ *   paging dropped) narrows the export to the rows the list matches.
  * @return {Promise<void>} Resolves once the browser download has been triggered;
  *   rejects when the server responds non-2xx.
  */
-export async function runSelfExportRequest({ register, schema, format }) {
+export async function runSelfExportRequest({ register, schema, format, ids, query }) {
 	const base = `/apps/openregister/api/objects/${register}/${schema}/export`
-	const url = prefixUrl(base) + buildQueryString({ type: format })
+	const { _limit, _page, ...rest } = query || {}
+	const params = Array.isArray(ids) && ids.length > 0 ? { type: format, ids } : { ...rest, type: format }
+	const url = prefixUrl(base) + buildQueryString(params)
 	const response = await fetch(url, { method: 'GET', headers: buildHeaders() })
 	if (!response.ok) {
 		throw new Error(`Export failed (${response.status})`)
@@ -72,23 +90,30 @@ export async function runSelfExportRequest({ register, schema, format }) {
 }
 
 /**
- * @param {{ register: string, schema: string|null, file: File }} params The import
+ * @param {{ register: string, schema: string|null, file: File, dryRun?: boolean }} params The import
  *   target: the OpenRegister `register` slug, the `schema` slug (required for a
- *   CSV upload, which cannot carry its own schema; `null` otherwise), and the
- *   user-picked `file` posted as multipart form data.
- * @return {Promise<void>} Resolves once the upload succeeded; rejects when no
- *   file was selected or the server responds non-2xx.
+ *   CSV upload, which cannot carry its own schema; `null` otherwise), the
+ *   user-picked `file` posted as multipart form data, and `dryRun` to check the
+ *   rows without saving any.
+ * @return {Promise<object|null>} The server's import report (`summary` per sheet),
+ *   or null when the response has no JSON body; rejects when no file was
+ *   selected or the server responds non-2xx.
  */
-export async function runSelfImportRequest({ register, schema, file }) {
+export async function runSelfImportRequest({ register, schema, file, dryRun = false }) {
 	if (!file) {
 		throw new Error('No file selected')
 	}
 	const ext = (file.name.split('.').pop() || '').toLowerCase()
 	const isCsv = ext === 'csv' && !!schema
 	let path = `/apps/openregister/api/registers/${register}/import`
+	const query = {}
 	if (isCsv) {
-		path += buildQueryString({ schema })
+		query.schema = schema
 	}
+	if (dryRun) {
+		query.dryRun = 'true'
+	}
+	path += buildQueryString(query)
 	const formData = new FormData()
 	formData.append('file', file)
 	if (isCsv) {
@@ -103,5 +128,10 @@ export async function runSelfImportRequest({ register, schema, file }) {
 	})
 	if (!response.ok) {
 		throw new Error(`Import failed (${response.status})`)
+	}
+	try {
+		return await response.json()
+	} catch {
+		return null
 	}
 }

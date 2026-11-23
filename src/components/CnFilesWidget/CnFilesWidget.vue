@@ -83,6 +83,48 @@
 			{{ t('nextcloud-vue', 'Drop files to upload') }}
 		</div>
 
+		<div v-if="uploads.length > 0" class="cn-files-widget__uploads" role="status">
+			<p class="cn-files-widget__uploads-total">
+				{{ uploadTotalLabel }}
+				<button
+					v-if="!uploading"
+					type="button"
+					class="cn-files-widget__notice-dismiss"
+					@click="dismissUploads">
+					{{ t('nextcloud-vue', 'Dismiss') }}
+				</button>
+			</p>
+			<ul class="cn-files-widget__uploads-list">
+				<li
+					v-for="(upload, index) in uploads"
+					:key="index"
+					class="cn-files-widget__progress-item"
+					:class="'cn-files-widget__progress-item--' + upload.status">
+					<span class="cn-files-widget__upload-name">{{ upload.name }}</span>
+					<span
+						class="cn-files-widget__upload-progress"
+						role="progressbar"
+						:aria-label="upload.name"
+						aria-valuemin="0"
+						aria-valuemax="100"
+						:aria-valuenow="uploadPercent(upload)">
+						<span class="cn-files-widget__upload-bar" :style="{ width: uploadPercent(upload) + '%' }" />
+					</span>
+					<span class="cn-files-widget__upload-status">{{ uploadStatusLabel(upload) }}</span>
+				</li>
+			</ul>
+		</div>
+
+		<div v-if="deleteNotice" class="cn-files-widget__notice" role="alert">
+			<span>{{ deleteNotice }}</span>
+			<button
+				type="button"
+				class="cn-files-widget__notice-dismiss"
+				@click="deleteNotice = null">
+				{{ t('nextcloud-vue', 'Dismiss') }}
+			</button>
+		</div>
+
 		<div v-if="loading" class="cn-files-widget__state">
 			{{ t('nextcloud-vue', 'Loading folder…') }}
 		</div>
@@ -138,10 +180,15 @@
 				:key="item.fileId"
 				class="cn-files-widget__row"
 				:class="{ 'cn-files-widget__row--folder': item.isFolder }">
-				<button
-					type="button"
+				<!-- Files are real links (new tab, copyable); folders browse in-widget. -->
+				<component
+					:is="item.isFolder ? 'button' : 'a'"
+					:type="item.isFolder ? 'button' : undefined"
+					:href="item.isFolder ? undefined : (fileUrl(item.fileId) || undefined)"
+					:target="item.isFolder ? undefined : '_blank'"
+					:rel="item.isFolder ? undefined : 'noopener noreferrer'"
 					class="cn-files-widget__row-name"
-					@click="onItemClick(item)">
+					@click="onRowClick(item, $event)">
 					<span aria-hidden="true" class="cn-files-widget__row-icon">
 						<img
 							v-if="showThumbnails && !item.isFolder && item.thumbnailUrl && !failedThumbs[item.fileId]"
@@ -153,7 +200,7 @@
 						<template v-else>{{ item.isFolder ? '📁' : '📄' }}</template>
 					</span>
 					<span class="cn-files-widget__row-label">{{ item.name }}</span>
-				</button>
+				</component>
 				<span class="cn-files-widget__row-modified">{{ item.modifiedAt }}</span>
 				<span class="cn-files-widget__row-size">{{ formatSize(item.size, item.isFolder) }}</span>
 				<button
@@ -176,6 +223,8 @@
 			</button>
 		</div>
 
+		<CnFilePreview v-if="previewFile" :file="previewFile" @close="previewFile = null" />
+
 		<CnFilesWidgetDeleteDialog
 			:open="confirmTarget !== null"
 			:fileName="confirmTarget ? confirmTarget.name : ''"
@@ -185,9 +234,12 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
+import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
+import { useFileOpener } from '../../composables/useFileOpener.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -215,6 +267,7 @@ export default {
 	name: 'CnFilesWidget',
 
 	components: {
+		CnFilePreview,
 		CnFilesWidgetDeleteDialog,
 	},
 
@@ -315,6 +368,8 @@ export default {
 
 	data() {
 		return {
+			/** The file shown in the in-page preview, or null. */
+			previewFile: null,
 			/**
 			 * The hidden file input, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
 			 *
@@ -336,6 +391,13 @@ export default {
 			isDragging: false,
 			// Depth counter so nested dragenter/dragleave don't flicker the overlay.
 			dragDepth: 0,
+			// The files of the current or last upload batch, each
+			// `{ name, size, loaded, status, error }` with status `queued`,
+			// `uploading`, `done` or `failed`.
+			uploads: [],
+			uploading: false,
+			// Why the last delete was refused, shown until dismissed.
+			deleteNotice: null,
 		}
 	},
 
@@ -435,7 +497,33 @@ export default {
 		 * @return {boolean} `true` unless `content.showThumbnails` is explicitly false.
 		 */
 		showThumbnails() {
+			// Tree mode lists names only, whatever `showThumbnails` says.
+			if (this.content?.viewMode === 'tree') {
+				return false
+			}
 			return this.content?.showThumbnails !== false
+		},
+
+		/**
+		 * The batch line above the upload list: bytes sent of the total while
+		 * uploading, then how many files arrived.
+		 *
+		 * @return {string} the label.
+		 */
+		uploadTotalLabel() {
+			const total = this.uploads.reduce((sum, upload) => sum + upload.size, 0)
+			if (this.uploading) {
+				const loaded = this.uploads.reduce((sum, upload) => sum + upload.loaded, 0)
+				return t('nextcloud-vue', 'Uploading {loaded} / {total}', {
+					loaded: this.formatSize(loaded),
+					total: this.formatSize(total),
+				})
+			}
+			const failed = this.uploads.filter((upload) => upload.status === 'failed').length
+			if (failed > 0) {
+				return n('nextcloud-vue', '{count} file could not be uploaded', '{count} files could not be uploaded', failed, { count: failed })
+			}
+			return t('nextcloud-vue', 'Upload complete')
 		},
 
 		/**
@@ -681,6 +769,9 @@ export default {
 					return {
 						name: file.name || file.title || '',
 						fileId: file.id,
+						mimeType: mime,
+						path: file.path || '',
+						downloadUrl: file.id ? generateUrl(`${this.objectApiBase}/files/{fileId}/download`, { fileId: file.id }) : '',
 						isFolder: false,
 						size: file.size,
 						modifiedAt: file.modified || file.updated || '',
@@ -720,18 +811,52 @@ export default {
 		},
 
 		/**
-		 * Handle a row click — descend into folders, open files in the Files app.
+		 * Show a file in the in-page preview.
 		 *
-		 * @param {object} item the clicked item.
+		 * @param {object} file The file to preview.
+		 */
+		showPreview(file) {
+			this.previewFile = file
+		},
+
+		/**
+		 * Handle a row click: a folder is browsed in place, a file opens through
+		 * the shared opener (Viewer, preview, browser, Files app).
+		 *
+		 * @param {object} item the clicked row.
+		 * @param {MouseEvent} [event] the click event.
+		 * @return {void}
+		 */
+		onRowClick(item, event) {
+			if (item.isFolder) {
+				this.onItemClick(item)
+				return
+			}
+			// Keep the link's own behaviour for a modified click (new tab, etc.).
+			if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1)) {
+				return
+			}
+			if (event) {
+				event.preventDefault()
+			}
+			useFileOpener({ onPreview: this.showPreview }).open({
+				id: item.fileId,
+				name: item.name,
+				type: item.mimeType || item.mimetype || item.type || '',
+				path: item.path || '',
+				accessUrl: item.accessUrl || '',
+				downloadUrl: item.downloadUrl || '',
+			})
+		},
+
+		/**
+		 * Descend into a folder row.
+		 *
+		 * @param {object} item the clicked folder item.
 		 * @return {void}
 		 */
 		onItemClick(item) {
-			if (item.isFolder) {
-				const next = this.joinPath(this.currentSubPath, item.name)
-				this.navigateTo(next)
-			} else {
-				this.openFileInFilesApp(item.fileId)
-			}
+			this.navigateTo(this.joinPath(this.currentSubPath, item.name))
 		},
 
 		/**
@@ -766,7 +891,7 @@ export default {
 		 * @return {string} the joined path.
 		 */
 		joinPath(base, name) {
-			const trimmedBase = String(base || '/').replace(/\/+$/, '')
+			const trimmedBase = stripTrailingSlashes(String(base || '/'))
 			const trimmedName = String(name || '').replace(/^\/+/, '')
 			if (trimmedBase === '' || trimmedBase === '/') {
 				return '/' + trimmedName
@@ -775,23 +900,18 @@ export default {
 		},
 
 		/**
-		 * Deep-link a file into the Nextcloud Files app in a new tab.
+		 * The Files-app permalink for a file.
 		 *
 		 * @param {number|string} fileId the Nextcloud file id.
-		 * @return {void}
+		 * @return {string} the URL, or '' without a file id.
 		 */
-		openFileInFilesApp(fileId) {
+		fileUrl(fileId) {
 			if (!fileId) {
-				return
+				return ''
 			}
-			// Canonical Nextcloud file permalink: `/f/{fileid}` resolves the id
-			// to its containing folder and opens the file. generateUrl adds the
-			// `index.php` prefix on instances without URL rewriting. The previous
-			// raw `/apps/files/?fileid=` both omitted that prefix (404 on those
-			// instances) and, on modern Nextcloud, only ever landed on the root
-			// folder instead of the file.
-			const url = generateUrl('/f/{fileid}', { fileid: fileId })
-			window.open(url, '_blank', 'noopener,noreferrer')
+			// Canonical permalink: `/f/{fileid}` resolves the id to its folder
+			// and opens the file; generateUrl adds `index.php` where needed.
+			return generateUrl('/f/{fileid}', { fileid: fileId })
 		},
 
 		/**
@@ -850,6 +970,7 @@ export default {
 			if (!target) {
 				return
 			}
+			this.deleteNotice = null
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 
@@ -864,7 +985,10 @@ export default {
 						)
 				await axios.delete(url)
 				this.items = this.items.filter((item) => item.fileId !== target.fileId)
-			} catch {
+			} catch (err) {
+				this.deleteNotice = err?.response?.status === 403
+					? t('nextcloud-vue', 'You no longer have permission to delete {name}.', { name: target.name })
+					: t('nextcloud-vue', 'Could not delete {name}.', { name: target.name })
 				this.fetchContents()
 			} finally {
 				this.confirmTarget = null
@@ -910,32 +1034,148 @@ export default {
 			}
 
 			const formData = new FormData()
+			const files = []
 			for (let i = 0; i < fileList.length; i++) {
 				formData.append('files[]', fileList[i])
+				files.push(fileList[i])
 			}
+			this.uploads = files.map((file) => ({ name: file.name, size: Number(file.size) || 0, loaded: 0, status: 'queued', error: '' }))
+			this.uploading = true
+			const onUploadProgress = (event) => this.trackUploadProgress(event)
 
 			try {
 				const { default: axios } = await import('@nextcloud/axios')
 
+				let response
 				if (this.objectBound) {
 					const objectUrl = generateUrl(
 						`${this.objectApiBase}/objects/{register}/{schema}/{objectId}/filesMultipart`,
 						{ register: this.register, schema: this.schemaSlug, objectId: this.objectId },
 					)
-					await axios.post(objectUrl, formData)
+					response = await axios.post(objectUrl, formData, { onUploadProgress })
 				} else {
 					const url = generateUrl(
 						`${this.apiBase}/api/widgets/files/{placementId}/upload`,
 						{ placementId: this.placementId },
 					)
-					await axios.post(url, formData, {
+					response = await axios.post(url, formData, {
 						params: { currentPath: this.currentSubPath },
+						onUploadProgress,
 					})
 				}
+				this.settleUploads(Array.isArray(response?.data?.errors) ? response.data.errors : [])
 				this.fetchContents()
-			} catch {
+			} catch (err) {
+				const reason = this.uploadErrorLabel(err?.response?.data?.error)
+				this.uploads = this.uploads.map((upload) => ({ ...upload, status: 'failed', error: reason }))
 				this.fetchContents()
+			} finally {
+				this.uploading = false
 			}
+		},
+
+		/**
+		 * Spread the batch's sent bytes over its files in upload order: the
+		 * files before the byte count are done sending, the one it falls in is
+		 * uploading, the rest are queued.
+		 *
+		 * @param {{loaded: number, total?: number}} event axios' upload progress.
+		 * @return {void}
+		 */
+		trackUploadProgress(event) {
+			const size = this.uploads.reduce((sum, upload) => sum + upload.size, 0)
+			const total = Number(event?.total) || size
+			const scale = total > 0 ? size / total : 0
+			let remaining = Number(event?.loaded || 0) * scale
+			this.uploads = this.uploads.map((upload) => {
+				const loaded = Math.max(0, Math.min(upload.size, remaining))
+				remaining -= upload.size
+				let status = 'queued'
+				if (loaded >= upload.size && upload.size > 0) {
+					status = 'done'
+				} else if (loaded > 0) {
+					status = 'uploading'
+				}
+				return { ...upload, loaded, status }
+			})
+		},
+
+		/**
+		 * Mark the batch finished: a file the host names in `errors`
+		 * (`{ name, error }`) failed with that reason, every other one arrived.
+		 *
+		 * @param {Array<{name: string, error?: string}>} errors the host's per-file errors.
+		 * @return {void}
+		 */
+		settleUploads(errors) {
+			const byName = new Map(errors.map((entry) => [String(entry?.name ?? ''), entry]))
+			this.uploads = this.uploads.map((upload) => {
+				const entry = byName.get(upload.name)
+				if (entry) {
+					return { ...upload, status: 'failed', error: this.uploadErrorLabel(entry.error) }
+				}
+				return { ...upload, loaded: upload.size, status: 'done', error: '' }
+			})
+		},
+
+		/**
+		 * The reason shown for a file that did not upload, from the host's code.
+		 *
+		 * @param {string|undefined} code the error code (`insufficient_storage`, …).
+		 * @return {string} the localised reason.
+		 */
+		uploadErrorLabel(code) {
+			if (code === 'insufficient_storage') {
+				return t('nextcloud-vue', 'Not enough storage space')
+			}
+			if (code === 'no_access' || code === 'forbidden') {
+				return t('nextcloud-vue', 'You may not upload to this folder')
+			}
+			if (code === 'mime_type_not_allowed' || code === 'mime_not_allowed') {
+				return t('nextcloud-vue', 'This file type is not allowed here')
+			}
+			return t('nextcloud-vue', 'Upload failed')
+		},
+
+		/**
+		 * The percentage of one file sent, for its progress bar.
+		 *
+		 * @param {object} upload an entry of `uploads`.
+		 * @return {number} 0 to 100.
+		 */
+		uploadPercent(upload) {
+			if (upload.status === 'done') {
+				return 100
+			}
+			return upload.size > 0 ? Math.round((upload.loaded / upload.size) * 100) : 0
+		},
+
+		/**
+		 * The status text of one file in the upload list.
+		 *
+		 * @param {object} upload an entry of `uploads`.
+		 * @return {string} the label.
+		 */
+		uploadStatusLabel(upload) {
+			if (upload.status === 'failed') {
+				return upload.error
+			}
+			if (upload.status === 'done') {
+				return this.uploading ? t('nextcloud-vue', 'Sent') : t('nextcloud-vue', 'Uploaded')
+			}
+			if (upload.status === 'uploading') {
+				return t('nextcloud-vue', 'Uploading {percent}%', { percent: this.uploadPercent(upload) })
+			}
+			return t('nextcloud-vue', 'Queued')
+		},
+
+		/**
+		 * Clear a finished upload list.
+		 *
+		 * @return {void}
+		 */
+		dismissUploads() {
+			this.uploads = []
 		},
 
 		/**
@@ -1179,6 +1419,7 @@ export default {
 	text-align: left;
 	color: var(--color-main-text);
 	font: inherit;
+	text-decoration: none;
 	min-width: 0;
 }
 
@@ -1259,6 +1500,84 @@ export default {
 /* Keep tiles compact — the modified date is list-view detail. */
 .cn-files-widget__list--grid .cn-files-widget__row-modified {
 	display: none;
+}
+
+.cn-files-widget__uploads,
+.cn-files-widget__notice {
+	margin: 4px 0 8px;
+	padding: 8px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	font-size: 13px;
+}
+
+.cn-files-widget__notice {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	border-color: var(--color-error);
+}
+
+.cn-files-widget__uploads-total {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 0 0 4px;
+	font-weight: 600;
+}
+
+.cn-files-widget__uploads-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-files-widget__progress-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 80px auto;
+	align-items: center;
+	gap: 8px;
+	padding: 2px 0;
+}
+
+.cn-files-widget__upload-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-files-widget__upload-progress {
+	display: block;
+	height: 6px;
+	overflow: hidden;
+	border-radius: 3px;
+	background: var(--color-background-dark);
+}
+
+.cn-files-widget__upload-bar {
+	display: block;
+	height: 100%;
+	background: var(--color-primary-element);
+}
+
+.cn-files-widget__progress-item--failed .cn-files-widget__upload-status {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-files-widget__upload-status {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-widget__notice-dismiss {
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-weight: normal;
+	text-decoration: underline;
+	cursor: pointer;
 }
 
 .cn-files-widget__pagination {

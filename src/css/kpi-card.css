@@ -107,15 +107,18 @@
 	/* Label — the unit or qualifier beside the number, and every piece of
 	   secondary KPI text (captions, breakdowns, empty and loading lines). */
 	--cn-kpi-label-size: 13px;
-	--cn-kpi-label-color: var(--color-text-maxcontrast);
+	/* `--cn-kpi-label-color` is left undeclared: declared here it would resolve
+	   the theme grey at :root and ignore a theme that sets it on body. Every
+	   read falls back to var(--color-text-maxcontrast); set it to override. */
 
 	/* Section heading above a group of KPIs. */
 	--cn-kpi-section-title-size: 14px;
 
 	/* The tile's semantic colour. The variant modifiers below re-point THIS,
 	   and the icon and the value both read it — so a card can never say
-	   "success" with its icon and "primary" with its number. */
-	--cn-kpi-accent: var(--color-primary-element);
+	   "success" with its icon and "primary" with its number. Undeclared here
+	   for the same reason as the label colour; every read falls back to
+	   var(--color-primary-element). */
 }
 
 /* The canonical card: icon beside the number, left-aligned, no fill of its own.
@@ -133,7 +136,7 @@
 	padding: var(--cn-kpi-padding-flat, 8px);
 	box-sizing: border-box;
 	overflow: hidden;
-	text-align: left;
+	text-align: start;
 	text-decoration: none;
 	color: inherit;
 	background: transparent;
@@ -248,31 +251,47 @@
 	white-space: nowrap;
 }
 
+/* A caption coloured by a rule (`captionVariant` / `overrides[].captionVariant`):
+   "1 due today" in the error colour. Foreground tokens, which stay readable in
+   dark mode. */
+.cn-kpi-card__label--primary {
+	color: var(--color-primary-element);
+	font-weight: 600;
+}
+
+.cn-kpi-card__label--success {
+	color: var(--color-text-success, var(--color-success-text));
+	font-weight: 600;
+}
+
+.cn-kpi-card__label--warning {
+	color: var(--color-element-warning, var(--color-warning-text));
+	font-weight: 600;
+}
+
+.cn-kpi-card__label--error {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
 /* Semantic variants. Each re-points the ONE accent token, so the icon tint
    and the number move together by construction — there is no second place to
    forget. The inline KPI below shares the same modifiers for the same reason:
    `success` must mean one colour across every KPI surface, not one per class
    family.
 
-   THE `-text` TOKENS, NOT THE PLAIN ONES: the accent paints the NUMBER, not
-   just the icon tint. Nextcloud's `--color-success` / `--color-warning` /
-   `--color-error` are FILL colours meant to sit behind something; DefaultTheme
-   ships `--color-success-text` and friends for foreground use. Using a fill as
-   a text colour failed WCAG AA — axe measured `#d8f3da` on `#f5f5f5`, a
-   contrast of 1.08 against the required 3:1, serious, on filinq's dashboard
-   (gate-33, run 33261801989). Only `success` was on screen there; `warning`
-   and `error` carried the same defect unrendered.
-
-   Each keeps the plain token as a fallback, so a theme predating the `-text`
-   tokens degrades to the old colour rather than to none. */
+   The accent paints the NUMBER, so it takes the text-on-background tokens,
+   matching `utils/statusColors.js`. The plain tokens are background tints and
+   their `-text` pairs are near-white in dark mode. The fallbacks cover
+   Nextcloud before 32, which lacks the newer tokens. */
 .cn-kpi-card--success,
-.cn-kpi-inline--success { --cn-kpi-accent: var(--color-success-text, var(--color-success)); }
+.cn-kpi-inline--success { --cn-kpi-accent: var(--color-text-success, var(--color-success-text)); }
 
 .cn-kpi-card--warning,
-.cn-kpi-inline--warning { --cn-kpi-accent: var(--color-warning-text, var(--color-warning)); }
+.cn-kpi-inline--warning { --cn-kpi-accent: var(--color-element-warning, var(--color-warning-text)); }
 
 .cn-kpi-card--error,
-.cn-kpi-inline--error { --cn-kpi-accent: var(--color-error-text, var(--color-error)); }
+.cn-kpi-inline--error { --cn-kpi-accent: var(--color-text-error, var(--color-error-text)); }
 
 /* No semantic reading at all — a count that is neither good nor bad (an
    "unknown" bucket). Muted rather than coloured, so it cannot be mistaken for
@@ -349,6 +368,255 @@
    size, and the title fits on one line again. */
 .cn-kpi-card--vertical .cn-kpi-card__value {
 	font-size: var(--cn-kpi-value-size-stacked, 2rem);
+}
+
+/* Stacked: the board's tile (`content.layout: 'stacked'`). A plain muted
+   label, the number at 34px/700 in the text colour, and the caption on a line
+   of its own; CnStatWidget draws no icon circle in this layout. The padding
+   adds up with a dashboard card-fit cell's 8px 14px to the board's 18px 20px.
+   Every value is a token so a theme can move it. */
+.cn-kpi-card--stacked {
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: center;
+	gap: 0;
+	padding: var(--cn-kpi-stacked-padding, 10px 6px);
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__body {
+	gap: var(--cn-kpi-stacked-gap, 6px);
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__title {
+	font-size: var(--cn-kpi-stacked-title-size, 14px);
+	font-weight: var(--cn-kpi-stacked-title-weight, 400);
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__value {
+	font-size: var(--cn-kpi-stacked-value-size, 34px);
+	font-weight: var(--cn-kpi-value-weight, 700);
+	line-height: 1;
+	letter-spacing: -0.01em;
+	color: var(--cn-kpi-stacked-value-color, var(--color-main-text));
+}
+
+.cn-kpi-card--stacked .cn-kpi-card__caption-line {
+	flex: 0 0 auto;
+	max-width: 100%;
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: 500;
+}
+
+/* A linked stacked tile reads as a tile, not as underlined link text. The
+   NL Design theme underlines every `a` with `!important`, so the opt-out
+   needs it too; it only applies to this opt-in layout. */
+a.cn-kpi-card--stacked,
+a.cn-kpi-card--stacked:hover,
+a.cn-kpi-card--stacked:focus-visible {
+	text-decoration: none !important;
+}
+
+/* A stacked stats block (CnStatsBlock `layout: "stacked"`): its unit
+   ("decisions") goes on a muted line of its own under the number, where the
+   stat tile puts its caption (zuiddrecht-pixel-gaps-3). */
+.cn-kpi-card--stacked .cn-stats-block__count {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--cn-kpi-stacked-gap, 6px);
+}
+
+.cn-kpi-card--stacked .cn-stats-block__count-label {
+	font-size: var(--cn-kpi-label-size, 13px);
+	font-weight: 500;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Board look (screens-dashboard-parity): the screens' KPI tile. Opt-in via
+   `cn-kpi-card--board`, which the components add when `cnLook` is `board`;
+   a tile without it keeps the 34px value above. Label 14 grey, value 28/700,
+   note 13/400, a 6px gap, padding 18px 20px. */
+.cn-kpi-card--board {
+	--cn-kpi-stacked-value-size: 28px;
+	--cn-kpi-stacked-gap: 6px;
+	--cn-kpi-stacked-padding: 18px 20px;
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__value {
+	line-height: 1.1;
+	color: var(--color-main-text);
+}
+
+/* A board tile whose label wraps grows into its cell instead of clipping its
+   own last line. dossiq's "Afgehandeld deze maand" at 1100 wide held 129px of
+   content in a 114px tile and lost its caption's bottom. The tile still fills
+   a cell it fits (`min-height: 100%`), so every tile that fits keeps its
+   size; one that does not takes the height of its content, and the card-fit
+   cell's `safe center` keeps its top in view.
+   @spec openspec/changes/board-stat-tile-grows/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-shows-all-its-lines */
+.cn-kpi-card--board.cn-kpi-card--stacked {
+	flex: 0 0 auto;
+	height: auto;
+	min-height: 100%;
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__caption-line,
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-stats-block__count-label {
+	font-size: 13px;
+	font-weight: 400;
+}
+
+/* The board sets a tile's label and caption at the font's normal line height
+   (DqTermijnen: the label 17px from the tile's top); Nextcloud's 1.5 added
+   2px of half-leading above the label and grew the tile.
+   @spec openspec/changes/board-stat-tile-inset/specs/board-stat-tile-inset/spec.md#requirement-a-board-stat-tiles-label-and-caption-are-set-at-the-normal-line-height */
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__title,
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__title-text,
+.cn-kpi-card--board.cn-kpi-card--stacked .cn-kpi-card__caption-line {
+	line-height: normal;
+}
+
+/* A caption on a line of its own wraps, up to two lines (DqDashboard: "haalden
+   hun termijn, naar doorlooptijd" runs over two lines in a narrow tile). The
+   one-line rule of `.cn-kpi-card__label` is for a caption BESIDE the number,
+   where a second line would push the tile taller; this line has the width of
+   the tile to itself. The clamp is safe here because the element is a plain
+   span, not a flex row (compare the title note above).
+   @spec openspec/changes/dashboard-tile-text-fits/specs/dashboard-tile-text-fits/spec.md#requirement-a-kpi-tiles-caption-and-board-label-wrap-to-two-lines */
+.cn-kpi-card--stacked .cn-kpi-card__caption-line {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	white-space: normal;
+	overflow-wrap: break-word;
+}
+
+/* Board look: the label wraps too, up to two lines, beside its icon badge
+   ("Afgehandeld deze maand"). The clamp sits on the label's own span
+   (`cn-kpi-card__title-text`), not on the title row, which stays the flex row
+   that carries the badge or the range select. */
+.cn-kpi-card--board .cn-kpi-card__title-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	white-space: normal;
+	overflow-wrap: break-word;
+}
+
+/* The 18px glyph before the label, drawn only on a link tile. */
+.cn-kpi-card--board .cn-kpi-card__title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-kpi-card--board .cn-stats-block__header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+/* A linked board tile is one link: the label is not underlined link text, in
+   any layout (screens-stat-tile-parity). The NL Design theme underlines every
+   `a` with `!important`, so the opt-out needs it too. */
+a.cn-kpi-card--board,
+a.cn-kpi-card--board:hover,
+a.cn-kpi-card--board:focus-visible,
+a.cn-kpi-card--board * {
+	text-decoration: none !important;
+}
+
+/* `content.iconPlacement: "end"` (DqDashboard): label left, the icon in a
+   32px circle right, tinted by the tile's state. */
+.cn-kpi-card--board .cn-kpi-card__title--badge-end {
+	justify-content: space-between;
+	gap: 8px;
+}
+
+/* The tile with its icon in a circle at the end (DqDashboard, DqMijnTeam) is
+   the board's larger tile: padded 20px 22px, 8px between its lines, its 28px
+   figure at the font's normal line height, 153px with a two-line caption where
+   it drew 140. A theme sets the figure at line height 1 through an id
+   selector (`#app-content-vue .cn-stat-widget__value`), hence `!important`.
+   @spec openspec/changes/board-kpi-badge-tile-size/specs/stat-tile-board-look/spec.md */
+.cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) {
+	--cn-kpi-stacked-padding: 20px 22px;
+	--cn-kpi-stacked-gap: 8px;
+	/* Its label is set at 600, as every board draws this tile (DqDashboard,
+	   DqMijnTeam, DqPersoonlijkeInstellingen); the plain stacked tile keeps 400. */
+	--cn-kpi-stacked-title-weight: 600;
+}
+
+.cn-kpi-card--board.cn-kpi-card--stacked:has(.cn-kpi-card__title--badge-end) .cn-kpi-card__value {
+	line-height: normal !important;
+}
+
+.cn-kpi-card__badge {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	margin-inline-start: auto;
+	border-radius: 50%;
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+	background: var(--color-primary-element-light, color-mix(in srgb, var(--color-primary-element) 12%, transparent));
+}
+
+.cn-kpi-card__badge svg {
+	width: 18px;
+	height: 18px;
+	fill: currentcolor;
+}
+
+.cn-kpi-card__badge--success {
+	color: var(--color-text-success, var(--color-success-text));
+	background: color-mix(in srgb, var(--color-text-success, var(--color-success-text)) 12%, var(--color-main-background));
+}
+
+.cn-kpi-card__badge--warning {
+	color: var(--color-element-warning, var(--color-warning-text));
+	background: color-mix(in srgb, var(--color-element-warning, var(--color-warning-text)) 12%, var(--color-main-background));
+}
+
+.cn-kpi-card__badge--error {
+	color: var(--color-text-error, var(--color-error-text));
+	background: color-mix(in srgb, var(--color-text-error, var(--color-error-text)) 10%, var(--color-main-background));
+}
+
+/* `content.iconPlacement: "top"` (LqTlVandaag, LqHrVandaag): the icon in a
+   42px circle above the label, a 22px glyph, 10px over the label.
+   @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label */
+.cn-kpi-card__badge--top {
+	width: 42px;
+	height: 42px;
+	margin-inline-start: 0;
+	margin-block-end: calc(10px - var(--cn-kpi-stacked-gap, 6px));
+}
+
+.cn-kpi-card__badge--top svg {
+	width: 22px;
+	height: 22px;
+}
+
+.cn-kpi-card__glyph {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-kpi-card__glyph svg {
+	width: 18px;
+	height: 18px;
+	fill: currentcolor;
 }
 
 /* Filled: the card draws its own grey box, for a KPI that is NOT already
@@ -447,5 +715,11 @@
 @container cn-kpi (max-width: 230px) {
 	.cn-kpi-card__value {
 		font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-kpi-card {
+		transition: none;
 	}
 }

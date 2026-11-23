@@ -100,7 +100,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import ClipboardText from 'vue-material-design-icons/ClipboardText.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 5
@@ -289,8 +289,9 @@ export default {
 			return form.title || form.id || t('nextcloud-vue', 'Untitled form')
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		formUrl(form) {
-			if (form.url) {
+			if (form.url && safeHref(form.url) !== '#') {
 				return form.url
 			}
 			if (form.hash) {

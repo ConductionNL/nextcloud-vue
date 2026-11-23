@@ -59,6 +59,7 @@ export default {
 | `cancelLabel` | String | | Cancel button label |
 | `closeLabel` | String | | Close button label |
 | `confirmLabel` | String | | Confirm button label |
+| `description` | `String` | `''` | What the delete removes besides the item, as a muted line under the question. `{name}` is the item name. Empty shows nothing. |
 
 ## Events
 
@@ -112,6 +113,25 @@ export default {
 }
 </script>
 ```
+
+## Board look
+
+Set `look: "board"` in the manifest (or pass `look="board"` to the dialog) and the dialog draws the board dialog of the screens. An app that sets nothing renders exactly as before.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `look` | follows the app | `board` or `nextcloud`. The prop wins over the app. |
+| `width` | per component | `confirm` (560), `form` (640) or `wizard` (720). No other width is reachable. |
+| `eyebrow` | empty | A context line above the title, 13px in sentence case. Not part of the accessible name. |
+| `subtitle` | empty | A sentence under the title. |
+
+Widths are capped at the viewport minus 32px. Theme hooks: `--cn-dialog-danger` (fill of a destructive primary, default `--color-error`), `--cn-dialog-eyebrow-color`, `--cn-dialog-eyebrow-transform` (`uppercase` for capitals) and `--cn-dialog-eyebrow-tracking`.
+
+### Destructive wording and type-to-confirm
+
+In the board look the body opens with a sentence that names the item in bold ("Are you sure you want to permanently delete **name**? This action cannot be undone."). A `warningText` you set renders under it as a warning note. Pass `:irreversible="false"` to drop the last sentence.
+
+Pass `confirmValue` to ask the user to type a value. The delete button stays disabled (`aria-disabled="true"`, 45% opacity) until the field matches exactly. `confirmFieldLabel` labels the field; `confirmLabel` stays the button label. This holds in both looks. `CnMassDeleteDialog` and `CnConfirmDialog` take the same props.
 
 ## Reference (auto-generated)
 

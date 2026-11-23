@@ -45,6 +45,34 @@
 			<slot name="actions" />
 		</div>
 
+		<!-- `filterControls`: the page's own filters, kept in the address. -->
+		<div v-if="controls.length > 0" class="cn-logs-page__filters" data-testid="cn-logs-page-filters">
+			<template v-for="control in controls" :key="control.key">
+				<NcSelect v-if="control.type === 'select'"
+					class="cn-logs-page__filter"
+					:inputLabel="tr(control.label || control.key)"
+					:options="selectOptions(control)"
+					:modelValue="selectedOption(control)"
+					label="label"
+					:data-testid="`cn-logs-page-filter-${control.key}`"
+					@update:modelValue="(o) => setControl(control, o ? o.index : null)" />
+				<NcSelect v-else-if="control.type === 'reference'"
+					class="cn-logs-page__filter"
+					:inputLabel="tr(control.label || control.key)"
+					:options="referenceOptions[control.key] || []"
+					:modelValue="selectedReference(control)"
+					label="label"
+					:data-testid="`cn-logs-page-filter-${control.key}`"
+					@update:modelValue="(o) => setControl(control, o ? o.id : null)" />
+				<div v-else class="cn-logs-page__filter cn-logs-page__filter--range" :data-testid="`cn-logs-page-filter-${control.key}`">
+					<span class="cn-logs-page__filter-label">{{ tr(control.label || control.key) }}</span>
+					<CnDateRangePicker
+						:modelValue="rangeValue(control)"
+						@update:modelValue="(v) => setControl(control, v)" />
+				</div>
+			</template>
+		</div>
+
 		<!-- Body -->
 		<div class="cn-logs-page__body">
 			<!-- Loading state -->
@@ -89,7 +117,8 @@
 					:sortKeys="effectiveSortKeys"
 					:emptyText="emptyText"
 					@sort="onSort"
-					@rowClick="onRowClick">
+					@rowClick="onRowClick"
+					@rowAuxClick="onRowAuxClick">
 					<template
 						v-for="col in slotColumns"
 						#[`column-${col}`]="{ row, value }">
@@ -170,15 +199,21 @@
 <script>
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { getCurrentInstance, inject } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import { useListView } from '../../composables/index.js'
 import { useObjectStore } from '../../store/index.js'
+import { prefixUrl } from '../../utils/headers.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
+import { chosenOption, normaliseFilterControls, queryWithControl, queryWithDefaults, selectFilters } from '../../utils/logFilterControls.js'
 import { multiKeySort } from '../../utils/multiKeySort.js'
+import { loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { parseSortKeysFromQuery, resolveFilterMap, resolveQueryFilters } from '../../utils/routeFilters.js'
+import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { CnDataTable } from '../CnDataTable/index.js'
+import { CnDateRangePicker } from '../CnDateRangePicker/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
@@ -259,12 +294,19 @@ export default {
 		NcDialog,
 		NcEmptyContent,
 		NcLoadingIcon,
+		NcSelect,
 		HistoryIcon,
 		AlertCircleOutline,
 		CnDataTable,
+		CnDateRangePicker,
 		CnDetailGrid,
 		CnPageHeader,
 		CnPagination,
+	},
+
+	inject: {
+		/** The host's translate (CnAppRoot provides `cnTranslate`), for control labels. */
+		cnTranslate: { default: () => (key) => key },
 	},
 
 	props: {
@@ -355,6 +397,23 @@ export default {
 		filter: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Filter controls drawn above the table (`config.filterControls`),
+		 * each kept in the address so a filtered view is a link: `select`
+		 * (`options: [{ label, filter }]`, the chosen option's `filter` merged
+		 * into the fetch), `reference` (`optionsFrom: { register, schema,
+		 * labelKey, valueKey }`, sent as `<key>=<value>`) and `dateRange`
+		 * (`<key>[gte]` / `<key>[lte]`, `range.defaultDays` preselecting the
+		 * last N days). The `filter` prop wins a collision. Store mode only.
+		 *
+		 * @type {Array<object>}
+		 * @spec openspec/changes/logs-page-filter-controls/specs/logs-page-filter-controls/spec.md#requirement-a-logs-page-draws-the-filter-controls-it-declares
+		 */
+		filterControls: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -483,10 +542,19 @@ export default {
 		/**
 		 * @event row-click Emitted when a log row's body is clicked, whether or
 		 * not `rowDetail` opened the detail dialog — so a host can navigate
-		 * instead of (or as well as) showing the dialog.
+		 * instead of (or as well as) showing the dialog. Payload: `(row, event)`,
+		 * the second being the native click event. A middle click emits
+		 * `row-aux-click` instead.
 		 * @type {object}
 		 */
 		'row-click',
+		/**
+		 * @event row-aux-click Emitted when a log row's body is middle-clicked,
+		 * for opening it in a new tab. Payload: `(row, event)`, the second being
+		 * the native auxclick event.
+		 * @type {object}
+		 */
+		'row-aux-click',
 	],
 
 	setup(props) {
@@ -554,6 +622,7 @@ export default {
 			const ctx = tokenCtx()
 			return {
 				...resolveQueryFilters(route && route.query, ctx),
+				...selectFilters(props.filterControls, (route && route.query) || {}),
 				...resolveFilterMap(props.filter, (route && route.params) || {}, ctx),
 			}
 		}
@@ -576,6 +645,8 @@ export default {
 	data() {
 		return {
 			localRows: [],
+			// Options of each `reference` filter control, by key.
+			referenceOptions: {},
 			localLoading: false,
 			localError: null,
 			localSortKeys: [],
@@ -584,6 +655,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {Array<object>} The usable filter controls. */
+		controls() {
+			return normaliseFilterControls(this.filterControls)
+		},
+
 		/** Whether the component fetches via the object store + useListView. */
 		usesStore() {
 			return !!this.list
@@ -827,6 +903,8 @@ export default {
 	},
 
 	mounted() {
+		this.applyControlDefaults()
+		this.loadReferenceOptions()
 		// In store mode useListView's own onMounted owns the initial fetch;
 		// calling fetch() here too would double-request on every page load.
 		if (!this.list) {
@@ -835,6 +913,100 @@ export default {
 	},
 
 	methods: {
+		tr(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * A select control's options for NcSelect, each with its index.
+		 *
+		 * @param {object} control The control.
+		 * @return {Array<{index: number, label: string}>}
+		 */
+		selectOptions(control) {
+			return (Array.isArray(control.options) ? control.options : []).map((option, index) => ({ index, label: this.tr((option && option.label) || String(index)) }))
+		},
+
+		/**
+		 * The select option the address holds, or null.
+		 *
+		 * @param {object} control The control.
+		 * @return {{index: number, label: string}|null}
+		 */
+		selectedOption(control) {
+			const option = chosenOption(control, (this.$route && this.$route.query) || {})
+			return option ? this.selectOptions(control)[control.options.indexOf(option)] : null
+		},
+
+		/**
+		 * The reference option the address holds, or null. A value whose
+		 * label has not loaded shows as itself.
+		 *
+		 * @param {object} control The control.
+		 * @return {{id: string, label: string}|null}
+		 */
+		selectedReference(control) {
+			const value = this.$route && this.$route.query ? this.$route.query[control.key] : undefined
+			if (value === undefined || value === null || value === '') {
+				return null
+			}
+			return (this.referenceOptions[control.key] || []).find((o) => String(o.id) === String(value)) || { id: String(value), label: String(value) }
+		},
+
+		/**
+		 * A date range control's value from the address.
+		 *
+		 * @param {object} control The control.
+		 * @return {{from: string, to: string, preset: string}|null}
+		 */
+		rangeValue(control) {
+			const query = (this.$route && this.$route.query) || {}
+			const from = query[`${control.key}[gte]`]
+			const to = query[`${control.key}[lte]`]
+			return from || to ? { from: from || '', to: to || '', preset: 'custom' } : null
+		},
+
+		/**
+		 * Write one control's value to the address (`replace`); the list
+		 * follows the query.
+		 *
+		 * @param {object} control The control.
+		 * @param {unknown} value The value; null clears.
+		 * @spec openspec/changes/logs-page-filter-controls/specs/logs-page-filter-controls/spec.md#requirement-a-filtered-log-view-is-a-link
+		 */
+		setControl(control, value) {
+			if (!this.$router || typeof this.$router.replace !== 'function') {
+				return
+			}
+			const query = queryWithControl((this.$route && this.$route.query) || {}, control, value)
+			this.$router.replace({ query }).catch(() => {})
+		},
+
+		/** Preselect a date range's last N days when the address holds none. */
+		applyControlDefaults() {
+			const next = queryWithDefaults((this.$route && this.$route.query) || {}, this.controls)
+			if (next && this.$router && typeof this.$router.replace === 'function') {
+				this.$router.replace({ query: next }).catch(() => {})
+			}
+		},
+
+		/**
+		 * Read the options of every `reference` control once.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadReferenceOptions() {
+			for (const control of this.controls.filter((c) => c.type === 'reference' && c.optionsFrom)) {
+				const from = control.optionsFrom
+				try {
+					const options = await loadOptionsFrom({ ...from, valueField: from.valueField || from.valueKey, labelField: from.labelField || from.labelKey })
+					this.referenceOptions = { ...this.referenceOptions, [control.key]: options }
+				} catch {
+					this.referenceOptions = { ...this.referenceOptions, [control.key]: [] }
+				}
+			}
+		},
+
 		/**
 		 * Capitalise + space a snake_case / camelCase key for a default column label.
 		 *
@@ -899,7 +1071,7 @@ export default {
 				this.localLoading = true
 				this.localError = null
 				try {
-					const response = await axios.get(this.source)
+					const response = await axios.get(prefixUrl(this.source))
 					const body = response?.data
 					if (Array.isArray(body)) {
 						this.localRows = body
@@ -989,26 +1161,41 @@ export default {
 		/**
 		 * Handle a row-body click: navigate to `rowRoute` when one is declared,
 		 * else open the detail dialog when `rowDetail` is set. Always re-emits
-		 * so a host can do its own thing regardless.
+		 * so a host can do its own thing regardless. A ctrl/cmd/shift click
+		 * opens `rowRoute` in a new tab.
 		 *
 		 * @param {object} row The clicked log entry.
+		 * @param {MouseEvent} [event] The originating click event.
 		 */
-		onRowClick(row) {
+		onRowClick(row, event) {
 			if (this.rowRoute) {
-				// `.catch` swallows vue-router's NavigationDuplicated when the
-				// row is already open — a rejected push is not an error here.
-				const push = this.$router?.push({ name: this.rowRoute, params: { id: row?.[this.rowKey] } })
-				if (push && typeof push.catch === 'function') {
-					push.catch(() => {})
-				}
+				markNewTabHandled(event, openRowTarget(event, { name: this.rowRoute, params: { id: row?.[this.rowKey] } }, this.$router))
 			} else if (this.rowDetail) {
 				this.detailRow = row
 			}
 			/**
-			 * @event row-click Emitted when a log row's body is clicked.
+			 * @event row-click Emitted when a log row's body is clicked. Payload: `(row, event)` — the log entry and the native click event.
 			 * @type {object}
 			 */
-			this.$emit('row-click', row)
+			this.$emit('row-click', row, event)
+		},
+
+		/**
+		 * Handle a row-body middle click: open `rowRoute` in a new tab, never
+		 * the detail dialog, and emit `row-aux-click` rather than `row-click`.
+		 *
+		 * @param {object} row The clicked log entry.
+		 * @param {MouseEvent} event The originating auxclick event.
+		 */
+		onRowAuxClick(row, event) {
+			if (this.rowRoute) {
+				markNewTabHandled(event, openRowTarget(event, { name: this.rowRoute, params: { id: row?.[this.rowKey] } }, this.$router))
+			}
+			/**
+			 * @event row-aux-click Emitted when a log row's body is middle-clicked. Payload: `(row, event)` — the log entry and the native auxclick event.
+			 * @type {object}
+			 */
+			this.$emit('row-aux-click', row, event)
 		},
 
 		/** Close the row-detail dialog. */
@@ -1034,6 +1221,24 @@ export default {
 </script>
 
 <style scoped>
+.cn-logs-page__filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.cn-logs-page__filter {
+	min-width: 200px;
+}
+
+.cn-logs-page__filter-label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+}
+
 /* Padding matches CnIndexPage / CnDetailPage (see css/index-page.css and
    css/detail-page.css) — a logs page had none at all, so its table ran flush
    into both edges of the app content area. Gaps are expressed in the same

@@ -50,6 +50,9 @@ import { emit } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { parseDispositionFilename, triggerBlobDownload } from '../components/CnIndexPage/selfModeIO.js'
 import { interpolateUrlTokens } from '../composables/useEndpointSource.js'
+import { routeHref } from './actionLink.js'
+import { resolveModalEntry } from './builtInModals.js'
+import { noticeFromOutcome } from './cardNotices.js'
 import {
 	dropOptionalUnresolved,
 	dropOptionalUnresolvedDeep,
@@ -58,13 +61,40 @@ import {
 	resolveDeepTokens,
 	resolveFilterTokens,
 } from './resolveFilterTokens.js'
+import { schemaRefSlug } from './schemaRefSlug.js'
 
 /** Event-bus channel the page-level Refresh signal broadcasts on (Wave 2). */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
 /**
+ * Show a call's outcome in the card it was run from when the answer asks for
+ * a notice (`notice` in the body, or `noticeInline` on the action) and the
+ * surface passed `context.showNotice`; otherwise toast it as before.
+ *
+ * @param {object} action The dispatched action.
+ * @param {object} context The dispatch context.
+ * @param {{ok: boolean, data?: unknown, error?: unknown, text: string}} outcome The call outcome and its toast text.
+ * @param {object} dialogs The `@nextcloud/dialogs` module.
+ * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-action-answer-becomes-a-notice-in-its-card
+ */
+function reportOutcome(action, context, outcome, dialogs) {
+	const text = outcome.text
+	if (context && typeof context.showNotice === 'function') {
+		const notice = noticeFromOutcome(action, outcome, outcome.ok ? { successText: text } : { errorText: text })
+		if (notice) {
+			context.showNotice(notice)
+			return
+		}
+	}
+	const toast = outcome.ok ? dialogs.showSuccess : dialogs.showError
+	if (typeof toast === 'function') {
+		toast(text)
+	}
+}
+
+/**
  * Whether a `navigate` target leaves the app: it is `http(s)://`,
- * protocol-relative (`//`), or a `mailto:` / `tel:` link. Anything else is an
+ * protocol-relative (`//`), or a `mailto:` / `tel:` / `geo:` link. Anything else is an
  * in-app path for the router.
  *
  * vue-router happily accepts an absolute URL as a PATH — `router.push` on
@@ -83,7 +113,7 @@ export function isExternalActionTarget(target) {
 	if (typeof target !== 'string') {
 		return false
 	}
-	return /^\/\//.test(target) || /^(https?|mailto|tel):/i.test(target)
+	return /^\/\//.test(target) || /^(https?|mailto|tel|geo):/i.test(target)
 }
 
 /**
@@ -92,13 +122,39 @@ export function isExternalActionTarget(target) {
  * own caches stay coherent); otherwise registers a deterministic
  * `<register>/<schema>` slug on the fly.
  *
+ * `source.schema` is routed through {@link schemaRefSlug} before it ever
+ * reaches the store or the objects API: a caller that passes a `$ref`
+ * schema TITLE (`ReportPeriod`) rather than its slug (`report-period`)
+ * would otherwise register — and fetch — a 404 (defect 7, learniq round
+ * 1). Idempotent for a caller that already passes a correct slug.
+ *
+ * A caller that already holds the schema SLUG (not a `$ref` title) passes
+ * `{ exactSchema: true }`: the slug is then used exactly as given. Kebab-casing
+ * a real camelCase slug (`productCategory` -> `product-category`) asks the
+ * objects API for a schema that does not exist and 404s (pipelinq review,
+ * round two).
+ *
+ * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+ *
+ * A title is not always registered under its kebab form: learniq holds
+ * `LearniqSettings` and `SubjectTeacherAssignment` as written. So a type
+ * registered here for a value the kebab rule CHANGED also carries the value
+ * as written as its `schemaFallback`, and the store retries with it once
+ * when the kebab form answers 404 (keeping it from then on). The kebab form
+ * is still tried first, so a schema registered under it costs nothing.
+ *
+ * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
  * @param {object} store The object store instance (useObjectStore shape).
  * @param {{register: (string|number), schema: (string|number)}} source The widget source.
+ * @param {{exactSchema: (boolean|undefined)}} [options] `exactSchema: true` skips the title-to-slug step.
  * @return {string} The type slug to use for store CRUD calls.
  */
-export function resolveObjectOpType(store, source) {
+export function resolveObjectOpType(store, source, options = {}) {
 	const register = String(source.register)
-	const schema = String(source.schema)
+	const schema = options.exactSchema === true ? String(source.schema) : String(schemaRefSlug(source.schema))
+	const written = typeof source.schema === 'string'
+		? source.schema.substring(source.schema.lastIndexOf('/') + 1)
+		: ''
 	const registry = store.objectTypeRegistry || {}
 	for (const [slug, config] of Object.entries(registry)) {
 		if (!config) {
@@ -112,6 +168,9 @@ export function resolveObjectOpType(store, source) {
 	const slug = `${register}/${schema}`
 	if (!registry[slug]) {
 		store.registerObjectType(slug, schema, register)
+		if (written !== '' && written !== schema && typeof store.setSchemaFallback === 'function') {
+			store.setSchemaFallback(slug, written)
+		}
 	}
 	return slug
 }
@@ -162,27 +221,28 @@ export function savedObjectId(saved) {
 }
 
 /**
- * Resolve a named create-override handler out of the v2 registry (or the
- * legacy customComponents map) by value shape.
+ * Resolve a manifest-named FUNCTION out of the v2 registry, falling back to the
+ * legacy customComponents map.
  *
- * A create-override is a plain async function that replaces the default
- * `objectStore.saveObject` persist path — needed whenever a schema requires a
- * field the create form cannot supply on its own (a server-minted foreign key,
- * say). Recognised shapes, in order:
- *   1. a `kind: 'create-override'` registry entry exposing `.handler` / `.fn`,
+ * A manifest names a behaviour the same way it names a component — by string —
+ * so every surface that dispatches one (`actions[].handler`,
+ * `bulkActions[].handler`, `headerActions[].handler`, `config.createOverride`)
+ * has to agree on where that string is looked up and what counts as a match.
+ * Recognised shapes, in order:
+ *   1. a registry entry exposing the function as `.handler` / `.fn` (the
+ *      `kind: 'handler'` and `kind: 'create-override'` entries),
  *   2. a directly function-valued registry entry,
  *   3. a function-valued legacy `customComponents` entry.
  *
- * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
- * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
- * the two surfaces cannot drift on what counts as a valid handler.
+ * The legacy map stays last so an app that has not migrated is unchanged, and
+ * so an app mid-migration can move its handlers over one at a time.
  *
  * @param {string} name The registered handler name.
  * @param {object} registry The v2 component registry.
  * @param {object} customComponents The legacy customComponents map.
- * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
+ * @return {?((scope?: object) => unknown)} The handler, or null when nothing of that name is a function.
  */
-export function resolveCreateOverrideHandler(name, registry, customComponents) {
+export function resolveRegisteredHandler(name, registry, customComponents) {
 	if (typeof name !== 'string' || name === '') {
 		return null
 	}
@@ -200,6 +260,28 @@ export function resolveCreateOverrideHandler(name, registry, customComponents) {
 	}
 	const legacy = (customComponents || {})[name]
 	return typeof legacy === 'function' ? legacy : null
+}
+
+/**
+ * Resolve a named create-override handler out of the v2 registry (or the
+ * legacy customComponents map) by value shape.
+ *
+ * A create-override is a plain async function that replaces the default
+ * `objectStore.saveObject` persist path — needed whenever a schema requires a
+ * field the create form cannot supply on its own (a server-minted foreign key,
+ * say).
+ *
+ * Shared by CnPageRenderer (page-level `config.createOverride` → CnIndexPage's
+ * prop) and CnActionButtons (per-action `createOverride` on an `open-form`), so
+ * the two surfaces cannot drift on what counts as a valid handler.
+ *
+ * @param {string} name The registered handler name.
+ * @param {object} registry The v2 component registry.
+ * @param {object} customComponents The legacy customComponents map.
+ * @return {?((props?: object) => Promise<unknown>)} The async create handler, or null when unresolved.
+ */
+export function resolveCreateOverrideHandler(name, registry, customComponents) {
+	return resolveRegisteredHandler(name, registry, customComponents)
 }
 
 /**
@@ -295,6 +377,76 @@ function interpolateActionString(str, ctx) {
 }
 
 /**
+ * Interpolate an action's `target` URL — the same grammar `url` runs.
+ *
+ * Exported because the rendering surface resolves a target BEFORE deciding
+ * whether it is an external link, and that decision happens there rather than
+ * in the dispatcher.
+ *
+ * @param {string} target The action's raw `target`.
+ * @param {object} ctx Token context (`{ objectId?, object?, workspace?, config? }`).
+ *
+ * @return {string} The interpolated target.
+ */
+export function interpolateActionTarget(target, ctx) {
+	return interpolateActionString(target || '', ctx || {})
+}
+
+// The tokens interpolateActionString resolves; a bare `@` or `{` is not one.
+const ACTION_TARGET_TOKEN = /@(?:objectId|object\.|page\.|workspace\.|config\.|range\.)|\{objectId\}/
+
+/**
+ * Whether an action target carries a token that interpolation would resolve,
+ * so it can only be known once the page context is. A `mailto:` address or a
+ * URL with an `@handle` in it has none.
+ *
+ * @param {string} target The action's raw `target`.
+ * @return {boolean}
+ */
+export function hasActionTargetTokens(target) {
+	return typeof target === 'string' && ACTION_TARGET_TOKEN.test(target)
+}
+
+/**
+ * The link an action renders as when its only job is to navigate to a target
+ * known at render time: `navigate` (token-interpolated like the dispatcher)
+ * and `open-page`. Anything else, a `confirm: true` action, or an in-app
+ * target the router cannot resolve answers null and keeps dispatching.
+ *
+ * `to` is what a plain click hands the router (null for an external URL,
+ * which the browser opens in a new tab like the dispatcher's `window.open`).
+ *
+ * @param {object} action The manifest action.
+ * @param {{router?: object, tokenCtx?: object}} [context] The dispatch context.
+ * @return {{href: string, to: (string|object|null), external: boolean}|null} The link, or null.
+ */
+export function actionLink(action, context = {}) {
+	if (!action || typeof action !== 'object' || action.confirm) {
+		return null
+	}
+	if (action.type === 'navigate') {
+		const target = interpolateActionString(action.target || '', context.tokenCtx || {})
+		if (!target) {
+			return null
+		}
+		if (isExternalActionTarget(target)) {
+			return { href: target, to: null, external: true }
+		}
+		const href = routeHref(target, context.router)
+		return href ? { href, to: target, external: false } : null
+	}
+	if (action.type === 'open-page') {
+		if (typeof action.target !== 'string' || action.target.length === 0) {
+			return null
+		}
+		const to = { name: action.target }
+		const href = routeHref(to, context.router)
+		return href ? { href, to, external: false } : null
+	}
+	return null
+}
+
+/**
  * Execute a Wave-3 `api-call` action: POST/PUT the configured app endpoint
  * (URL + body run the SAME @-token grammar endpoint sources use), toast the
  * outcome via @nextcloud/dialogs, then — unless `action.refresh` is `false`
@@ -325,6 +477,7 @@ function interpolateActionString(str, ctx) {
  *   context (`{ objectId?, object?, workspace?, config? }`) the URL/body
  *   resolve against.
  * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>} The call outcome.
+ * @spec openspec/changes/api-call-delete/specs/api-call-delete/spec.md#requirement-an-api-call-action-can-send-delete
  */
 async function executeApiCall(action, context) {
 	const tokenCtx = context.tokenCtx || {}
@@ -341,7 +494,8 @@ async function executeApiCall(action, context) {
 		console.warn('[dispatchAction] api-call is missing its url or a required token is unresolved — skipping.', action)
 		return { ok: false, error: new Error('api-call blocked') }
 	}
-	const method = String(action.method || 'POST').toUpperCase() === 'PUT' ? 'put' : 'post'
+	const verb = String(action.method || 'POST').toUpperCase()
+	const method = { PUT: 'put', PATCH: 'patch', GET: 'get', DELETE: 'delete' }[verb] || 'post'
 	const isDownload = action.download === true
 	const [{ default: axios }, { generateUrl }, dialogs] = await Promise.all([
 		import('@nextcloud/axios'),
@@ -353,9 +507,16 @@ async function executeApiCall(action, context) {
 		// Only pass a third axios config arg for a download call — an
 		// explicit `undefined` third argument would otherwise change the
 		// call shape for every existing (non-download) api-call consumer/test.
-		const res = isDownload
-			? await axios[method](target, body, { responseType: 'blob' })
-			: await axios[method](target, body)
+		// A GET sends the resolved params as the query string: it reads, as a
+		// download of what the page shows (DqDoorlooptijd "Downloaden").
+		// A DELETE carries its body as the request data (an unfreeze reason).
+		const res = method === 'get'
+			? await axios.get(target, isDownload ? { params: body, responseType: 'blob' } : { params: body })
+			: method === 'delete'
+				? await axios.delete(target, { data: body })
+				: (isDownload
+						? await axios[method](target, body, { responseType: 'blob' })
+						: await axios[method](target, body))
 		if (isDownload) {
 			const filename = parseDispositionFilename(
 				res && res.headers && res.headers['content-disposition'],
@@ -363,22 +524,109 @@ async function executeApiCall(action, context) {
 			)
 			triggerBlobDownload(res.data, filename)
 		}
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.') }, dialogs)
 		const shouldRefresh = isDownload ? action.refresh === true : action.refresh !== false
 		if (shouldRefresh) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		if (!isDownload && action.openResponse) {
+			openResponseUrl(action.openResponse, outcome.data)
+		}
+		return outcome
 	} catch (error) {
 		const serverMessage = error && error.response && error.response.data
 			&& (error.response.data.error || error.response.data.message)
-		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-		}
+		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
 	}
+}
+
+/**
+ * The address an api-call's `openResponse` names in the call's answer: the
+ * `field` dot-path (default `url`), when it holds an http(s) URL or a
+ * server-relative path. Anything else (a `javascript:` URL, `//host`, no
+ * value) gives null.
+ *
+ * @param {(boolean|string|{field?: string, newTab?: boolean})} openResponse The action's `openResponse`.
+ * @param {unknown} data The call's answer.
+ * @return {{url: string, newTab: boolean}|null} What to open, or null.
+ * @spec openspec/changes/api-call-open-response/specs/api-call-open-response/spec.md#requirement-an-api-call-can-open-what-the-call-answered
+ */
+export function resolveOpenResponse(openResponse, data) {
+	const spec = typeof openResponse === 'string'
+		? { field: openResponse }
+		: (openResponse && typeof openResponse === 'object' ? openResponse : (openResponse === true ? {} : null))
+	if (!spec || !data || typeof data !== 'object') {
+		return null
+	}
+	const field = typeof spec.field === 'string' && spec.field !== '' ? spec.field : 'url'
+	const value = field.split('.').reduce((obj, key) => (obj === null || obj === undefined ? obj : obj[key]), data)
+	if (typeof value !== 'string') {
+		return null
+	}
+	const url = value.trim()
+	const safe = /^https?:\/\//i.test(url) || (url.startsWith('/') && !url.startsWith('//'))
+	return safe ? { url, newTab: spec.newTab === true } : null
+}
+
+/**
+ * Open what an api-call answered (`openResponse`): in a new tab with
+ * `newTab`, else in this one.
+ *
+ * @param {(boolean|string|object)} openResponse The action's `openResponse`.
+ * @param {unknown} data The call's answer.
+ */
+function openResponseUrl(openResponse, data) {
+	const target = resolveOpenResponse(openResponse, data)
+	if (!target || typeof window === 'undefined') {
+		return
+	}
+	if (target.newTab) {
+		window.open(target.url, '_blank', 'noopener,noreferrer')
+	} else {
+		window.location.assign(target.url)
+	}
+}
+
+/**
+ * Execute an `object-action`: run the declared action `action.action` on the
+ * page's object (`register` / `schema` / `objectId` from the action, else the
+ * token context) with `action.inputs`, toast the outcome and refresh the page.
+ * A 202 (queued or suspended) says the action runs in the background.
+ *
+ * @param {object} action The action (`action`, `inputs?`, `register?`, `schema?`, `objectId?`).
+ * @param {object} context The runtime context (`tokenCtx`).
+ * @return {Promise<{ok: boolean, data?: unknown, error?: unknown}>}
+ * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+ */
+async function executeObjectAction(action, context) {
+	const tokenCtx = context.tokenCtx || {}
+	const address = {
+		register: resolveAgentRef(action.register, tokenCtx.register, tokenCtx),
+		schema: resolveAgentRef(action.schema, tokenCtx.schema, tokenCtx),
+		id: resolveAgentRef(action.objectId, tokenCtx.objectId, tokenCtx),
+	}
+	const dialogs = await import('@nextcloud/dialogs')
+	if (!action.action || !address.register || !address.schema || !address.id) {
+		reportOutcome(action, context, { ok: false, text: t('nextcloud-vue', 'Action failed.') }, dialogs)
+		return { ok: false, error: new Error('object-action without an action or an object') }
+	}
+	const inputs = action.inputs && typeof action.inputs === 'object' ? resolveDeepTokens(action.inputs, tokenCtx) : {}
+	const { runObjectAction } = await import('../composables/useObjectActions.js')
+	const result = await runObjectAction(address, action.action, inputs)
+	if (!result.ok) {
+		reportOutcome(action, context, { ok: false, text: translateMessage(action.errorMessage, context) || result.message || t('nextcloud-vue', 'Action failed.') }, dialogs)
+		return { ok: false, error: new Error(result.message || 'object-action failed') }
+	}
+	const text = result.queued
+		? t('nextcloud-vue', 'Started. It finishes in the background.')
+		: (translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Action completed.'))
+	reportOutcome(action, context, { ok: true, data: result.data, text }, dialogs)
+	if (action.refresh !== false) {
+		emit(PAGE_REFRESH_CHANNEL, {})
+	}
+	return { ok: true, data: result.data }
 }
 
 /**
@@ -473,13 +721,12 @@ async function executeAgentAction(action, context) {
 	const target = generateUrl(`/apps/hermiq/api/agents/${encodeURIComponent(agent)}/run-on-object`)
 	try {
 		const res = await axios.post(target, body)
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run queued') }, dialogs)
 		if (action.refresh !== false) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const response = error && error.response
 		const status = response && response.status
@@ -489,12 +736,10 @@ async function executeAgentAction(action, context) {
 		// route 404s at the NC level) — surface a graceful "runtime unavailable"
 		// rather than a fail-closed authorization message.
 		const hermiqAbsent = status === 404 && !serverMessage
-		if (typeof dialogs.showError === 'function') {
-			const msg = hermiqAbsent
-				? t('nextcloud-vue', 'Agent runtime unavailable')
-				: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-			dialogs.showError(msg)
-		}
+		const msg = hermiqAbsent
+			? t('nextcloud-vue', 'Agent runtime unavailable')
+			: (translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
+		reportOutcome(action, context, { ok: false, error, text: msg }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -558,20 +803,17 @@ export async function postRunNode(action, context, config = {}) {
 	const target = generateUrl(`/apps/openregister/api/flows/${encodeURIComponent(flowId)}/nodes/${encodeURIComponent(nodeId)}/run`)
 	try {
 		const res = await axios.post(target, { subject: { uuid, register, schema }, config: config || {} })
-		if (typeof dialogs.showSuccess === 'function') {
-			dialogs.showSuccess(translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.'))
-		}
+		const outcome = { ok: true, data: res && res.data }
+		reportOutcome(action, context, { ...outcome, text: translateMessage(action.successMessage, context) || t('nextcloud-vue', 'Run completed.') }, dialogs)
 		if (action.refresh !== false) {
 			emit(PAGE_REFRESH_CHANNEL, {})
 		}
-		return { ok: true, data: res && res.data }
+		return outcome
 	} catch (error) {
 		const response = error && error.response
 		const serverMessage = response && response.data
 			&& (response.data.error || response.data.message)
-		if (typeof dialogs.showError === 'function') {
-			dialogs.showError(translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.'))
-		}
+		reportOutcome(action, context, { ok: false, error, text: translateMessage(action.errorMessage, context) || serverMessage || t('nextcloud-vue', 'Action failed.') }, dialogs)
 		return { ok: false, error }
 	}
 }
@@ -606,7 +848,7 @@ export async function postRunNode(action, context, config = {}) {
  *   through generateUrl) or absolute. May interpolate the shared URL tokens
  *   (`@objectId`, `@object.<field>`, `@workspace.<key>`, `@config.<key>`, and the
  *   `{objectId}` brace form).
- * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT".
+ * @param {string} [action.method] "api-call" only: "POST" (default) | "PUT" | "PATCH" (changes only the fields in the body) | "GET" (the resolved params as the query string) | "DELETE" (the body as request data).
  * @param {object} [action.payload] "api-call" only: the JSON body — preferred over `params`.
  *   Values resolve the shared `@`-token grammar RECURSIVELY at any nesting depth (objects
  *   and arrays of objects, e.g. `{ dataRefs: [{ id: '@objectId' }] }`); optional (`…?`)
@@ -615,6 +857,9 @@ export async function postRunNode(action, context, config = {}) {
  * @param {object} [action.params] "api-call" only: legacy JSON body (ignored when `payload`
  *   is set). Values pass the shared filter-token grammar ONE level deep; optional (`…?`)
  *   tokens drop when unresolved, an unresolved REQUIRED token blocks the call.
+ * @param {(boolean|string|object)} [action.openResponse] "api-call" only: open the address
+ *   the answer holds at `field` (default `url`) after a successful call, in a new tab with
+ *   `newTab: true`; `true` reads `url`, a string names the field.
  * @param {boolean} [action.download] "api-call" only: request the response as a binary blob
  *   (`responseType: 'blob'`) and trigger a browser file download instead of a JSON
  *   toast+refresh cycle. Default `false`.
@@ -644,9 +889,14 @@ export async function postRunNode(action, context, config = {}) {
  *
  * @param {object} context Runtime context.
  * @param {object} [context.router] Vue Router instance. Required for "open-page" and "navigate".
+ * @param {Function} [context.showNotice] "api-call" / "agent" / run-node: draws a notice in the
+ *   card the action ran from. Used instead of the toast when the answer carries `notice`, or the
+ *   action sets `noticeInline: true` (card-state-notices).
  * @param {object} [context.registry] Component registry (Record<string, { kind, component }>).
  *   Required for "open-modal" type.
- * @param {object} [context.handlers] Map of handler name → function. Required for "handler" type.
+ * @param {object} [context.handlers] Map of handler name → function, called with the action's spread args. A
+ *   "handler" name it lacks resolves against `context.registry` (as on an index page), called with
+ *   `{ actionId, item, args }`: `item` is `context.row`, else the last arg.
  * @param {(key: string, props?: object) => void} [context.openModal] Opens a modal.
  *   Required for "open-modal" type.
  * @param {(action: object) => void} [context.openExport] Opens the shared
@@ -701,19 +951,26 @@ export function dispatchAction(action, context = {}) {
 			const handlerName = action.handler
 			const handlers = context.handlers || {}
 
-			if (!handlerName || typeof handlers[handlerName] !== 'function') {
-			// eslint-disable-next-line no-console
-				console.warn(`[dispatchAction] Handler "${handlerName}" not found in context.handlers.`)
-				return
+			if (handlerName && typeof handlers[handlerName] === 'function') {
+				handlers[handlerName](...(action.args ?? []))
+				break
 			}
-			handlers[handlerName](...(action.args ?? []))
-			break
+			// The manifest's handlers are JSON; a function the app registered
+			// answers the name as it does on an index page, with the row as item.
+			const registered = resolveRegisteredHandler(handlerName, context.registry)
+			if (registered) {
+				const args = action.args ?? []
+				const item = context.row ?? (args.length > 0 ? args[args.length - 1] : null)
+				return registered({ actionId: action.id, item, args })
+			}
+			// eslint-disable-next-line no-console
+			console.warn(`[dispatchAction] Handler "${handlerName}" not found in context.handlers.`)
+			return
 		}
 
 		case 'open-modal': {
 			const target = action.target
-			const registry = context.registry || {}
-			const entry = registry[target]
+			const entry = resolveModalEntry(context.registry, target)
 
 			if (!entry) {
 			// eslint-disable-next-line no-console
@@ -733,7 +990,10 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 
-			context.openModal(target, action.props ?? {})
+			// A prop that is exactly a token (`"objectId": "@objectId"`) resolves
+			// against the page's object; one the page cannot answer stays as written.
+			const props = context.tokenCtx ? resolveDeepTokens(action.props ?? {}, context.tokenCtx) : (action.props ?? {})
+			context.openModal(target, props)
 			break
 		}
 
@@ -748,12 +1008,23 @@ export function dispatchAction(action, context = {}) {
 		}
 
 		case 'navigate': {
+			// A target is a URL exactly as `url` is, so it runs the same token
+			// grammar. Without this a manifest's `{objectId}` reached the router
+			// as those nine literal characters and landed in the address bar.
+			const target = interpolateActionString(action.target || '', context.tokenCtx || {})
+
 			// An external target is not a route. Rendering surfaces should give it
 			// to the browser as a real link (CnActionButtons does); this is the
 			// fallback for a programmatic dispatch, and it must not reach the
 			// router — see isExternalActionTarget.
-			if (isExternalActionTarget(action.target)) {
-				window.open(action.target, '_blank', 'noopener,noreferrer')
+			if (isExternalActionTarget(target)) {
+				window.open(target, '_blank', 'noopener,noreferrer')
+				break
+			}
+			// A page of the instance outside this app (`/index.php/apps/...`)
+			// is a page load; the app's router does not know it.
+			if (typeof target === 'string' && target.startsWith('/index.php/')) {
+				window.open(target, '_self')
 				break
 			}
 			if (!context.router) {
@@ -761,15 +1032,21 @@ export function dispatchAction(action, context = {}) {
 				console.warn('[dispatchAction] navigate requires context.router to be a Vue Router instance.')
 				return
 			}
-			context.router.push(action.target)
+			context.router.push(target)
 			break
 		}
 
 		case 'export': {
-		// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
-		// shared CnMassExportDialog configured via the action's entities[] /
-		// formats[]; the dialog's confirm payload routes to the action's
-		// optional `handler` (the app's export service does the download).
+		// An export that names a table (`exportId`) asks that table on the
+		// page to download its rows as CSV (`cn:widget:export`).
+			if (typeof action.exportId === 'string' && action.exportId !== '') {
+				emit('cn:widget:export', { exportId: action.exportId })
+				break
+			}
+			// Export launcher (Wave 1, nextcloud-vue#91): the host page opens the
+			// shared CnMassExportDialog configured via the action's entities[] /
+			// formats[]; the dialog's confirm payload routes to the action's
+			// optional `handler` (the app's export service does the download).
 			if (typeof context.openExport !== 'function') {
 			// eslint-disable-next-line no-console
 				console.warn('[dispatchAction] export requires context.openExport to be a function.')
@@ -831,6 +1108,14 @@ export function dispatchAction(action, context = {}) {
 			return executeApiCall(action, context)
 		}
 
+		case 'object-action': {
+		// Run an action OpenRegister declares on the object's schema
+		// (object-actions-declared-and-run): POST its inputs, toast, refresh.
+		// A surface that needs an inputs dialog (CnActionButtons) opens it
+		// before dispatching here.
+			return executeObjectAction(action, context)
+		}
+
 		case 'agent': {
 		// Run a governed hermiq agent against the page object (hermiq#41). A
 		// first-class companion to api-call: resolves the object context
@@ -877,9 +1162,12 @@ export function dispatchAction(action, context = {}) {
 				return
 			}
 			const type = resolveObjectOpType(store, source)
+			// The values take the dynamic tokens a filter takes (`@now`, `@me`,
+			// `@objectId`, ...), so "check in" can stamp the moment it was pressed.
+			const values = resolveDeepTokens({ ...(action.values || {}) }, context.tokenCtx || {})
 
 			if (op === 'create') {
-				return store.saveObject(type, { ...(action.values || {}) })
+				return store.saveObject(type, values)
 			}
 
 			const row = context.row
@@ -892,8 +1180,13 @@ export function dispatchAction(action, context = {}) {
 			if (op === 'delete') {
 				return store.deleteObject(type, id)
 			}
-			// patch: the row's object merged with the action's values.
-			return store.saveObject(type, { ...row, ...(action.values || {}), id })
+			// patch: only the action's values, as a PATCH, so every other key
+			// keeps its stored value. A store without patchObject writes the
+			// row's object merged with the values.
+			if (typeof store.patchObject === 'function') {
+				return store.patchObject(type, id, values)
+			}
+			return store.saveObject(type, { ...row, ...values, id })
 		}
 
 		default:

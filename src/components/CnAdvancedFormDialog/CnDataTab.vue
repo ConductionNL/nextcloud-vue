@@ -1,7 +1,9 @@
 <template>
 	<div class="cn-advanced-form-dialog__json-editor">
 		<div class="cn-advanced-form-dialog__codemirror-container" :class="[dark ? 'cn-advanced-form-dialog__codemirror-container--dark' : 'cn-advanced-form-dialog__codemirror-container--light']">
-			<CodeMirror
+			<component
+				:is="kit.CodeMirror"
+				v-if="kit"
 				v-model="localValue"
 				:basic="true"
 				placeholder="{ &quot;key&quot;: &quot;value&quot; }"
@@ -26,16 +28,14 @@
 </template>
 
 <script>
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 import { NcButton } from '@nextcloud/vue'
-import CodeMirror from 'vue-codemirror6'
+import { loadCodemirrorKit, loadedCodemirrorKit } from '../CnJsonViewer/loadCodemirrorKit.js'
 
 export default {
 	name: 'CnDataTab',
 
 	components: {
 		NcButton,
-		CodeMirror,
 	},
 
 	props: {
@@ -48,9 +48,12 @@ export default {
 	emits: ['format', 'update:value'],
 
 	data() {
+		// CodeMirror and its JSON support, loaded with the first editor.
+		const kit = loadedCodemirrorKit()
 		return {
-			jsonLangExtension: jsonLang(),
-			jsonLinterExtension: jsonLinter(),
+			kit,
+			jsonLangExtension: kit ? kit.jsonLang() : null,
+			jsonLinterExtension: kit ? kit.jsonLinter() : null,
 		}
 	},
 
@@ -64,6 +67,20 @@ export default {
 				this.$emit('update:value', v)
 			},
 		},
+	},
+
+	created() {
+		if (this.kit) {
+			return
+		}
+		loadCodemirrorKit().then((kit) => {
+			if (!kit) {
+				return
+			}
+			this.jsonLangExtension = kit.jsonLang()
+			this.jsonLinterExtension = kit.jsonLinter()
+			this.kit = kit
+		})
 	},
 
 	methods: {

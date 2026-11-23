@@ -256,4 +256,16 @@ describe('the step picker', () => {
 			expect(wrapper.emitted('close')).toBeTruthy()
 		})
 	})
+
+	it('adds at the bottom of the list when the list view asks', async () => {
+		const wrapper = await mountPicker()
+		await wrapper.setProps({ append: true })
+		wrapper.vm.store.appendStep = jest.fn()
+		wrapper.vm.store.addNode = jest.fn()
+
+		wrapper.vm.add('openregister.send-email')
+
+		expect(wrapper.vm.store.appendStep).toHaveBeenCalledWith('openregister.send-email')
+		expect(wrapper.vm.store.addNode).not.toHaveBeenCalled()
+	})
 })

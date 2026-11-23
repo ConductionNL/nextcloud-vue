@@ -5,9 +5,13 @@
 <template>
 	<div
 		class="cn-file-field"
+		:class="{ 'cn-file-field--dragging': dragging }"
 		role="group"
 		:aria-labelledby="labelId"
-		data-testid="cn-file-field">
+		data-testid="cn-file-field"
+		@dragover.prevent="onDragOver"
+		@dragleave="dragging = false"
+		@drop.prevent="onDrop">
 		<span :id="labelId" class="cn-file-field__label">{{ label }}</span>
 
 		<!-- The native input is never the control a person operates: the
@@ -20,7 +24,9 @@
 			class="cn-file-field__input"
 			tabindex="-1"
 			aria-hidden="true"
-			:accept="accept || null"
+			:accept="acceptAttribute"
+			:multiple="multiple"
+			:capture="capture || null"
 			:disabled="disabled"
 			data-testid="cn-file-field-input"
 			@change="onFileChange">
@@ -31,10 +37,18 @@
 				:disabled="disabled || reading"
 				data-testid="cn-file-field-choose"
 				@click="openPicker">
-				{{ hasValue ? t('nextcloud-vue', 'Replace file') : t('nextcloud-vue', 'Choose file') }}
+				{{ chooseLabel }}
 			</NcButton>
 			<NcButton
-				v-if="hasValue && !disabled"
+				v-if="canTakePhoto && !cameraOpen"
+				variant="secondary"
+				:disabled="disabled || reading"
+				data-testid="cn-file-field-take-photo"
+				@click="cameraOpen = true">
+				{{ t('nextcloud-vue', 'Take photo') }}
+			</NcButton>
+			<NcButton
+				v-if="!multiple && hasValue && !disabled"
 				variant="tertiary"
 				:disabled="reading"
 				data-testid="cn-file-field-remove"
@@ -43,7 +57,36 @@
 			</NcButton>
 		</div>
 
-		<p v-if="displayName" class="cn-file-field__name" data-testid="cn-file-field-name">
+		<p v-if="droppable" class="cn-file-field__hint">
+			{{ t('nextcloud-vue', 'Or drop files here.') }}
+		</p>
+
+		<CnCameraCapture
+			v-if="cameraOpen"
+			:facing="capture === 'user' ? 'user' : 'environment'"
+			@capture="onCaptured"
+			@close="cameraOpen = false" />
+
+		<ul v-if="multiple && items.length > 0" class="cn-file-field__list" data-testid="cn-file-field-list">
+			<li v-for="(item, index) in items"
+				:key="index"
+				class="cn-file-field__item"
+				data-testid="cn-file-field-item">
+				<span class="cn-file-field__item-name">{{ item.name }}</span>
+				<span v-if="item.size" class="cn-file-field__item-size">{{ formatSize(item.size) }}</span>
+				<span v-if="item.held" class="cn-file-field__item-note">{{ t('nextcloud-vue', 'Uploads when saved') }}</span>
+				<NcButton
+					v-if="!disabled"
+					variant="tertiary"
+					:aria-label="t('nextcloud-vue', 'Remove {name}', { name: item.name })"
+					data-testid="cn-file-field-remove-item"
+					@click="removeAt(index)">
+					{{ t('nextcloud-vue', 'Remove') }}
+				</NcButton>
+			</li>
+		</ul>
+
+		<p v-if="!multiple && displayName" class="cn-file-field__name" data-testid="cn-file-field-name">
 			{{ displayName }}
 		</p>
 		<p
@@ -59,6 +102,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
+import CnCameraCapture from '../CnCameraCapture/CnCameraCapture.vue'
 import { FALLBACK_MAX_BYTES, readFileAsDataUrl } from '../../utils/widgetUpload.js'
 
 let uidCounter = 0
@@ -86,6 +130,13 @@ let uidCounter = 0
  * OpenRegister renders it) is shown by its title and passed through
  * untouched until the user replaces or removes it.
  *
+ * With `multiple` the value is a list: each file shows its name and size with
+ * a remove button, and files can be dropped on the field as well as picked.
+ * With `inlineMax`, a file bigger than that (but within `maxSize`) is not read
+ * into the payload; the field holds the `File` itself, and the form uploads it
+ * to the saved object's files (see `useHeldFileUpload`). With `capture` the
+ * input opens a phone's camera, and a device with a webcam gets Take photo.
+ *
  * ```vue
  * <CnFileField
  *   v-model="form.attachment"
@@ -96,7 +147,7 @@ let uidCounter = 0
 export default {
 	name: 'CnFileField',
 
-	components: { NcButton },
+	components: { CnCameraCapture, NcButton },
 
 	props: {
 		/**
@@ -107,7 +158,7 @@ export default {
 		 * @type {string|object|number|null}
 		 */
 		modelValue: {
-			type: [String, Object, Number],
+			type: null,
 			default: null,
 		},
 
@@ -134,6 +185,33 @@ export default {
 		maxSize: {
 			type: Number,
 			default: FALLBACK_MAX_BYTES,
+		},
+
+		/** Whether the field takes several files. The value is then an array. */
+		multiple: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Opens the device camera: `environment` (rear) or `user` (front). The
+		 * picker then accepts images unless `accept` narrows it.
+		 *
+		 * @type {''|'environment'|'user'}
+		 */
+		capture: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Largest file carried inline, in bytes. 0 (default) means every file up
+		 * to `maxSize` is inline. Above it, up to `maxSize`, the file is held as a
+		 * `File` for the form to upload after save.
+		 */
+		inlineMax: {
+			type: Number,
+			default: 0,
 		},
 
 		/** Whether the field is read-only. */
@@ -165,6 +243,12 @@ export default {
 			reading: false,
 			/** Why the last pick was refused, or '' when it was not. */
 			readError: '',
+			/** Name and size of each entry of a `multiple` value, same order. */
+			meta: [],
+			/** Whether a file is being dragged over the field. */
+			dragging: false,
+			/** Whether the webcam surface is open. */
+			cameraOpen: false,
 		}
 	},
 
@@ -173,6 +257,9 @@ export default {
 		 * @return {boolean} Whether the field currently holds a file.
 		 */
 		hasValue() {
+			if (Array.isArray(this.modelValue)) {
+				return this.modelValue.length > 0
+			}
 			return this.modelValue !== null && this.modelValue !== undefined && this.modelValue !== ''
 		},
 
@@ -180,7 +267,62 @@ export default {
 		 * @return {boolean} Whether the value is a file picked in this form.
 		 */
 		isPickedContent() {
-			return typeof this.modelValue === 'string' && this.modelValue.startsWith('data:')
+			return (typeof this.modelValue === 'string' && this.modelValue.startsWith('data:')) || this.isHeld(this.modelValue)
+		},
+
+		/** @return {string|null} The `accept` attribute: the field's own, or images for a camera field. */
+		acceptAttribute() {
+			return this.accept || (this.capture ? 'image/*' : null)
+		},
+
+		/** @return {string} The `accept` list the pick is checked against. */
+		effectiveAccept() {
+			return this.accept || (this.capture ? 'image/*' : '')
+		},
+
+		/** @return {boolean} Whether files can be dropped on the field. */
+		droppable() {
+			return this.multiple && !this.disabled
+		},
+
+		/** @return {string} Label of the picker button. */
+		chooseLabel() {
+			if (this.multiple) {
+				return t('nextcloud-vue', 'Add files')
+			}
+			return this.hasValue ? t('nextcloud-vue', 'Replace file') : t('nextcloud-vue', 'Choose file')
+		},
+
+		/**
+		 * Take photo shows where the input's `capture` does nothing (a laptop)
+		 * and the browser has a camera API.
+		 *
+		 * @return {boolean} Whether to offer the webcam.
+		 */
+		canTakePhoto() {
+			if (!this.capture || this.disabled || typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+				return false
+			}
+			const coarse = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
+			return !coarse
+		},
+
+		/** @return {Array<{name: string, size: number, held: boolean}>} The entries of a `multiple` value. */
+		items() {
+			const list = Array.isArray(this.modelValue) ? this.modelValue : []
+			return list.map((entry, index) => {
+				if (this.isHeld(entry)) {
+					return { name: entry.name, size: entry.size, held: true }
+				}
+				const meta = this.meta[index]
+				if (typeof entry === 'string' && entry.startsWith('data:')) {
+					return { name: (meta && meta.name) || t('nextcloud-vue', 'A file is attached.'), size: (meta && meta.size) || 0, held: false }
+				}
+				const name = entry && typeof entry === 'object'
+					? (entry.title || entry.filename || entry.name || (typeof entry.path === 'string' ? entry.path.split('/').pop() : ''))
+					: ''
+				return { name: name || t('nextcloud-vue', 'A file is attached.'), size: Number(entry && entry.size) || 0, held: false }
+			})
 		},
 
 		/**
@@ -192,6 +334,9 @@ export default {
 		displayName() {
 			if (!this.hasValue) {
 				return ''
+			}
+			if (this.isHeld(this.modelValue)) {
+				return this.modelValue.name
 			}
 			if (this.isPickedContent) {
 				return this.pickedName || t('nextcloud-vue', 'A file is attached.')
@@ -222,6 +367,9 @@ export default {
 			if (typeof next !== 'string' || !next.startsWith('data:')) {
 				this.pickedName = ''
 			}
+			if (!Array.isArray(next)) {
+				this.meta = []
+			}
 		},
 	},
 
@@ -244,48 +392,126 @@ export default {
 		},
 
 		/**
-		 * Read the picked file and emit its content. A file that fails the
-		 * `accept` or `maxSize` check is refused with a message, and the value
-		 * is left as it was.
+		 * Whether a value is a file held for upload after save.
+		 *
+		 * @param {unknown} value The value or list entry.
+		 * @return {boolean} True for a `File` object.
+		 */
+		isHeld(value) {
+			return typeof File !== 'undefined' && value instanceof File
+		},
+
+		/**
+		 * Take the files from the picker. A file that fails the `accept` or
+		 * `maxSize` check is refused with a message and nothing else changes.
 		 *
 		 * @param {Event} event The file input's change event.
-		 * @return {Promise<void>} Resolves once the file is read or refused.
+		 * @return {Promise<void>} Resolves once the files are read or refused.
 		 */
 		async onFileChange(event) {
 			const input = event && event.target
-			const file = input && input.files && input.files[0]
+			const files = input && input.files ? [...input.files] : []
 			// Clear the input so picking the same file again still fires change.
 			if (input) {
 				input.value = ''
 			}
-			if (!file) {
+			await this.addFiles(files)
+		},
+
+		/**
+		 * Take dropped files.
+		 *
+		 * @param {DragEvent} event The drop.
+		 * @return {Promise<void>} Resolves once the files are read or refused.
+		 */
+		async onDrop(event) {
+			this.dragging = false
+			if (this.disabled || this.reading) {
+				return
+			}
+			await this.addFiles([...((event.dataTransfer && event.dataTransfer.files) || [])])
+		},
+
+		onDragOver() {
+			this.dragging = this.droppable
+		},
+
+		/**
+		 * A photo from the webcam is a file like any picked one.
+		 *
+		 * @param {File} file The photo.
+		 * @return {Promise<void>} Resolves once the photo is added or refused.
+		 */
+		async onCaptured(file) {
+			await this.addFiles([file])
+		},
+
+		/**
+		 * Check, read (or hold) and emit the files.
+		 *
+		 * @param {File[]} files The files to take.
+		 * @return {Promise<void>} Resolves once done.
+		 */
+		async addFiles(files) {
+			if (files.length === 0) {
 				return
 			}
 			this.readError = ''
-			if (!this.fileMatchesAccept(file)) {
-				this.readError = t('nextcloud-vue', 'This file type is not accepted.')
-				return
-			}
-			if (file.size > this.maxSize) {
-				this.readError = t('nextcloud-vue', 'This file is larger than {size}.', { size: this.formatSize(this.maxSize) })
-				return
-			}
+			const taken = this.multiple ? files : files.slice(0, 1)
+			const values = []
+			const metas = []
 			this.reading = true
 			try {
-				const dataUrl = await readFileAsDataUrl(file)
-				this.pickedName = file.name || ''
-				/**
-				 * The new value: the picked file as a `data:` URL, or `null`
-				 * after Remove file.
-				 *
-				 * @type {string|null}
-				 */
-				this.$emit('update:modelValue', dataUrl)
+				for (const file of taken) {
+					if (!this.fileMatchesAccept(file)) {
+						this.readError = t('nextcloud-vue', 'This file type is not accepted.')
+						return
+					}
+					if (file.size > this.maxSize) {
+						this.readError = t('nextcloud-vue', 'This file is larger than {size}.', { size: this.formatSize(this.maxSize) })
+						return
+					}
+					if (this.inlineMax > 0 && file.size > this.inlineMax) {
+						values.push(file)
+					} else {
+						values.push(await readFileAsDataUrl(file))
+					}
+					metas.push({ name: file.name || '', size: file.size })
+				}
 			} catch {
 				this.readError = t('nextcloud-vue', 'The file could not be read.')
+				return
 			} finally {
 				this.reading = false
 			}
+			if (this.multiple) {
+				const current = Array.isArray(this.modelValue) ? this.modelValue : []
+				const known = current.map((_, i) => this.meta[i] || null)
+				this.meta = [...known, ...metas]
+				this.$emit('update:modelValue', [...current, ...values])
+				return
+			}
+			this.pickedName = metas[0].name
+			/**
+			 * The new value: the picked file as a `data:` URL (or a `File` held for
+			 * upload after save), a list of them with `multiple`, or `null` after
+			 * Remove file.
+			 *
+			 * @type {string|File|Array<string|File|object>|null}
+			 */
+			this.$emit('update:modelValue', values[0])
+		},
+
+		/**
+		 * Remove one entry of a `multiple` value.
+		 *
+		 * @param {number} index The entry's position.
+		 * @return {void}
+		 */
+		removeAt(index) {
+			const current = Array.isArray(this.modelValue) ? this.modelValue : []
+			this.meta = this.meta.filter((_, i) => i !== index)
+			this.$emit('update:modelValue', current.filter((_, i) => i !== index))
 		},
 
 		/**
@@ -308,7 +534,7 @@ export default {
 		 * @return {boolean} True when the file is acceptable.
 		 */
 		fileMatchesAccept(file) {
-			const tokens = String(this.accept || '')
+			const tokens = String(this.effectiveAccept || '')
 				.split(',')
 				.map((s) => s.trim().toLowerCase())
 				.filter((s) => s !== '')
@@ -366,6 +592,39 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+}
+
+.cn-file-field--dragging {
+	outline: 2px dashed var(--color-primary-element);
+	outline-offset: 4px;
+}
+
+.cn-file-field__hint {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-file-field__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-file-field__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 2px 0;
+}
+
+.cn-file-field__item-name {
+	overflow-wrap: anywhere;
+}
+
+.cn-file-field__item-size,
+.cn-file-field__item-note {
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-file-field__name {

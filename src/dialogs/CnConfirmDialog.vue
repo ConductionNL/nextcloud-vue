@@ -3,7 +3,12 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -28,19 +33,32 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-confirm-dialog"
 			data-testid-phase="confirm">
-			<NcNoteCard :type="variant === 'error' ? 'warning' : 'info'">
+			<p v-if="isBoardLook"
+				class="cn-dialog__sentence"
+				data-testid="cn-confirm-sentence">
+				{{ message }}
+			</p>
+			<NcNoteCard v-else :type="variant === 'error' ? 'warning' : 'info'">
 				{{ message }}
 			</NcNoteCard>
+			<!-- @slot default Extra body content below the message in the confirm phase, such as a checkbox, a list or a note. -->
+			<slot />
+			<CnConfirmValueField v-if="confirmValue !== ''"
+				v-model="typedConfirmValue"
+				:value="confirmValue"
+				:label="confirmFieldLabel" />
 		</div>
 
 		<template #actions>
-			<NcButton @click="$emit('close')">
+			<NcButton :disabled="loading" @click="$emit('close')">
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton
 				v-if="result === null"
 				:variant="variant"
-				:disabled="loading"
+				:class="{ 'cn-dialog__confirm-pending': confirmValuePending }"
+				:disabled="loading || confirmValuePending"
+				:aria-disabled="confirmValuePending ? 'true' : undefined"
 				data-testid="cn-confirm-dialog-confirm"
 				@click="executeConfirm">
 				<template #icon>
@@ -59,16 +77,22 @@
 						v-if="loading"
 						:size="20"
 						:name="t('nextcloud-vue', 'Loading …')" />
+					<CnIcon v-else-if="confirmIcon" :name="confirmIcon" :size="20" />
 				</template>
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import CnConfirmValueField from '../components/CnConfirmValueField/CnConfirmValueField.vue'
+import CnDialog from '../components/CnDialog/CnDialog.vue'
+import { CnIcon } from '../components/CnIcon/index.js'
+import { confirmValueMixin } from '../mixins/confirmValue.js'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 
 /**
  * CnConfirmDialog — generic, verb-agnostic confirmation dialog.
@@ -104,11 +128,15 @@ export default {
 	name: 'CnConfirmDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
+		CnIcon,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
+		CnConfirmValueField,
 	},
+
+	mixins: [dialogBoardMixin, confirmValueMixin],
 
 	props: {
 		/** Dialog title shown in the NcDialog header. */
@@ -132,6 +160,15 @@ export default {
 			type: String,
 			default: 'primary',
 			validator: (v) => ['primary', 'error', 'warning', 'success'].includes(v),
+		},
+
+		/**
+		 * A CnIcon name drawn on the primary button, e.g. `DeleteOutline` for a
+		 * delete (board DqFilterVerwijderen). Empty draws none.
+		 */
+		confirmIcon: {
+			type: String,
+			default: '',
 		},
 
 		/** Label of the primary button that fires the `confirm` event. */
@@ -189,6 +226,9 @@ export default {
 		 * the parent, which performs the confirmed operation.
 		 */
 		executeConfirm() {
+			if (!this.confirmValueMatches) {
+				return
+			}
 			this.loading = true
 			/**
 			 * @event confirm Emitted when the user confirms. The parent performs

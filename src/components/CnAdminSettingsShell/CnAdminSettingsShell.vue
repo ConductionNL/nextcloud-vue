@@ -1,16 +1,98 @@
 <template>
-	<div class="cn-admin-settings-shell">
+	<div
+		class="cn-admin-settings-shell"
+		:class="[ownLookClass, sectionColumns ? `cn-admin-settings-shell--columns-${sectionColumns}` : '', { 'cn-admin-settings-shell--plain-notes': plainNotes }]"
+		:style="shellStyle">
+		<!-- Names a development, test or acceptance environment; cannot be dismissed. Production shows nothing. -->
+		<CnEnvironmentBanner v-if="environmentName" :environment="environmentName" />
+
 		<!-- Page title header — the uniform "<App> Settings / Configure your <App> installation" block.
 		     Uses NcSettingsSection directly (not CnSettingsSection) so the description subtitle and
 		     doc-url icon render — CnSettingsSection repurposes those props and does not forward them. -->
 		<NcSettingsSection
+			v-if="!isBoard"
 			:name="resolvedTitle"
 			:description="resolvedDescription"
 			:docUrl="docUrl" />
 
+		<!-- The board header: an h1 and its description, then the labelled
+		     Documentation button and the buildiq square. No documentation icon
+		     beside the title. -->
+		<div v-else class="cn-admin-settings-shell__header" data-testid="cn-admin-settings-header">
+			<div class="cn-admin-settings-shell__heading">
+				<h1 class="cn-admin-settings-shell__title">
+					{{ resolvedTitle }}
+				</h1>
+				<!-- `breadcrumbs`: the board's path line in place of the
+				     description ("Beheerinstellingen / Launchpad / Algemeen ·
+				     geldt voor de hele organisatie"). -->
+				<div v-if="crumbs.length > 0" class="cn-admin-settings-shell__crumbs" data-testid="cn-admin-settings-breadcrumbs">
+					<nav class="cn-admin-settings-shell__crumb-list" :aria-label="breadcrumbLabel">
+						<template v-for="(crumb, index) in crumbs" :key="index">
+							<span v-if="index > 0" aria-hidden="true">/</span>
+							<a v-if="crumb.href" :href="crumb.href" class="cn-admin-settings-shell__crumb-link">{{ crumb.label }}</a>
+							<span v-else :aria-current="index === crumbs.length - 1 ? 'page' : null">{{ crumb.label }}</span>
+						</template>
+					</nav>
+					<template v-if="breadcrumbNote">
+						<span aria-hidden="true">·</span>
+						<span>{{ breadcrumbNote }}</span>
+					</template>
+				</div>
+				<p v-else class="cn-admin-settings-shell__description">
+					{{ resolvedDescription }}
+				</p>
+			</div>
+			<div class="cn-admin-settings-shell__header-buttons">
+				<NcButton
+					v-if="docUrl"
+					:href="docUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					data-testid="cn-admin-settings-documentation">
+					<template #icon>
+						<BookOpenVariant :size="20" />
+					</template>
+					{{ documentationLabel }}
+				</NcButton>
+				<CnBuildiqEditButton :available="buildiqAvailable" :href="buildiqHref" />
+			</div>
+		</div>
+
+		<!-- `tabs`: a strip under the header (boards ShInstellingen,
+		     LpBeheerAlgemeen). Each tab's panel holds the `tab-<id>` slot; the
+		     version card, the credential broker and the default slot below
+		     belong to the first tab and show only while it is open. -->
+		<CnTabs
+			v-if="tabItems.length > 0"
+			class="cn-admin-settings-shell__tabs"
+			:class="{ 'cn-admin-settings-shell__tabs--bare': openPanelIsEmpty }"
+			:look="isBoard ? 'board' : 'nextcloud'"
+			:variant="tabsVariant"
+			:ariaLabel="resolvedTitle"
+			data-testid="cn-admin-settings-tabs"
+			@update:activeIndex="onTabIndex">
+			<CnTab
+				v-for="tab in tabItems"
+				:key="tab.id"
+				:title="tab.label"
+				:count="tab.count"
+				:active="tab.id === activeTabId">
+				<div class="cn-admin-settings-shell__panel" :data-tab="tab.id">
+					<!-- @slot tab-<id> The panel of the tab with that `id` in `tabs`. -->
+					<slot v-if="!lazyTabs || tab.id === activeTabId" :name="`tab-${tab.id}`" />
+				</div>
+			</CnTab>
+		</CnTabs>
+
+		<!-- `versionCardPosition: "end"`: the app's sections come first, and the
+		     version card and the credential broker follow them (board DcBeheer
+		     starts with the app's own card). The same slot, rendered once. -->
+		<slot v-if="versionCardAtEnd && onFirstTab" />
+
 		<!-- Version information card (version, up-to-date check, re-import, support footer) -->
 		<CnVersionInfoCard
-			v-if="showVersionCard"
+			v-if="showVersionCard && onFirstTab"
 			:appName="appName"
 			:appVersion="resolvedVersion"
 			:configuredVersion="resolvedConfiguredVersion"
@@ -19,12 +101,17 @@
 			:updating="updating"
 			:title="versionTitle"
 			:description="resolvedVersionDescription"
+			:wide="versionCardWide"
+			:showAppName="showAppName"
+			:actionsDivider="actionsDivider"
+			:inlineUpToDate="inlineUpToDate"
+			:compact="compact"
 			@update="onUpdate">
 			<template #actions>
 				<!-- Canonical "Re-import configuration" action (POST /apps/<appId>/api/settings/load) -->
 				<NcButton
 					v-if="showReimport"
-					variant="primary"
+					:variant="compactCard ? 'secondary' : 'primary'"
 					:disabled="reimporting"
 					@click="reimport">
 					<template #icon>
@@ -47,8 +134,7 @@
 				<NcButton
 					v-if="showHelp && helpUrl"
 					:href="helpUrl"
-					target="_blank"
-					rel="noopener noreferrer">
+					target="_blank">
 					<template #icon>
 						<HelpCircleOutline :size="20" />
 					</template>
@@ -61,7 +147,7 @@
 			<template #footer>
 				<!-- @slot footer Replaces the default support/SLA footer inside the version card. -->
 				<slot name="footer">
-					<div v-if="showSupport" class="cn-support-info">
+					<div v-if="showSupport && !supportAtEnd && !compactCard" class="cn-support-info">
 						<h4>{{ supportTitle }}</h4>
 						<p>
 							{{ supportLine }}
@@ -76,6 +162,13 @@
 			</template>
 
 			<template #additional-items>
+				<!-- The board card: support as one fact row, the SLA address on the same line. -->
+				<div v-if="compactCard && showSupport && !supportAtEnd && !$slots.footer" class="cn-version-info__item" data-testid="cn-admin-settings-support-row">
+					<span class="cn-version-info__label">{{ supportTitle }}</span>
+					<span class="cn-version-info__value">
+						<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a><template v-if="slaEmail">, {{ slaInline }} <a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a></template>
+					</span>
+				</div>
 				<!-- @slot version-items Extra key/value rows appended inside the version card details. -->
 				<slot name="version-items" />
 			</template>
@@ -97,20 +190,39 @@
 			informational "apps requesting credentials" list inside.
 		-->
 		<CnCredentials
-			v-if="showOrganisationCredentials"
+			v-if="showOrganisationCredentials && onFirstTab"
 			scope="organisation"
 			:appId="appId"
 			:appName="appName"
 			:appCredentials="appCredentials"
 			data-testid="cn-admin-organisation-credentials" />
 
-		<!-- @slot default The app's own settings sections, rendered below the version card. -->
-		<slot />
+		<!-- @slot default The app's own settings sections, rendered below the version card, or above it with `versionCardPosition: "end"`. With `tabs`, only while the first tab is open. -->
+		<slot v-if="!versionCardAtEnd && onFirstTab" />
+
+		<!-- `supportPosition: "end"`: the support lines as their own wide card,
+		     last on the page (board PqBeheer), not in the version card. -->
+		<CnSettingsSection
+			v-if="showSupport && supportAtEnd && onFirstTab"
+			class="cn-admin-settings-shell__support"
+			:name="supportTitle"
+			:wide="true"
+			data-testid="cn-admin-settings-support">
+			<p class="cn-admin-settings-shell__support-line">
+				{{ supportLine }}
+				<a :href="`mailto:${supportEmail}`">{{ supportEmail }}</a>
+			</p>
+			<p v-if="slaEmail" class="cn-admin-settings-shell__support-line">
+				{{ slaLine }}
+				<a :href="`mailto:${slaEmail}`">{{ slaEmail }}</a>
+			</p>
+		</CnSettingsSection>
 
 		<!-- First-time setup wizard, opened from the admin page (ADR-042). -->
 		<CnSetupWizard
 			v-if="showSetup && setupWizardOpen"
 			:appId="appId"
+			:appName="appName"
 			:steps="setupSteps"
 			@complete="setupWizardOpen = false"
 			@close="setupWizardOpen = false" />
@@ -124,13 +236,91 @@ import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcSettingsSection } from '@nextcloud/vue'
+import { computed, inject, provide } from 'vue'
 import AutoFix from 'vue-material-design-icons/AutoFix.vue'
+import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
+import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCredentials from '../CnCredentials/CnCredentials.vue'
+import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
+import { useBuildiqEditAvailability } from '../../composables/useBuildiqEditAvailability.js'
+import { useEnvironment } from '../../composables/useEnvironment.js'
+import { normalizeLook, useLook } from '../../composables/useLook.js'
+import { ensureTranslations } from '../../l10n/index.js'
+import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { buildFeatureRequestUrl } from '../../utils/forge.js'
+import { prefixUrl } from '../../utils/headers.js'
+import { CnSettingsSection } from '../CnSettingsSection/index.js'
+import { CnTab, CnTabs } from '../CnTabs/index.js'
 import { CnVersionInfoCard } from '../CnVersionInfoCard/index.js'
+
+/**
+ * The tab the address names.
+ *
+ * @param {string} key The query parameter.
+ * @return {string} Its value, or ''.
+ */
+function readTabFromAddress(key) {
+	if (typeof window === 'undefined' || !key) {
+		return ''
+	}
+	return new URLSearchParams(window.location.search).get(key) || ''
+}
+
+/**
+ * The tab remembered under a storage key, or '' without a key, a value or
+ * usable storage (a private window can refuse it).
+ *
+ * @param {string} key The storage key.
+ * @return {string} The remembered tab id.
+ */
+function readStoredTab(key) {
+	if (!key) {
+		return ''
+	}
+	try {
+		return window.localStorage.getItem(key) || ''
+	} catch {
+		return ''
+	}
+}
+
+/**
+ * Remember the open tab under a storage key; nothing without a key or
+ * usable storage.
+ *
+ * @param {string} key The storage key.
+ * @param {string} id The tab's id.
+ * @return {void}
+ */
+function storeTab(key, id) {
+	if (!key) {
+		return
+	}
+	try {
+		window.localStorage.setItem(key, id)
+	} catch {
+		// Storage refused (private window): the address still holds the tab.
+	}
+}
+
+/**
+ * Put the open tab in the address without a new history entry.
+ *
+ * @param {string} key The query parameter.
+ * @param {string} id The tab's id.
+ * @return {void}
+ */
+function writeTabToAddress(key, id) {
+	if (typeof window === 'undefined' || !key || !window.history?.replaceState) {
+		return
+	}
+	const url = new URL(window.location.href)
+	url.searchParams.set(key, id)
+	window.history.replaceState(window.history.state, '', url.toString())
+}
 
 /**
  * CnAdminSettingsShell — the canonical chrome for a Conduction app's Nextcloud
@@ -169,10 +359,16 @@ export default {
 	name: 'CnAdminSettingsShell',
 
 	components: {
+		CnEnvironmentBanner,
+		CnBuildiqEditButton,
+		BookOpenVariant,
 		NcSettingsSection,
 		CnCredentials,
+		CnSettingsSection,
 		CnVersionInfoCard,
 		CnSetupWizard,
+		CnTab,
+		CnTabs,
 		NcButton,
 		NcLoadingIcon,
 		Refresh,
@@ -181,6 +377,19 @@ export default {
 	},
 
 	props: {
+		/**
+		 * The environment this instance is: `development`, `test`, `acceptance` or
+		 * `production`. Wins over the active organisation's `environment` field.
+		 * A non-production environment is named in a banner at the top and the tab
+		 * title gets a prefix. Production, an unknown value or no value shows nothing.
+		 *
+		 * @type {string}
+		 */
+		environment: {
+			type: String,
+			default: '',
+		},
+
 		/**
 		 * Render the organisation credential broker on this admin page
 		 * (ADR-079 Step 2). Opt-in: only an app that actually brokers org-wide
@@ -205,6 +414,17 @@ export default {
 		appCredentials: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The look the shell is drawn in: `board` or `nextcloud`. Empty follows
+		 * the `cnLook` that CnAppRoot provides.
+		 *
+		 * @spec openspec/changes/screens-chrome-parity/specs/settings-board-look/spec.md#requirement-the-admin-settings-shell-takes-the-board-header
+		 */
+		look: {
+			type: String,
+			default: '',
 		},
 
 		/** The Nextcloud app id (used for the default re-import endpoint + version loadState). */
@@ -241,16 +461,190 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Board look: the path under the title, in place of the description,
+		 * as `[{ label, href? }]` ("Beheerinstellingen" linking to the admin
+		 * settings, then the app and the section). A crumb without `href` is
+		 * text; the last one is the current page.
+		 *
+		 * @spec openspec/changes/screens-admin-settings-board-header/specs/settings-board-look/spec.md
+		 */
+		breadcrumbs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Board look: a note after the path, behind a "·" ("geldt voor de
+		 * hele organisatie").
+		 *
+		 * @spec openspec/changes/screens-admin-settings-board-header/specs/settings-board-look/spec.md
+		 */
+		breadcrumbNote: {
+			type: String,
+			default: '',
+		},
+
 		/** Documentation URL (renders the info icon next to the title). */
 		docUrl: {
 			type: String,
 			default: '',
 		},
 
+		/**
+		 * A tab strip under the header, as `[{ id, label, count? }]`. Each
+		 * tab's panel is the `tab-<id>` slot; the version card, the credential
+		 * broker and the default slot show only on the first tab. The open tab
+		 * is in the address (`?<tabQueryKey>=<id>`), so a link opens it and a
+		 * reload keeps it. The strip is keyboard operable (arrow keys, Home,
+		 * End). Empty draws no strip.
+		 *
+		 * @type {Array<{id: string, label: string, count?: number}>}
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		tabs: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The query parameter that holds the open tab's `id`.
+		 *
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		tabQueryKey: {
+			type: String,
+			default: 'tab',
+		},
+
+		/**
+		 * A browser storage key under which the shell remembers the last
+		 * opened tab, so the page opens on it again when the address names no
+		 * tab. Empty (the default) remembers nothing. The address still wins.
+		 *
+		 * @spec openspec/changes/admin-shell-remembers-tab/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-remember-the-last-tab
+		 */
+		tabStorageKey: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Mount a tab's `tab-<id>` slot only while that tab is open, and
+		 * unmount it when another tab opens, so each visit mounts it afresh
+		 * and the page does not load every tab at once. Off (the default),
+		 * every panel stays mounted and only the open one shows.
+		 *
+		 * @spec openspec/changes/admin-settings-lazy-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-mount-only-the-open-tab
+		 */
+		lazyTabs: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * How the `tabs` strip is drawn, as CnTabs' `variant`: `line`, the
+		 * folder tabs (the default), or `underline`, plain labels on a rule
+		 * with the open one underlined (board LpBeheerAlgemeen).
+		 *
+		 * @type {'line'|'underline'}
+		 * @spec openspec/changes/admin-settings-underline-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-an-underline-tab-strip
+		 */
+		tabsVariant: {
+			type: String,
+			default: 'line',
+			validator: (value) => ['line', 'underline'].includes(value),
+		},
+
 		/** Whether to render the version card. */
 		showVersionCard: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * Under the board look the version card spans the whole settings grid.
+		 * Set to `false` to keep it one card in the grid.
+		 *
+		 * @spec openspec/changes/board-version-card-full-width/specs/settings-board-look/spec.md#requirement-the-board-version-card-spans-the-settings-grid
+		 */
+		versionCardWide: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Where the version card (and the organisation credential broker) sits:
+		 * `start`, above the app's sections (the default), or `end`, after them,
+		 * for a page whose board starts with the app's own card. The keyboard
+		 * order follows, because the slot moves in the markup.
+		 *
+		 * @spec openspec/changes/screens-admin-settings-version-card-end/specs/settings-board-look/spec.md#requirement-the-version-card-can-follow-the-apps-sections
+		 */
+		versionCardPosition: {
+			type: String,
+			default: 'start',
+			validator: (value) => ['start', 'end'].includes(value),
+		},
+
+		/**
+		 * Board look: how many columns the section cards take, `1` or `2`.
+		 * Empty (the default) fits as many 420px columns as the width allows.
+		 *
+		 * @type {1|2|null}
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-admin-page-can-fix-its-columns
+		 */
+		sectionColumns: {
+			type: Number,
+			default: null,
+			validator: (value) => value === null || [1, 2].includes(value),
+		},
+
+		/**
+		 * Board look: the version card draws its "Application name" row.
+		 * Dossiq's boards pass false.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		showAppName: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: the version card draws a rule above its buttons.
+		 * Dossiq's boards pass false.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		actionsDivider: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Board look: the version card reads the up-to-date state in its
+		 * configured version row instead of a disabled button. Dossiq's boards
+		 * pass true.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		inlineUpToDate: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Board look: the compact version card of dossiq's boards: "About this
+		 * <App> installation.", no application name row, the up-to-date state
+		 * inline, support as one row, secondary buttons, no rule above them.
+		 * The default keeps PqBeheer's card.
+		 *
+		 * @spec openspec/changes/version-card-board-compact/specs/settings-board-look/spec.md#requirement-the-board-version-card-is-compact
+		 */
+		compact: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** Version card heading. */
@@ -320,6 +714,19 @@ export default {
 			default: true,
 		},
 
+		/**
+		 * Where the support lines go: `card`, in the version card's footer (the
+		 * default), or `end`, as their own wide card after everything else on
+		 * the first tab (board PqBeheer).
+		 *
+		 * @spec openspec/changes/admin-shell-support-end/specs/settings-board-look/spec.md#requirement-support-can-be-its-own-card-at-the-end
+		 */
+		supportPosition: {
+			type: String,
+			default: 'card',
+			validator: (value) => ['card', 'end'].includes(value),
+		},
+
 		/** Support contact email. */
 		supportEmail: {
 			type: String,
@@ -355,18 +762,186 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Cell formatters by id, as `CnAppRoot`'s `formatters`: a table column
+		 * on the admin page names one with `formatter`. Added over the
+		 * built-ins and an ancestor's registry.
+		 */
+		formatters: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The board look's version card title size in px, when the app's board
+		 * draws it other than 17px (PqBeheer 19, OcInstellingen 18).
+		 */
+		versionTitleSize: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * The board look's gap in px between a card's title and its
+		 * description, when the app's board draws it other than 4px; the
+		 * content follows 10px further (DqBeheerinstellingen 6, so 16).
+		 */
+		descGap: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * The board look draws the cards' notes without an icon, a warning
+		 * on the peach ground with its own edge, as the boards drawn from
+		 * NcBeheerInstellingen do (DqBeheerGeavanceerd, DqBeheerinstellingen).
+		 */
+		plainNotes: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
-	emits: ['update', 'reimported', 'reimport-error'],
+	emits: ['update', 'reimported', 'reimport-error', 'tab-change'],
+
+	setup(props) {
+		// An admin page can be an entry with no other library surface: its
+		// chrome reads in the user's language without the app registering.
+		ensureTranslations()
+		// The app's own `environment` setting, else the active organisation's.
+		const { environment: environmentName } = useEnvironment({ environment: () => props.environment })
+		const { look, isBoard } = useLook(props)
+		// A shell told `look: "board"` itself draws the board look also on an
+		// admin page that no CnAppRoot wraps, as Nextcloud's settings pages are.
+		const ownLookClass = computed(() => (normalizeLook(props.look) === 'board' ? 'cn-look-board' : ''))
+		// Everything inside the shell, its own version card and the app's
+		// sections alike, follows the shell's look without the app providing it.
+		provide('cnLook', look)
+		// The setup wizard translates its step titles and bodies through
+		// `cnTranslate`. On an admin page no CnAppRoot provides it, so the
+		// shell hands down the app's own catalog, keyed by its app id.
+		const hostTranslate = inject('cnTranslate', null)
+		provide('cnTranslate', hostTranslate || ((text, vars) => t(props.appId, text, vars)))
+		// No CnAppRoot provides the cell formatters on an admin page either.
+		const hostFormatters = inject('cnFormatters', null)
+		provide('cnFormatters', { ...BUILT_IN_FORMATTERS, ...(hostFormatters || {}), ...props.formatters })
+		// The buildiq square in the board header: no CnAppRoot provides its
+		// availability on an admin page, so the shell reads it, and the square
+		// links to the app opened in edit mode.
+		const { available: buildiqAvailable } = useBuildiqEditAvailability()
+		const buildiqHref = computed(() => generateUrl(`/apps/${props.appId}/`) + '?cn_edit=1')
+		return { environmentName, isBoard, ownLookClass, buildiqAvailable, buildiqHref }
+	},
 
 	data() {
 		return {
 			reimporting: false,
 			setupWizardOpen: false,
+			// The open tab's id; empty until a tab is picked or the address names one.
+			chosenTabId: readTabFromAddress(this.tabQueryKey) || readStoredTab(this.tabStorageKey),
 		}
 	},
 
 	computed: {
+		/**
+		 * The board look sizes an app's board sets on the shell
+		 * (`versionTitleSize`, `descGap`), as CSS custom properties.
+		 *
+		 * @return {object|null} The style, or null when none is set.
+		 */
+		shellStyle() {
+			const style = {}
+			if (this.versionTitleSize) {
+				style['--cn-board-version-title-size'] = `${this.versionTitleSize}px`
+			}
+			if (this.descGap) {
+				style['--cn-board-settings-desc-gap'] = `${this.descGap}px`
+			}
+			return Object.keys(style).length > 0 ? style : null
+		},
+
+		/**
+		 * The tabs that have an id and a label.
+		 *
+		 * @return {Array<{id: string, label: string, count: number|null}>}
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		tabItems() {
+			return (Array.isArray(this.tabs) ? this.tabs : [])
+				.filter((tab) => tab && typeof tab.id === 'string' && tab.id !== '' && typeof tab.label === 'string' && tab.label !== '')
+				.map((tab) => ({ id: tab.id, label: tab.label, count: tab.count ?? null }))
+		},
+
+		/**
+		 * The open tab: the one picked or named in the address, else the first.
+		 *
+		 * @return {string} Its id, or '' without tabs.
+		 */
+		activeTabId() {
+			const ids = this.tabItems.map((tab) => tab.id)
+			return ids.includes(this.chosenTabId) ? this.chosenTabId : (ids[0] || '')
+		},
+
+		/**
+		 * Whether the shell's own content shows: always without tabs, else on
+		 * the first tab.
+		 *
+		 * @return {boolean}
+		 */
+		onFirstTab() {
+			return this.tabItems.length === 0 || this.activeTabId === this.tabItems[0].id
+		},
+
+		/**
+		 * Whether the open tab has no panel of its own: its content is the
+		 * default slot, drawn below the strip (the first tab of DqInstellingenAlgemeen).
+		 * The strip then keeps no panel spacing, so the first card stands the
+		 * page's section gap below the strip.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/admin-shell-empty-tab-gap/specs/admin-shell-empty-tab-gap/spec.md#requirement-a-tab-without-a-panel-adds-no-space-under-the-strip
+		 */
+		openPanelIsEmpty() {
+			return !this.$slots[`tab-${this.activeTabId}`]
+		},
+
+		/**
+		 * Whether the app's sections come before the version card.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-admin-settings-version-card-end/specs/settings-board-look/spec.md#requirement-the-version-card-can-follow-the-apps-sections
+		 */
+		versionCardAtEnd() {
+			return this.versionCardPosition === 'end'
+		},
+
+		/** @return {boolean} Whether the version card is the compact board card. */
+		compactCard() {
+			return this.isBoard && this.compact
+		},
+
+		/** @return {boolean} Whether the support lines are their own card at the end. */
+		supportAtEnd() {
+			return this.supportPosition === 'end'
+		},
+
+		/**
+		 * The crumbs that have a label.
+		 *
+		 * @return {Array<{label: string, href?: string}>}
+		 * @spec openspec/changes/screens-admin-settings-board-header/specs/settings-board-look/spec.md
+		 */
+		crumbs() {
+			return (Array.isArray(this.breadcrumbs) ? this.breadcrumbs : [])
+				.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== '')
+		},
+
+		/** @return {string} The accessible name of the breadcrumb navigation. */
+		breadcrumbLabel() {
+			return t('nextcloud-vue', 'Breadcrumb')
+		},
+
 		/**
 		 * The "Help us" link target: the forge's feature-request issue form
 		 * for `helpRepo`, on the fleet-default forge. Empty (hiding the
@@ -415,12 +990,17 @@ export default {
 
 		/** @return {string} Version card description. */
 		resolvedVersionDescription() {
-			return this.versionDescription || t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
+			if (this.versionDescription) {
+				return this.versionDescription
+			}
+			return this.compactCard
+				? t('nextcloud-vue', 'About this {app} installation.', { app: this.appName })
+				: t('nextcloud-vue', 'Information about the current {app} installation', { app: this.appName })
 		},
 
 		/** @return {string} Re-import endpoint. */
 		resolvedReimportUrl() {
-			return this.reimportUrl || generateUrl('/apps/{appId}/api/settings/load', { appId: this.appId })
+			return prefixUrl(this.reimportUrl) || generateUrl('/apps/{appId}/api/settings/load', { appId: this.appId })
 		},
 
 		/** @return {string} Re-import button label. */
@@ -443,6 +1023,11 @@ export default {
 			return t('nextcloud-vue', 'For support, contact us at')
 		},
 
+		/** @return {string} The words before the SLA address in the board card's support row. */
+		slaInline() {
+			return t('nextcloud-vue', 'for an SLA')
+		},
+
 		/** @return {string} SLA footer line. */
 		slaLine() {
 			return t('nextcloud-vue', 'For a Service Level Agreement (SLA), contact')
@@ -453,13 +1038,53 @@ export default {
 			return t('nextcloud-vue', 'Run setup wizard')
 		},
 
+		/** @return {string} Documentation button label (board header). */
+		documentationLabel() {
+			return t('nextcloud-vue', 'Documentation')
+		},
+
 		/** @return {string} Help / suggest-feature button label. */
 		helpLabel() {
 			return t('nextcloud-vue', 'Help us')
 		},
 	},
 
+	/**
+	 * A page that opens on a tab other than the first (named in the address,
+	 * or remembered) tells the app once, as a click would, so a breadcrumb or
+	 * title that follows the tab is right from the first paint.
+	 *
+	 * @spec openspec/changes/admin-shell-remembers-tab/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-remember-the-last-tab
+	 */
+	mounted() {
+		if (this.tabItems.length > 0 && this.activeTabId !== this.tabItems[0].id) {
+			this.$emit('tab-change', this.activeTabId)
+		}
+	},
+
 	methods: {
+		/**
+		 * A tab was picked in the strip: remember it, put it in the address
+		 * (replacing the entry, so Back leaves the page) and tell the app.
+		 *
+		 * @param {number} index The picked tab's index.
+		 * @return {void}
+		 * @spec openspec/changes/admin-settings-tabs/specs/settings-board-look/spec.md#requirement-the-admin-shell-can-draw-a-tab-strip
+		 */
+		onTabIndex(index) {
+			const tab = this.tabItems[index]
+			if (!tab || tab.id === this.chosenTabId) {
+				return
+			}
+			this.chosenTabId = tab.id
+			writeTabToAddress(this.tabQueryKey, tab.id)
+			storeTab(this.tabStorageKey, tab.id)
+			/**
+			 * @event tab-change Emitted when the reader opens another tab. Payload: its `id`.
+			 */
+			this.$emit('tab-change', tab.id)
+		},
+
 		/** Forward the version card's update-button click to the parent. */
 		onUpdate() {
 			/**
@@ -511,6 +1136,13 @@ export default {
 <style scoped>
 .cn-admin-settings-shell {
 	max-width: 900px;
+}
+
+/* The board look lifts the width and lays the header and cards on a grid (look-board.css). */
+
+/* A tab without a panel of its own: the cards below the strip carry the gap. */
+.cn-admin-settings-shell__tabs--bare > :deep(.cn-tabs__content) {
+	padding-top: 0;
 }
 
 .cn-support-info {

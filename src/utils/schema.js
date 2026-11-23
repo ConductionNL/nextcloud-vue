@@ -6,6 +6,12 @@
  * @module utils/schema
  */
 
+import { getCurrentUser } from '@nextcloud/auth'
+import { fieldWithOptionsFrom, isOptionsFrom } from './optionsFrom.js'
+import { propertyTitle } from './propertyTitle.js'
+import { schemaRefSlug } from './schemaRefSlug.js'
+import { userLocale } from './userLocale.js'
+
 /**
  * Default column widths per property type/format.
  */
@@ -88,7 +94,7 @@ export function columnsFromSchema(schema, options = {}) {
 	return entries.map(([key, prop]) => {
 		const column = {
 			key,
-			label: tr(prop.title || key),
+			label: tr(propertyTitle(prop, key)),
 			// The schema already explains what the property MEANS; carrying that
 			// through as the header tooltip means a column like "Maturity" or a
 			// computed score explains itself in place, instead of the description
@@ -157,7 +163,7 @@ export function formatValue(value, property = {}, options = {}) {
 		if (Number.isNaN(num)) {
 			return String(value)
 		}
-		return num.toLocaleString()
+		return num.toLocaleString(userLocale())
 	}
 
 	// Array
@@ -211,17 +217,17 @@ export function formatValue(value, property = {}, options = {}) {
 				return str
 			}
 			if (format === 'date') {
-				return date.toLocaleDateString(undefined, {
+				return date.toLocaleDateString(userLocale(), {
 					day: '2-digit',
 					month: '2-digit',
 					year: 'numeric',
 				})
 			}
-			return date.toLocaleDateString(undefined, {
+			return date.toLocaleDateString(userLocale(), {
 				day: '2-digit',
 				month: '2-digit',
 				year: 'numeric',
-			}) + ', ' + date.toLocaleTimeString(undefined, {
+			}) + ', ' + date.toLocaleTimeString(userLocale(), {
 				hour: '2-digit',
 				minute: '2-digit',
 				second: '2-digit',
@@ -295,10 +301,13 @@ function truncateString(str, maxLength) {
  *    surface (CnFormDialog) resolves the reference to a searchable dropdown
  *    of the referenced objects (label = human name, value = UUID).
  * 4. Nextcloud user reference: `referenceType: 'nextcloud-user'` (or
- *    `format: 'user'`/`'username'`) → `'user'`; an array of such
+ *    `format: 'user'`/`'username'`/`'nc-user'`) → `'user'`; an array of such
  *    properties → `'user-multiselect'`. CnFormDialog resolves these to a
  *    searchable dropdown of real Nextcloud users (label = display name,
- *    value = UID).
+ *    value = UID). A Nextcloud group (`referenceType: 'nextcloud-group'` or
+ *    `format: 'nc-group'`) → `'group'`, an array of groups →
+ *    `'group-multiselect'`. `format: 'language'` → `'language'` and
+ *    `format: 'timezone'` → `'timezone'` (both searchable code lists).
  * 5. Type-based: `boolean` → `'checkbox'`, `integer`/`number` → `'number'`,
  *    `array` + `items.enum` → `'multiselect'`, `array` → `'tags'`
  * 6. Format-based: `date-time` → `'datetime'`, `date` → `'date'`,
@@ -323,13 +332,23 @@ function truncateString(str, maxLength) {
  * dropdown rendered but came back empty. Take the tail after the last `/`, which
  * is what the editor itself does when it resolves a $ref back to a schema.
  *
+ * A `$ref` is authored as the schema's PascalCase (or spaced) *title*, not
+ * its slug (`ReportPeriod`, not `report-period`); the objects API 404s on
+ * the title for any multi-word schema (defect 7, learniq round 1). Routing
+ * the tail through {@link schemaRefSlug} fixes that once here, for every
+ * consumer of `reference.schema` built below.
+ *
  * @param {unknown} ref A `$ref` value (`prop.$ref` or `prop.items.$ref`).
  * @return {string|number|null} The reference identifier, or null.
  */
 function normalizeRef(ref) {
 	if (typeof ref === 'string' && ref !== '') {
 		const tail = ref.includes('/') ? ref.substring(ref.lastIndexOf('/') + 1) : ref
-		return tail !== '' ? tail : null
+		if (tail === '') {
+			return null
+		}
+		const slug = schemaRefSlug(tail)
+		return slug !== '' ? slug : null
 	}
 	if (typeof ref === 'number' && !Number.isNaN(ref)) {
 		return ref
@@ -352,17 +371,249 @@ function isUserProp(prop) {
 	if (!prop || typeof prop !== 'object') {
 		return false
 	}
-	if (prop.referenceType === 'nextcloud-user') {
+	if (prop.referenceType === 'nextcloud-user' || prop.widget === 'user') {
 		return true
 	}
 	const format = prop.format || ''
-	return format === 'user' || format === 'username'
+	return format === 'user' || format === 'username' || format === 'nc-user'
 }
 
+/**
+ * Whether a (single-value) schema property represents a Nextcloud group.
+ *
+ * A property is a group field when it declares `referenceType: 'nextcloud-group'`
+ * or `format: 'nc-group'`. CnFormDialog renders it as a searchable dropdown of
+ * Nextcloud groups (label = display name, value = group id).
+ *
+ * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+ * @param {object} prop A schema property definition (or `items` for an array).
+ * @return {boolean} True when the property marks a Nextcloud group.
+ */
+export function isGroupProp(prop) {
+	if (!prop || typeof prop !== 'object') {
+		return false
+	}
+	return prop.referenceType === 'nextcloud-group' || prop.format === 'nc-group' || prop.widget === 'group'
+}
+
+/**
+ * Make a manifest field override that names a picker widget behave exactly
+ * like the schema format that triggers it.
+ *
+ * OpenRegister refuses formats it does not know (`nc-group`, `language`,
+ * `timezone`) at import, so an app cannot always put them in its schema. It
+ * declares `fieldOverrides.<key>.widget: 'group' | 'language' | 'timezone'`
+ * (or `'user'`) instead. The widget alone is not enough for the user and
+ * group pickers, which CnFormDialog recognises by `userPicker` /
+ * `groupPicker`, so set those here. An override may also carry its own
+ * `x-default` (`current-language`, `current-timezone`), which becomes the
+ * field's `defaultToken` just as the schema key does.
+ *
+ * Mutates `field` in place.
+ *
+ * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
+ * @param {object} field The field descriptor, overrides already merged in.
+ * @param {object} override The raw override for this key.
+ * @return {void}
+ */
+function applyPickerOverride(field, override) {
+	if (!override || typeof override !== 'object') {
+		return
+	}
+	const widget = override.widget
+	if (widget === 'group' || widget === 'group-multiselect') {
+		field.groupPicker = { multiple: widget === 'group-multiselect' }
+		field.userPicker = null
+	} else if (widget === 'user' || widget === 'user-multiselect') {
+		field.userPicker = { multiple: widget === 'user-multiselect' }
+		field.groupPicker = null
+	}
+	if (typeof override['x-default'] === 'string' && override['x-default'] !== '') {
+		field.defaultToken = override['x-default']
+	}
+}
+
+/**
+ * The properties a dotted key names inside an object property (`handling.teams`
+ * is `teams` in `properties.handling.properties`), so a form can show one key
+ * of an object without the whole object. Keys that name no such property are
+ * left out.
+ *
+ * @spec openspec/changes/forms-dotted-path-fields/specs/form-dialog/spec.md#requirement-a-field-can-edit-one-key-inside-an-object-property
+ * @param {object} schema The schema.
+ * @param {Array<string>} keys Candidate keys (override and include keys).
+ * @return {{entries: Array<[string, object]>, required: Array<string>}} The nested properties by dotted key, and those the parent requires.
+ */
+function dottedPropertyEntries(schema, keys) {
+	const entries = []
+	const required = []
+	const seen = new Set()
+	for (const key of keys) {
+		if (typeof key !== 'string' || !key.includes('.') || seen.has(key)) {
+			continue
+		}
+		seen.add(key)
+		const parts = key.split('.')
+		let parent = schema
+		let prop = null
+		for (const part of parts) {
+			prop = parent && parent.properties && typeof parent.properties === 'object' ? parent.properties[part] : null
+			if (!prop || typeof prop !== 'object') {
+				prop = null
+				break
+			}
+			if (part !== parts[parts.length - 1]) {
+				parent = prop
+			}
+		}
+		if (prop) {
+			entries.push([key, prop])
+			if (Array.isArray(parent.required) && parent.required.includes(parts[parts.length - 1])) {
+				required.push(key)
+			}
+		}
+	}
+	return { entries, required }
+}
+
+/**
+ * Read a property's `x-options-from` declaration, on the property or on its
+ * `items`.
+ *
+ * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+ * @param {object} prop The schema property definition.
+ * @return {object|null} The declaration, or null when absent or unusable.
+ */
+function optionsFromOf(prop) {
+	const decl = prop && (prop['x-options-from'] || (prop.items && prop.items['x-options-from']))
+	return isOptionsFrom(decl) ? decl : null
+}
+
+/**
+ * Read a property's `x-openregister-property-source` declaration.
+ *
+ * @spec openspec/changes/form-field-property-source/tasks.md#task-1
+ * @param {object} prop The schema property definition.
+ * @return {{provider: string, mode: string, config: object}|null} The declaration, or null when absent or without a provider.
+ */
+function propertySourceOf(prop) {
+	const decl = prop && prop['x-openregister-property-source']
+	if (!decl || typeof decl !== 'object' || typeof decl.provider !== 'string' || decl.provider === '') {
+		return null
+	}
+	return {
+		provider: decl.provider,
+		mode: decl.mode === 'default' ? 'default' : 'live',
+		config: (decl.config && typeof decl.config === 'object') ? decl.config : {},
+	}
+}
+
+/**
+ * The concept-scheme binding of a property, alone or as the items of an array.
+ *
+ * Two spellings, read by OpenRegister alike: `conceptScheme` (a string) and
+ * `x-openregister-concepts` (an object with `scheme`, `store`, `contextProperty`).
+ *
+ * @param {object} prop The schema property definition.
+ * @return {{multiple: boolean, store: string, contextProperty: string|null}|null} The binding, or null when the property is not bound.
+ */
+function codedBindingOf(prop) {
+	const read = (p) => {
+		if (!p || typeof p !== 'object') {
+			return null
+		}
+		const ann = p['x-openregister-concepts']
+		if (ann && typeof ann === 'object' && ann.scheme) {
+			return { store: typeof ann.store === 'string' && ann.store !== '' ? ann.store : 'uri', contextProperty: typeof ann.contextProperty === 'string' && ann.contextProperty !== '' ? ann.contextProperty : null }
+		}
+		if (typeof p.conceptScheme === 'string' && p.conceptScheme !== '') {
+			return { store: 'uri', contextProperty: null }
+		}
+		return null
+	}
+	if (prop && prop.type === 'array') {
+		const binding = read(prop.items) || read(prop)
+		return binding ? { ...binding, multiple: true } : null
+	}
+	const binding = read(prop)
+	return binding ? { ...binding, multiple: false } : null
+}
+
+/**
+ * Whether a schema property holds a file (`type: "file"`) or several
+ * (an array whose items are files).
+ *
+ * @param {object} prop The schema property definition.
+ * @return {boolean} True for a file or array-of-files property.
+ */
+function isFileProperty(prop) {
+	return prop.type === 'file' || (prop.type === 'array' && !!prop.items && prop.items.type === 'file')
+}
+
+/**
+ * The file field's own settings, from the property (or its items): the
+ * accepted types, the size limit and whether it takes several.
+ *
+ * @param {object} prop The schema property definition.
+ * @return {{accept: string, maxSize: number|undefined, multiple: boolean, capture: string}} The settings.
+ */
+function fileSettings(prop) {
+	const source = prop.type === 'array' && prop.items ? prop.items : prop
+	const allowed = prop.allowedTypes || source.allowedTypes
+	const accept = Array.isArray(allowed) ? allowed.join(',') : (typeof prop.accept === 'string' ? prop.accept : '')
+	const maxSize = Number(prop.maxSize ?? source.maxSize)
+	return {
+		accept,
+		maxSize: Number.isFinite(maxSize) && maxSize > 0 ? maxSize : undefined,
+		multiple: prop.type === 'array',
+		capture: prop.capture === 'environment' || prop.capture === 'user' ? prop.capture : '',
+	}
+}
+
+/**
+ * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+ * @param {object} prop The schema property definition.
+ * @return {string} The widget identifier (see the block above).
+ */
 function resolveWidget(prop) {
 	// Explicit widget hint takes priority
 	if (prop.widget) {
 		return prop.widget
+	}
+
+	// A file property, or an array of files, is the file field.
+	if (isFileProperty(prop)) {
+		return 'file'
+	}
+
+	// Registry-backed property (x-openregister-property-source) → type-ahead
+	if (propertySourceOf(prop)) {
+		return 'property-source'
+	}
+
+	// Array of objects edited as a table (opt-in; the default is unchanged)
+	if (prop['x-widget'] === 'sub-objects' && prop.type === 'array' && prop.items && prop.items.type === 'object') {
+		return 'sub-objects'
+	}
+
+	// Bound to an OpenRegister concept scheme: a select over the options
+	// OpenRegister serves (a multiselect for an array).
+	{
+		const coded = codedBindingOf(prop)
+		if (coded) {
+			return coded.multiple ? 'multiselect' : 'select'
+		}
+	}
+
+	// Editable table of another schema's records: an array of references whose
+	// property carries `inversedBy` (the child's property pointing back).
+	if (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null && typeof prop.inversedBy === 'string' && prop.inversedBy !== '') {
+		return 'child-records'
+	}
+
+	// ISO 8601 duration → number and unit
+	if ((prop.type || 'string') === 'string' && prop.format === 'duration' && !prop.enum) {
+		return 'duration'
 	}
 
 	// Enum → select
@@ -395,6 +646,24 @@ function resolveWidget(prop) {
 	}
 	if (type === 'array' && isUserProp(prop.items)) {
 		return 'user-multiselect'
+	}
+
+	// Nextcloud group (`format: 'nc-group'` / `referenceType: 'nextcloud-group'`):
+	// a searchable dropdown of groups storing the group id.
+	if (isGroupProp(prop)) {
+		return 'group'
+	}
+	if (type === 'array' && isGroupProp(prop.items)) {
+		return 'group-multiselect'
+	}
+
+	// Language and time zone codes: a searchable list instead of a free-text
+	// box, so a person picks "Dutch" and the record stores `nl`.
+	if (type === 'string' && format === 'language') {
+		return 'language'
+	}
+	if (type === 'string' && format === 'timezone') {
+		return 'timezone'
 	}
 
 	// Boolean → switch/checkbox
@@ -511,6 +780,102 @@ export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
 }
 
 /**
+ * Property names that carry the tenant a record belongs to, compared after
+ * lower-casing and dropping `_` / `-`, so `tenant_id`, `tenantId` and
+ * `tenant-id` all match.
+ *
+ * @type {Set<string>}
+ */
+const TENANT_PROPERTY_NAMES = new Set(['tenant', 'tenantid', 'tenantuuid'])
+
+/**
+ * Whether a schema property holds the tenant a record belongs to.
+ *
+ * Tenant is set by the platform, never by the person filling in a form, so
+ * a create form must not ask for it. OpenRegister marks no such property
+ * itself: learniq's work group ships `tenant_id` as a plain required string
+ * with no format, no `readOnly` and no flag, which is why the create dialog
+ * showed a required "Tenant *" box. So the test reads the property's
+ * semantics in this order:
+ *
+ * 1. An explicit opt-out, `x-openregister-tenant: false`, keeps it a normal field.
+ * 2. An explicit marker makes it a tenant field whatever it is called:
+ *    `x-openregister-tenant: true`, `x-platform-managed: true`,
+ *    `x-managed-by: 'platform'`, `format: 'tenant'` or `referenceType: 'tenant'`.
+ * 3. Otherwise its name decides: `tenant`, `tenant_id` / `tenantId` or `tenant_uuid`.
+ *
+ * `organisation` is deliberately NOT matched by name: plenty of schemas let a
+ * person pick an organisation (a contact's employer, a supplier), and hiding
+ * that would take a real question away. A schema whose `organisation`
+ * property is the tenant says so with one of the markers above.
+ *
+ * @param {string} key The property key.
+ * @param {object} prop The property definition.
+ * @return {boolean} True when the property is platform-managed tenancy.
+ */
+export function isTenantProperty(key, prop) {
+	const p = (prop && typeof prop === 'object') ? prop : {}
+	if (p['x-openregister-tenant'] === false) {
+		return false
+	}
+	if (p['x-openregister-tenant'] === true
+		|| p['x-platform-managed'] === true
+		|| p['x-managed-by'] === 'platform'
+		|| p.format === 'tenant'
+		|| p.referenceType === 'tenant') {
+		return true
+	}
+	const name = typeof key === 'string' ? key.toLowerCase().replace(/[-_]/g, '') : ''
+	return TENANT_PROPERTY_NAMES.has(name)
+}
+
+const warnedHelp = new Set()
+
+/**
+ * Read a property's `x-help`: a string, or a map of language codes to strings.
+ * Anything else is ignored with one warning naming the property.
+ *
+ * @param {string} key The property key (named in the warning).
+ * @param {unknown} value The raw `x-help` value.
+ * @param {string} language The user's language, e.g. `nl` or `en_GB`.
+ * @param {(text: string) => string} tr Display-layer translation, applied to a plain string only.
+ * @return {string} The explanation, or ''.
+ */
+function readHelp(key, value, language, tr) {
+	if (value === undefined || value === null) {
+		return ''
+	}
+	if (typeof value === 'string') {
+		return value.trim() !== '' ? tr(value.trim()) : ''
+	}
+	if (typeof value === 'object' && !Array.isArray(value)) {
+		const usable = Object.entries(value).filter(([, text]) => typeof text === 'string' && text.trim() !== '')
+		const byCode = new Map(usable.map(([code, text]) => [code.toLowerCase().replace('_', '-'), text.trim()]))
+		const wanted = String(language || '').toLowerCase().replace('_', '-')
+		return byCode.get(wanted) || byCode.get(wanted.split('-')[0]) || byCode.get('en') || (usable[0] ? usable[0][1].trim() : '')
+	}
+	if (!warnedHelp.has(key)) {
+		warnedHelp.add(key)
+		// eslint-disable-next-line no-console
+		console.warn(`[fieldsFromSchema] "x-help" on "${key}" must be a string or a map of language codes to strings; ignored.`)
+	}
+	return ''
+}
+
+/**
+ * Whether the signed-in Nextcloud user is an instance administrator.
+ *
+ * @return {boolean} False when nobody is signed in or the user is unknown.
+ */
+function viewerIsAdmin() {
+	try {
+		return getCurrentUser()?.isAdmin === true
+	} catch {
+		return false
+	}
+}
+
+/**
  * Generate form field definitions from a schema's properties.
  *
  * Reads `schema.properties` and creates field descriptor objects suitable
@@ -523,29 +888,53 @@ export function splitDescription(text, max = DESCRIPTION_INLINE_MAX) {
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
+ * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
+ * @param {boolean} [options.isAdmin] Whether the viewer is an instance administrator, which keeps `x-admin-only` properties. Defaults to the signed-in Nextcloud user's `isAdmin`.
+ * @param {string} [options.language] The user's language (e.g. `nl`, `en_GB`) used to pick from a language map in `x-help`; falls back to the base language, `en`, then the first entry.
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
- * @return {Array<{key: string, label: string, description: string, descriptionLong: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean}|null, userPicker: {multiple: boolean}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `descriptionLong` carries the full text when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
+ * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
+ * @return {Array<{key: string, label: string, description: string, descriptionLong: string, help: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, propertySource: {provider: string, mode: string, config: object}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `help` is the property's `x-help` explanation in the user's language ('' when absent or malformed); `descriptionLong` carries it too when present, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, translate } = options
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate, language = '' } = options
+	const isAdmin = typeof options.isAdmin === 'boolean' ? options.isAdmin : viewerIsAdmin()
 	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	if (!schema || !schema.properties) {
 		return []
 	}
 
-	const requiredKeys = Array.isArray(schema.required) ? schema.required : []
+	const nested = dottedPropertyEntries(schema, [...Object.keys(overrides || {}), ...(Array.isArray(include) ? include : [])])
+	const requiredKeys = [...(Array.isArray(schema.required) ? schema.required : []), ...nested.required]
 
-	const entries = Object.entries(schema.properties)
+	// A field that is not stored (`stored: false`) and is no property of the
+	// schema steers the form only, such as a "Choice list" switch.
+	const virtual = Object.entries(overrides || {})
+		.filter(([key, o]) => o && o.stored === false && !key.includes('.') && !Object.hasOwn(schema.properties, key))
+		.map(([key, o]) => [key, { type: typeof o.type === 'string' ? o.type : 'boolean', title: typeof o.label === 'string' ? o.label : key }])
+	const entries = [...Object.entries(schema.properties), ...nested.entries, ...virtual]
 		.filter(([key, prop]) => {
-			// Skip properties marked as not visible
-			if (prop.visible === false) {
+			// Skip properties marked as not visible, unless an override brings
+			// the field back for this form (`overrides[key].hidden === false`).
+			if (prop.visible === false && overrides[key]?.hidden !== false) {
+				return false
+			}
+			// `x-admin-only: true`: only an instance administrator sees the
+			// field. It hides a control and nothing more; the server still
+			// decides who may change the value.
+			if (prop['x-admin-only'] === true && !isAdmin) {
 				return false
 			}
 			// Per-key override visibility: `overrides[key].hidden === true` hides
 			// the field on every surface that consumes this pipeline (data widget
 			// + form dialog), so a single config map controls both.
 			if (overrides[key]?.hidden === true) {
+				return false
+			}
+			// Platform-managed tenancy (`tenant_id` and friends): nobody is
+			// asked for it on a form. An explicit `hidden: false` override
+			// brings it back for the rare surface that does need it.
+			if (hideTenant && overrides[key]?.hidden !== false && isTenantProperty(key, prop)) {
 				return false
 			}
 			// Skip readOnly properties by default — UNLESS a per-key override
@@ -570,7 +959,9 @@ export function fieldsFromSchema(schema, options = {}) {
 			// relation to another schema's object, which resolveWidget maps to a
 			// searchable 'select'; dropping it here meant a related-object property
 			// (e.g. cow.barn → barn) silently never rendered in the form at all.
-			if (prop.type === 'object' && !prop.widget && normalizeRef(prop.$ref) === null) {
+			// A field override naming a widget opts in the same way, so a page can
+			// show an object property its schema gives no widget.
+			if (prop.type === 'object' && !prop.widget && !overrides[key]?.widget && normalizeRef(prop.$ref) === null) {
 				return false
 			}
 			return true
@@ -594,14 +985,22 @@ export function fieldsFromSchema(schema, options = {}) {
 
 	return entries.map(([key, prop]) => {
 		const description = splitDescription(prop.description ? tr(prop.description) : '')
+		// `x-help` is the long explanation behind the toggletip; `description` stays the short helper line.
+		const help = readHelp(key, prop['x-help'], language, tr)
+		const labelField = prop['x-label-field']
+			|| (prop.items && prop.items['x-label-field'])
+			|| null
 		const field = {
 			key,
-			label: tr(prop.title || key),
+			label: tr(propertyTitle(prop, key)),
 			description: description.short,
-			descriptionLong: description.long,
+			descriptionLong: help || description.long,
+			help,
 			type: prop.type || 'string',
 			format: prop.format || null,
 			widget: resolveWidget(prop),
+			// File field settings (widget `file`): accepted types, size limit, several files, camera.
+			...(isFileProperty(prop) ? { file: fileSettings(prop) } : {}),
 			// Icon picker (`widget: 'icon'`) config forwarded to CnIconBrowser via
 			// CnFormDialog: which sources to offer (`iconSources`), consumer icon
 			// catalogues (JSON entries — FontAwesome/OpenGemeenten data is usually
@@ -616,6 +1015,10 @@ export function fieldsFromSchema(schema, options = {}) {
 			required: requiredKeys.includes(key),
 			readOnly: prop.readOnly || false,
 			default: prop.default !== undefined ? prop.default : null,
+			// A default that depends on who opens the form (`x-default:
+			// 'current-language'` / `'current-timezone'`). Resolved by the
+			// consuming form on a NEW object only; never on edit.
+			defaultToken: typeof prop['x-default'] === 'string' ? prop['x-default'] : null,
 			enum: prop.enum || null,
 			// Display labels for the enum CODES, keyed by raw value. An enum
 			// value is a stored contract value, not display text — several are
@@ -663,11 +1066,49 @@ export function fieldsFromSchema(schema, options = {}) {
 			// form's own; absent, the reference stays same-register (the form's
 			// `register` prop is used). Consolidates the ad-hoc caseReference /
 			// approvalDecisionId / x-mirror-of variants onto one convention.
+			//
+			// `x-label-field` names the referenced object's property that labels
+			// an option and that an inline create writes the typed term to
+			// (`reference.labelField`, default `name` at the consumer).
 			reference: (normalizeRef(prop.$ref) !== null)
-				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}) }
+				? { schema: normalizeRef(prop.$ref), multiple: false, ...(prop['x-external-register'] ? { register: prop['x-external-register'] } : {}), ...(labelField ? { labelField } : {}) }
 				: (prop.type === 'array' && prop.items && normalizeRef(prop.items.$ref) !== null)
-						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}) }
+						? { schema: normalizeRef(prop.items.$ref), multiple: true, ...((prop.items['x-external-register'] || prop['x-external-register']) ? { register: prop.items['x-external-register'] || prop['x-external-register'] } : {}), ...(labelField ? { labelField } : {}) }
 						: null,
+			// Concept-scheme binding: what the form needs to ask OpenRegister
+			// for the options (it fetches nothing here).
+			codeList: (() => {
+				const coded = codedBindingOf(prop)
+				return coded ? { property: key, multiple: coded.multiple, store: coded.store, contextProperty: coded.contextProperty } : null
+			})(),
+			// Child-records table (widget `child-records`): the child schema,
+			// the child property that points back, and the columns shown. From
+			// `items.$ref` + `inversedBy`, or named on the property.
+			childRecords: resolveWidget(prop) === 'child-records'
+				? {
+						schema: typeof prop.schema === 'string' && prop.schema !== '' ? prop.schema : (normalizeRef(prop.items && prop.items.$ref) ?? ''),
+						parentField: prop.parentField || prop.inversedBy || '',
+						columns: Array.isArray(prop.columns) ? prop.columns : [],
+						computed: Array.isArray(prop.computed) ? prop.computed : [],
+						totals: Array.isArray(prop.totals) ? prop.totals : [],
+						addFrom: prop.addFrom && typeof prop.addFrom === 'object' ? prop.addFrom : null,
+					}
+				: null,
+			// Select OR create (`x-allow-create: true`, on the property or on
+			// its `items` for an array): the picker offers "Create" next to the
+			// existing objects. Only meaningful on a reference.
+			allowCreate: prop['x-allow-create'] === true
+				|| (prop.type === 'array' && !!prop.items && prop.items['x-allow-create'] === true),
+			// Template copy (`x-fill-from: { formKey: sourceKey }`): choosing a
+			// referenced object copies those of its values into this form.
+			// Registry-backed lookup (`x-openregister-property-source`).
+			propertySource: propertySourceOf(prop),
+			// Options read from a source (`x-options-from`, on the property or
+			// on its `items`): `{ url, params?, responsePath? }` or `{ register,
+			// schema, filter? }`, with `valueField` and `labelField`. The form
+			// draws a select over them and stores the value.
+			optionsFrom: optionsFromOf(prop),
+			fillFrom: (prop['x-fill-from'] && typeof prop['x-fill-from'] === 'object') ? prop['x-fill-from'] : null,
 			// Nextcloud user reference: when a property marks a NC user
 			// (`referenceType: 'nextcloud-user'`, or `format: 'user'`/
 			// `'username'`), tag it so CnFormDialog renders a searchable
@@ -678,6 +1119,13 @@ export function fieldsFromSchema(schema, options = {}) {
 			userPicker: isUserProp(prop)
 				? { multiple: false }
 				: (prop.type === 'array' && isUserProp(prop.items))
+						? { multiple: true }
+						: null,
+			// Nextcloud group reference (`format: 'nc-group'` or
+			// `referenceType: 'nextcloud-group'`): the form stores the group id.
+			groupPicker: isGroupProp(prop)
+				? { multiple: false }
+				: (prop.type === 'array' && isGroupProp(prop.items))
 						? { multiple: true }
 						: null,
 			// Conditional immutability (AD: x-openregister-readonly-when): a
@@ -699,10 +1147,32 @@ export function fieldsFromSchema(schema, options = {}) {
 		// Apply per-field overrides
 		if (overrides[key]) {
 			Object.assign(field, overrides[key])
+			applyPickerOverride(field, overrides[key])
+			translateOverrideText(field, overrides[key], tr)
 		}
 
-		return field
+		return fieldWithOptionsFrom(field)
 	})
+}
+
+/**
+ * Run an override's display text through the translate function, as the
+ * schema's own title and description are. A manifest writes `label`,
+ * `description` and `placeholder` in its source language; without this a
+ * form showed "Requester" to a Dutch user whose catalogue holds "Aanvrager".
+ *
+ * @param {object} field The field, with the override already merged in.
+ * @param {object} override The per-key override.
+ * @param {(text: string) => string} tr The translate function (identity when none).
+ * @return {void}
+ * @spec openspec/changes/screens-form-override-labels-parity/specs/form-override-labels/spec.md#requirement-override-text-reads-in-the-users-language
+ */
+function translateOverrideText(field, override, tr) {
+	for (const name of ['label', 'description', 'placeholder']) {
+		if (typeof override[name] === 'string' && override[name] !== '') {
+			field[name] = tr(override[name])
+		}
+	}
 }
 
 /**
@@ -721,6 +1191,7 @@ export function fieldsFromSchema(schema, options = {}) {
  * @param {object} [options] Configuration options
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, type: string, propertyType: string, options: Array}>}
+ * @spec openspec/changes/index-sidebar-filter-notes/specs/index-sidebar-filter-notes/spec.md#requirement-a-filter-can-carry-a-note-and-be-a-switch
  */
 export function filtersFromSchema(schema, options = {}) {
 	if (!schema || !schema.properties) {
@@ -748,7 +1219,7 @@ export function filtersFromSchema(schema, options = {}) {
 		.map(([key, prop]) => {
 			const filter = {
 				key,
-				label: tr(prop.title || key),
+				label: tr(propertyTitle(prop, key)),
 				description: prop.description ? tr(prop.description) : '',
 				propertyType: prop.type || 'string',
 				options: [],
@@ -802,6 +1273,17 @@ export function filtersFromSchema(schema, options = {}) {
 				filter.type = 'reference'
 			} else if (control === 'boolean') {
 				filter.type = 'checkbox'
+			} else if (control === 'switch') {
+				// One on/off question with its own words beside the switch
+				// ("Ook concepten van anderen tonen"); on sends `true`.
+				filter.type = 'switch'
+				filter.switchLabel = tr(prop.switchLabel || propertyTitle(prop, key))
+			}
+
+			// A line under the filter that says what it reads (DqZaken "Het
+			// team staat op de zaak als groep; ...").
+			if (typeof prop.facetNote === 'string' && prop.facetNote !== '') {
+				filter.note = tr(prop.facetNote)
 			}
 
 			if (prop.optionsSource && typeof prop.optionsSource === 'object') {

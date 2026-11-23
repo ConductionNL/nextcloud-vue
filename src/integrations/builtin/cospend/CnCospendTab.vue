@@ -72,7 +72,10 @@
 		<div v-else-if="rows.length === 0" class="cn-sidebar-tab__empty cn-cospend-tab__empty">
 			<CurrencyEur :size="32" class="cn-cospend-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openCospendApp">
+			<NcButton
+				variant="primary"
+				:href="cospendAppUrl"
+				target="_blank">
 				<template #icon>
 					<CurrencyEur :size="20" />
 				</template>
@@ -171,7 +174,8 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCospendCreate from '../../../components/CnCospendCreate/CnCospendCreate.vue'
 import CnCospendPicker from '../../../components/CnCospendPicker/CnCospendPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
 
 /**
  * CnCospendTab — bespoke sidebar tab for the `cospend` integration.
@@ -385,7 +389,7 @@ export default {
 		},
 
 		rowUrl(row) {
-			if (row.url) {
+			if (row.url && safeHref(row.url) !== '#') {
 				return row.url
 			}
 			const projectId = row.projectId ?? row.project_id ?? row.data?.projectid ?? row.data?.project_id ?? null
@@ -492,7 +496,7 @@ export default {
 			if (Number.isNaN(date.getTime())) {
 				return ''
 			}
-			return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+			return date.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 		},
 
 		/**
@@ -525,12 +529,6 @@ export default {
 				}
 			}
 			return parts.join(' · ')
-		},
-
-		openCospendApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.cospendAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchRows() {

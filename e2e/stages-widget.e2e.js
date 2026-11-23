@@ -301,6 +301,15 @@ test.describe('the status badge tile', () => {
 	/**
 	 * Stub the status row the tile resolves its uuid through.
 	 *
+	 * The tile's `resolve.schema` is authored as `'statusType'` (see
+	 * StagesHarness.vue's `STATUS_CONTENT`, mirroring how a real manifest
+	 * declares it). That is a SLUG, and it reaches the objects API as
+	 * written: OpenRegister matches slugs case-insensitively and 404s on
+	 * `status-type`, which 2.62.0 sent and this stub used to expect
+	 * (zuiddrecht-pixel-gaps, a plain schema slug is left as written).
+	 * Route on the real path, or this stub silently stops matching and the
+	 * badge never resolves.
+	 *
 	 * @param {import('@playwright/test').Page} page The page.
 	 * @return {Promise<void>}
 	 */

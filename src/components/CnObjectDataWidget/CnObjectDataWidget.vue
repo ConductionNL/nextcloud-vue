@@ -18,7 +18,6 @@
 		:chromeless="chromeless"
 		:widgetId="widgetId || objectType"
 		:documentationUrl="documentationUrl"
-		:class="{ 'cn-object-data-widget--expanded': overflowing && expanded }"
 		:titleIconPosition="(iconComponent || iconName) ? 'left' : 'right'">
 		<template v-if="iconName" #title-icon>
 			<CnIcon :name="iconName" :size="20" />
@@ -72,23 +71,16 @@
 			{{ emptyLabel }}
 		</div>
 
-		<!-- Grid, wrapped so an overflowing field set is clipped at a WHOLE-ROW
-		     boundary (never mid-text) with a bottom fade + a "Show all N fields"
-		     affordance that expands the widget in place (ADR-062: the cell is
-		     the budget; content adapts, no inner scrollbars). -->
-		<div
-			v-else
-			class="cn-object-data-widget__grid-wrap"
-			:class="{
-				'cn-object-data-widget__grid-wrap--clipped': overflowing && !expanded,
-				'cn-object-data-widget__grid-wrap--expanded': overflowing && expanded,
-			}">
+		<!-- Collapsed, the grid shows the fields that fit the cell (or the
+		     first `collapsedFields`); "Show all N fields" renders the rest. -->
+		<div v-else class="cn-object-data-widget__grid-wrap">
 			<div
 				ref="grid"
 				class="cn-object-data-widget__grid"
-				:style="collapsedGridStyle">
+				:class="{ 'cn-object-data-widget__grid--inputs': fieldLook === 'input' }"
+				:style="gridStyle">
 				<div
-					v-for="field in resolvedFields"
+					v-for="field in visibleFields"
 					:key="field.key"
 					class="cn-object-data-widget__cell"
 					:style="cellStyle(field)">
@@ -116,6 +108,7 @@
 							<NcTextField
 								v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:type="field.widget === 'email' ? 'email' : field.widget === 'url' ? 'url' : 'text'"
 								:placeholder="field.description"
@@ -127,6 +120,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'number'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								type="number"
 								:placeholder="field.description"
@@ -138,6 +132,7 @@
 							<textarea
 								v-else-if="field.widget === 'textarea'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								class="cn-object-data-widget__textarea"
 								:value="editData[field.key] || ''"
 								:placeholder="field.description"
@@ -153,6 +148,7 @@
 							<NcSelect
 								v-else-if="isSingleRelationField(field.key)"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="relationOptions[field.key] || []"
 								:modelValue="relationSelectedOption(field)"
 								:loading="relationOptionsLoading"
@@ -161,10 +157,33 @@
 								@update:modelValue="onRelationChange(field, $event)"
 								@close="commitEdit" />
 
+							<!-- Nextcloud group or user (`referenceType: nextcloud-group`
+						     / `nextcloud-user`, one or a list): pick by display name,
+						     store the group id or uid. The same search the create and
+						     edit dialogs use. -->
+							<component
+								:is="isUserPicker(field) ? 'NcSelectUsers' : 'NcSelect'"
+								v-else-if="isPersonPicker(field)"
+								ref="activeEditor"
+								:inputLabel="field.label"
+								:labelOutside="true"
+								:options="personOptions[field.key] || []"
+								:modelValue="personSelected(field)"
+								:multiple="isPersonMultiple(field)"
+								:keepOpen="isPersonMultiple(field)"
+								:loading="personLoading === field.key"
+								:filterable="false"
+								:clearable="!field.required"
+								label="label"
+								@search="(q) => searchPeople(field, q)"
+								@update:modelValue="onPersonChange(field, $event)"
+								@close="isPersonMultiple(field) ? undefined : commitEdit()" />
+
 							<!-- Select -->
 							<NcSelect
 								v-else-if="field.widget === 'select'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="getSelectOptions(field)"
 								:modelValue="getSelectedOption(field)"
 								:clearable="!field.required"
@@ -175,6 +194,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'multiselect'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:options="getMultiselectOptions(field)"
 								:modelValue="getSelectedMultiselectOptions(field)"
 								:multiple="true"
@@ -186,6 +206,7 @@
 							<NcSelect
 								v-else-if="field.widget === 'tags'"
 								ref="activeEditor"
+								:ariaLabelCombobox="field.label"
 								:modelValue="editData[field.key] || []"
 								:multiple="true"
 								:keepOpen="true"
@@ -206,6 +227,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'date'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] || ''"
 								type="date"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -216,6 +238,7 @@
 							<NcTextField
 								v-else-if="field.widget === 'datetime'"
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] || ''"
 								type="datetime-local"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -226,6 +249,7 @@
 							<NcTextField
 								v-else
 								ref="activeEditor"
+								:aria-label="field.label"
 								:modelValue="editData[field.key] != null ? String(editData[field.key]) : ''"
 								:placeholder="field.description"
 								@update:modelValue="val => updateField(field.key, val)"
@@ -237,12 +261,12 @@
 						<div
 							v-if="field.widget !== 'checkbox'"
 							class="cn-object-data-widget__editor-actions">
-							<NcButton variant="tertiary-no-background" @click="commitEdit">
+							<NcButton variant="tertiary-no-background" :aria-label="t('nextcloud-vue', 'Save')" @click="commitEdit">
 								<template #icon>
 									<Check :size="20" />
 								</template>
 							</NcButton>
-							<NcButton variant="tertiary-no-background" @click="cancelEdit">
+							<NcButton variant="tertiary-no-background" :aria-label="t('nextcloud-vue', 'Cancel')" @click="cancelEdit">
 								<template #icon>
 									<Close :size="20" />
 								</template>
@@ -260,7 +284,7 @@
 						}"
 						:tabindex="isEditable(field) ? 0 : -1"
 						:role="isEditable(field) ? 'button' : undefined"
-						:aria-label="isEditable(field) ? 'Click to edit ' + field.label : undefined"
+						:aria-label="isEditable(field) ? t('nextcloud-vue', 'Edit {title}', { title: field.label }) : undefined"
 						@click="isEditable(field) && startEdit(field)"
 						@keydown.enter="isEditable(field) && startEdit(field)">
 						<!-- Per-field display slot override -->
@@ -271,7 +295,66 @@
 							:value="displayValues[field.key]"
 							:raw="(objectData || {})[field.key]" />
 						<template v-else>
-							<img v-if="isImageField(field) && rawOf(field)"
+							<!-- `tagPills`: a tags field as pills, each with a remove
+							     button, and "+ Label" to add one (DqZaak Zaakgegevens). -->
+							<span
+								v-if="hasTagPills(field)"
+								class="cn-object-data-widget__tags"
+								:data-testid="`cn-object-data-tags-${field.key}`">
+								<span
+									v-for="tag in tagsOf(field)"
+									:key="tag"
+									class="cn-object-data-widget__tag">
+									{{ tag }}
+									<button
+										v-if="isEditable(field)"
+										type="button"
+										class="cn-object-data-widget__tag-remove"
+										:aria-label="t('nextcloud-vue', 'Remove {label}', { label: tag })"
+										:disabled="saving"
+										:data-testid="`cn-object-data-tag-remove-${field.key}`"
+										@click.stop="removeTag(field, tag)"
+										@keydown.enter.stop>
+										<Close :size="14" />
+									</button>
+								</span>
+								<NcButton
+									v-if="isEditable(field)"
+									variant="tertiary"
+									size="small"
+									class="cn-object-data-widget__tag-add"
+									:data-testid="`cn-object-data-tag-add-${field.key}`"
+									@click.stop="startEdit(field)"
+									@keydown.enter.stop>
+									{{ tagAddLabel(field) }}
+								</NcButton>
+							</span>
+							<!-- `pill`: the shown value as a status pill, toned by the raw value. -->
+							<CnStatusBadge
+								v-else-if="pillOf(field) && !isValueEmpty(field.key)"
+								:label="String(displayValues[field.key])"
+								:variant="pillOf(field)"
+								size="small"
+								:data-testid="`cn-object-data-pill-${field.key}`" />
+							<!-- A Nextcloud group (or list): its display name, cached
+							     per id; the id while the name loads or when unknown. -->
+							<span
+								v-else-if="isGroupPicker(field) && groupIdsOf(field).length"
+								class="cn-object-data-widget__groups">
+								<template v-for="(gid, gi) in groupIdsOf(field)" :key="gid">
+									<span v-if="gi > 0">, </span>
+									<CnGroupNameCell :gid="gid" />
+								</template>
+							</span>
+							<!-- A Nextcloud user (or list): the display name, the
+							     uid while it loads or when it cannot be found. -->
+							<span
+								v-else-if="isUserPicker(field) && userIdsOf(field).length"
+								class="cn-object-data-widget__users"
+								:title="userIdsOf(field).join(', ')">
+								{{ userIdsOf(field).map((uid) => personLabel(field, uid)).join(', ') }}
+							</span>
+							<img v-else-if="isImageField(field) && rawOf(field)"
 								:src="rawOf(field)"
 								:alt="field.label"
 								class="cn-object-data-widget__image">
@@ -291,7 +374,7 @@
 								<table class="cn-object-data-widget__mini-table">
 									<thead>
 										<tr>
-											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col">
+											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col" scope="col">
 												{{ col }}
 											</th>
 										</tr>
@@ -319,16 +402,30 @@
 									{{ stringifyCell(v) }}
 								</span>
 							</div>
-							<!-- Single plain OBJECT → key: value definition list. -->
+							<!-- Single plain OBJECT → key: value definition list; a
+							     nested plain object (e.g. a per-language map) gets
+							     its own list one level down. -->
 							<dl
 								v-else-if="fieldValueKind(field) === 'object'"
 								class="cn-object-data-widget__deflist">
 								<template v-for="(pair, pi) in objectEntries(rawOf(field))" :key="pi">
 									<dt>
-										{{ pair[0] }}
+										{{ nestedLabel(field, [pair[0]]) }}
 									</dt>
 									<dd>
-										{{ stringifyCell(pair[1]) }}
+										<dl
+											v-if="isPlainObject(pair[1])"
+											class="cn-object-data-widget__deflist cn-object-data-widget__deflist--nested">
+											<template v-for="(sub, si) in objectEntries(pair[1])" :key="si">
+												<dt>
+													{{ nestedLabel(field, [pair[0], sub[0]]) }}
+												</dt>
+												<dd>
+													<span class="cn-object-data-widget__deflist-text">{{ stringifyNested(sub[1]) }}</span>
+												</dd>
+											</template>
+										</dl>
+										<span v-else class="cn-object-data-widget__deflist-text">{{ stringifyNested(pair[1]) }}</span>
 									</dd>
 								</template>
 							</dl>
@@ -341,23 +438,23 @@
 							class="cn-object-data-widget__edit-icon"
 							:size="14" />
 					</div>
+					<span v-if="hintFor(field)" class="cn-object-data-widget__hint">{{ hintFor(field) }}</span>
 				</div>
 			</div>
-			<!-- Bottom fade over the clipped whole-row boundary. -->
-			<div
-				v-if="overflowing && !expanded"
-				class="cn-object-data-widget__fade"
-				aria-hidden="true" />
-			<!-- Expand / collapse affordance — only rendered when the field set
-			     actually overflows its cell. -->
-			<button
-				v-if="overflowing"
-				type="button"
+			<NcButton
+				v-if="hasHiddenFields"
+				variant="tertiary"
+				wide
 				class="cn-object-data-widget__toggle"
+				:aria-expanded="expanded ? 'true' : 'false'"
 				@click="toggleExpanded">
 				{{ expanded ? collapseFieldsLabel : showAllFieldsLabel }}
-			</button>
+			</NcButton>
 		</div>
+
+		<p v-if="footnote" class="cn-object-data-widget__footnote" data-testid="cn-object-data-widget-footnote">
+			{{ cnTranslate(footnote) }}
+		</p>
 
 		<!-- Read-only @self metadata, surfaced on demand from the
 		     Metadata action item rather than as a permanent page widget. -->
@@ -387,20 +484,38 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcActionButton, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
+import { formatBoardDate } from '../../utils/boardDate.js'
+import { formatTermDuration } from '../../utils/builtInFormatters.js'
+import { parseDateValue } from '../../utils/dateVariant.js'
+import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
+import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
+import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { saveEdited } from '../../utils/saveEdited.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
+import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
+import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
+import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+
+// Widgets whose value the inline text fallback would corrupt.
+const STRUCTURED_WIDGETS = ['json', 'code', 'file', 'sub-objects', 'child-records']
 
 /**
  * CnObjectDataWidget — Schema-driven editable data grid widget.
@@ -442,6 +557,9 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 		NcSelect,
+		NcSelectUsers,
+		CnGroupNameCell,
+		CnStatusBadge,
 		NcCheckboxRadioSwitch,
 		NcActionButton,
 		CnWidgetWrapper,
@@ -455,6 +573,8 @@ export default {
 	},
 
 	inject: {
+		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 		/**
 		 * Detail-page object context (`{ objectId, register, schema }`) provided
 		 * by CnDetailPage. Supplies the register that bare-slug `$ref` relation
@@ -472,6 +592,13 @@ export default {
 		 * identity when used standalone (no CnAppRoot ancestor).
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * Formatter registry, provided by CnAppRoot (`cnFormatters`: the
+		 * library's built-ins plus the app's `formatters`). A field override
+		 * `{ formatter: '<id>' }` renders the value through the same function a
+		 * table column with that `formatter` uses. Empty when used standalone.
+		 */
+		cnFormatters: { default: () => ({}) },
 		/**
 		 * The host surface's panel-action channel, when this widget is rendered
 		 * in a tab panel. Null everywhere else, which is every other surface.
@@ -656,7 +783,17 @@ export default {
 		 * - `hidden` (boolean) — Hide this property
 		 * - `editable` (boolean) — Override editability (default: based on schema readOnly)
 		 * - `label` (string) — Override the display label
+		 * - `emptyValue` (string) — Words shown, translated, for an empty or false value instead of a dash
+		 * - `hint` (string) — A muted line under the value, translated ("Staat op de pdf")
+		 * - `tagPills` (boolean) — With `widget: "tags"`: the value reads as pills, each with a
+		 *   remove button that saves at once, and an add button (`addTagLabel`, default "+ Label")
+		 *   that opens the tags editor; both only while the field is editable
 		 * - `widget` (string) — Override the widget type for editing
+		 * - `formatter` (string) — Display the value through the formatter
+		 *   registered under this id on CnAppRoot (`cnFormatters`), called as
+		 *   `(value, object, property)` like a table cell's formatter. An id
+		 *   nobody registered, or a formatter that throws, keeps the default
+		 *   rendering. Editing still writes the stored value.
 		 *
 		 * Accepts an Array too: an empty overrides map (`{}`) round-trips through
 		 * PHP/JSON as an empty Array (`[]`), so a persisted manifest can deliver
@@ -670,11 +807,32 @@ export default {
 		},
 
 		/**
-		 * Number of grid columns.
+		 * Number of grid columns. The board look fits 200px columns instead,
+		 * except for one column, which it keeps.
 		 */
 		columns: {
 			type: Number,
 			default: 3,
+		},
+
+		/**
+		 * Keep `columns` under the board look too, instead of fitting 200px
+		 * columns: a card the board draws as two columns read row by row
+		 * (PqAfspraak "Afspraakgegevens"). Manifest `content.fixedColumns`.
+		 */
+		fixedColumns: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Number of fields shown while collapsed. `null` fits the cell: the
+		 * whole rows that fit stay, and only an overflowing cell gets the
+		 * "Show all N fields" button.
+		 */
+		collapsedFields: {
+			type: Number,
+			default: null,
 		},
 
 		/**
@@ -756,10 +914,33 @@ export default {
 			default: () => t('nextcloud-vue', 'Discard'),
 		},
 
+		/**
+		 * How the values are drawn: `input` draws each one as an input box under
+		 * its label (board PqOfferte's quote form); a click still edits it in
+		 * place. Empty (the default) draws plain values.
+		 *
+		 * @spec openspec/changes/data-fields-as-inputs/specs/data-widget/spec.md#requirement-a-data-card-can-draw-its-values-as-inputs-with-a-hint
+		 */
+		fieldLook: {
+			type: String,
+			default: '',
+		},
+
 		/** Label shown when no properties to display */
 		emptyLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'No data available'),
+		},
+
+		/**
+		 * A muted line under the fields, through the host translate
+		 * (DqZaakContact "Ontvangstbevestiging").
+		 *
+		 * @spec openspec/changes/data-widget-footnote/specs/data-widget-footnote/spec.md#requirement-a-data-card-can-end-with-a-footnote
+		 */
+		footnote: {
+			type: String,
+			default: '',
 		},
 
 		/** Label for the Metadata item in the overflow Actions menu. */
@@ -797,16 +978,16 @@ export default {
 			relationOptions: {},
 			/** Whether relation picker options are being fetched. */
 			relationOptionsLoading: false,
-			/** Whether the field set overflows its cell (drives the clip + toggle). */
-			overflowing: false,
+			/** Group and user picker options per field key ({ id, label }[]). */
+			personOptions: {},
+			/** Key of the group or user field whose options are loading, or null. */
+			personLoading: null,
+			/** Display names of users seen in a user picker, by uid. */
+			userLabels: {},
 			/** Whether the user expanded the widget to see every field. */
 			expanded: false,
-			/**
-			 * Pixel height to clip the collapsed grid at — chosen at a WHOLE-ROW
-			 * boundary so the last visible row is never cut mid-text. `null`
-			 * until measured / when not overflowing.
-			 */
-			collapsedMaxHeight: null,
+			/** Fields that fit the cell while collapsed; null when all fit. */
+			fitCount: null,
 		}
 	},
 
@@ -871,6 +1052,28 @@ export default {
 		 * Resolved field definitions from schema + overrides.
 		 * Sorted by order, filtered by hidden/exclude/include.
 		 */
+		/**
+		 * The keys the overrides and the include list name at a dotted path
+		 * (`handling.teams`), as fields for the dotted-field helpers.
+		 *
+		 * @return {Array<{key: string}>}
+		 * @spec openspec/changes/forms-dotted-path-fields/specs/form-dialog/spec.md#requirement-a-field-can-edit-one-key-inside-an-object-property
+		 */
+		dottedFieldKeys() {
+			const keys = [...Object.keys(this.resolvedOverrides || {}), ...(Array.isArray(this.include) ? this.include : [])]
+			return [...new Set(keys)].filter(isDottedKey).map((key) => ({ key }))
+		},
+
+		/**
+		 * The object's values by field key: its own keys, plus each dotted
+		 * field's value read from inside its object.
+		 *
+		 * @return {object}
+		 */
+		fieldValues() {
+			return spreadDottedFields(this.objectData || {}, this.dottedFieldKeys)
+		},
+
 		resolvedFields() {
 			// The shared pipeline now honours per-key `hidden` (filter) and
 			// `order` (sort) directly, so the overrides map is passed through
@@ -893,15 +1096,20 @@ export default {
 				gridRow: (this.resolvedOverrides[field.key] && this.resolvedOverrides[field.key].gridRow) || 1,
 			}))
 
+			// Per-field condition: `overrides[key].visibleWhen` shows a field only
+			// for the objects it belongs to, such as a person's preferred name on
+			// a client that can also be an organisation.
+			const shown = withSpans.filter((field) => this.isVisibleByCondition(field))
+
 			if (!this.hideEmpty) {
-				return withSpans
+				return shown
 			}
 
 			// Keep a field the user is currently editing or has pending changes for,
 			// otherwise it would vanish mid-edit the moment its value is cleared.
-			return withSpans.filter((field) => field.key === this.editingField
+			return shown.filter((field) => field.key === this.editingField
 				|| field.key in this.dirtyFields
-				|| !this.isEmptyValue((this.objectData || {})[field.key]))
+				|| !this.isEmptyValue(this.fieldValues[field.key]))
 		},
 
 		/**
@@ -930,15 +1138,49 @@ export default {
 		},
 
 		/**
+		 * Display values of the fields whose override names a registered
+		 * formatter, keyed by field key. A field is left out when its formatter
+		 * id is not registered or the formatter throws, so it falls back to the
+		 * default rendering.
+		 *
+		 * @return {Record<string, string>}
+		 */
+		formatterDisplayValues() {
+			const values = {}
+			for (const field of this.resolvedFields) {
+				const fn = field.formatter && this.cnFormatters && this.cnFormatters[field.formatter]
+				if (typeof fn !== 'function') {
+					continue
+				}
+				const raw = field.key in this.dirtyFields
+					? this.dirtyFields[field.key]
+					: this.fieldValues[field.key]
+				const prop = (this.schema.properties && this.schema.properties[field.key]) || {}
+				try {
+					const formatted = fn(raw, this.objectData || {}, prop)
+					values[field.key] = (formatted === null || formatted === undefined || formatted === '') ? '—' : String(formatted)
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnObjectDataWidget] formatter "${field.formatter}" threw; falling back`, e)
+				}
+			}
+			return values
+		},
+
+		/**
 		 * Formatted display values for each field.
 		 */
 		displayValues() {
 			const values = {}
 			for (const field of this.resolvedFields) {
+				if (field.key in this.formatterDisplayValues) {
+					values[field.key] = this.formatterDisplayValues[field.key]
+					continue
+				}
 				// Show pending edit value if dirty
 				const raw = field.key in this.dirtyFields
 					? this.dirtyFields[field.key]
-					: (this.objectData || {})[field.key]
+					: this.fieldValues[field.key]
 				const prop = this.schema.properties && this.schema.properties[field.key]
 				if (this.isRelationField(prop) && raw !== null && raw !== undefined && raw !== '') {
 					values[field.key] = this.relationLabel(raw)
@@ -949,7 +1191,32 @@ export default {
 				// still showing the stored code — `submitted` under a Dutch
 				// label, beside a list that already read "Ingediend".
 				const enumLabel = this.enumDisplayLabel(field, raw)
-				values[field.key] = enumLabel !== null ? enumLabel : formatValue(raw, prop || {})
+				const empty = this.emptyValueFor(field, raw)
+				// Only a format the page's override asks for: a schema `format` keeps its own rendering.
+				const shown = this.resolvedOverrides[field.key]?.format
+				if (empty === null && (shown === 'date' || shown === 'date-long') && raw !== null && raw !== undefined && raw !== '') {
+					// The board's short date ("3 okt"), or with the year always ("3 okt 2026").
+					const date = parseDateValue(raw)
+					if (date !== null) {
+						values[field.key] = shown === 'date-long'
+							? formatBoardDate(date, new Date(date.getFullYear() + 1, 0, 1))
+							: formatBoardDate(date)
+						continue
+					}
+				}
+				if (empty === null && shown === 'duration' && raw !== null && raw !== undefined && raw !== '') {
+					// A term in words, with the extension at `extendBy` when the object holds one.
+					const extension = typeof field.extendBy === 'string' ? readPath(this.objectData || {}, field.extendBy) : null
+					values[field.key] = formatTermDuration(raw, extension)
+					continue
+				}
+				if (empty === null && enumLabel === null && typeof raw === 'boolean') {
+					// A fact reads yes/no as a word, as the boards draw it.
+					values[field.key] = raw ? t('nextcloud-vue', 'Yes') : t('nextcloud-vue', 'No')
+					continue
+				}
+				// A fact shows its text whole; the cell wraps.
+				values[field.key] = empty !== null ? empty : (enumLabel !== null ? enumLabel : formatValue(raw, prop || {}, { truncate: Infinity }))
 			}
 			return values
 		},
@@ -963,26 +1230,45 @@ export default {
 
 		/**
 		 * CSS grid template for the container.
+		 *
+		 * @spec openspec/changes/data-widget-fixed-columns/specs/object-data-widget/spec.md#requirement-a-data-card-can-keep-its-declared-columns-in-the-board-look
 		 */
 		gridStyle() {
+			// The board look: as many 200px columns as the card has room for,
+			// unless the config asks for one column (a stacked list of pairs).
+			if (normalizeLook(this.cnLook) === 'board') {
+				if (this.columns === 1) {
+					return { 'grid-template-columns': 'minmax(0, 1fr)' }
+				}
+				if (this.fixedColumns) {
+					return { 'grid-template-columns': `repeat(${this.columns}, minmax(0, 1fr))` }
+				}
+				return {
+					'grid-template-columns': 'repeat(auto-fit, minmax(200px, 1fr))',
+				}
+			}
 			return {
 				'grid-template-columns': `repeat(${this.columns}, 1fr)`,
 			}
 		},
 
-		/**
-		 * The grid style plus, when collapsed and overflowing, a `max-height`
-		 * clip at the last WHOLE-ROW boundary (with overflow hidden via the
-		 * `--clipped` wrapper class) so no field row is cut mid-text (ADR-062).
-		 *
-		 * @return {object}
-		 */
-		collapsedGridStyle() {
-			const style = { ...this.gridStyle }
-			if (this.overflowing && !this.expanded && this.collapsedMaxHeight !== null && this.collapsedMaxHeight !== undefined) {
-				style.maxHeight = this.collapsedMaxHeight + 'px'
+		/** Fields shown while collapsed; null shows all of them. */
+		collapsedCount() {
+			const count = this.collapsedFields ?? this.fitCount
+			return count === null || count === undefined ? null : Math.max(1, count)
+		},
+
+		/** Whether some fields are left out while collapsed. */
+		hasHiddenFields() {
+			return this.collapsedCount !== null && this.resolvedFields.length > this.collapsedCount
+		},
+
+		/** The fields rendered: all of them when expanded, else the first few. */
+		visibleFields() {
+			if (this.expanded || !this.hasHiddenFields) {
+				return this.resolvedFields
 			}
-			return style
+			return this.resolvedFields.slice(0, this.collapsedCount)
 		},
 
 		/** Pre-translated "Show all N fields" affordance label. */
@@ -997,25 +1283,35 @@ export default {
 	},
 
 	watch: {
+		'resolvedFields.length': function() {
+			this.scheduleFit()
+		},
+
+		collapsedFields() {
+			this.scheduleFit()
+		},
+
 		objectData: {
 			deep: true,
 			handler() {
 				// If external data changes (e.g. after save), clear dirty state
 				// for fields that now match the new data
 				for (const key of Object.keys(this.dirtyFields)) {
-					if (this.dirtyFields[key] === this.objectData[key]) {
+					if (this.dirtyFields[key] === this.fieldValues[key]) {
 						const { [key]: _, ...rest } = this.dirtyFields
 						this.dirtyFields = rest
 					}
 				}
 				// Resolve relation display names whenever the object changes.
 				this.resolveRelations()
+				this.resolveUserNames()
 			},
 		},
 
 		schema: {
 			handler() {
 				this.resolveRelations()
+				this.resolveUserNames()
 			},
 		},
 
@@ -1039,21 +1335,17 @@ export default {
 
 	mounted() {
 		this.resolveRelations()
-		this.scheduleOverflowMeasure()
+		this.resolveUserNames()
 		this.publishPanelActions()
-	},
-
-	updated() {
-		this.scheduleOverflowMeasure()
+		this.observeCell()
+		this.scheduleFit()
 	},
 
 	beforeUnmount() {
-		if (this._overflowObserver) {
-			this._overflowObserver.disconnect()
+		if (this._cellObserver) {
+			this._cellObserver.disconnect()
 		}
-		if (this._overflowTimer) {
-			clearTimeout(this._overflowTimer)
-		}
+		clearTimeout(this._fitTimer)
 		// Leave nothing behind in the strip's menu. A closed tab's panel can be
 		// torn down while the strip lives on, and an item whose widget is gone
 		// would open a dialog belonging to nothing.
@@ -1063,6 +1355,24 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The pill tone of a field whose override asks for a pill
+		 * (`pill: { variantMap }`): the raw value's variant, else `default`;
+		 * '' when the field is not a pill.
+		 *
+		 * @param {object} field The resolved field.
+		 * @return {string} The badge variant, or ''.
+		 * @spec openspec/changes/data-widget-value-pill/specs/object-data-widget/spec.md#requirement-a-field-can-show-its-value-as-a-pill
+		 */
+		pillOf(field) {
+			const pill = this.resolvedOverrides[field.key]?.pill
+			if (!pill || typeof pill !== 'object') {
+				return ''
+			}
+			const variant = (pill.variantMap || {})[String((this.objectData || {})[field.key])]
+			return isBadgeVariant(variant) ? variant : 'default'
+		},
+
 		/**
 		 * Publish or withdraw this widget's items on the host surface.
 		 *
@@ -1086,118 +1396,94 @@ export default {
 		/** Pre-translated string helper exposed to the template. */
 		t,
 
-		/** Toggle the expand/collapse state and, on collapse, re-measure. */
+		/** Toggle between the first few fields and all of them. */
 		toggleExpanded() {
 			this.expanded = !this.expanded
 			if (!this.expanded) {
-				this.$nextTick(() => this.measureOverflow())
+				this.scheduleFit()
 			}
 		},
 
 		/**
-		 * Debounced overflow measurement — coalesces the many `updated` ticks
-		 * that a data load / relation resolution triggers into one measure, and
-		 * (once) attaches a ResizeObserver on the host cell so the clip re-fits
-		 * when the cell resizes.
+		 * The wrapper's content node: the cell whose height the fields fit into.
 		 *
-		 * @return {void}
+		 * @return {HTMLElement|null}
 		 */
-		scheduleOverflowMeasure() {
-			if (typeof window === 'undefined') {
+		cellContent() {
+			return this.$el?.querySelector?.('.cn-widget-wrapper__content')
+				|| this.$el?.closest?.('.cn-widget-wrapper__content')
+				|| null
+		},
+
+		/** Re-fit when the cell is resized. */
+		observeCell() {
+			if (typeof ResizeObserver === 'undefined') {
 				return
 			}
-			if (!this._overflowObserver && typeof ResizeObserver !== 'undefined' && this.$refs.grid) {
-				const content = this.$refs.grid.closest && this.$refs.grid.closest('.cn-widget-wrapper__content')
-				if (content) {
-					this._overflowObserver = new ResizeObserver(() => this.measureOverflow())
-					this._overflowObserver.observe(content)
-				}
+			this._cellObserver = new ResizeObserver(() => this.scheduleFit())
+			const content = this.cellContent()
+			if (content) {
+				this._cellObserver.observe(content)
 			}
-			clearTimeout(this._overflowTimer)
-			this._overflowTimer = setTimeout(() => this.measureOverflow(), 60)
 		},
 
 		/**
-		 * Measure whether the field grid overflows its cell and, if so, choose a
-		 * WHOLE-ROW clip height so the collapsed state never cuts a row mid-text
-		 * (ADR-062). No-op while expanded (the user opted to see everything) and
-		 * in non-layout environments (jsdom) where every rect is zero.
+		 * Re-fit when the grid itself grows or shrinks: a fixed-height cell does
+		 * not resize when a relation label resolves or a field enters edit mode.
+		 * A re-fit of unchanged content lands on the same height, which the
+		 * observer does not report, so this settles after one extra pass.
 		 *
+		 * @param {HTMLElement} grid The grid element.
 		 * @return {void}
 		 */
-		measureOverflow() {
-			if (this.expanded) {
+		observeGrid(grid) {
+			if (!this._cellObserver || grid === this._observedGrid) {
 				return
 			}
+			if (this._observedGrid) {
+				this._cellObserver.unobserve(this._observedGrid)
+			}
+			this._cellObserver.observe(grid)
+			this._observedGrid = grid
+		},
+
+		/** Debounce fitFields so a data load's burst of changes fits once. */
+		scheduleFit() {
+			clearTimeout(this._fitTimer)
+			this._fitTimer = setTimeout(() => this.fitFields(), 30)
+		},
+
+		/**
+		 * In fit mode, render every field, then keep the whole rows that fit
+		 * the cell with room left for the toggle.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async fitFields() {
+			if (this.collapsedFields !== null || this.expanded) {
+				return
+			}
+			this.fitCount = null
+			await this.$nextTick()
+			const content = this.cellContent()
 			const grid = this.$refs.grid
-			const content = grid && grid.closest && grid.closest('.cn-widget-wrapper__content')
-			if (!grid || !content) {
-				this.overflowing = false
-				this.collapsedMaxHeight = null
+			if (grid) {
+				this.observeGrid(grid)
+			}
+			if (!content || !grid || !content.clientHeight || content.scrollHeight <= content.clientHeight + 1) {
 				return
 			}
-			const avail = content.clientHeight
-			// Natural (unclipped) grid height. `scrollHeight` ignores the
-			// max-height clip so it reflects the full field set.
-			const natural = grid.scrollHeight
-			if (!avail || natural <= avail + 2) {
-				this.overflowing = false
-				this.collapsedMaxHeight = null
-				return
-			}
-			// Reserve room for the fade + the "Show all" toggle button.
-			const reserve = 30
-			const budget = Math.max(avail - reserve, 0)
-			const gridTop = grid.getBoundingClientRect().top
+			const style = getComputedStyle(content)
+			const box = content.getBoundingClientRect()
+			const toggleReserve = 44
+			const limit = box.top + content.clientTop + content.clientHeight
+				- parseFloat(style.paddingBottom || 0) - toggleReserve - content.scrollTop
 			const cells = Array.from(grid.querySelectorAll('.cn-object-data-widget__cell'))
-			const clip = this.computeWholeRowClip(this.cellRowBottoms(cells, gridTop), budget)
-			this.overflowing = true
-			this.collapsedMaxHeight = clip
-		},
-
-		/**
-		 * Group cells into rows (by their top offset, bucketed) and return each
-		 * row's greatest bottom offset relative to the grid top — the candidate
-		 * whole-row clip boundaries.
-		 *
-		 * @param {Element[]} cells The grid cell elements.
-		 * @param {number} gridTop The grid's viewport top (getBoundingClientRect).
-		 * @return {number[]} Sorted ascending row-bottom offsets (px, grid-relative).
-		 */
-		cellRowBottoms(cells, gridTop) {
-			const rows = new Map()
-			for (const cell of cells) {
-				const r = cell.getBoundingClientRect()
-				const topKey = Math.round((r.top - gridTop) / 4) * 4
-				const bottom = r.bottom - gridTop
-				rows.set(topKey, Math.max(rows.get(topKey) || 0, bottom))
-			}
-			return Array.from(rows.values()).sort((a, b) => a - b)
-		},
-
-		/**
-		 * Pick the largest row-bottom that fits the budget — the whole-row clip
-		 * boundary. Always keeps at least the first row so a single very tall
-		 * row still shows (its overflow is the fade's job, not a mid-row cut).
-		 * Pure — unit-tested directly.
-		 *
-		 * @param {number[]} rowBottoms Ascending row-bottom offsets.
-		 * @param {number} budget The available height (px).
-		 * @return {number} The clip height (px).
-		 */
-		computeWholeRowClip(rowBottoms, budget) {
-			if (!rowBottoms.length) {
-				return budget
-			}
-			let clip = rowBottoms[0]
-			for (const b of rowBottoms) {
-				if (b <= budget) {
-					clip = b
-				} else {
-					break
-				}
-			}
-			return clip
+				.map((el) => el.getBoundingClientRect())
+			const overflowing = cells.find((r) => r.bottom > limit)
+			// Drop the whole row the first overflowing field sits in.
+			const count = overflowing ? cells.filter((r) => r.top < overflowing.top - 1).length : cells.length
+			this.fitCount = count < cells.length ? Math.max(1, count) : null
 		},
 
 		/**
@@ -1220,6 +1506,9 @@ export default {
 		 * @return {'object-array'|'scalar-array'|'object'|'scalar'} The value kind.
 		 */
 		fieldValueKind(field) {
+			if (field.key in this.formatterDisplayValues) {
+				return 'scalar'
+			}
 			const prop = ((this.schema && this.schema.properties) || {})[field.key]
 			if (this.isRelationField(prop)) {
 				return 'scalar'
@@ -1286,6 +1575,59 @@ export default {
 		},
 
 		/**
+		 * Whether a value is a plain object (not an array, not null).
+		 *
+		 * @param {unknown} v The value.
+		 * @return {boolean} True for a plain object.
+		 */
+		isPlainObject(v) {
+			return v !== null && typeof v === 'object' && !Array.isArray(v)
+		},
+
+		/**
+		 * Label for a key inside an object value: the sub-schema's `title`
+		 * (translated) when the schema describes it, else the key, made
+		 * readable when it is identifier-shaped (`shortDescription` → "Short
+		 * description"; `nl` stays `nl`).
+		 *
+		 * @param {object} field Resolved field definition.
+		 * @param {string[]} path Keys from the field's value down to this entry.
+		 * @return {string} The label.
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-nested-object-reads-as-a-list-per-key
+		 */
+		nestedLabel(field, path) {
+			let prop = ((this.schema && this.schema.properties) || {})[field.key]
+			for (const key of path) {
+				if (!this.isPlainObject(prop)) {
+					prop = null
+					break
+				}
+				prop = (prop.properties && prop.properties[key])
+					|| (this.isPlainObject(prop.additionalProperties) ? prop.additionalProperties : null)
+			}
+			if (prop && typeof prop.title === 'string' && prop.title) {
+				return this.cnTranslate(prop.title)
+			}
+			const key = String(path[path.length - 1])
+			return /[A-Z_-]/.test(key) ? humaniseKey(key) : key
+		},
+
+		/**
+		 * Stringify a value inside a definition list: a list of scalars reads
+		 * as a comma-separated line, anything else as `stringifyCell`.
+		 *
+		 * @param {unknown} v The value.
+		 * @return {string} The display string.
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-nested-object-reads-as-a-list-per-key
+		 */
+		stringifyNested(v) {
+			if (Array.isArray(v) && v.length && v.every((item) => item === null || typeof item !== 'object')) {
+				return v.map((item) => this.stringifyCell(item)).join(', ')
+			}
+			return this.stringifyCell(v)
+		},
+
+		/**
 		 * Stringify a scalar cell value; a nested object/array collapses to
 		 * compact JSON (never "[object Object]").
 		 *
@@ -1343,14 +1685,18 @@ export default {
 			}
 			// Canonical OpenRegister shorthand: `$ref` on a uuid-string
 			// property (or its array items) references a schema in the SAME
-			// register. Authored as a slug ("caseType"), but the live schema
-			// API serves it REWRITTEN to the numeric schema id (e.g. 85) —
-			// accept both; the objects API resolves either in its path.
-			// Register comes from the detail-page object context (ADR-062:
-			// references display the target object's NAME, never a raw uuid).
+			// register. Authored as the schema's TITLE ("ReportPeriod"), not
+			// its slug — the live schema API may also rewrite it to the
+			// numeric schema id (e.g. 85); accept both, the objects API
+			// resolves either in its path, but a multi-word title 404s
+			// unless kebab-cased first (defect 7: `ReportPeriod` 404s,
+			// `report-period` 200). Register comes from the detail-page
+			// object context (ADR-062: references display the target
+			// object's NAME, never a raw uuid).
 			const rawRef = prop.$ref !== null && prop.$ref !== undefined ? prop.$ref : (prop.items ? prop.items.$ref : null)
 			if (rawRef !== null && rawRef !== undefined && (typeof rawRef === 'string' || typeof rawRef === 'number')) {
-				const slug = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const tail = String(rawRef).split('/').pop().replace(/\.json$/, '')
+				const slug = schemaRefSlug(tail)
 				const reg = this.contextRegisterOf()
 				if (slug && reg) {
 					return { target: `${reg}/${slug}` }
@@ -1426,7 +1772,7 @@ export default {
 			if (!prop || this.relationProp(prop) === null) {
 				return false
 			}
-			const raw = (this.objectData || {})[field.key]
+			const raw = this.fieldValues[field.key]
 			const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 			return ids.some((id) => id && !(id in this.relatedLabels))
 		},
@@ -1586,7 +1932,7 @@ export default {
 				if (parts.length < 2) {
 					continue
 				}
-				const raw = (this.objectData || {})[key]
+				const raw = this.fieldValues[key]
 				const ids = Array.isArray(raw) ? raw : (raw ? [raw] : [])
 				for (const id of ids) {
 					if (!id || (id in this.relatedLabels) || jobs.some((j) => j.id === id)) {
@@ -1609,12 +1955,81 @@ export default {
 		},
 
 		/**
+		 * Whether a field's value cannot be edited inline: a structured widget
+		 * (json, code, file, sub-objects, child-records), or a plain-object /
+		 * list-of-objects value that is not a relation. Scalar widgets without
+		 * a dedicated editor (duration, language, …) keep the text fallback.
+		 *
+		 * @param {object} field Resolved field definition.
+		 * @return {boolean} True when only the form dialog can edit it.
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-structured-value-is-never-edited-inline
+		 */
+		hasNoInlineEditor(field) {
+			if (STRUCTURED_WIDGETS.includes(field.widget)) {
+				return true
+			}
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			if (this.isRelationField(prop)) {
+				return false
+			}
+			// A list of objects by schema, also while empty (it resolves to `tags`).
+			if (prop && prop.type === 'array' && prop.items && prop.items.type === 'object') {
+				return true
+			}
+			// Classify the raw value itself: fieldValueKind reports a formatter
+			// field as 'scalar' whatever it holds.
+			const raw = this.rawOf(field)
+			if (Array.isArray(raw)) {
+				return raw.some((v) => this.isPlainObject(v))
+			}
+			return this.isPlainObject(raw)
+		},
+
+		/**
+		 * The line under a field's value (`overrides[key].hint`, translated), or ''.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @return {string}
+		 * @spec openspec/changes/data-fields-as-inputs/specs/data-widget/spec.md#requirement-a-data-card-can-draw-its-values-as-inputs-with-a-hint
+		 */
+		hintFor(field) {
+			const override = this.resolvedOverrides[field.key]
+			const hint = override && typeof override.hint === 'string' ? override.hint : ''
+			return hint ? this.cnTranslate(hint) : ''
+		},
+
+		/**
+		 * The words an override gives an empty or false value
+		 * (`overrides[key].emptyValue`, translated), or null to format it as usual.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @param {*} raw - The field's value
+		 * @return {string|null}
+		 * @spec openspec/changes/data-widget-empty-value-one-column/specs/data-widget/spec.md
+		 */
+		emptyValueFor(field, raw) {
+			const override = this.resolvedOverrides[field.key]
+			const words = override && typeof override.emptyValue === 'string' ? override.emptyValue : ''
+			if (words === '' || !(raw === null || raw === undefined || raw === '' || raw === false)) {
+				return null
+			}
+			return this.cnTranslate(words)
+		},
+
+		/**
 		 * Check if a field is editable.
 		 *
 		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @spec openspec/changes/data-widget-nested-objects/specs/data-widget-nested-objects/spec.md#requirement-a-structured-value-is-never-edited-inline
 		 */
 		isEditable(field) {
 			if (!this.editable) {
+				return false
+			}
+			// No inline editor exists for structured values: the text fallback
+			// would commit "[object Object]". Those edit through the form dialog,
+			// unless the consumer supplies its own `field-<key>` editor slot.
+			if (!this.$slots['field-' + field.key] && this.hasNoInlineEditor(field)) {
 				return false
 			}
 			// Per-field override takes priority
@@ -1631,6 +2046,29 @@ export default {
 			}
 			// Schema readOnly
 			return !field.readOnly
+		},
+
+		/**
+		 * Evaluate a field's `visibleWhen` override against the object.
+		 *
+		 * The rule is the shared visibility predicate in its LOCAL mode
+		 * (`{ field, op, value }`, `all` / `any`, `appInstalled`), evaluated by
+		 * `evaluateVisibleWhenLocal` against the object with its unsaved
+		 * changes, so a field appears or goes the moment the field it depends
+		 * on changes. A rule that needs a request (`endpoint`, `source`) cannot
+		 * be decided here and is ignored: the field shows, as it did before
+		 * the rule existed.
+		 *
+		 * @param {object} field - Resolved field definition.
+		 * @return {boolean} True when the field is shown.
+		 */
+		isVisibleByCondition(field) {
+			const override = this.resolvedOverrides[field.key]
+			const rule = override ? override.visibleWhen : undefined
+			if (rule === undefined || rule === null || !isLocallyDecidableVisibleWhen(rule)) {
+				return true
+			}
+			return evaluateVisibleWhenLocal(rule, { ...(this.objectData || {}), ...this.dirtyFields })
 		},
 
 		/**
@@ -1662,7 +2100,7 @@ export default {
 		isValueEmpty(key) {
 			const val = key in this.dirtyFields
 				? this.dirtyFields[key]
-				: (this.objectData || {})[key]
+				: this.fieldValues[key]
 			return val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0)
 		},
 
@@ -1675,7 +2113,7 @@ export default {
 			// Set working value: dirty value > current object value
 			const currentValue = field.key in this.dirtyFields
 				? this.dirtyFields[field.key]
-				: (this.objectData || {})[field.key]
+				: this.fieldValues[field.key]
 			this.editData = { ...this.editData, [field.key]: currentValue }
 			this.editingField = field.key
 			// Relation fields edit through a name-labeled object picker.
@@ -1685,6 +2123,11 @@ export default {
 			// stale sets.
 			if (this.isSingleRelationField(field.key)) {
 				this.loadRelationOptions(field.key)
+			}
+			// Group and user fields pick from Nextcloud's own directory.
+			if (this.isPersonPicker(field)) {
+				this.searchPeople(field, '')
+				this.resolvePersonLabels(field, currentValue)
 			}
 
 			this.$nextTick(() => {
@@ -1727,7 +2170,7 @@ export default {
 
 			const key = this.editingField
 			const newValue = this.editData[key]
-			const originalValue = this.objectData[key]
+			const originalValue = this.fieldValues[key]
 
 			this.editingField = null
 
@@ -1742,6 +2185,59 @@ export default {
 			}
 
 			// Persist immediately (single-step inline save).
+			await this.save()
+		},
+
+		/**
+		 * Whether a field reads as removable tag pills (`overrides[key].tagPills`
+		 * with the tags widget).
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		hasTagPills(field) {
+			const override = this.resolvedOverrides[field.key]
+			return field.widget === 'tags' && Boolean(override && override.tagPills === true)
+		},
+
+		/**
+		 * The tags of a field as strings, in stored order.
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<string>}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		tagsOf(field) {
+			const value = field.key in this.dirtyFields ? this.dirtyFields[field.key] : this.fieldValues[field.key]
+			return (Array.isArray(value) ? value : []).filter((tag) => typeof tag === 'string' || typeof tag === 'number').map(String)
+		},
+
+		/**
+		 * The add button's text (`overrides[key].addTagLabel`, translated).
+		 *
+		 * @param {object} field The field.
+		 * @return {string}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		tagAddLabel(field) {
+			const override = this.resolvedOverrides[field.key]
+			return override && typeof override.addTagLabel === 'string' && override.addTagLabel !== ''
+				? this.cnTranslate(override.addTagLabel)
+				: t('nextcloud-vue', '+ Label')
+		},
+
+		/**
+		 * Remove one tag and save the field at once.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} tag The tag to remove.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/data-widget-tag-pills/specs/data-widget/spec.md#requirement-a-tags-field-can-read-as-pills-to-remove-and-add
+		 */
+		async removeTag(field, tag) {
+			const next = this.tagsOf(field).filter((entry) => entry !== tag)
+			this.dirtyFields = { ...this.dirtyFields, [field.key]: next }
 			await this.save()
 		},
 
@@ -1770,10 +2266,10 @@ export default {
 				return
 			}
 
-			const mergedData = {
+			const mergedData = foldDottedFields({
 				...this.objectData,
 				...this.dirtyFields,
-			}
+			}, this.dottedFieldKeys)
 
 			this.saving = true
 
@@ -1782,7 +2278,8 @@ export default {
 				if (this.objectType) {
 					const store = this._getObjectStore()
 					if (store) {
-						const result = await store.saveObject(this.objectType, mergedData)
+						// Only the fields edited inline are written (a PATCH).
+						const result = await saveEdited(store, this.objectType, this.objectData, mergedData)
 						if (result) {
 							this.dirtyFields = {}
 							this.editData = {}
@@ -1810,13 +2307,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onEditConfirm(formData) {
-			const mergedData = { ...this.objectData, ...formData }
+			const mergedData = foldDottedFields({ ...this.objectData, ...formData }, this.dottedFieldKeys)
 			this.saving = true
 			try {
 				if (this.objectType) {
 					const store = this._getObjectStore()
 					if (store) {
-						const result = await store.saveObject(this.objectType, mergedData)
+						const result = await saveEdited(store, this.objectType, this.objectData, mergedData)
 						if (result) {
 							this.dirtyFields = {}
 							this.editData = {}
@@ -1911,6 +2408,207 @@ export default {
 			return options.find((opt) => opt.id === val) || { id: val, label: String(val) }
 		},
 
+		/**
+		 * Whether a field picks a Nextcloud group (widget `group` or
+		 * `group-multiselect`, from `referenceType: nextcloud-group`).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isGroupPicker(field) {
+			return !!field && (field.widget === 'group' || field.widget === 'group-multiselect')
+		},
+
+		/**
+		 * Whether a field picks a Nextcloud user (widget `user` or
+		 * `user-multiselect`, from `referenceType: nextcloud-user`).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isUserPicker(field) {
+			return !!field && (field.widget === 'user' || field.widget === 'user-multiselect')
+		},
+
+		/**
+		 * Whether a field picks a group or a user.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isPersonPicker(field) {
+			return this.isGroupPicker(field) || this.isUserPicker(field)
+		},
+
+		/**
+		 * Whether a group or user field holds a list.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {boolean}
+		 */
+		isPersonMultiple(field) {
+			return !!field && (field.widget === 'group-multiselect' || field.widget === 'user-multiselect')
+		},
+
+		/**
+		 * The group ids a group field holds, for the display mode.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {string[]}
+		 */
+		groupIdsOf(field) {
+			const raw = this.rawOf(field)
+			const list = Array.isArray(raw) ? raw : [raw]
+			return list.filter((v) => typeof v === 'string' && v !== '')
+		},
+
+		/**
+		 * The uids a user field holds, for the display mode. The same list
+		 * shape a group field holds.
+		 *
+		 * @spec openspec/changes/a-user-field-reads-its-display-name/specs/data-display/spec.md#requirement-a-user-field-shows-the-users-display-name
+		 * @param {object} field Field descriptor.
+		 * @return {string[]}
+		 */
+		userIdsOf(field) {
+			return this.groupIdsOf(field)
+		},
+
+		/**
+		 * Look up the display names of every user field's value, so the read
+		 * mode shows "Thomas Kuiper" rather than `thomas.kuiper`. Each uid is
+		 * asked once per widget.
+		 *
+		 * @spec openspec/changes/a-user-field-reads-its-display-name/specs/data-display/spec.md#requirement-a-user-field-shows-the-users-display-name
+		 * @return {Promise<void>}
+		 */
+		async resolveUserNames() {
+			const fields = (this.resolvedFields || []).filter((field) => this.isUserPicker(field))
+			await Promise.all(fields.map((field) => this.resolvePersonLabels(field, this.rawOf(field))))
+		},
+
+		/**
+		 * The display name of a group id or uid, falling back to the id.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {string} id The group id or uid.
+		 * @return {string}
+		 */
+		personLabel(field, id) {
+			if (this.isGroupPicker(field)) {
+				return groupDisplayName(id) || String(id)
+			}
+			return this.userLabels[id] || String(id)
+		},
+
+		/**
+		 * Search Nextcloud groups or users for a picker. Fails soft (the
+		 * helpers return `[]`), so the picker stays usable with what it has.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {string} query The search term.
+		 * @return {Promise<void>}
+		 */
+		async searchPeople(field, query) {
+			this.personLoading = field.key
+			try {
+				const options = this.isGroupPicker(field)
+					? await searchNextcloudGroups(query || '')
+					: await searchNextcloudUsers(query || '')
+				const list = Array.isArray(options) ? options : []
+				if (this.isUserPicker(field)) {
+					const labels = { ...this.userLabels }
+					for (const opt of list) {
+						labels[opt.id] = opt.label
+					}
+					this.userLabels = labels
+				}
+				this.personOptions = { ...this.personOptions, [field.key]: list }
+			} finally {
+				if (this.personLoading === field.key) {
+					this.personLoading = null
+				}
+			}
+		},
+
+		/**
+		 * Look up the display names of the value a group or user field holds,
+		 * so the open editor shows names rather than ids.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {unknown} value The held value (an id or a list of ids).
+		 * @return {Promise<void>}
+		 */
+		async resolvePersonLabels(field, value) {
+			const ids = (Array.isArray(value) ? value : [value])
+				.filter((v) => typeof v === 'string' && v !== '')
+			if (this.isGroupPicker(field)) {
+				await Promise.all(ids.map((gid) => loadGroupDisplayName(gid)))
+				return
+			}
+			const unknown = ids.filter((uid) => !this.userLabels[uid])
+			const options = await Promise.all(unknown.map((uid) => resolveNextcloudUser(uid)))
+			if (options.length > 0) {
+				const labels = { ...this.userLabels }
+				for (const opt of options) {
+					if (opt && opt.id) {
+						labels[opt.id] = opt.label || opt.id
+					}
+				}
+				this.userLabels = labels
+			}
+		},
+
+		/**
+		 * The selected option(s) of a group or user picker.
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @return {object|object[]|null}
+		 */
+		personSelected(field) {
+			const toOption = (id) => {
+				const label = this.personLabel(field, id)
+				return { id, label, displayName: label }
+			}
+			const v = this.editData[field.key]
+			if (this.isPersonMultiple(field)) {
+				return (Array.isArray(v) ? v : [])
+					.filter((id) => typeof id === 'string' && id !== '')
+					.map(toOption)
+			}
+			return (typeof v === 'string' && v !== '') ? toOption(v) : null
+		},
+
+		/**
+		 * Store a group or user choice as the id (or list of ids).
+		 *
+		 * @spec openspec/changes/nextcloud-group-surfaces/specs/data-display/spec.md#requirement-the-inline-editor-picks-a-nextcloud-group-or-user
+		 * @param {object} field Field descriptor.
+		 * @param {object|object[]|null} selected The chosen option(s).
+		 */
+		onPersonChange(field, selected) {
+			if (this.isPersonMultiple(field)) {
+				const ids = (Array.isArray(selected) ? selected : [])
+					.map((opt) => (opt && typeof opt === 'object' ? opt.id : opt))
+					.filter((id) => typeof id === 'string' && id !== '')
+				this.updateField(field.key, ids)
+				return
+			}
+			if (selected && this.isUserPicker(field) && selected.id) {
+				this.userLabels = { ...this.userLabels, [selected.id]: selected.label || selected.id }
+			}
+			this.updateField(field.key, selected && selected.id ? selected.id : null)
+		},
+
 		onSelectChange(field, option) {
 			this.updateField(field.key, option ? option.id : null)
 		},
@@ -1975,65 +2673,13 @@ export default {
 	.cn-object-data-widget__skeleton { animation: none; }
 }
 
-.cn-object-data-widget__grid-wrap {
-	position: relative;
-}
-
 .cn-object-data-widget__grid {
 	display: grid;
 	gap: calc(2 * var(--default-grid-baseline, 4px)) calc(4 * var(--default-grid-baseline, 4px));
 }
 
-/* Collapsed + overflowing: the grid is clipped at a whole-row boundary
-   (max-height set inline in collapsedGridStyle). No inner scrollbar. */
-.cn-object-data-widget__grid-wrap--clipped .cn-object-data-widget__grid {
-	overflow: hidden;
-}
-
-/* Bottom fade over the clipped boundary — signals more content. */
-.cn-object-data-widget__fade {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 28px;
-	height: 28px;
-	pointer-events: none;
-	background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--color-main-background));
-}
-
 .cn-object-data-widget__toggle {
-	display: block;
-	width: 100%;
 	margin-top: 4px;
-	padding: 4px;
-	background: none;
-	border: none;
-	color: var(--color-primary-element);
-	cursor: pointer;
-	font: inherit;
-	font-weight: 600;
-	text-align: center;
-}
-
-.cn-object-data-widget__toggle:hover,
-.cn-object-data-widget__toggle:focus-visible {
-	text-decoration: underline;
-}
-
-/* Expanded in place: the widget card lifts above its siblings and its content
-   area stops clipping, so every field is legible even when the grid cell
-   positions cards absolutely (ADR-062: expand as an anchored panel rather than
-   an inner scrollbar). */
-.cn-object-data-widget--expanded {
-	z-index: 20;
-}
-
-.cn-object-data-widget--expanded ::v-deep .cn-widget-wrapper__content {
-	overflow: visible;
-}
-
-.cn-object-data-widget__grid-wrap--expanded {
-	background: var(--color-main-background);
 }
 
 .cn-object-data-widget__cell {
@@ -2057,6 +2703,73 @@ export default {
 	overflow-wrap: anywhere;
 	position: relative;
 	padding-right: 20px;
+}
+
+/* `overrides[key].tagPills`: the tags as pills with a remove button. */
+.cn-object-data-widget__tags {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.cn-object-data-widget__tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px 4px 2px 10px;
+	border-radius: var(--border-radius-pill, 12px);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text, var(--color-main-text));
+	font-size: 13px;
+}
+
+.cn-object-data-widget__tag-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+.cn-object-data-widget__tag-remove:hover,
+.cn-object-data-widget__tag-remove:focus-visible {
+	background: var(--color-background-hover);
+}
+
+/* `overrides[key].hint`: a muted line under the value ("Staat op de pdf"). */
+.cn-object-data-widget__hint {
+	display: block;
+	margin-top: 6px;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+/* `fieldLook: "input"` (board PqOfferte): each value is a 40px input box under
+   its label; a click edits it in place as before. */
+.cn-object-data-widget__grid--inputs .cn-object-data-widget__label {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.cn-object-data-widget__grid--inputs .cn-object-data-widget__value {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	min-height: 40px;
+	padding: 0 12px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--color-main-background);
+	font-size: 15px;
 }
 
 /* The hover box bleeds 4px past the text on the top, bottom and start so the
@@ -2096,6 +2809,10 @@ export default {
 	transition: opacity 0.15s ease;
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.cn-object-data-widget__edit-icon { transition: none; }
+}
+
 .cn-object-data-widget__value--editable:hover .cn-object-data-widget__edit-icon,
 .cn-object-data-widget__value--editable:focus-visible .cn-object-data-widget__edit-icon {
 	opacity: 1;
@@ -2131,6 +2848,12 @@ export default {
 	outline: none;
 }
 
+.cn-object-data-widget__footnote {
+	margin: calc(var(--default-grid-baseline, 4px) * 3) 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
 .cn-object-data-widget__empty {
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
@@ -2156,6 +2879,10 @@ export default {
 	border-bottom: 1px solid var(--color-border);
 	vertical-align: top;
 	overflow-wrap: anywhere;
+	/* The cells wrap whatever an ancestor says: a `nowrap` inherited from the
+	   surface made a message and a timestamp column 766px wide in a 212px value
+	   cell, and the card 8px wider than its cell (pipelinq's ticket page). */
+	white-space: normal;
 }
 
 .cn-object-data-widget__mini-table th {
@@ -2199,6 +2926,17 @@ export default {
 .cn-object-data-widget__deflist dd {
 	margin: 0;
 	overflow-wrap: anywhere;
+}
+
+/* A long description keeps its own paragraphs. Set on an inline span with no
+   surrounding template whitespace, so only the value's own line breaks show. */
+.cn-object-data-widget__deflist-text {
+	white-space: pre-wrap;
+}
+
+.cn-object-data-widget__deflist--nested {
+	padding-inline-start: 8px;
+	border-inline-start: 2px solid var(--color-border);
 }
 
 /* Responsive: collapse to single column on narrow widths */

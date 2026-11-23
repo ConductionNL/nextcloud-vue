@@ -126,12 +126,44 @@ predicate's field value into their text wherever it says `{value}` (e.g.
 | `gridMargin` | Number | `12` | Grid margin (gutter) in pixels between widgets |
 | `emptyLabel` | String | `'No widgets configured'` | Text shown in the empty state when `layout` is empty |
 | `unavailableLabel` | String | `'Widget not available'` | Text shown for unknown or unavailable widgets |
+| `userLayout` | Boolean | `false` | **Deprecated** (layout belongs to Buildiq; removed after this release). Keep a per-user arrangement of this page. Off by default: a page without it makes **no** layout request and renders exactly as before. |
+| `appId` | String | `''` | The Nextcloud app the user layout is stored under. Required for `userLayout` to do anything. |
+| `userLayoutStore` | Object | `null` | A store exposing `loadDashboardLayout` / `saveDashboardLayout` / `resetDashboardLayout`, usually one carrying [`dashboardLayoutsPlugin`](../../../docs/store/plugins/dashboard-layouts.md). Left unset, the page reads and writes user preferences directly. |
+
+## Per-user layout
+
+> **Deprecated: layout belongs to Buildiq.** Arranging a page is Buildiq's job (Ruben, 18 Oct 2026): its **Indeling aanpassen** edits the layout everybody sees. `userLayout` still works for this release and will be removed after it. While Buildiq edits the page (`cnEditingBody`), the grid shows the manifest layout, and a drag or resize goes into the manifest Buildiq saves, also on a page with `userLayout`. A user arrangement made outside an in-page edit session is saved at once, because no **Done** follows to save it.
+
+
+With `userLayout: true` and an `appId`, this page loads the current user's arrangement before the first grid render and merges it over the manifest layout. The rules are [`mergeUserLayout`](../../../docs/utilities/merge-user-layout.md)'s: **the manifest decides which widgets exist, the user decides where they sit.**
+
+```vue
+<CnDashboardPage
+  :widgets="widgets"
+  :layout="manifestLayout"
+  page-id="Dashboard"
+  app-id="dossiq"
+  user-layout
+  :user-layout-store="store"
+  @user-layout-reset="onReset" />
+```
+
+Three behaviours are worth knowing because each is load-bearing:
+
+- **The `layout` prop is never mutated when `userLayout` is on.** Drag and resize normally write back into it in place, so the in-place manifest editor can diff them. That is right for an admin editing the page for everyone and wrong for a user arranging it for themselves, so a user's arrangement lives in the component and the prop is left alone.
+- **One save per edit session, on the way out.** Saving per drag writes a record per pixel gesture and races the next drag. Nothing is written when a session changed nothing.
+- **Every failure falls back to the manifest.** A record that has not loaded, an instance with no preference route, a user who never arranged the page: all three render the page the admin shipped.
+
+Call `resetUserLayout()` to drop the arrangement; the page emits `user-layout-reset` and returns to the manifest.
+
+The same `userLayout` covers the page's [views](../../../docs/components/cn-dashboard-page.md#each-view-arranged-per-user-userlayout): each view's grid is draggable in edit mode and is stored per view, under the page id with `.view.<view id>` appended. Edit mode shows **Reset layout**, which returns the page's own grid and the chosen view to the manifest (`user-layout-reset`, `view-layout-reset`). `resetViewUserLayout(viewId)` resets one view.
 
 ## Slots
 
 | Slot | Scope | Description |
 |------|-------|-------------|
 | `header-actions` | — | Extra buttons shown in the page header (right side, before the edit toggle) |
+| `title-meta` | — | Content on the title's row, right of the title, such as a page-wide picker. A manifest fills it with `page.slots: { "title-meta": "<RegistryName>" }` |
 | `actions` | — | Back-compat alias for `header-actions`; prefer `header-actions` in new code |
 | `widget-{widgetId}` | `{ item, widget }` | Custom widget content for a widget with the given ID |
 | `empty` | — | Custom empty state when no widgets are in the layout |

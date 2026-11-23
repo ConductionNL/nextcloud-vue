@@ -35,14 +35,109 @@
 		flush>
 		<!-- Total beside the card title. Carries the count that the tab strip
 		     would otherwise show — notably when `hideSingleTabTitle` hid it. -->
-		<template v-if="useTabs && showTotalCount && totalCount > 0" #title-meta>
+		<template v-if="useTabs && showTotalCount && totalCount > 0 && !linksCompact" #title-meta>
 			<span class="cn-related-objects-widget__count">{{ totalCount }}</span>
 		</template>
 
 		<div class="cn-related-objects-widget">
+			<!-- `links`: configured link rows above the related objects (PqLead
+			     "Prospectgegevens uit de KVK", "2 eerdere deals, allebei
+			     gewonnen"); a row whose label cannot fill yet is left out. -->
+			<ul v-if="shownLinks.length" class="cn-related-objects-widget__links" data-testid="cn-related-links">
+				<li v-for="(link, index) in shownLinks" :key="`link-${index}`">
+					<a class="cn-related-objects-widget__link"
+						:href="link.href"
+						:target="link.external ? '_blank' : undefined"
+						:rel="link.external ? 'noopener noreferrer' : undefined"
+						data-testid="cn-related-link">
+						<CnIcon v-if="link.icon" :name="link.icon" :size="16" />
+						{{ link.label }}
+					</a>
+				</li>
+			</ul>
 			<!-- Tabbed self-fetch mode -->
 			<template v-if="useTabs">
-				<div v-if="tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
+				<!-- `layout: "sections"`: every group under its own heading in one
+				     list, a heading action beside it (DqZaakGerelateerd). -->
+				<!-- `layout: "links"`: the host's sections as plain links, one per
+				     line ("Dienst 7 okt, Balie 2"), with "Show all" opening the
+				     full tabbed view (files, integrations, every relation). -->
+				<template v-if="linksCompact">
+					<ul v-if="linkItems.length" class="cn-related-objects-widget__links" data-testid="cn-related-links">
+						<li v-for="entry in linkItems" :key="`link-${entry.group.key}-${entry.item.id}`">
+							<router-link v-if="entry.item.raw && entry.item.raw.route && $router"
+								class="cn-related-objects-widget__link"
+								:to="entry.item.raw.route">
+								{{ linkText(entry.item) }}
+							</router-link>
+							<button v-else
+								type="button"
+								class="cn-related-objects-widget__link"
+								@click="onSelectGroupItem(entry.group, entry.item)">
+								{{ linkText(entry.item) }}
+							</button>
+						</li>
+					</ul>
+					<button v-if="hasLoaded && visibleGroups.some((group) => !group.isExtra)"
+						type="button"
+						class="cn-related-objects-widget__show-all"
+						data-testid="cn-related-show-all"
+						@click="linksExpanded = true">
+						{{ t('nextcloud-vue', 'Show all') }}
+					</button>
+				</template>
+				<template v-else-if="layout === 'sections'">
+					<section v-for="group in visibleGroups"
+						:key="`section-${group.key}`"
+						class="cn-related-objects-widget__section"
+						:aria-labelledby="`${sectionIdBase}-${group.key}`"
+						data-testid="cn-related-section">
+						<div class="cn-related-objects-widget__section-head">
+							<component :is="innerHeadingTag" :id="`${sectionIdBase}-${group.key}`" class="cn-related-objects-widget__section-title cn-inner-heading">
+								{{ group.label }}
+							</component>
+							<button v-if="groupAction(group)"
+								type="button"
+								class="cn-related-objects-widget__section-action"
+								data-testid="cn-related-section-action"
+								@click="onGroupAction(group)">
+								<CnIcon v-if="groupAction(group).icon" :name="groupAction(group).icon" :size="16" />
+								{{ groupAction(group).label }}
+							</button>
+						</div>
+						<ul class="cn-related-objects-widget__list">
+							<li v-for="(item, i) in group.items" :key="`item-${group.key}-${item.id || i}`">
+								<a v-if="groupHref(group, item)"
+									class="cn-related-objects-widget__row"
+									:href="groupHref(group, item)"
+									target="_blank"
+									rel="noopener noreferrer">
+									<CnIcon :name="group.icon" :size="20" class="cn-related-objects-widget__icon" />
+									<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+									<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								</a>
+								<div v-else-if="isStaticRow(group, item)"
+									class="cn-related-objects-widget__row cn-related-objects-widget__row--static"
+									data-testid="cn-related-static-row">
+									<CnIcon :name="group.icon" :size="20" class="cn-related-objects-widget__icon" />
+									<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+									<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								</div>
+								<div v-else
+									class="cn-related-objects-widget__row"
+									tabindex="0"
+									role="button"
+									@click="onSelectGroupItem(group, item)"
+									@keydown.enter="onSelectGroupItem(group, item)">
+									<CnIcon :name="group.icon" :size="20" class="cn-related-objects-widget__icon" />
+									<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+									<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								</div>
+							</li>
+						</ul>
+					</section>
+				</template>
+				<div v-if="layout !== 'sections' && !linksCompact && tabStripVisible" class="cn-related-objects-widget__tabs" role="tablist">
 					<button v-for="group in visibleGroups"
 						:key="`tab-${group.key}`"
 						type="button"
@@ -57,46 +152,99 @@
 					</button>
 				</div>
 
-				<section v-if="activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
+				<section v-if="layout !== 'sections' && !linksCompact && activeGroup" class="cn-related-objects-widget__panel" role="tabpanel">
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in activeGroup.items"
-							:key="`item-${activeGroup.key}-${item.id || i}`"
-							class="cn-related-objects-widget__row"
-							:class="{ 'cn-related-objects-widget__row--expanded': isExpanded(activeGroup.key, item) }"
-							tabindex="0"
-							role="button"
-							@click="onSelectGroupItem(activeGroup, item)"
-							@keydown.enter="onSelectGroupItem(activeGroup, item)">
-							<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
-							<span class="cn-related-objects-widget__label">{{ item.label }}</span>
-							<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
-							<p v-if="item.detail && isExpanded(activeGroup.key, item)"
-								class="cn-related-objects-widget__detail">
-								{{ item.detail }}
-							</p>
+							:key="`item-${activeGroup.key}-${item.id || i}`">
+							<!-- A row with an owning-app page is a real link; the rest
+							     stay buttons that emit or expand. -->
+							<a v-if="activeGroupHrefs[i]"
+								class="cn-related-objects-widget__row"
+								:href="activeGroupHrefs[i]"
+								target="_blank"
+								rel="noopener noreferrer">
+								<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
+								<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+								<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+							</a>
+							<div v-else-if="isStaticRow(activeGroup, item)"
+								class="cn-related-objects-widget__row cn-related-objects-widget__row--static"
+								data-testid="cn-related-static-row">
+								<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
+								<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+								<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+							</div>
+							<div v-else
+								class="cn-related-objects-widget__row"
+								:class="{ 'cn-related-objects-widget__row--expanded': isExpanded(activeGroup.key, item) }"
+								tabindex="0"
+								role="button"
+								@click="onSelectGroupItem(activeGroup, item)"
+								@keydown.enter="onSelectGroupItem(activeGroup, item)">
+								<CnIcon :name="activeGroup.icon" :size="20" class="cn-related-objects-widget__icon" />
+								<span class="cn-related-objects-widget__label">{{ item.label }}</span>
+								<span v-if="item.meta" class="cn-related-objects-widget__meta">{{ item.meta }}</span>
+								<p v-if="item.detail && isExpanded(activeGroup.key, item)"
+									class="cn-related-objects-widget__detail">
+									{{ item.detail }}
+								</p>
+							</div>
+							<ul v-if="item.children && item.children.length"
+								class="cn-related-objects-widget__children"
+								data-testid="cn-related-children">
+								<li v-for="child in item.children" :key="child.key">
+									<router-link v-if="child.to && $router" :to="child.to">
+										{{ child.label }}
+									</router-link>
+									<span v-else>{{ child.label }}</span>
+								</li>
+							</ul>
+							<div v-if="item.actions && item.actions.length" class="cn-related-objects-widget__row-actions">
+								<NcButton v-for="(action, actionIndex) in item.actions"
+									:key="`action-${actionIndex}`"
+									:disabled="runningAction !== ''"
+									data-testid="cn-related-row-action"
+									@click="runSourceAction(action, item.raw)">
+									{{ action.label }}
+								</NcButton>
+							</div>
 						</li>
 					</ul>
 				</section>
 
-				<div v-if="loading && !visibleGroups.length" class="cn-related-objects-widget__empty">
+				<p v-if="pendingSections.length && (visibleGroups.length || anySectionAnswered)"
+					class="cn-related-objects-widget__section-status"
+					data-testid="cn-related-pending"
+					role="status">
+					{{ pendingLabel }}
+				</p>
+				<p v-for="failed in failedSections"
+					:key="`failed-${failed.key}`"
+					class="cn-related-objects-widget__section-error"
+					data-testid="cn-related-section-error"
+					:data-section="failed.key">
+					{{ t('nextcloud-vue', 'Could not load {section}.', { section: failed.label }) }}
+				</p>
+
+				<div v-if="loading && !visibleGroups.length && !anySectionAnswered" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<NcEmptyContent v-else-if="hasLoaded && !visibleGroups.length"
+				<CnEmptyContent v-else-if="hasLoaded && !visibleGroups.length && !(linksCompact && linkItems.length)"
 					class="cn-related-objects-widget__empty-state"
 					:name="resolvedEmptyLabel">
 					<template #icon>
 						<CnIcon :name="emptyIconName" :size="48" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</template>
 
 			<!-- Legacy list mode (deprecated) -->
 			<template v-else>
 				<!-- Objects -->
 				<section v-if="showObjects && objectItems.length" class="cn-related-objects-widget__group">
-					<h4 class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ objectsLabel }} <span class="cn-related-objects-widget__count">{{ objectItems.length }}</span>
-					</h4>
+					</component>
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="item in objectItems"
 							:key="`obj-${item.id}`"
@@ -114,9 +262,9 @@
 
 				<!-- Files -->
 				<section v-if="showFiles && fileItems.length" class="cn-related-objects-widget__group">
-					<h4 class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ filesLabel }} <span class="cn-related-objects-widget__count">{{ fileItems.length }}</span>
-					</h4>
+					</component>
 					<ul class="cn-related-objects-widget__list">
 						<li v-for="item in fileItems"
 							:key="`file-${item.id}`"
@@ -133,12 +281,12 @@
 				</section>
 
 				<!-- Host-supplied extra sections (e.g. mails resolved by a leaf) -->
-				<section v-for="section in extraSections"
+				<section v-for="section in allExtraSections"
 					:key="`extra-${section.key}`"
 					class="cn-related-objects-widget__group">
-					<h4 v-if="(section.items || []).length" class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" v-if="(section.items || []).length" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ section.label }} <span class="cn-related-objects-widget__count">{{ section.items.length }}</span>
-					</h4>
+					</component>
 					<ul v-if="(section.items || []).length" class="cn-related-objects-widget__list">
 						<li v-for="(item, i) in section.items"
 							:key="`extra-${section.key}-${i}`"
@@ -158,9 +306,9 @@
 
 				<!-- Linked apps — leaf integrations carrying related content -->
 				<section v-if="showIntegrations && linkedApps.length" class="cn-related-objects-widget__group">
-					<h4 class="cn-related-objects-widget__group-title">
+					<component :is="innerHeadingTag" class="cn-related-objects-widget__group-title cn-inner-heading">
 						{{ linkedAppsLabel }}
-					</h4>
+					</component>
 					<ul class="cn-related-objects-widget__list cn-related-objects-widget__list--apps">
 						<li v-for="app in linkedApps"
 							:key="`app-${app.id}`"
@@ -180,14 +328,32 @@
 				<div v-if="loading && isEmpty" class="cn-related-objects-widget__empty">
 					{{ loadingLabel }}
 				</div>
-				<NcEmptyContent v-else-if="hasLoaded && isEmpty"
+				<CnEmptyContent v-else-if="hasLoaded && isEmpty"
 					class="cn-related-objects-widget__empty-state"
 					:name="resolvedEmptyLabel">
 					<template #icon>
 						<CnIcon :name="emptyIconName" :size="48" />
 					</template>
-				</NcEmptyContent>
+				</CnEmptyContent>
 			</template>
+		</div>
+
+		<p v-if="sourceActionError"
+			class="cn-related-objects-widget__section-error"
+			role="alert"
+			data-testid="cn-related-action-error">
+			{{ sourceActionError }}
+		</p>
+		<div v-if="footerActionList.length" class="cn-related-objects-widget__footer-actions">
+			<NcButton v-for="(action, actionIndex) in footerActionList"
+				:key="`footer-action-${actionIndex}`"
+				data-testid="cn-related-footer-action"
+				@click="runFooterAction(action.action)">
+				<template v-if="action.icon" #icon>
+					<CnIcon :name="action.icon" :size="20" />
+				</template>
+				{{ action.label }}
+			</NcButton>
 		</div>
 
 		<!-- Add footer — lets the user actually create related content
@@ -267,15 +433,23 @@
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionButton, NcActionInput, NcActions, NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcActionButton, NcActionInput, NcActions, NcButton } from '@nextcloud/vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
 import FileTreeOutline from 'vue-material-design-icons/FileTreeOutline.vue'
 import Paperclip from 'vue-material-design-icons/Paperclip.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
+import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
+import innerHeading from '../../mixins/innerHeading.js'
 import { useObjectStore } from '../../store/index.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { buildHeaders } from '../../utils/headers.js'
+import { readPath } from '../../utils/readPath.js'
+import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -303,11 +477,34 @@ registerIntegrationIcons()
 /** Event-bus channel CnWidgetWrapper's Refresh action broadcasts on. */
 const REFRESH_BUS_CHANNEL = 'cn:widget:refresh'
 
+/** A value that is only an id: a row named by it says nothing to a reader. */
+const BARE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /** Core sidebar tabs that are not "related content" leaves. */
 const CORE_TABS = ['files', 'notes', 'tags', 'tasks', 'auditTrail', 'shares']
 
 /** One-time guard so the legacy-path deprecation warning logs only once. */
 let legacyWarned = false
+
+/**
+ * Schema titles by numeric schema id, shared by every widget on the page so a
+ * schema is asked for once. OpenRegister's `/uses` and `/used` answer
+ * `@self.schema` as that id ("120"), which is not a word anyone can read.
+ *
+ * @type {Map<string, Promise<string>>}
+ */
+const schemaTitleCache = new Map()
+
+/**
+ * Whether a value is a bare number, the way OpenRegister names a schema by id.
+ *
+ * @param {string|number|undefined|null} value The value.
+ * @return {boolean}
+ */
+function isNumericId(value) {
+	return (typeof value === 'number' && Number.isFinite(value))
+		|| (typeof value === 'string' && /^\d+$/.test(value.trim()))
+}
 
 /**
  * Leaf groups surfaced by the aggregated `/relations` endpoint, in tab order.
@@ -388,7 +585,19 @@ export default {
 		NcActionButton,
 		NcActionInput,
 		NcButton,
-		NcEmptyContent,
+		CnEmptyContent,
+	},
+
+	mixins: [innerHeading],
+
+	inject: {
+		/**
+		 * The host app's translator (CnAppRoot provides it), so a schema title
+		 * reads in the app's language. Without it a title reads as stored.
+		 */
+		cnTranslate: { default: () => (key) => key },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for a group's heading action. */
+		cnDispatchAction: { default: null },
 	},
 
 	props: {
@@ -451,15 +660,47 @@ export default {
 
 		/**
 		 * Render mode. `'tabs'` (default) self-fetches from OpenRegister and
-		 * renders a tab per non-empty group. `'list'` forces the deprecated
+		 * renders a tab per non-empty group. `'sections'` renders every group
+		 * under its own heading in one list. `'links'` shows the host's
+		 * sections as plain links, one per line, and "Show all" opens the tabs. `'list'` forces the deprecated
 		 * store-action list path.
 		 *
-		 * @type {'tabs'|'list'}
+		 * @type {'tabs'|'list'|'sections'|'links'}
 		 */
 		layout: {
 			type: String,
 			default: 'tabs',
-			validator: (value) => ['tabs', 'list'].includes(value),
+			validator: (value) => ['tabs', 'list', 'sections', 'links'].includes(value),
+		},
+
+		/**
+		 * Split the Objects group into one group per relation type, labelled
+		 * with the label OpenRegister answers for the direction
+		 * (`relation.displayLabel` on each row: "Onderwerp van deze zaak",
+		 * "Wacht op"), through the host translate. A row without one stays in
+		 * Objects.
+		 *
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 */
+		groupByRelation: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * An action on a group's heading in `layout: "sections"`, keyed by the
+		 * group key (`objects`, `files`, an `extraSections` key, or
+		 * `relation:<label>` for a relation group): `{ label, icon?, ...action }`
+		 * ("Vervolg plannen"). An `extraSections` entry may carry its own
+		 * `action`. Pressing it dispatches the action through the page and
+		 * emits `group-action`.
+		 *
+		 * @type {Record<string, object>}
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 */
+		groupActions: {
+			type: Object,
+			default: () => ({}),
 		},
 
 		/** Include `/contracts` relations in the Objects group (opt-in). */
@@ -548,6 +789,84 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * Extra sections the widget reads itself from app endpoints, for
+		 * content OpenRegister's relation endpoints do not return (scheduled
+		 * follow-ups, typed links an app keeps). Each:
+		 * `{ key, label, icon?, endpoint, path?, itemLabel, itemMeta?, groupBy?,
+		 * groupLabels?, requireLabel?, rowRoute?, static?, rowActions?, children? }`.
+		 * `endpoint` takes `@objectId`; `itemLabel` and `itemMeta` are
+		 * templates (a list is candidates, the first that fills). `groupBy`
+		 * (a template) splits the rows into one section per value, labelled
+		 * through `groupLabels`. `requireLabel` leaves out a row whose label
+		 * is empty or only an id. `rowRoute` (`{ name, params }`, `{field}`
+		 * filled from the row) opens a row; `static` rows open nothing.
+		 * `rowActions` (`[{ label, endpoint, method?, when? }]`) are buttons
+		 * under a row, `when` a local condition over it. `children`
+		 * (`{ path, label, route }`) lists links under a row.
+		 *
+		 * @type {Array<object>}
+		 */
+		extraSources: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Link rows drawn above the related objects (`content.links`): each
+		 * `{ label, icon?, href?, route?, endpoint?, path? }`. `label` may hold
+		 * `{field}` placeholders, filled from the answer of `endpoint` (it takes
+		 * `@objectId`; `path` picks a part of it); a row whose placeholders do
+		 * not all fill is left out. `href` (a URL or an instance path) or
+		 * `route` (`{ name, params }`) is where the row leads.
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-related-objects-can-start-with-configured-link-rows
+		 * @type {Array<object>}
+		 */
+		links: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Sections naming the record one of this record's fields points at
+		 * (a parent): `[{ key, label, icon?, field, register, schema,
+		 * labelField?, labelTemplate?, route? }]` (`labelTemplate`, such as
+		 * "Shift {floatAt|date}, {drawer}", names it from several fields). Shown only when the record has a readable
+		 * title, never as a bare id.
+		 *
+		 * @type {Array<object>}
+		 */
+		referenceSections: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The order of the `extraSources` and `referenceSections` by key
+		 * (`["shift", "refunds"]`): a parent can come before the lists. A key
+		 * left out keeps its declared place after the named ones.
+		 *
+		 * @type {string[]}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		sectionOrder: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Buttons under the widget (`[{ label, icon?, type, ... }]`), page
+		 * actions dispatched with the record's tokens resolved ("Plan
+		 * follow-up" opening a dialog).
+		 *
+		 * @type {Array<object>}
+		 */
+		footerActions: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Documentation link for the overflow Actions menu. */
 		documentationUrl: {
 			type: String,
@@ -632,6 +951,7 @@ export default {
 
 	emits: [
 		'add',
+		'group-action',
 		'file-uploaded',
 		'note-added',
 		'open-integration',
@@ -648,12 +968,22 @@ export default {
 
 	data() {
 		return {
+			/** Whether the reader opened the full view of a `layout: "links"` card. */
+			linksExpanded: false,
+			/** Sections read from `extraSources` and `referenceSections`. */
+			sourcedSections: [],
+			/** The key of the row action that is running, or ''. */
+			runningAction: '',
+			/** The refusal of the last row action, as the server said it. */
+			sourceActionError: '',
 			/**
 			 * The file input element, set by the template's function ref (kept off `$refs` so the ref stays dynamic — see the template).
 			 *
 			 * @type {HTMLInputElement|null}
 			 */
 			fileInputEl: null,
+			/** Schema titles by numeric schema id, for object rows. */
+			schemaTitles: {},
 			/** Whether any section/tab is currently fetching. */
 			loading: false,
 			/** True once the first fetch has completed (gates the empty state). */
@@ -666,6 +996,18 @@ export default {
 			groups: [],
 			/** Active tab key. */
 			activeKey: '',
+			/** Prefix for the section heading ids in `layout: "sections"`. */
+			sectionIdBase: `cn-related-${Math.random().toString(36).slice(2, 9)}`,
+			/** Keys of the tabbed sections whose request is still in flight (`objects`, `files`, `relations`). */
+			pendingSections: [],
+			/** How many sections the current load asks for. */
+			sectionCount: 0,
+			/** The answers of the `links` endpoints, by endpoint. */
+			linkData: {},
+			/** Tabbed sections whose request failed: `{ key, label }`. */
+			failedSections: [],
+			/** Bumped per `loadTabs()`; an answer from an older load is dropped. */
+			loadToken: 0,
 			/** Key of the inline-expanded row (`{group}-{id}`) for leaves with no owning-app page (e.g. notes). */
 			expandedKey: '',
 			/** Whether a footer file upload is in flight. */
@@ -686,6 +1028,27 @@ export default {
 		 *
 		 * @return {object} the object data, or an empty object.
 		 */
+		/**
+		 * The host's sections and the ones the widget read itself.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-related-objects-can-read-extra-sections-from-endpoints
+		 */
+		allExtraSections() {
+			return [...(this.extraSections || []), ...this.sourcedSections]
+		},
+
+		/**
+		 * The footer buttons, labels translated.
+		 *
+		 * @return {Array<{label: string, icon: string, action: object}>}
+		 */
+		footerActionList() {
+			return (Array.isArray(this.footerActions) ? this.footerActions : [])
+				.filter((action) => action && typeof action.label === 'string' && action.label !== '')
+				.map((action) => ({ label: this.translateLabel(action.label), icon: typeof action.icon === 'string' ? action.icon : '', action }))
+		},
+
 		safeObjectData() {
 			return (this.objectData && typeof this.objectData === 'object') ? this.objectData : {}
 		},
@@ -710,7 +1073,7 @@ export default {
 
 		/** True when the tabbed self-fetch path is usable. */
 		useTabs() {
-			return this.layout === 'tabs'
+			return (this.layout === 'tabs' || this.layout === 'sections' || this.layout === 'links')
 				&& Boolean(this.resolvedRegister && this.resolvedSchema && this.resolvedId)
 		},
 
@@ -727,7 +1090,7 @@ export default {
 		 * @return {Array<object>} Group descriptors, `isExtra: true`.
 		 */
 		extraGroups() {
-			return (this.extraSections || [])
+			return this.allExtraSections
 				.filter((section) => section && (section.items || []).length > 0)
 				.map((section) => {
 					const items = section.items.map((raw, i) => ({
@@ -735,6 +1098,8 @@ export default {
 						label: raw?.label || raw?.title || raw?.name || '',
 						meta: typeof raw?.meta === 'string' ? raw.meta : '',
 						detail: '',
+						children: Array.isArray(raw?.children) ? raw.children : [],
+						actions: Array.isArray(raw?.actions) ? raw.actions : [],
 						raw,
 					}))
 					return {
@@ -745,8 +1110,34 @@ export default {
 						items,
 						total: items.length,
 						isExtra: true,
+						action: section.action && typeof section.action === 'object' ? section.action : null,
 					}
 				})
+		},
+
+		/**
+		 * Whether the card shows the plain link list: `layout: "links"` until
+		 * the reader asks for everything.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		linksCompact() {
+			return this.layout === 'links' && !this.linksExpanded
+		},
+
+		/**
+		 * The rows the link list shows: the host's sections (`extraSources`,
+		 * `referenceSections`, `extraSections`) in their order, else the
+		 * related objects.
+		 *
+		 * @return {Array<{group: object, item: object}>}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		linkItems() {
+			const extra = this.extraGroups
+			const groups = extra.length > 0 ? extra : this.visibleGroups.filter((group) => group.key === 'objects')
+			return groups.flatMap((group) => group.items.map((item) => ({ group, item })))
 		},
 
 		/**
@@ -760,7 +1151,8 @@ export default {
 			const allow = Array.isArray(this.includeGroups) ? this.includeGroups : []
 			const own = this.groups.filter((group) => (group.total > 0 || group.items.length > 0)
 				&& (allow.length === 0 || allow.includes(group.key)))
-			return [...own, ...this.extraGroups]
+			const split = this.groupByRelation ? own.flatMap((group) => (group.key === 'objects' ? this.splitByRelation(group) : [group])) : own
+			return [...split, ...this.extraGroups]
 		},
 
 		/**
@@ -790,7 +1182,80 @@ export default {
 			)
 		},
 
+		/**
+		 * The line under the panel naming the sections still loading, once
+		 * another section is already on screen.
+		 *
+		 * @return {string}
+		 */
+		pendingLabel() {
+			const labels = {
+				objects: this.objectsLabel,
+				files: this.filesLabel,
+				relations: t('nextcloud-vue', 'Linked items'),
+			}
+			const names = this.pendingSections.map((key) => labels[key] || key).join(', ')
+			return t('nextcloud-vue', 'Still loading: {sections}', { sections: names })
+		},
+
 		/** Placeholder shown in the body while the first fetch is in flight. */
+		/**
+		 * Whether a section of the current load has answered, so the card
+		 * names what is still loading instead of saying "Loading …".
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-a-related-section-shows-once-its-own-request-answered
+		 * @return {boolean}
+		 */
+		anySectionAnswered() {
+			return this.sectionCount > 0 && this.pendingSections.length < this.sectionCount
+		},
+
+		/**
+		 * The link rows that can be drawn: their labels filled, their target resolved.
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-related-objects-can-start-with-configured-link-rows
+		 * @return {Array<{label: string, href: string, icon: string, external: boolean}>}
+		 */
+		shownLinks() {
+			const rows = []
+			for (const link of Array.isArray(this.links) ? this.links : []) {
+				if (!link || typeof link.label !== 'string') {
+					continue
+				}
+				let data = {}
+				if (link.endpoint) {
+					const answer = this.linkData[link.endpoint]
+					if (answer === undefined) {
+						continue
+					}
+					data = (link.path ? readPath(answer, link.path) : answer) || {}
+				}
+				let complete = true
+				const label = this.translateLabel(link.label).replace(/\{([\w.]+)\}/g, (token, key) => {
+					const value = readPath(data, key)
+					if (value === undefined || value === null || value === '') {
+						complete = false
+						return ''
+					}
+					return String(value)
+				})
+				if (!complete) {
+					continue
+				}
+				let href = '#'
+				let external = false
+				if (typeof link.href === 'string' && link.href !== '') {
+					external = /^https?:/.test(link.href)
+					href = external ? link.href : generateUrl(link.href.replace(/^\/index\.php/, ''))
+				} else if (link.route && this.$router) {
+					const resolved = this.routeFor(link.route, { id: this.resolvedId, ...(this.safeObjectData || {}) })
+					href = resolved ? this.$router.resolve(resolved).href : '#'
+				}
+				rows.push({ label, href, icon: link.icon || '', external })
+			}
+			return rows
+		},
+
 		loadingLabel() {
 			return t('nextcloud-vue', 'Loading …')
 		},
@@ -801,6 +1266,21 @@ export default {
 				return null
 			}
 			return this.visibleGroups.find((group) => group.key === this.activeKey) || this.visibleGroups[0]
+		},
+
+		/**
+		 * The owning-app link of each row in the active group, by index; ''
+		 * where the row routes through the host instead (related objects,
+		 * host-supplied sections, leaves without a page).
+		 *
+		 * @return {string[]}
+		 */
+		activeGroupHrefs() {
+			const group = this.activeGroup
+			if (!group || group.isExtra || group.key === 'objects' || String(group.key).startsWith('relation:')) {
+				return []
+			}
+			return group.items.map((item) => this.resolveItemHref(group.key, item.raw || {}))
 		},
 
 		/** Leaf integrations that can carry related content (legacy list path). */
@@ -814,7 +1294,7 @@ export default {
 			if (this.objectItems.length || this.fileItems.length) {
 				return false
 			}
-			if (this.extraSections.some((s) => (s.items || []).length)) {
+			if (this.allExtraSections.some((s) => (s.items || []).length)) {
 				return false
 			}
 			if (this.showIntegrations && this.linkedApps.length) {
@@ -855,7 +1335,7 @@ export default {
 
 		/** Whether the Add footer renders (prop + tabbed path with a real object). */
 		addFooterVisible() {
-			return this.showAddFooter && this.useTabs && this.addableGroups.length > 0
+			return this.showAddFooter && this.useTabs && !this.linksCompact && this.addableGroups.length > 0
 		},
 
 		/**
@@ -1101,15 +1581,109 @@ export default {
 		},
 
 		/**
-		 * Handle a click in the tabbed path: deep-link to the item's owning
-		 * Nextcloud app when a link can be resolved, otherwise emit a
-		 * host-routed event. Related objects always route through the host
-		 * (their owning app's detail page).
+		 * The Objects group split by relation type: one group per
+		 * `relation.displayLabel`, in the order they first appear; rows
+		 * without a label stay in an Objects group.
+		 *
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 * @param {object} group The Objects group.
+		 * @return {Array<object>} The groups.
+		 */
+		splitByRelation(group) {
+			const byLabel = new Map()
+			for (const item of group.items) {
+				const relation = item.raw && item.raw.relation
+				const label = relation && typeof relation.displayLabel === 'string' && relation.displayLabel !== '' ? relation.displayLabel : ''
+				const key = label === '' ? 'objects' : `relation:${label}`
+				if (!byLabel.has(key)) {
+					byLabel.set(key, { ...group, key, label: label === '' ? group.label : this.cnTranslate(label), relationLabel: label, items: [], total: 0 })
+				}
+				const target = byLabel.get(key)
+				target.items.push(item)
+				target.total = target.items.length
+			}
+			return [...byLabel.values()]
+		},
+
+		/**
+		 * The heading action of a group: `groupActions[group.key]`, else the
+		 * extra section's own `action`; null without one or without a label.
+		 *
+		 * @param {object} group The group.
+		 * @return {{label: string, icon: string, action: object}|null}
+		 */
+		groupAction(group) {
+			const declared = (this.groupActions && this.groupActions[group.key]) || group.action || null
+			if (!declared || typeof declared !== 'object' || typeof declared.label !== 'string' || declared.label === '') {
+				return null
+			}
+			return { label: this.cnTranslate(declared.label), icon: typeof declared.icon === 'string' ? declared.icon : '', action: declared }
+		},
+
+		/**
+		 * Run a group's heading action through the page's dispatcher, and say
+		 * so with `group-action`.
+		 *
+		 * @spec openspec/changes/related-groups-by-relation/specs/related-objects/spec.md#requirement-related-objects-can-be-grouped-by-relation-type-under-headings
+		 * @param {object} group The group.
+		 * @return {void}
+		 */
+		onGroupAction(group) {
+			const resolved = this.groupAction(group)
+			if (!resolved) {
+				return
+			}
+			if (typeof this.cnDispatchAction === 'function' && resolved.action.type) {
+				this.cnDispatchAction(resolved.action)
+			}
+			/**
+			 * @event group-action A group's heading action was pressed. Payload: `{ group, action }`, the group key and the declared action.
+			 */
+			this.$emit('group-action', { group: group.key, action: resolved.action })
+		},
+
+		/**
+		 * The text of a link-list row: its label, and its meta after a comma
+		 * ("Retour RF-2026-0058, in afwachting").
+		 *
+		 * @param {object} item The row.
+		 * @return {string}
+		 * @spec openspec/changes/related-links-layout/specs/related-objects/spec.md#requirement-related-records-can-be-a-plain-list-of-links
+		 */
+		linkText(item) {
+			return [item.label, item.meta].filter((part) => typeof part === 'string' && part.trim() !== '').join(', ')
+		},
+
+		/**
+		 * The owning-app link of one row in a group, '' where the row routes
+		 * through the host (related objects, host sections).
+		 *
+		 * @param {object} group The group.
+		 * @param {object} item The row.
+		 * @return {string}
+		 */
+		groupHref(group, item) {
+			if (!group || group.isExtra || group.key === 'objects' || String(group.key).startsWith('relation:')) {
+				return ''
+			}
+			return this.resolveItemHref(group.key, item.raw || {})
+		},
+
+		/**
+		 * Handle a click on a tabbed-path row that has no owning-app link
+		 * (rows with one render as a real `<a>`): emit a host-routed event.
+		 * Related objects always route through the host (their owning app's
+		 * detail page).
 		 *
 		 * @param {object} group - The active group descriptor.
 		 * @param {object} item - The clicked, normalised row (`item.raw` is the record).
 		 */
 		onSelectGroupItem(group, item) {
+			// A row read from `extraSources` with a `rowRoute` opens it.
+			if (group.isExtra && item.raw && item.raw.route && this.$router) {
+				this.$router.push(item.raw.route)
+				return
+			}
 			// A host-supplied section's rows belong to the host: this widget
 			// did not fetch them and has no owning-app page to deep-link to,
 			// so the click goes straight back out as `select-extra` — the same
@@ -1118,13 +1692,8 @@ export default {
 				this.onSelectExtra(group.key, item.raw)
 				return
 			}
-			if (group.key === 'objects') {
+			if (group.key === 'objects' || String(group.key).startsWith('relation:')) {
 				this.onSelectObject(item.raw)
-				return
-			}
-			const href = this.resolveItemHref(group.key, item.raw)
-			if (href) {
-				window.open(href, '_blank', 'noopener,noreferrer')
 				return
 			}
 			if (group.key === 'files') {
@@ -1276,16 +1845,27 @@ export default {
 		 * @return {Promise<object|null>}
 		 */
 		async fetchSubResource(suffix) {
+			return (await this.fetchSection(suffix)).data
+		},
+
+		/**
+		 * GET an OpenRegister sub-resource and say whether it answered, so a
+		 * section can tell "nothing linked" from "could not load".
+		 *
+		 * @param {string} suffix - The sub-resource suffix.
+		 * @return {Promise<{ ok: boolean, data: object|null }>}
+		 */
+		async fetchSection(suffix) {
 			try {
 				// `no-store`: relations change as the user links content; a stale
 				// cached empty response would wrongly show the empty state on load.
 				const response = await fetch(this.relatedUrl(suffix), { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
 				if (!response.ok) {
-					return null
+					return { ok: false, data: null }
 				}
-				return await response.json()
+				return { ok: true, data: await response.json() }
 			} catch {
-				return null
+				return { ok: false, data: null }
 			}
 		},
 
@@ -1336,9 +1916,74 @@ export default {
 				self.name,
 				raw.summary,
 				raw.description,
-			].find((v) => typeof v === 'string' && v.trim() && !isUuid(v)) || self.schema || String(id)
-			const meta = self.schema || raw.schema || ''
-			return { id, label, meta: typeof meta === 'string' ? meta : '', raw }
+			].find((v) => typeof v === 'string' && v.trim() && !isUuid(v))
+			|| [raw.givenName, raw.familyName].filter((v) => typeof v === 'string' && v.trim()).join(' ')
+			// OpenRegister names the schema by numeric id: show its title, never the number.
+			const schema = this.schemaName(self.schema || raw.schema)
+			const finalLabel = label || schema || String(id)
+			return { id, label: finalLabel, meta: schema === finalLabel ? '' : schema, raw }
+		},
+
+		/**
+		 * How a row names its schema: the translated title for a numeric id
+		 * (empty until it is read, or when it cannot be), a slug as it is.
+		 *
+		 * @param {string|number|undefined|null} schema - `@self.schema` of the related object.
+		 * @return {string}
+		 */
+		schemaName(schema) {
+			if (isNumericId(schema)) {
+				const title = this.schemaTitles[String(schema).trim()]
+				return title ? this.cnTranslate(title) : ''
+			}
+			return typeof schema === 'string' ? schema : ''
+		},
+
+		/**
+		 * Read the titles of the numeric schema ids in these envelopes once,
+		 * before the rows are built, so no row shows a number first.
+		 *
+		 * @param {Array<object|null>} envelopes - The `{ results }` payloads.
+		 * @return {Promise<void>}
+		 */
+		async resolveSchemaTitles(envelopes) {
+			const ids = new Set()
+			for (const envelope of envelopes) {
+				for (const raw of ((envelope && envelope.results) || [])) {
+					const schema = (raw && (raw['@self'] || {}).schema) ?? (raw && raw.schema)
+					if (isNumericId(schema)) {
+						ids.add(String(schema).trim())
+					}
+				}
+			}
+			const titles = { ...this.schemaTitles }
+			await Promise.all([...ids].filter((id) => !(id in titles)).map(async (id) => {
+				if (!schemaTitleCache.has(id)) {
+					schemaTitleCache.set(id, this.fetchSchemaTitle(id))
+				}
+				titles[id] = await schemaTitleCache.get(id)
+			}))
+			this.schemaTitles = titles
+		},
+
+		/**
+		 * GET one schema's title; '' when it cannot be read.
+		 *
+		 * @param {string} id - The numeric schema id.
+		 * @return {Promise<string>}
+		 */
+		async fetchSchemaTitle(id) {
+			try {
+				const response = await fetch(generateUrl('/apps/openregister/api/schemas/{id}', { id }), { method: 'GET', headers: buildHeaders() })
+				if (!response.ok) {
+					return ''
+				}
+				const schema = await response.json()
+				const title = schema && (schema.title || schema.slug)
+				return typeof title === 'string' ? title : ''
+			} catch {
+				return ''
+			}
 		},
 
 		/**
@@ -1411,6 +2056,8 @@ export default {
 		 */
 		async loadAll() {
 			this.loading = true
+			this.loadSources()
+			this.loadLinks()
 			try {
 				if (this.useTabs) {
 					await this.loadTabs()
@@ -1424,55 +2071,139 @@ export default {
 		},
 
 		/**
-		 * Fetch every group directly from OpenRegister and build the tabs.
+		 * Fetch every group directly from OpenRegister and build the tabs,
+		 * one section at a time.
 		 *
+		 * 🔴 EACH SECTION SHOWS WHEN ITS OWN REQUEST RETURNS. This used to wait
+		 * for relations, uses, used, contracts and files together behind one
+		 * `Promise.all`, so the relations call (0.45 s on pipelinq's lead page)
+		 * sat behind uses/used (about 9 s) and the card said "Loading …" the
+		 * whole time. Now the groups are laid out up front in their fixed order
+		 * and filled in place as each answer arrives, so a slow section never
+		 * reorders or hides a fast one. A section still in flight is named in
+		 * `pendingSections`; one whose request failed in `failedSections`.
+		 *
+		 * @spec openspec/changes/r4-object-lock-url-and-credentials-copy/specs/related-objects-progressive/spec.md
 		 * @return {Promise<void>}
 		 */
 		async loadTabs() {
+			const token = ++this.loadToken
+			const current = () => token === this.loadToken
 			this.loading = true
-			try {
-				const [relations, uses, used, contracts, files] = await Promise.all([
-					this.fetchSubResource('relations'),
-					this.showObjects ? this.fetchSubResource('uses') : null,
-					this.showObjects ? this.fetchSubResource('used') : null,
-					(this.showObjects && this.showContracts) ? this.fetchSubResource('contracts') : null,
-					this.showFiles ? this.fetchSubResource('files') : null,
-				])
+			this.failedSections = []
 
-				const groups = []
+			const objectSuffixes = this.showObjects
+				? ['uses', 'used', ...(this.showContracts ? ['contracts'] : [])]
+				: []
+			const sections = [
+				...(this.showObjects ? [{ key: 'objects', label: this.objectsLabel }] : []),
+				...(this.showFiles ? [{ key: 'files', label: this.filesLabel }] : []),
+				{ key: 'relations', label: t('nextcloud-vue', 'Linked items') },
+			]
+			this.pendingSections = sections.map((section) => section.key)
+			this.sectionCount = sections.length
 
-				if (this.showObjects) {
-					const objectItems = this.mergeObjectResults([uses, used, contracts])
-					groups.push({ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline', integrationId: '', items: objectItems, total: objectItems.length })
+			// Lay out every group now, in its fixed order, empty. visibleGroups
+			// hides an empty group, so nothing shows until a section fills it.
+			const groups = []
+			if (this.showObjects) {
+				groups.push({ key: 'objects', label: this.objectsLabel, icon: 'FileTreeOutline', integrationId: '', items: [], total: 0 })
+			}
+			if (this.showFiles) {
+				groups.push({ key: 'files', label: this.filesLabel, icon: 'Paperclip', integrationId: 'files', items: [], total: 0 })
+			}
+			for (const def of LEAF_GROUPS) {
+				groups.push({
+					key: def.key,
+					label: this.leafLabel(def.key),
+					// Prefer the registered integration's icon so it matches the
+					// sidebar/linked-apps; fall back to the known-good default.
+					icon: this.integrationIcon(def.integrationId) || def.icon,
+					integrationId: def.integrationId,
+					requiredApp: def.requiredApp,
+					items: [],
+					total: 0,
+				})
+			}
+			this.groups = groups
+
+			const setGroup = (key, items, total) => {
+				const index = this.groups.findIndex((group) => group.key === key)
+				if (index === -1) {
+					return
 				}
-
-				if (this.showFiles) {
-					const fileResults = (files && files.results) || []
-					groups.push({ key: 'files', label: this.filesLabel, icon: 'Paperclip', integrationId: 'files', items: fileResults.map((f) => this.toFileRow(f)), total: files ? (files.total ?? fileResults.length) : 0 })
+				const next = this.groups.slice()
+				next[index] = { ...next[index], items, total }
+				this.groups = next
+			}
+			const settle = (key, ok) => {
+				this.pendingSections = this.pendingSections.filter((k) => k !== key)
+				if (!ok) {
+					const section = sections.find((s) => s.key === key)
+					this.failedSections = [...this.failedSections, { key, label: section ? section.label : key }]
 				}
-
-				for (const def of LEAF_GROUPS) {
-					const block = relations && relations[def.responseKey]
-					const results = (block && block.results) || []
-					groups.push({
-						key: def.key,
-						label: this.leafLabel(def.key),
-						// Prefer the registered integration's icon so it matches the
-						// sidebar/linked-apps; fall back to the known-good default.
-						icon: this.integrationIcon(def.integrationId) || def.icon,
-						integrationId: def.integrationId,
-						requiredApp: def.requiredApp,
-						items: results.map((r, i) => this.toLeafRow(r, i)),
-						total: block ? (block.total ?? results.length) : 0,
-					})
-				}
-
-				this.groups = groups
-				if (!this.activeGroup && this.visibleGroups.length) {
+				// Keep the tab the reader saw first: pin it, so a slower section
+				// that sorts before it does not take the panel away.
+				if (!this.activeKey && this.visibleGroups.length) {
 					this.activeKey = this.visibleGroups[0].key
 				}
+			}
+
+			const loadRelations = this.fetchSection('relations').then(({ ok, data }) => {
+				if (!current()) {
+					return
+				}
+				for (const def of LEAF_GROUPS) {
+					const block = data && data[def.responseKey]
+					const results = (block && block.results) || []
+					setGroup(def.key, results.map((r, i) => this.toLeafRow(r, i)), block ? (block.total ?? results.length) : 0)
+				}
+				settle('relations', ok)
+			})
+
+			const loadFiles = this.showFiles
+				? this.fetchSection('files').then(({ ok, data }) => {
+						if (!current()) {
+							return
+						}
+						const fileResults = (data && data.results) || []
+						setGroup('files', fileResults.map((f) => this.toFileRow(f)), data ? (data.total ?? fileResults.length) : 0)
+						settle('files', ok)
+					})
+				: null
+
+			// uses, used and contracts merge into one Objects group: each answer
+			// re-merges what has arrived so far, and the group stays pending
+			// until the last of them is in.
+			const envelopes = objectSuffixes.map(() => null)
+			let objectsOk = true
+			const loadObjects = objectSuffixes.length
+				? Promise.all(objectSuffixes.map((suffix, i) => this.fetchSection(suffix).then(async ({ ok, data }) => {
+						if (!current()) {
+							return
+						}
+						objectsOk = objectsOk && ok
+						envelopes[i] = data
+						await this.resolveSchemaTitles([data])
+						if (!current()) {
+							return
+						}
+						const objectItems = this.mergeObjectResults(envelopes)
+						setGroup('objects', objectItems, objectItems.length)
+					}))).then(() => {
+						if (current()) {
+							settle('objects', objectsOk)
+						}
+					})
+				: null
+
+			try {
+				await Promise.all([loadRelations, loadFiles, loadObjects])
 			} finally {
-				this.loading = false
+				if (current()) {
+					this.loading = false
+					this.pendingSections = []
+				}
 			}
 		},
 
@@ -1567,6 +2298,7 @@ export default {
 						calls.push(store.fetchContracts(type, id))
 					}
 					const groups = await Promise.all(calls)
+					await this.resolveSchemaTitles(groups.map((results) => ({ results: results || [] })))
 					const seen = new Set()
 					const merged = []
 					for (const group of groups) {
@@ -1599,6 +2331,300 @@ export default {
 		 *
 		 * @param {{ widgetId: string }} payload - Bus payload.
 		 */
+		/**
+		 * A label through the host app's translate.
+		 *
+		 * @param {string} text The label.
+		 * @return {string}
+		 */
+		translateLabel(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Whether a row opens nothing: read from an `extraSources` entry with
+		 * `static: true`.
+		 *
+		 * @param {object} group The group.
+		 * @param {object} item The row.
+		 * @return {boolean}
+		 */
+		isStaticRow(group, item) {
+			return Boolean(group && group.isExtra && item && item.raw && item.raw.static === true)
+		},
+
+		/**
+		 * Fill a template (or the first filling of a list of candidates) from a row.
+		 *
+		 * @param {string|Array<string>} template The template.
+		 * @param {object} row The row.
+		 * @return {string}
+		 */
+		fillRow(template, row) {
+			// `{ parts, separator? }`: each part filled on its own, the empty ones left out.
+			if (template && typeof template === 'object' && Array.isArray(template.parts)) {
+				return template.parts.map((part) => this.fillRow(part, row)).filter((text) => text !== '').join(typeof template.separator === 'string' ? template.separator : ', ')
+			}
+			if (Array.isArray(template)) {
+				return firstFilled(template, row, (text) => this.translateLabel(text))
+			}
+			return typeof template === 'string' && template !== '' ? fillTemplate(this.translateLabel(template), row) : ''
+		},
+
+		/**
+		 * A route declaration with `{field}` tokens filled from a row.
+		 *
+		 * @param {object} route `{ name, params? }`.
+		 * @param {object} row The row.
+		 * @return {object|null}
+		 */
+		routeFor(route, row) {
+			if (!route || typeof route !== 'object' || !route.name) {
+				return null
+			}
+			const params = {}
+			for (const [key, value] of Object.entries(route.params || {})) {
+				const filled = typeof value === 'string' && value.includes('{') ? fillTemplate(value, row) : value
+				if (filled === '' || filled === undefined || filled === null) {
+					return null
+				}
+				params[key] = filled
+			}
+			return { name: route.name, params }
+		},
+
+		/**
+		 * Read the answers the `links` rows fill their labels from, once per endpoint.
+		 *
+		 * @spec openspec/changes/related-links-and-early-sections/specs/related-objects/spec.md#requirement-related-objects-can-start-with-configured-link-rows
+		 * @return {Promise<void>}
+		 */
+		async loadLinks() {
+			const endpoints = [...new Set((Array.isArray(this.links) ? this.links : []).map((link) => link && link.endpoint).filter(Boolean))]
+			if (endpoints.length === 0 || !this.resolvedId) {
+				return
+			}
+			await Promise.all(endpoints.map(async (endpoint) => {
+				try {
+					const url = generateUrl(interpolateUrlTokens(endpoint, { objectId: this.resolvedId, object: this.safeObjectData }).replace(/^\/index\.php/, ''))
+					const response = await fetch(url, { method: 'GET', headers: buildHeaders(), cache: 'no-store' })
+					if (response.ok) {
+						this.linkData = { ...this.linkData, [endpoint]: await response.json() }
+					}
+				} catch {
+					// A link row whose answer cannot be read is left out.
+				}
+			}))
+		},
+
+		/**
+		 * Read `extraSources` and `referenceSections` into sections. A failed
+		 * read is logged and leaves its section out: the related content
+		 * around it stays.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-related-objects-can-read-extra-sections-from-endpoints
+		 */
+		async loadSources() {
+			const sources = Array.isArray(this.extraSources) ? this.extraSources : []
+			const references = Array.isArray(this.referenceSections) ? this.referenceSections : []
+			if ((sources.length === 0 && references.length === 0) || !this.resolvedId) {
+				this.sourcedSections = []
+				return
+			}
+			const { default: axios } = await import('@nextcloud/axios')
+			const sections = []
+			await Promise.all(sources.map(async (source, index) => {
+				if (!source || typeof source.endpoint !== 'string' || source.endpoint === '') {
+					return
+				}
+				try {
+					const url = generateUrl(interpolateUrlTokens(source.endpoint, { objectId: this.resolvedId, object: this.safeObjectData }))
+					const { data } = await axios.get(url)
+					const list = source.path ? readPath(data, source.path) : data
+					sections.push(...this.sectionsOf(source, Array.isArray(list) ? list : [], index))
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnRelatedObjectsWidget] ${source.key || source.endpoint} could not be read`, error)
+				}
+			}))
+			await Promise.all(references.map(async (ref) => {
+				const id = ref && ref.field ? readPath(this.safeObjectData, ref.field) : ''
+				if (typeof id !== 'string' || id.trim() === '' || id === String(this.resolvedId) || !ref.register || !ref.schema) {
+					return
+				}
+				try {
+					const { data } = await axios.get(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: ref.register, schema: ref.schema, id: id.trim() }))
+					const label = (ref.labelTemplate
+						? this.fillRow(ref.labelTemplate, data || {})
+						: String(readPath(data || {}, ref.labelField || 'title') ?? '')).trim()
+					if (label === '' || BARE_UUID.test(label)) {
+						return
+					}
+					sections.push({
+						key: ref.key || `reference-${ref.field}`,
+						label: this.translateLabel(ref.label || ref.field),
+						icon: ref.icon || 'FileTreeOutline',
+						items: [{ id: id.trim(), label, route: this.routeFor(ref.route, { id: id.trim(), ...(data || {}) }) }],
+					})
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnRelatedObjectsWidget] the record ${ref.field} names could not be read`, error)
+				}
+			}))
+			const declared = Array.isArray(this.sectionOrder) ? this.sectionOrder : []
+			const order = (key) => {
+				const named = declared.findIndex((entry) => entry === key || String(key).startsWith(`${entry}:`))
+				if (named !== -1) {
+					return named
+				}
+				const at = [...sources, ...references].findIndex((entry) => entry && (entry.key === key || String(key).startsWith(`${entry.key}:`)))
+				return at === -1 ? Number.MAX_SAFE_INTEGER : declared.length + at
+			}
+			this.sourcedSections = sections.sort((a, b) => order(a.key) - order(b.key))
+		},
+
+		/**
+		 * The section (or, with `groupBy`, the sections) one source's rows make.
+		 *
+		 * @param {object} source The `extraSources` entry.
+		 * @param {Array<object>} rows The rows.
+		 * @param {number} index The entry's place.
+		 * @return {Array<object>}
+		 */
+		sectionsOf(source, rows, index) {
+			const key = source.key || `source-${index}`
+			const items = rows.filter((entry) => entry && typeof entry === 'object').map((stored, i) => {
+				const row = this.labelledRow(stored, source.valueLabels)
+				const label = this.fillRow(source.itemLabel || '{title}', row)
+				return {
+					id: String(stored.id ?? i),
+					label,
+					meta: this.fillRow(source.itemMeta, row),
+					static: source.static === true,
+					route: source.static === true ? null : this.routeFor(source.rowRoute, stored),
+					actions: this.rowActionsFor(source, stored),
+					children: this.childrenFor(source, stored),
+					group: source.groupBy ? this.fillRow(source.groupBy, row) : '',
+					row: stored,
+				}
+			}).filter((item) => !source.requireLabel || (item.label.trim() !== '' && !BARE_UUID.test(item.label.trim())))
+			if (!source.groupBy) {
+				return [{ key, label: this.translateLabel(source.label || key), icon: source.icon || 'LinkVariant', items }]
+			}
+			const labels = source.groupLabels && typeof source.groupLabels === 'object' ? source.groupLabels : {}
+			const groups = new Map()
+			for (const item of items) {
+				const name = labels[item.group] ? this.translateLabel(labels[item.group]) : item.group
+				if (!groups.has(name)) {
+					groups.set(name, [])
+				}
+				groups.get(name).push(item)
+			}
+			return [...groups.entries()].map(([name, list]) => ({ key: `${key}:${name}`, label: name, icon: source.icon || 'LinkVariant', items: list }))
+		},
+
+		/**
+		 * A row with its coded values replaced by their labels
+		 * (`valueLabels: { recurrence: { monthly: "Every month" } }`), translated.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} valueLabels The labels by field and value.
+		 * @return {object}
+		 */
+		labelledRow(row, valueLabels) {
+			if (!valueLabels || typeof valueLabels !== 'object') {
+				return row
+			}
+			const out = { ...row }
+			for (const [field, map] of Object.entries(valueLabels)) {
+				const raw = row[field]
+				if ((typeof raw === 'string' || typeof raw === 'number') && map && Object.hasOwn(map, raw)) {
+					out[field] = map[raw] === '' ? '' : this.translateLabel(map[raw])
+				}
+			}
+			return out
+		},
+
+		/**
+		 * The buttons under one row: `rowActions` whose `when` holds for it.
+		 *
+		 * @param {object} source The `extraSources` entry.
+		 * @param {object} row The row.
+		 * @return {Array<object>}
+		 */
+		rowActionsFor(source, row) {
+			return (Array.isArray(source.rowActions) ? source.rowActions : [])
+				.filter((action) => action && typeof action.label === 'string' && typeof action.endpoint === 'string' && (!action.when || evaluateVisibleWhenLocal(action.when, row)))
+				.map((action) => ({ ...action, label: this.translateLabel(action.label) }))
+		},
+
+		/**
+		 * The links under one row (`children`: `{ path, label, route }`).
+		 *
+		 * @param {object} source The `extraSources` entry.
+		 * @param {object} row The row.
+		 * @return {Array<{key: string, label: string, to: (object|null)}>}
+		 */
+		childrenFor(source, row) {
+			const spec = source.children
+			const list = spec && spec.path ? readPath(row, spec.path) : null
+			if (!Array.isArray(list)) {
+				return []
+			}
+			return list.filter((child) => child && typeof child === 'object').map((child, i) => ({
+				key: String(child.id ?? i),
+				label: this.fillRow(spec.label || '{title}', child) || String(child.id ?? ''),
+				to: this.routeFor(spec.route, child),
+			}))
+		},
+
+		/**
+		 * Run a row action: POST (or `method`) to its endpoint with `@objectId`
+		 * and the row's `{field}` tokens filled in, then read the sources
+		 * again. A refusal shows the server's sentence.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} raw The row's section item.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-related-objects-can-read-extra-sections-from-endpoints
+		 */
+		async runSourceAction(action, raw) {
+			const row = raw && raw.row ? raw.row : raw
+			const path = interpolateUrlTokens(action.endpoint, { objectId: this.resolvedId, object: this.safeObjectData })
+				.replace(/\{([\w.@]+)\}/g, (_match, field) => encodeURIComponent(String(readPath(row, field) ?? '')))
+			this.runningAction = path
+			this.sourceActionError = ''
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				await axios.request({ method: typeof action.method === 'string' ? action.method.toLowerCase() : 'post', url: generateUrl(path) })
+				await this.loadSources()
+			} catch (error) {
+				const said = error?.response?.data?.message ?? error?.response?.data?.error
+				this.sourceActionError = typeof said === 'string' && said !== ''
+					? said
+					: (action.errorText ? this.translateLabel(action.errorText) : t('nextcloud-vue', 'This did not work. Try again.'))
+			} finally {
+				this.runningAction = ''
+			}
+		},
+
+		/**
+		 * Dispatch a footer action with the record's tokens resolved.
+		 *
+		 * @param {object} action The action.
+		 * @return {void}
+		 */
+		runFooterAction(action) {
+			const { label, icon, ...declared } = action
+			const resolved = resolveDeepTokens(declared, { objectId: this.resolvedId, object: this.safeObjectData })
+			if (typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(resolved)
+				return
+			}
+			dispatchAction(resolved, { router: this.$router || null })
+		},
+
 		onBusRefresh(payload) {
 			const mine = this.widgetId || this.objectType
 			if (!payload || !payload.widgetId || !mine || payload.widgetId === mine) {
@@ -1610,6 +2636,67 @@ export default {
 </script>
 
 <style scoped>
+.cn-related-objects-widget__children {
+	margin: 0 0 4px 36px;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-related-objects-widget__row-actions,
+.cn-related-objects-widget__footer-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 4px 0 8px 36px;
+}
+
+.cn-related-objects-widget__footer-actions {
+	margin-inline-start: 0;
+}
+
+.cn-related-objects-widget__row--static {
+	cursor: default;
+}
+
+.cn-related-objects-widget__section + .cn-related-objects-widget__section {
+	margin-top: 16px;
+}
+
+.cn-related-objects-widget__section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.cn-related-objects-widget__section-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.cn-related-objects-widget__section-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 12px;
+	border: none;
+	border-radius: 17px;
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.cn-related-objects-widget__section-action:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
+}
+
 .cn-related-objects-widget__group {
 	padding: calc(2 * var(--default-grid-baseline, 4px)) 0;
 }
@@ -1711,6 +2798,24 @@ export default {
 	padding: 0;
 }
 
+.cn-related-objects-widget__links {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-related-objects-widget__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-primary-element-text-dark, var(--color-main-text));
+	font-weight: 600;
+	text-decoration: underline;
+}
+
 .cn-related-objects-widget__row {
 	display: flex;
 	align-items: center;
@@ -1719,6 +2824,8 @@ export default {
 	padding: calc(1.5 * var(--default-grid-baseline, 4px)) calc(2 * var(--default-grid-baseline, 4px));
 	cursor: pointer;
 	border-radius: var(--border-radius);
+	color: inherit;
+	text-decoration: none;
 }
 
 .cn-related-objects-widget__detail {
@@ -1773,6 +2880,20 @@ export default {
 	font-style: italic;
 }
 
+.cn-related-objects-widget__section-status {
+	margin: 0;
+	padding: var(--default-grid-baseline, 4px) calc(2 * var(--default-grid-baseline, 4px));
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+}
+
+.cn-related-objects-widget__section-error {
+	margin: 0;
+	padding: var(--default-grid-baseline, 4px) calc(2 * var(--default-grid-baseline, 4px));
+	color: var(--color-error-text, var(--color-error));
+	font-size: 0.85em;
+}
+
 .cn-related-objects-widget__empty-state {
 	/* NcEmptyContent defaults to filling tall parents; inside a widget cell a
 	   compact block reads better. */
@@ -1795,5 +2916,38 @@ export default {
 
 .cn-related-objects-widget__file-input {
 	display: none;
+}
+
+/* `layout: "links"`: plain links one per line, "Show all" under them. */
+.cn-related-objects-widget__links {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0 16px;
+	list-style: none;
+}
+
+.cn-related-objects-widget__link {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-primary-element-text-dark, var(--color-primary-element));
+	font: inherit;
+	font-weight: 600;
+	text-align: start;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.cn-related-objects-widget__show-all {
+	margin: 12px 16px 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-maxcontrast);
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
 }
 </style>

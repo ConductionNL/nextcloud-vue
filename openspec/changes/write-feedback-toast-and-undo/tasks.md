@@ -6,14 +6,15 @@
 ## Implementation tasks
 
 ### Task 1: The feedback helper and confirm dialog
+> The confirm is the new single-phase `src/dialogs/CnWriteConfirmDialog.vue` (the two-phase `CnConfirmDialog` cannot be spawned from a helper or answered by a transition). Task 4's delete toast is wired to the `object-op` delete row action, the only delete the widget dispatches.
 - **spec_ref**: `openspec/changes/write-feedback-toast-and-undo/specs/dialog-system/spec.md#requirement-req-dg-019-cnformdialog-reports-its-write`
 - **files**: `src/composables/useWriteFeedback.js`, `src/dialogs/CnConfirmDialog.vue`, `src/composables/__tests__/useWriteFeedback.spec.js`
 - **acceptance_criteria**:
   - `success`, `error` and `confirm` wrap `@nextcloud/dialogs` and the two-phase pattern
   - `success` with `undo` shows an Undo button for 10 s and runs the callback once
   - JSDoc on every exported function
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: CnFormDialog toasts after save
 - **spec_ref**: `openspec/changes/write-feedback-toast-and-undo/specs/dialog-system/spec.md#requirement-req-dg-019-cnformdialog-reports-its-write`
@@ -22,8 +23,8 @@
   - A success toast names the object title or the schema title
   - `feedback: false` renders no toast
   - A failed save shows the error toast and keeps the dialog open
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: CnLifecycleActions confirms and undoes
 - **spec_ref**: `openspec/changes/write-feedback-toast-and-undo/specs/manifest-detail-lifecycle-actions/spec.md#requirement-req-mdla-6-a-transition-confirms-reports-and-offers-undo`
@@ -32,8 +33,8 @@
   - Danger, final-state and `confirm: true` transitions open the confirm dialog first
   - Cancel sends no request
   - Undo posts the reverse transition only when the graph declares one
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: CnObjectListWidget toasts and undoes a delete
 - **spec_ref**: `openspec/changes/write-feedback-toast-and-undo/specs/cn-workspace-context-widgets/spec.md#requirement-cnobjectlistwidget-reports-its-writes`
@@ -42,5 +43,5 @@
   - Create through the widget shows one toast, not two
   - Delete shows Undo and restores the row from the trash
   - `npm test` and `npm run build` pass; component reference docs updated
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test

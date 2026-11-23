@@ -13,8 +13,8 @@
   - A note with no visibility value renders as internal
   - The toggle renders only when `canSetVisibility` is true, and the component infers the permission nowhere
   - The add-note form carries the choice, defaulting to internal, and both write paths use one store action
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: The filter chip on the feed
 - **spec_ref**: `openspec/changes/timeline-visibility-controls/specs/notes-mentions-autocomplete/spec.md#requirement-the-feed-filters-on-visibility-and-says-when-it-cannot`
@@ -24,8 +24,8 @@
   - A caller served the public view sees the filter fixed at public with the reason
   - Each row carries its chip, alongside the existing type, actor and date filters
   - The filter joins the existing filter row without changing the others
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Docs, translations and the handover
 - **spec_ref**: `openspec/changes/timeline-visibility-controls/specs/notes-mentions-autocomplete/spec.md#requirement-a-note-shows-and-sets-whether-it-is-internal-or-public`
@@ -35,5 +35,7 @@
   - Dutch and English strings ship for the chip, the toggle and the filter
   - dossiq and portaliq are told the prop names and where the value comes from
   - `npm test` and `npm run build` pass
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> Props for the feed: `showVisibility` and `publicViewOnly` on `CnActivityTab`, `showVisibility` on `CnActivityCard`; the host passes `publicViewOnly` from the same answer as `canSetVisibility` (no `update` on the object). The note visibility change is assumed to be `PATCH .../notes/{id}`: not run: needs a live OpenRegister with `timeline-entry-visibility`. Telling dossiq and portaliq is the orchestrator's step; the prop names are in docs/components/cn-notes-card.md.

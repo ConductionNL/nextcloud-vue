@@ -31,7 +31,7 @@
 		data-testid="cn-page"
 		:data-testid-page-id="currentPage.id"
 		class="cn-page-renderer"
-		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }]">
+		:class="[{ 'cn-page-renderer--no-sidebar': !pageSidebarVisibleValue }, pageLookClass]">
 		<!--
 		  A page whose `requiresApp` is not installed renders the missing-
 		  dependency screen INSTEAD of its body.
@@ -120,7 +120,8 @@
 				v-if="widgetsBySlot.has('body')"
 				:widgets="widgetsBySlot.get('body')"
 				:editable="bodyEditable"
-				slotName="body" />
+				slotName="body"
+				@selectObject="onRelatedObjectOpen" />
 			<component
 				:is="resolvedComponent"
 				v-else-if="resolvedComponent"
@@ -128,7 +129,10 @@
 				v-bind="{ ...$attrs, ...resolvedProps }"
 				@view="onRowOpen"
 				@rowClick="onRowOpen"
+				@rowAuxClick="onRowOpen"
 				@editOpen="onRowOpen"
+				@relatedObjectClick="onRelatedObjectOpen"
+				@viewOverrides="onViewOverrides"
 				@configure="showConfigModal = true">
 				<!-- This `<template v-for>` defines dynamic SLOTS, not a
 				     rendered list, so the rule's advice is inverted here:
@@ -147,13 +151,24 @@
 				</template>
 				<!-- The open record, beside the list. The host never writes
 				     this slot: the renderer already knows which detail page
-				     the index opens into, so it mounts that one. -->
+				     the index opens into, so it mounts that one. `$attrs` too:
+				     the host passes the page its `objectStore` as an attribute,
+				     not through the manifest. -->
 				<template v-if="splitPaneComponent" #split-pane="splitScope">
 					<component
 						:is="splitPaneComponent"
-						v-bind="splitPaneProps"
+						v-bind="{ ...$attrs, ...splitPaneProps }"
 						@edited="splitScope.saved"
-						@created="splitScope.saved" />
+						@created="splitScope.saved">
+						<template
+							v-for="entry in splitPaneSlotEntries"
+							#[entry.name]="paneSlotProps">
+							<component
+								:is="entry.component"
+								:key="entry.name"
+								v-bind="paneSlotProps" />
+						</template>
+					</component>
 				</template>
 				<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 			</component>
@@ -161,27 +176,32 @@
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('header-actions')"
 				:widgets="widgetsBySlot.get('header-actions')"
-				slotName="header-actions" />
+				slotName="header-actions"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- footer slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('footer')"
 				:widgets="widgetsBySlot.get('footer')"
-				slotName="footer" />
+				slotName="footer"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- modal slot -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('modal')"
 				:widgets="widgetsBySlot.get('modal')"
-				slotName="modal" />
+				slotName="modal"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- sidebar slot (gated by cnPageSidebarVisible) -->
 			<CnWidgetGrid
 				v-if="widgetsBySlot.has('sidebar') && pageSidebarVisibleValue"
 				:widgets="widgetsBySlot.get('sidebar')"
-				slotName="sidebar" />
+				slotName="sidebar"
+				@selectObject="onRelatedObjectOpen" />
 			<!-- dynamic tab:* and section:* slots -->
 			<template v-for="dynamicSlot in dynamicSlotKeys" :key="dynamicSlot">
 				<CnWidgetGrid
 					:widgets="widgetsBySlot.get(dynamicSlot)"
-					:slotName="dynamicSlot" />
+					:slotName="dynamicSlot"
+					@selectObject="onRelatedObjectOpen" />
 			</template>
 		</template>
 
@@ -192,7 +212,10 @@
 			v-bind="{ ...$attrs, ...resolvedProps }"
 			@view="onRowOpen"
 			@rowClick="onRowOpen"
+			@rowAuxClick="onRowOpen"
 			@editOpen="onRowOpen"
+			@relatedObjectClick="onRelatedObjectOpen"
+			@viewOverrides="onViewOverrides"
 			@configure="showConfigModal = true">
 			<!-- Dynamic slot definition, not a rendered list — see the note on
 			     the identical block above. -->
@@ -211,9 +234,18 @@
 			<template v-if="splitPaneComponent" #split-pane="splitScope">
 				<component
 					:is="splitPaneComponent"
-					v-bind="splitPaneProps"
+					v-bind="{ ...$attrs, ...splitPaneProps }"
 					@edited="splitScope.saved"
-					@created="splitScope.saved" />
+					@created="splitScope.saved">
+					<template
+						v-for="entry in splitPaneSlotEntries"
+						#[entry.name]="paneSlotProps">
+						<component
+							:is="entry.component"
+							:key="entry.name"
+							v-bind="paneSlotProps" />
+					</template>
+				</component>
 			</template>
 			<!-- eslint-enable vue/no-v-for-template-key-on-child -->
 		</component>
@@ -258,25 +290,83 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { ref } from 'vue'
+import { computed, defineAsyncComponent, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
-import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
+import { useListNavigation } from '../../composables/useListNavigation.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
 import { dispatchAction, resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
-import { listContextToQuery } from '../../utils/listNavigation.js'
+import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { openRowTarget } from '../../utils/linkNavigation.js'
+import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
+import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
+import { parseSortKeys } from '../../utils/routeFilters.js'
 import { buildRouteParams, routePathFor } from '../../utils/routeParams.js'
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { defaultPageTypes } from './pageTypes.js'
+import { isNewTabHandled } from '../../utils/rowAuxClick.js'
+import { applySavedViewOverrides, applySavedViewSlots } from '../../utils/savedViewOverrides.js'
+
+/**
+ * OpenRegister registers and schemas already described by id, so a click on
+ * a related object costs at most one request per register or schema for as
+ * long as this module stays loaded (the SPA's lifetime, across page
+ * changes). Keyed by `${kind}:${id}`; a failed lookup is dropped again so the
+ * next click retries it.
+ *
+ * @type {Map<string, Promise<{ id: string, slug: string }>>}
+ */
+const entityDescriptorCache = new Map()
+
+/**
+ * Describe an OpenRegister register or schema (`{ id, slug }`) by its id or
+ * slug, or null when it cannot be fetched. An object's `@self` names its
+ * register and schema by id while a manifest may name them by slug; this is
+ * the bridge. Lazy-imports axios and the router helper like the widgets do.
+ *
+ * @param {'registers'|'schemas'} kind The collection to ask.
+ * @param {string|number} idOrSlug The id (or slug) to describe.
+ * @return {Promise<{ id: string, slug: string }|null>} The descriptor.
+ */
+function describeOpenRegisterEntity(kind, idOrSlug) {
+	const key = `${kind}:${idOrSlug}`
+	if (!entityDescriptorCache.has(key)) {
+		entityDescriptorCache.set(key, (async () => {
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = generateUrl('/apps/openregister/api/{kind}/{id}', { kind, id: String(idOrSlug) })
+				const res = await axios.get(url)
+				const data = res && res.data
+				if (!data || typeof data !== 'object') {
+					throw new Error(`no descriptor for ${key}`)
+				}
+				return { id: String(data.id ?? idOrSlug), slug: String(data.slug ?? '') }
+			} catch (error) {
+				// One failed request must not pin every later click to nowhere.
+				entityDescriptorCache.delete(key)
+				throw error
+			}
+		})())
+	}
+	return entityDescriptorCache.get(key).catch(() => null)
+}
+import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
+
+const CnWidgetGrid = defineAsyncComponent(() => import('../CnWidgetGrid/CnWidgetGrid.vue').then((m) => m.default))
+const CnMassExportDialog = defineAsyncComponent(() => import('../CnMassExportDialog/CnMassExportDialog.vue').then((m) => m.default))
+const CnPageConfigModal = defineAsyncComponent(() => import('../../dialogs/CnPageConfigModal.vue').then((m) => m.default))
+const CnBuildiqEditButton = defineAsyncComponent(() => import('../CnBuildiqEditButton/CnBuildiqEditButton.vue').then((m) => m.default))
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -321,24 +411,6 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 	showMassDelete: false,
 })
 
-/**
- * Parse the `_order` query value an index page writes, without throwing.
- *
- * @param {string|undefined} raw The raw query value.
- * @return {Array<{key: string, order: string}>} The sort, or an empty list.
- */
-function safeSortKeys(raw) {
-	if (typeof raw !== 'string' || raw === '') {
-		return []
-	}
-	try {
-		const parsed = JSON.parse(raw)
-		return Array.isArray(parsed) ? parsed : []
-	} catch {
-		return []
-	}
-}
-
 export default {
 	name: 'CnPageRenderer',
 
@@ -376,6 +448,8 @@ export default {
 		cnOpenModal: { default: null },
 		/** ADR-041: true while the in-app editor is editing — makes the body grid draggable. */
 		cnEditingBody: { default: false },
+		/** The app's look, provided by CnAppRoot (`nextcloud` or `board`). */
+		cnLook: { default: 'nextcloud' },
 	},
 
 	/**
@@ -406,6 +480,11 @@ export default {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this
 		return {
+			// The look for this page's descendants: the page's own
+			// `config.look` when it is a known look, else the app's. A computed
+			// ref so it follows the route, because provide() runs once.
+			cnLook: computed(() => self.resolvedLook),
+
 			// Per-page slot→columns override (page.config.slotColumns), read by
 			// CnWidgetGrid. A getter so it tracks the active page reactively
 			// despite provide() running once.
@@ -574,7 +653,25 @@ export default {
 				{ enabled: () => Boolean(liveSubEnabled.value && liveSubType.value && liveSubId.value) },
 			)
 		}
-		return { liveSubType, liveSubId, liveSubEnabled }
+		// Next and previous within the list a detail page was opened from
+		// (`_from` and the list's search, sort and filters in the address).
+		// The fetch waits a tick: the options API (the manifest's pages) is
+		// set up after this function returns.
+		const instance = getCurrentInstance()
+		const navRoute = computed(() => instance?.proxy?.$route || null)
+		const navId = computed(() => {
+			const params = navRoute.value?.params || {}
+			return params.id ?? params.objectId ?? null
+		})
+		const listNav = useListNavigation({
+			route: navRoute,
+			currentId: navId,
+			fetchList: async (params) => {
+				await nextTick()
+				return instance.proxy.fetchListForNavigation(params)
+			},
+		})
+		return { liveSubType, liveSubId, liveSubEnabled, listNav }
 	},
 
 	data() {
@@ -602,10 +699,43 @@ export default {
 			// CnMassExportDialog export launcher (null = dialog closed). Set
 			// by the `openExport` bound into the cnDispatchAction context.
 			exportAction: null,
+			// The page config overrides of the saved view the index page has
+			// applied (CnIndexPage `view-overrides`), or null.
+			viewOverrides: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * The look this page is drawn in: its `config.look` when `nextcloud` or
+		 * `board`, else the look it inherits from CnAppRoot.
+		 *
+		 * @return {string} `board` or `nextcloud`.
+		 */
+		resolvedLook() {
+			const own = this.currentPage?.config?.look
+			if (own === 'board' || own === 'nextcloud') {
+				return own
+			}
+			return this.cnLook === 'board' ? 'board' : 'nextcloud'
+		},
+
+		/**
+		 * The class on the page root when the page overrides the app's look
+		 * (nearest wins); empty when it inherits, so an app without the key
+		 * renders exactly as before.
+		 *
+		 * @return {string} `cn-look-board`, `cn-look-nextcloud` or `''`.
+		 */
+		pageLookClass() {
+			const own = this.currentPage?.config?.look
+			if (own !== 'board' && own !== 'nextcloud') {
+				return ''
+			}
+			const inherited = this.cnLook === 'board' ? 'board' : 'nextcloud'
+			return own === inherited ? '' : 'cn-look-' + own
+		},
+
 		/**
 		 * Whether the body slot should be editable (ADR-041). Unwraps the
 		 * injected `cnEditingBody`, which CnAppRoot provides as a raw ref.
@@ -641,6 +771,7 @@ export default {
 			return entities
 				.map((e) => (typeof e === 'string' ? { id: e, label: e } : e))
 				.filter((e) => e && e.id)
+				.map((e) => ({ id: e.id, label: this.tr(e.label || e.id) }))
 		},
 
 		/**
@@ -950,7 +1081,25 @@ export default {
 				return 'none'
 			}
 			const cfg = (page.config && typeof page.config === 'object' && !Array.isArray(page.config)) ? page.config : {}
-			return [page.id, cfg.register || '', cfg.schema || ''].join(':')
+			// A query preset swaps the lenses and columns, so it remounts the
+			// page: the active lens index belongs to the lenses it indexes.
+			const preset = this.activeQueryPresetIndex >= 0 ? `:preset-${this.activeQueryPresetIndex}` : ''
+			return [page.id, cfg.register || '', cfg.schema || ''].join(':') + preset
+		},
+
+		/**
+		 * The index of the current index page's query preset that the route
+		 * query matches, or -1.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/screens-index-query-presets/specs/index-query-presets/spec.md#requirement-a-query-preset-overlays-lenses-columns-and-copy
+		 */
+		activeQueryPresetIndex() {
+			const page = this.currentPage
+			if (!page || page.type !== 'index' || !page.config || !Array.isArray(page.config.queryPresets)) {
+				return -1
+			}
+			return matchQueryPreset(page.config.queryPresets, this.$route?.query || {})
 		},
 
 		/**
@@ -1082,6 +1231,7 @@ export default {
 				if (!resolved) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnPageRenderer] Custom component "${name}" not found in registry for page id "${page.id}".`)
+					reportDiagnosticOnce(`unknown-component|page|${name}`, { kind: 'unknown-component', name: String(name), where: 'page' })
 					return null
 				}
 				return resolved
@@ -1090,6 +1240,7 @@ export default {
 			if (!component) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Unknown page type "${page.type}" for page id "${page.id}". Add it to the pageTypes registry (e.g. via the pageTypes prop on CnAppRoot or CnPageRenderer).`)
+				reportDiagnosticOnce(`unknown-component|pageType|${page.type}`, { kind: 'unknown-component', name: String(page.type), where: 'pageType' })
 				return null
 			}
 			return component
@@ -1131,7 +1282,7 @@ export default {
 			// merge. Unresolved sentinels become null (with a one-shot
 			// console.warn per pageId+sentinel).
 			const pageId = page?.id ?? '<unknown>'
-			const config = resolveRouteSentinels(rawConfig, params, pageId)
+			let config = resolveRouteSentinels(rawConfig, params, pageId)
 			// Schema v2 lifts a uniform set of page-level fields out of
 			// `config` so every page type can declare them without
 			// per-type schema branches. Forward those to the dispatched
@@ -1195,6 +1346,19 @@ export default {
 			// container before forwarding — CnIndexPage has no
 			// `actionToggles` prop.
 			const isIndex = page?.type === 'index'
+			// A query preset (`config.queryPresets`): the menu entry's query
+			// brings its own lenses, columns and copy to the same page.
+			if (isIndex && Array.isArray(config.queryPresets)) {
+				const preset = config.queryPresets[this.activeQueryPresetIndex] || null
+				config = applyQueryPreset(config, preset)
+				if (preset && typeof preset.title === 'string' && preset.title !== '') {
+					topLevel.title = preset.title
+				}
+			}
+			// The applied saved view's overrides, over the page and its preset.
+			if (isIndex && this.viewOverrides) {
+				config = applySavedViewOverrides(config, this.viewOverrides)
+			}
 			// When an index page has somewhere to open a row, make a row click
 			// go there: set `rowClickToView` so the row body emits `row-click`
 			// (→ onRowOpen navigates) even though the page is selectable.
@@ -1226,17 +1390,23 @@ export default {
 			if (isIndex) {
 				const hasRowRoute = typeof config.rowRoute === 'string' && config.rowRoute !== ''
 				const hasDetail = this.detailPageByRegisterSchema.has(`${config.register} ${config.schema}`)
-				if (hasRowRoute || hasDetail) {
+				if (hasRowRoute || hasDetail || pageHasSplitView(page)) {
 					topLevel.rowClickToView = true
-					// Same signal, second consequence: a record with a detail page
-					// is edited THERE, not in a modal launched from the table. The
-					// modal renders the schema's flat scalars only, so on a record
-					// that composes anything — a case type's statuses, results,
-					// roles and properties — it is not merely a duplicate surface
-					// but one that cannot express the record. An explicit
-					// `config.editOpensDetail` still wins (merged below).
-					topLevel.editOpensDetail = true
+					// The View row action links to where a row click opens.
+					topLevel.viewTo = (row) => this.rowOpenTarget(row)
+				} else if (config.rowClickToView === true) {
+					// Nowhere to open a row, so the click selects instead of doing nothing.
+					config = { ...config, rowClickToView: false }
 				}
+				// `editOpensDetail` is NOT derived from that signal. It used to be,
+				// on the reasoning that a record with a detail page is better edited
+				// there than in a modal of flat scalars. But `@editOpen` is bound to
+				// the same `onRowOpen` as `@rowClick`, so the result was an Edit that
+				// did precisely what clicking the row does — the pane on a split
+				// view, the detail page otherwise — and no way left to reach the
+				// form. Opening a record and editing it are different acts and get
+				// different affordances. A page that does want the old routing asks
+				// for it with `config.editOpensDetail: true`.
 			}
 			let normalizedConfig = config
 			if (isIndex && config.actionToggles && typeof config.actionToggles === 'object' && !Array.isArray(config.actionToggles)) {
@@ -1275,6 +1445,12 @@ export default {
 				}
 				if (params.objectId === undefined && typeof params.id === 'string' && params.id.length > 0) {
 					params.objectId = params.id
+				}
+				Object.assign(topLevel, this.listNavigationProps())
+				const listPage = this.listPageForDetail(normalizedConfig)
+				if (listPage) {
+					topLevel.notFoundRoute = { name: listPage.id }
+					topLevel.notFoundRouteLabel = this.tr(listPage.title || listPage.id)
 				}
 			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
@@ -1341,7 +1517,15 @@ export default {
 		 * @return {{register: string, schema: string, objectId: string, slug: string}|null}
 		 */
 		detailLoadContext() {
-			const page = this.currentPage
+			// A split address resolves to the INDEX page, so the pane's record
+			// needs the detail page the pane mounts. Without it the pane got no
+			// object context at all and every `@object.<field>` token in it
+			// resolved against nothing.
+			const onDetailRoute = this.currentPage?.type === 'detail'
+			const splitId = this.currentSplitId
+			const page = onDetailRoute
+				? this.currentPage
+				: (splitId ? this.splitDetailPage : null)
 			if (!page || page.type !== 'detail') {
 				return null
 			}
@@ -1349,7 +1533,10 @@ export default {
 			const config = resolveRouteSentinels(page.config ?? {}, params, page.id ?? '<unknown>')
 			const register = config.register
 			const schema = config.schema
-			const objectId = config.idParam || config.objectId || params.objectId || params.id
+			// The split address names the record, not the detail page's idParam.
+			const objectId = onDetailRoute
+				? (config.idParam || config.objectId || params.objectId || params.id)
+				: splitId
 			if (typeof register !== 'string' || register.length === 0
 				|| typeof schema !== 'string' || schema.length === 0
 				|| typeof objectId !== 'string' || objectId.length === 0) {
@@ -1370,12 +1557,49 @@ export default {
 		 * as an array of `{ name, component }` entries to make the
 		 * `<template v-for>` + dynamic-slot-name pattern work in Vue 2.
 		 */
+		/**
+		 * The DETAIL page's own slot components, for the record mounted in the
+		 * split pane.
+		 *
+		 * `resolvedSlotEntries` belongs to the index page and cannot serve here:
+		 * the pane mounts a different manifest page, and a `type: "custom"` widget
+		 * resolves through its host page's `slots` map and nothing else. Without
+		 * this the pane drew an empty grid cell wherever the detail page declared
+		 * one — the same widget renders correctly on its own route, so the record
+		 * silently lost content by being opened beside the list instead of from it.
+		 *
+		 * @return {Array<{name: string, component: object}>}
+		 */
+		splitPaneSlotEntries() {
+			const page = this.splitDetailPage
+			if (!page) {
+				return []
+			}
+			// Same two sugar keys `resolvedSlotEntries` maps for the full route,
+			// or the pane silently drops the page's actions component.
+			const map = { ...(page.slots ?? {}) }
+			if (page.headerComponent) {
+				map.header = page.headerComponent
+			}
+			if (page.actionsComponent) {
+				map.actions = page.actionsComponent
+			}
+			const entries = []
+			for (const [name, registryName] of Object.entries(map)) {
+				const component = this.resolveRegistryName(registryName, name)
+				if (component) {
+					entries.push({ name, component })
+				}
+			}
+			return entries
+		},
+
 		resolvedSlotEntries() {
 			const page = this.currentPage
 			if (!page) {
 				return []
 			}
-			const map = { ...(page.slots ?? {}) }
+			const map = page.type === 'index' ? applySavedViewSlots(page.slots, this.viewOverrides) : { ...(page.slots ?? {}) }
 			// For a custom page that has no explicit `component`, `slots.main`
 			// is promoted to the page BODY by `resolvedComponent`, so drop it
 			// here — otherwise it would also try to mount as a (non-existent)
@@ -1391,7 +1615,9 @@ export default {
 			}
 			const entries = []
 			for (const [name, registryName] of Object.entries(map)) {
-				const component = this.resolveRegistryName(registryName, name)
+				const component = Array.isArray(registryName)
+					? this.slotSequence(registryName, name)
+					: this.resolveRegistryName(registryName, name)
 				if (component) {
 					entries.push({ name, component })
 				}
@@ -1425,20 +1651,34 @@ export default {
 		 * `console.warn` is logged in the missing-name case so
 		 * manifest authors notice misconfiguration). Watched below to
 		 * push the value into the reactive `pageSidebarComponent`
-		 * holder shared via provide/inject with `CnAppRoot`.
+		 * holder shared via provide/inject with `CnAppRoot`. A page type with
+		 * a default sidebar (`flow`: CnFlowSidebar) mounts it when the page
+		 * names none and does not hide its sidebar.
 		 *
 		 * @return {object|null} The resolved Vue component, or null.
+		 * @spec openspec/changes/pl4-roadmap-flow/specs/pl4-roadmap-flow/spec.md#requirement-a-flow-page-mounts-the-flow-sidebar-by-default
 		 */
 		currentPageSidebarComponent() {
 			const page = this.currentPage
-			if (!page || typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+			if (!page) {
 				return null
+			}
+			// In the board look a flow page is CnFlowBoard, which carries the flow's
+			// controls itself behind its side panel button (PqFlow, DqFlow): an
+			// app sidebar beside it took the canvas's width.
+			if (this.resolvedLook === 'board' && defaultPageSidebars[page.type]) {
+				return null
+			}
+			if (typeof page.sidebarComponent !== 'string' || page.sidebarComponent.length === 0) {
+				const sidebarShown = !page.sidebar || typeof page.sidebar !== 'object' || page.sidebar.show !== false
+				return (sidebarShown && defaultPageSidebars[page.type]) || null
 			}
 			const name = page.sidebarComponent
 			const resolved = this.resolveCustomComponent(name, 'page')
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Sidebar component "${name}" referenced by page id "${page.id}" not found in registry or customComponents.`)
+				reportDiagnosticOnce(`unknown-component|sidebar|${name}`, { kind: 'unknown-component', name: String(name), where: 'sidebar' })
 				return null
 			}
 			return resolved
@@ -1461,40 +1701,44 @@ export default {
 		},
 	},
 
-	watch: {
-		/**
-		 * Auto-register object types for `type:"custom"` pages whose
-		 * manifest config declares `register` + `schema` (single type)
-		 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
-		 *
-		 * For `type:"index"` and `type:"detail"` pages, the underlying
-		 * CnIndexPage / CnDetailPage components self-register when
-		 * mounted with `register` + `schema` props — so the renderer
-		 * does nothing extra for those. Custom components have no such
-		 * guarantee: they are bespoke per-app Vue components and would
-		 * each have to remember to call `registerObjectType` in their
-		 * own `mounted()` hook. Mirroring index/detail's zero-config
-		 * behaviour for the manifest-driven custom case (declared
-		 * `register` + `schema`) keeps the manifest the single source
-		 * of truth and removes a per-component landmine.
-		 *
-		 * Runs `immediate: true` so first mount registers before the
-		 * custom component's mounted() hook fires; re-runs on route
-		 * change in case the same CnPageRenderer instance is reused
-		 * for a different `type:"custom"` page.
-		 *
-		 * Defensive: every step is wrapped — a Pinia-not-installed
-		 * test harness, a missing store method, or a thrown error
-		 * inside `registerObjectType` all degrade to a single
-		 * `console.warn` so the page still mounts.
-		 *
-		 * See issue ConductionNL/nextcloud-vue#341.
-		 */
+	watch: { /**
+										 * Auto-register object types for `type:"custom"` pages whose
+										 * manifest config declares `register` + `schema` (single type)
+										 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
+										 *
+										 * For `type:"index"` and `type:"detail"` pages, the underlying
+										 * CnIndexPage / CnDetailPage components self-register when
+										 * mounted with `register` + `schema` props — so the renderer
+										 * does nothing extra for those. Custom components have no such
+										 * guarantee: they are bespoke per-app Vue components and would
+										 * each have to remember to call `registerObjectType` in their
+										 * own `mounted()` hook. Mirroring index/detail's zero-config
+										 * behaviour for the manifest-driven custom case (declared
+										 * `register` + `schema`) keeps the manifest the single source
+										 * of truth and removes a per-component landmine.
+										 *
+										 * Runs `immediate: true` so first mount registers before the
+										 * custom component's mounted() hook fires; re-runs on route
+										 * change in case the same CnPageRenderer instance is reused
+										 * for a different `type:"custom"` page.
+										 *
+										 * Defensive: every step is wrapped — a Pinia-not-installed
+										 * test harness, a missing store method, or a thrown error
+										 * inside `registerObjectType` all degrade to a single
+										 * `console.warn` so the page still mounts.
+										 *
+										 * See issue ConductionNL/nextcloud-vue#341.
+										 */
 		currentPage: {
 			immediate: true,
 			handler() {
 				this.autoRegisterCustomTypes()
 			},
+		},
+
+		// A remounted page has applied no view yet.
+		pageRenderKey() {
+			this.viewOverrides = null
 		},
 
 		currentPageSidebarVisible: {
@@ -1543,6 +1787,15 @@ export default {
 		},
 	},
 
+	errorCaptured(error, instance) {
+		// Report, then let the error travel on to the app's own errorHandler.
+		reportDiagnostic(() => ({
+			kind: 'render-error',
+			component: (instance && instance.$options && (instance.$options.name || instance.$options.__name)) || 'unknown',
+			message: error && error.message ? String(error.message) : String(error),
+		}))
+	},
+
 	created() {
 		// Surface the page id in Vue devtools and stack traces. The base
 		// component name `CnPageRenderer` becomes `CnPageRenderer:<id>`
@@ -1558,6 +1811,48 @@ export default {
 
 	methods: {
 		/**
+		 * One slot filled by several registry components, drawn in order with
+		 * the slot's props (a saved view's `slots: { 'below-header': [a, b] }`).
+		 * The same list gets the same component back, so a re-render does not
+		 * remount what the slot shows.
+		 *
+		 * @param {Array<string>} names Registry names.
+		 * @param {string} slot The slot name.
+		 * @return {object|null} A component, or null when none resolves.
+		 */
+		slotSequence(names, slot) {
+			const components = names.map((name) => this.resolveRegistryName(name, slot)).filter(Boolean)
+			if (components.length <= 1) {
+				return components[0] || null
+			}
+			const key = `${slot}|${names.join('|')}`
+			this.slotSequences = this.slotSequences || new Map()
+			if (!this.slotSequences.has(key)) {
+				this.slotSequences.set(key, markRaw({
+					name: 'CnSlotSequence',
+					inheritAttrs: false,
+					render() {
+						return components.map((component, index) => h(component, { key: index, ...this.$attrs }))
+					},
+				}))
+			}
+			return this.slotSequences.get(key)
+		},
+
+		/**
+		 * The index page applied a saved view with page config overrides, or
+		 * left it (`null`). Laid over the page config by `resolvedProps` and
+		 * `resolvedSlotEntries` until the view is left or the page changes.
+		 *
+		 * @param {object|null} overrides The view's overrides.
+		 * @return {void}
+		 * @spec openspec/changes/saved-view-overrides/specs/saved-views-ui/spec.md#requirement-a-view-can-override-the-page-config-while-it-is-active
+		 */
+		onViewOverrides(overrides) {
+			this.viewOverrides = overrides && typeof overrides === 'object' ? overrides : null
+		},
+
+		/**
 		 * Resolve a UI string through the consumer's translate function
 		 * (`translate` prop, else injected `cnTranslate`), falling back to the
 		 * English source key. Used for the builder empty-state copy.
@@ -1571,15 +1866,116 @@ export default {
 		},
 
 		/**
+		 * Fetch the list a detail page was opened from, for next and previous:
+		 * the index page the address names (`_from`), read from OpenRegister
+		 * with the address's search, sort and filters. Only on a detail page
+		 * that opts in (`listNavigation: true`); a page that does not, a list
+		 * with a source of its own, or none named, is refused, so the page
+		 * offers no step and nothing is fetched.
+		 *
+		 * @param {object} params The API params `useListNavigation` built.
+		 * @return {Promise<Array<object>>} The list's rows.
+		 * @spec openspec/changes/detail-list-navigation-wired/specs/detail-list-navigation-wired/spec.md#requirement-a-manifest-detail-page-offers-next-and-previous-within-its-list
+		 */
+		fetchListForNavigation(params) {
+			const page = this.currentPage
+			const from = listContextFromRoute(this.$route)?.pageId
+			const list = from ? this.pageById.get(from) : null
+			const config = list?.config || {}
+			if (page?.type !== 'detail' || page.listNavigation !== true || list?.type !== 'index' || typeof config.register !== 'string' || typeof config.schema !== 'string' || config.source || config.endpointSource || config.dataSource) {
+				return Promise.reject(new Error('No OpenRegister list to step through'))
+			}
+			const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: config.register, schema: config.schema })
+			return axios.get(url, { params }).then((res) => (Array.isArray(res?.data?.results) ? res.data.results : []))
+		},
+
+		/**
+		 * The props that give CnDetailPage next and previous: only on a detail
+		 * page that opts in (`listNavigation: true`) and whose record sits in
+		 * the list it was opened from.
+		 *
+		 * @return {object} `{ listNavigation, previousTo, nextTo }`, or `{}`.
+		 * @spec openspec/changes/detail-list-navigation-wired/specs/detail-list-navigation-wired/spec.md#requirement-a-manifest-detail-page-offers-next-and-previous-within-its-list
+		 */
+		listNavigationProps() {
+			const nav = this.listNav
+			if (this.currentPage?.type !== 'detail' || this.currentPage.listNavigation !== true || !nav || nav.available.value !== true) {
+				return {}
+			}
+			return {
+				listNavigation: {
+					available: true,
+					isFirst: nav.isFirst.value,
+					isLast: nav.isLast.value,
+					position: nav.position.value,
+					total: nav.total.value,
+				},
+
+				previousTo: nav.previousRoute.value,
+				nextTo: nav.nextRoute.value,
+			}
+		},
+
+		/**
+		 * The index page a detail page returns to: the list named in the
+		 * address (`_from`), else the first index page on the same register and
+		 * schema.
+		 *
+		 * @param {object} config The detail page's normalized config.
+		 * @return {object|null} The manifest page, or null when there is none.
+		 */
+		listPageForDetail(config) {
+			const fromId = listContextFromRoute(this.$route)?.pageId
+			const from = fromId ? this.pageById.get(fromId) : null
+			if (from?.type === 'index') {
+				return from
+			}
+			const pages = this.effectiveManifest?.pages
+			if (!Array.isArray(pages) || !config.schema) {
+				return null
+			}
+			return pages.find((p) => p?.type === 'index'
+				&& p.config?.register === config.register
+				&& p.config?.schema === config.schema) ?? null
+		},
+
+		/**
+		 * The OpenRegister objects an export action downloads without a
+		 * handler: the picked entity's `register` / `schema` / `filter`, else
+		 * the action's own. Null when neither names a register and a schema.
+		 *
+		 * @param {object} action The export action.
+		 * @param {{entity?: string}} payload The dialog's confirm payload.
+		 * @return {{register: string, schema: string, filter: object}|null}
+		 * @spec openspec/changes/pl4-export-action/specs/pl4-export-action/spec.md#requirement-an-export-action-can-export-openregister-objects
+		 */
+		exportObjectSource(action, payload) {
+			if (!action) {
+				return null
+			}
+			const entities = Array.isArray(action.entities) ? action.entities : []
+			const picked = entities.find((e) => e && typeof e === 'object' && payload && e.id === payload.entity)
+			const source = picked && picked.register && picked.schema ? picked : action
+			if (!source.register || !source.schema) {
+				return null
+			}
+			return { register: source.register, schema: source.schema, filter: source.filter || {} }
+		},
+
+		/**
 		 * Route the export launcher's confirm payload (`{ format, entity? }`)
 		 * to the export action's `handler` (resolved against the manifest
 		 * actions map — the same registry `type:"handler"` actions use). The
 		 * handler does the actual download (e.g. an app's ExportService) and
 		 * its resolved/rejected promise drives the dialog's result phase. A
 		 * missing handler surfaces as a dialog error (never a silent success).
+		 * Without a handler, an entity (or the action itself) that names an
+		 * OpenRegister `register` and `schema` downloads those objects, its
+		 * `filter` applied, through OpenRegister's export.
 		 *
 		 * @param {{format: string, entity?: string}} payload The dialog's confirm payload.
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/pl4-export-action/specs/pl4-export-action/spec.md#requirement-an-export-action-can-export-openregister-objects
 		 */
 		async onExportConfirm(payload) {
 			const action = this.exportAction
@@ -1591,6 +1987,12 @@ export default {
 			}
 			const handlers = this.effectiveManifest?.actions ?? {}
 			const fn = action && action.handler && handlers[action.handler]
+			const source = typeof fn === 'function' ? null : this.exportObjectSource(action, payload)
+			if (source) {
+				window.location.assign(buildExportUrl(source.register, source.schema, source.filter, payload && payload.format))
+				setResult({ success: true })
+				return
+			}
 			if (typeof fn !== 'function') {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] export action "${action && action.id}" has no resolvable handler "${action && action.handler}" in the manifest actions map.`)
@@ -1614,16 +2016,40 @@ export default {
 		 * current index page) and pushes to it with the row's id in whichever
 		 * param that page's route declares — `:id`, `:objectId`, anything.
 		 * No-ops when there is no detail page, no router, or no resolvable id.
+		 * A ctrl/cmd/shift or middle click opens the same address in a new tab.
 		 *
 		 * @param {object} row The clicked / viewed row object.
+		 * @param {MouseEvent} [event] The originating click/auxclick event, when there is one.
 		 * @return {void}
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
-		onRowOpen(row) {
+		onRowOpen(row, event) {
+			// Only a native event can ask for a new tab.
+			const nativeEvent = (typeof Event !== 'undefined' && event instanceof Event) ? event : undefined
+			// The index page already opened this row in a new tab.
+			if (isNewTabHandled(nativeEvent)) {
+				return
+			}
+			const target = this.rowOpenTarget(row, true)
+			if (target) {
+				openRowTarget(nativeEvent, target, this.$router)
+			}
+		},
+
+		/**
+		 * Where an index row opens: the split view beside the list, else
+		 * `config.rowRoute` or the matching detail page. Also the target of the
+		 * View row action's link.
+		 *
+		 * @param {object} row The row.
+		 * @param {boolean} [warn] Log a misconfigured route (on a click, not per render).
+		 * @return {object|null} The router location, or null when the row opens nowhere.
+		 */
+		rowOpenTarget(row, warn = false) {
 			const page = this.currentPage
 			const router = this.$router
 			if (!page || page.type !== 'index' || !router || !row || typeof row !== 'object') {
-				return
+				return null
 			}
 			const cfg = page.config || {}
 			const self0 = row['@self'] || {}
@@ -1637,16 +2063,17 @@ export default {
 			if (pageHasSplitView(page) && rowId !== undefined && rowId !== null && rowId !== '') {
 				const splitName = splitRouteName(page.id)
 				if (this.routeNameIsKnown(splitName) === false) {
-					// eslint-disable-next-line no-console
-					console.warn(`[CnPageRenderer] Index page "${page.id}" declares splitView, but the router has no "${splitName}" route. Build the routes with buildManifestRoutes() or the split view cannot open.`)
+					if (warn) {
+						// eslint-disable-next-line no-console
+						console.warn(`[CnPageRenderer] Index page "${page.id}" declares splitView, but the router has no "${splitName}" route. Build the routes with buildManifestRoutes() or the split view cannot open.`)
+					}
 				} else {
 					const splitPath = routePathFor(router, splitName)
-					router.push({
+					return {
 						name: splitName,
 						params: buildRouteParams(splitPath, rowId, this.$route?.params),
 						query: this.$route?.query || {},
-					}).catch(() => {})
-					return
+					}
 				}
 			}
 			// `config.rowRoute` names the target explicitly and WINS: it is the
@@ -1657,21 +2084,23 @@ export default {
 			const detail = this.detailPageByRegisterSchema.get(`${cfg.register} ${cfg.schema}`)
 			const target = rowRoute ?? detail?.id ?? null
 			if (!target) {
-				return
+				return null
 			}
 			const self = row['@self'] || {}
 			const id = row.id ?? self.id ?? self.uuid ?? row.uuid
 			if (id === undefined || id === null || id === '') {
-				return
+				return null
 			}
 			// A name the router does not have makes every row click a no-op that
 			// looks exactly like a broken table, so name the mistake instead of
 			// letting push() reject into a silent catch. Feature-detected: only
 			// some router versions can be asked.
 			if (this.routeNameIsKnown(target) === false) {
-				// eslint-disable-next-line no-console
-				console.warn(`[CnPageRenderer] Index page "${page.id}" opens rows on route "${target}", which the router does not have. Row clicks will do nothing.`)
-				return
+				if (warn) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnPageRenderer] Index page "${page.id}" opens rows on route "${target}", which the router does not have. Row clicks will do nothing.`)
+				}
+				return null
 			}
 			// The param name comes from the TARGET'S OWN path, never a
 			// hardcoded `id`: a manifest is free to write
@@ -1686,7 +2115,7 @@ export default {
 			// sort the handler was looking at. Without this the detail page
 			// has an id and nothing else, and "next" could only ever mean
 			// next in some order nobody chose.
-			router.push({ name: target, params, query: this.rowOpenQuery() }).catch(() => {})
+			return { name: target, params, query: this.rowOpenQuery() }
 		},
 
 		/**
@@ -1709,9 +2138,95 @@ export default {
 			return listContextToQuery({
 				pageId: page.id,
 				search: typeof query._search === 'string' ? query._search : '',
-				sortKeys: safeSortKeys(query._order),
+				sortKeys: parseSortKeys(query._order),
 				filters: query,
 			})
+		},
+
+		/**
+		 * Open the detail page of an object clicked in a Related widget —
+		 * reaching here as `CnDetailPage`'s `related-object-click`, or as
+		 * `CnWidgetGrid`'s `select-object` on a v2 widget-grid page. Nothing
+		 * listened to either, so the rows looked like links and went nowhere.
+		 *
+		 * @param {object} raw The clicked object as the Related widget holds it.
+		 * @return {Promise<void>}
+		 */
+		async onRelatedObjectOpen(raw) {
+			const target = await this.relatedObjectTarget(raw)
+			if (target) {
+				this.$router.push(target).catch(() => {})
+			}
+		},
+
+		/**
+		 * Where a related object opens: the first `type: 'detail'` page bound
+		 * to the object's register and schema, with the id in whichever param
+		 * that page's route declares. The object's `@self` names register and
+		 * schema by id and a manifest may name them by slug, so a miss on the
+		 * literal pair describes both (one request each, cached) and matches
+		 * again. Null, silently, when there is no router or the object carries
+		 * no register, schema or id (nothing to open); null with a warning,
+		 * like a dead row click, when no detail page matches or the router
+		 * lacks the route.
+		 *
+		 * @param {object} raw The clicked object.
+		 * @return {Promise<object|null>} The router location, or null.
+		 */
+		async relatedObjectTarget(raw) {
+			const router = this.$router
+			if (!router || !raw || typeof raw !== 'object') {
+				return null
+			}
+			const self = raw['@self'] || {}
+			const id = raw.id ?? self.id ?? self.uuid ?? raw.uuid
+			const register = self.register ?? raw.register
+			const schema = self.schema ?? raw.schema
+			const missing = (v) => v === undefined || v === null || v === ''
+			if (missing(id) || missing(register) || missing(schema)) {
+				return null
+			}
+			let page = this.detailPageFor([String(register)], [String(schema)])
+			if (!page) {
+				const [reg, sch] = await Promise.all([
+					describeOpenRegisterEntity('registers', register),
+					describeOpenRegisterEntity('schemas', schema),
+				])
+				page = this.detailPageFor(
+					[String(register), reg?.id, reg?.slug].filter(Boolean),
+					[String(schema), sch?.id, sch?.slug].filter(Boolean),
+				)
+			}
+			if (!page) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] No detail page is bound to register "${register}" and schema "${schema}", so related object "${id}" opens nowhere.`)
+				return null
+			}
+			if (this.routeNameIsKnown(page.id) === false) {
+				// eslint-disable-next-line no-console
+				console.warn(`[CnPageRenderer] Detail page "${page.id}" is not a route the router has, so related object "${id}" opens nowhere.`)
+				return null
+			}
+			const path = page.route ?? routePathFor(router, page.id)
+			return { name: page.id, params: buildRouteParams(path, id, this.$route?.params) }
+		},
+
+		/**
+		 * The first `type: 'detail'` page whose register and schema are both
+		 * among the given names (ids or slugs, compared as strings).
+		 *
+		 * @param {Array<string>} registerNames Names the register goes by.
+		 * @param {Array<string>} schemaNames Names the schema goes by.
+		 * @return {object|null} The page, or null.
+		 */
+		detailPageFor(registerNames, schemaNames) {
+			for (const page of this.detailPageByRegisterSchema.values()) {
+				const cfg = page.config || {}
+				if (registerNames.includes(String(cfg.register)) && schemaNames.includes(String(cfg.schema))) {
+					return page
+				}
+			}
+			return null
 		},
 
 		/**
@@ -1833,6 +2348,8 @@ export default {
 		 * need objectId / register (e.g. file-manager) render without
 		 * waiting for the object body; the getters go non-null the moment
 		 * the fetches populate the cache — no re-publish needed.
+		 *
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-detail-page-can-read-the-records-rights
 		 */
 		async loadDetailObject() {
 			const ctx = this.detailLoadContext
@@ -1867,12 +2384,13 @@ export default {
 				return
 			}
 
-			// Register the object type (idempotent — registerObjectType
-			// replaces the entry each call). Must precede the subscription
-			// re-scope below: the plugin's subscribe() rejects unregistered
-			// types.
+			// Must precede the subscription re-scope below: subscribe() rejects
+			// unregistered types. Once only — registerObjectType also blanks
+			// `objects[slug]` and `schemas[slug]`, so re-running it empties the
+			// content until the re-fetch lands.
 			try {
-				if (typeof store.registerObjectType === 'function') {
+				if (typeof store.registerObjectType === 'function'
+					&& !store.objectTypeRegistry?.[ctx.slug]) {
 					store.registerObjectType(ctx.slug, ctx.schema, ctx.register)
 				}
 			} catch (err) {
@@ -1933,7 +2451,15 @@ export default {
 				tasks.push(Promise.resolve(null))
 			}
 			if (typeof store.fetchObject === 'function') {
-				tasks.push(store.fetchObject(ctx.slug, ctx.objectId).catch(() => null))
+				// The same read CnDetailPage makes: it asks for `@self.can` while the
+				// Follow toggle can render or the page reads the record's rights, and
+				// a plain read landing later would overwrite the object without it.
+				const config = this.currentPage?.config || {}
+				const extend = [...(Array.isArray(config.extend) ? config.extend : [])]
+				if ((config.follow !== false || config.permissions === true) && !extend.includes('@self.can')) {
+					extend.push('@self.can')
+				}
+				tasks.push(store.fetchObject(ctx.slug, ctx.objectId, { extend }).catch(() => null))
 			} else {
 				tasks.push(Promise.resolve(null))
 			}
@@ -2063,6 +2589,7 @@ export default {
 			if (!resolved) {
 				// eslint-disable-next-line no-console
 				console.warn(`[CnPageRenderer] Slot-override component "${registryName}" referenced by page id "${this.currentPage.id}" (slot "${slotName}") not found in registry.`)
+				reportDiagnosticOnce(`unknown-component|page|${registryName}`, { kind: 'unknown-component', name: String(registryName), where: 'page' })
 				return null
 			}
 			return resolved

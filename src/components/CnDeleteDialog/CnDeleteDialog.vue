@@ -1,5 +1,10 @@
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="confirm"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="small"
 		:noClose="loading"
@@ -24,9 +29,35 @@
 			data-testid="cn-modal"
 			data-testid-modal="cn-delete-dialog"
 			data-testid-phase="confirm">
-			<NcNoteCard type="warning">
+			<!-- Board look: a sentence that names the item in bold, the warning (when
+			     the app set one) as a note under it. -->
+			<template v-if="isBoardLook">
+				<p class="cn-dialog__sentence" data-testid="cn-delete-sentence">
+					{{ sentenceParts[0] }}<strong class="cn-dialog__name">{{ itemName }}</strong>{{ sentenceParts[1] }}
+					<template v-if="irreversible">
+						{{ irreversibleText }}
+					</template>
+				</p>
+				<p v-if="hasCustomWarning"
+					class="cn-dialog__note"
+					role="note"
+					data-testid="cn-delete-note">
+					<AlertOutline :size="20" aria-hidden="true" />
+					<span>{{ resolvedWarningText }}</span>
+				</p>
+			</template>
+			<NcNoteCard v-else type="warning">
 				{{ resolvedWarningText }}
 			</NcNoteCard>
+			<p v-if="description"
+				class="cn-delete__description"
+				data-testid="cn-delete-description">
+				{{ description.replace('{name}', itemName) }}
+			</p>
+			<CnConfirmValueField v-if="confirmValue !== ''"
+				v-model="typedConfirmValue"
+				:value="confirmValue"
+				:label="confirmFieldLabel" />
 		</div>
 
 		<template #actions>
@@ -36,7 +67,10 @@
 			<NcButton
 				v-if="result === null"
 				variant="error"
-				:disabled="loading"
+				:class="{ 'cn-dialog__confirm-pending': confirmValuePending }"
+				:disabled="loading || confirmValuePending"
+				:aria-disabled="confirmValuePending ? 'true' : undefined"
+				data-testid="cn-delete-dialog-confirm"
 				@click="executeDelete">
 				<template #icon>
 					<NcLoadingIcon v-if="loading" :size="20" />
@@ -45,13 +79,19 @@
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcDialog, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import AlertOutline from 'vue-material-design-icons/AlertOutline.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import CnConfirmValueField from '../CnConfirmValueField/CnConfirmValueField.vue'
+import CnDialog from '../CnDialog/CnDialog.vue'
+import { confirmValueMixin } from '../../mixins/confirmValue.js'
+import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
+import { splitAroundPlaceholder } from '../../utils/dialogSentence.js'
 import { objectDisplayName } from '../../utils/objectName.js'
 
 /**
@@ -87,12 +127,16 @@ export default {
 	name: 'CnDeleteDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
 		NcButton,
 		NcNoteCard,
 		NcLoadingIcon,
 		TrashCanOutline,
+		AlertOutline,
+		CnConfirmValueField,
 	},
+
+	mixins: [dialogBoardMixin, confirmValueMixin],
 
 	props: {
 		/** The item to delete. Must have an `id` property. */
@@ -137,6 +181,19 @@ export default {
 		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Label for the primary confirm button that triggers the delete. */
 		confirmLabel: { type: String, default: () => t('nextcloud-vue', 'Delete') },
+
+		/**
+		 * Board look: end the sentence with "This action cannot be undone."
+		 * Set false for a delete that can be undone (the item goes to a bin).
+		 */
+		irreversible: { type: Boolean, default: true },
+
+		/**
+		 * What the delete removes besides the item, as a muted line under the
+		 * question ("Its attachments leave the public page too."). `{name}`
+		 * is the item name. Empty shows nothing.
+		 */
+		description: { type: String, default: '' },
 	},
 
 	emits: ['close', 'confirm'],
@@ -181,6 +238,23 @@ export default {
 		resolvedWarningText() {
 			return this.warningText.replace('{name}', this.itemName)
 		},
+
+		/** The board sentence around the bold item name. */
+		sentenceParts() {
+			return splitAroundPlaceholder(t('nextcloud-vue', 'Are you sure you want to permanently delete {name}?'))
+		},
+
+		irreversibleText() {
+			return t('nextcloud-vue', 'This action cannot be undone.')
+		},
+
+		/**
+		 * Whether the app set its own warning. The default warning is the whole
+		 * sentence the board look already states, so it is not repeated as a note.
+		 */
+		hasCustomWarning() {
+			return this.warningText !== t('nextcloud-vue', 'Are you sure you want to permanently delete "{name}"? This action cannot be undone.')
+		},
 	},
 
 	beforeUnmount() {
@@ -191,6 +265,9 @@ export default {
 
 	methods: {
 		executeDelete() {
+			if (!this.confirmValueMatches) {
+				return
+			}
 			this.loading = true
 			this.$emit('confirm', this.item.id)
 		},
@@ -218,5 +295,10 @@ export default {
 <style scoped>
 .cn-delete__confirm {
 	padding: 4px 0;
+}
+
+.cn-delete__description {
+	margin: 8px 0 0;
+	color: var(--color-text-maxcontrast);
 }
 </style>

@@ -49,6 +49,16 @@ Static, configuration-only widgets — no data source required.
 Single-line styled text label (font size, colour, weight, alignment) for dashboard grids.
 → [`CnLabelWidget`](./cn-label-widget.md) · [`CnLabelWidgetForm`](./cn-label-widget-form.md)
 
+### Code · `code`
+
+A record as a code on a detail page: QR, Code 128 or EAN-13, drawn in the browser, with Download as SVG. `content.source` is `field` (a property of the record) or `address` (the record's address, QR only).
+→ [`CnCodeWidget`](./cn-code-widget.md)
+
+### Notepad · `notepad`
+
+A personal note typed into in place, saved to the reader's own preferences rather than the layout. User-addable: a reader can add it to their own dashboard with no configuration.
+→ [`CnNotepadWidget`](./cn-notepad-widget.md) · [`CnNotepadWidgetForm`](./cn-notepad-widget-form.md)
+
 ### Text · `text`
 
 ![text widget rendering a markdown heading and body](/img/screenshots/widget-text.png)
@@ -61,7 +71,79 @@ Multi-line rich-text / markdown widget with optional table mode (sanitised HTML)
 ![header banner widget with title text](/img/screenshots/widget-header.png)
 
 Banner / header widget with background image, overlay, title/subtitle and CTA button.
+It can also greet the user: `greeting: true` makes the heading read "Good afternoon,
+Pieter", `showDate: true` adds today's date above it, and `plain: true` drops the
+coloured background.
 → [`CnHeaderWidget`](./cn-header-widget.md) · [`CnHeaderWidgetForm`](./cn-header-widget-form.md)
+
+### Notice · `notice`
+
+A toned box with an icon, a bold `title` and a `text` (`variant`: `info`, `warning`, `error`, `success`), through the app's translate. Made for a detail page's side column (DqSociaalDomein's special-category warning) and gated like any widget by its `visibleWhen`.
+→ [`CnNoticeWidget`](./cn-notice-widget.md)
+
+### Banner and attention card · `banner`
+
+A notice with a severity (`info`, `warning`, `error`, `success`), an optional
+click-through route and an optional `visibleWhen` condition. With
+`layout: "attention"` it becomes an attention card: a card with a severity edge, a
+`kicker` label, a `title`, a `reason` line and up to two `actions`. Without `layout`
+it renders the note card it always did.
+
+```json
+{
+  "widgetKey": "banner",
+  "props": {
+    "layout": "attention",
+    "variant": "error",
+    "kicker": "First today",
+    "title": "Parking permits city centre",
+    "reason": "The deadline ends today. {value} documents are still missing.",
+    "visibleWhen": { "source": { "register": "dossiq", "schema": "case", "filter": { "assignee": "@me", "deadline": "@today" } }, "op": "gt", "value": 0 },
+    "actions": [
+      { "label": "Open case", "route": { "name": "CaseDetail", "params": { "id": "2026-0061" } } },
+      { "label": "All deadlines", "route": "Deadlines" }
+    ]
+  }
+}
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `layout` | `'banner' \| 'attention'` | `banner` (default) is the note card. `attention` is the card described here. |
+| `variant` | `'info' \| 'warning' \| 'error' \| 'success'` | The severity. It sets the colour of the edge and the kicker. |
+| `kicker` | `string` | The small label above the title. |
+| `title` | `string` | The title. Falls back to `text`. |
+| `reason` | `string` | The line that says why this needs attention. `{value}` is replaced by the value `visibleWhen` read. |
+| `actions` | `Array<{ label, route?, href?, primary?, id? }>` | Two at most, four under the board look (DqMijnWerk draws three secondary actions and the primary one). The first is the primary one unless an action sets `primary: true`. An action with neither `route` nor `href` renders a button and emits `action`. The manifest schema still allows two in `content.actions`; a host component that renders the card passes more as the `actions` prop. |
+| `maxActions` | `number` | Prop: the most actions the card shows, overriding the default (two, four under the board look). |
+| `visibleWhen` | `object` | Same predicate as the banner. The card stays hidden until it holds. |
+
+**When the check itself fails.** An attention card whose `visibleWhen` request fails (the endpoint or source answers an error, or the network is down) does not stay hidden. It renders one muted line, "Could not check:" followed by the card's title, with the reason as a tooltip, and on a dashboard it keeps its cell. A hidden card would read as "nothing needs attention", and a failed count does not know that. The line carries no severity colour, no alert role and no actions. When the title uses `{value}`, the line says only "Could not check". A request that succeeds with a value that does not meet the condition still renders nothing, and a plain banner (no `layout`) still stays hidden on failure.
+
+**Matching any of a list.** `op: "anyOf"` holds when the value, or any entry of a list value, is one of the listed `value`s: `{ "field": "dataCategories", "op": "anyOf", "value": ["health", "ethnicity", "religion"] }` shows a special-category notice on a record that holds one of them among others (DqSociaalDomein). `in` compares the value as a whole. `op: "contains"` asks the other way round: whether a list value holds one given `value`, as a case type's `overviewCards` list switching a card on (`{ "field": "caseType.overviewCards", "op": "contains", "value": "tender-lots" }`). A value that is not a list never matches.
+
+**A card that names one record.** Give `visibleWhen.source` an `order` and the card reads the first row of that ordered query. `notEmpty` on `id` is the test that there is a first row, so an empty query shows nothing. The row is the card's subject: `{subject.<field>}` in the `kicker`, `title` and `reason` fills it (`{subject.createdAt|date}` and `{subject.createdAt|days}`, the whole days since, format it), and `@subject.<field>` in an action's `route` params or query becomes its value. A token the row has no value for empties that whole text. `stacked: true` puts the actions under the text with a 16px title, as PqMijnWerk's "Begin hier" card draws it. On a dashboard the page reads the query once and hands the row to the card.
+
+```json
+{
+  "widgetKey": "banner",
+  "props": {
+    "layout": "attention",
+    "stacked": true,
+    "kicker": "Start here",
+    "title": "{subject.title}",
+    "reason": "{subject.contactName} has waited {subject.createdAt|days} days.",
+    "visibleWhen": {
+      "source": { "register": "app", "schema": "ticket", "filter": { "assignee": "@me" }, "order": { "slaDeadline": "asc" } },
+      "field": "id",
+      "op": "notEmpty"
+    },
+    "actions": [ { "label": "Answer now", "route": { "name": "TicketDetail", "params": { "id": "@subject.id" } } } ]
+  }
+}
+```
+
+The component is `CnBannerWidget`, resolved by its key and configured by `CnBannerWidgetForm`.
 
 ### Divider · `divider`
 
@@ -200,6 +282,25 @@ Gauge / utilization card. Resolves a value and a target from OpenRegister and re
 a radial gauge of value-against-target, coloured by warn/danger thresholds.
 → [`CnGaugeWidget`](./cn-gauge-widget.md) · [`CnGaugeWidgetForm`](./cn-gauge-widget-form.md)
 
+### Saved view · `saved-view`
+
+A list driven by one of the reader's saved views. The configuration is a view id and a
+row limit and nothing else: the register, schema, filter and order are read from the
+view on every load, so the card follows the view when it is edited on the index page.
+A view that was deleted or is no longer shared renders a named refusal, not an empty
+list. It is the one data widget a user may add (`userAddable`), because the view
+carries the register and schema.
+→ [`CnSavedViewWidget`](./cn-saved-view-widget.md) · [`CnSavedViewWidgetForm`](./cn-saved-view-widget-form.md)
+
+### Saved views · `saved-views`
+
+The reader's own saved views as a list of links ("Opgeslagen weergaven"). Where
+`saved-view` draws the rows of one view named by id, this one lists the views
+themselves and has no id to configure: it asks the Views API for the signed-in
+user's views, keeps those of the configured source and links each to the index
+page with the view's filters, search and sort in the query, which the page applies.
+→ [`CnSavedViewsWidget`](./cn-saved-views-widget.md)
+
 ### Statistic card · `stats-block`
 
 ![stats-block widget rendering a labelled count card](/img/screenshots/widget-stats-block.png)
@@ -242,6 +343,20 @@ contract `CnLifecycleActions` renders as buttons. **Detail-page surface only**: 
 reads and moves the bound record, which only a detail page has.
 → [`CnStagesWidget`](./cn-stages-widget.md) · [`CnStagesWidgetForm`](./cn-stages-widget-form.md) · [`CnLifecycleActions`](./cn-lifecycle-actions.md)
 
+### Week strip · `week-strip`
+
+The current week as day columns, with the dated items under each day. Today is
+highlighted, late items are marked and an empty day says so. Items come from an
+OpenRegister source (one request for the week) or from static `items`.
+→ [`CnWeekStripWidget`](./cn-week-strip-widget.md) · [`CnWeekStripWidgetForm`](./cn-week-strip-widget-form.md)
+
+### Stacked bar · `stacked-bar`
+
+One segmented bar with a legend that carries the label and count of every segment.
+Segments come from one grouped count request or from static values. The colours are
+steps of one ramp that differ in lightness.
+→ [`CnStackedBarWidget`](./cn-stacked-bar-widget.md) · [`CnStackedBarWidgetForm`](./cn-stacked-bar-widget-form.md)
+
 ---
 
 ## Composition & finance
@@ -260,3 +375,16 @@ Recursive sub-grid container widget hosting nested widget placements.
 Financial spend-analytics widget with period tabs (this month / quarter / year);
 data via `dataSource` / `cnSpendSource`.
 → [`CnSpendAnalyticsWidget`](./cn-spend-analytics-widget.md) · [`CnSpendAnalyticsWidgetForm`](./cn-spend-analytics-widget-form.md)
+
+### Markdown · `markdown`
+
+Prose inside a grid page, rendered through the shared `cnRenderMarkdown` path and sanitised. Registered `public: true`.
+→ [`CnMarkdownWidget`](./cn-markdown-widget.md) · [`CnMarkdownWidgetForm`](./cn-markdown-widget-form.md)
+
+## The public flag
+
+Every `registerDashboardWidget()` entry carries `public: boolean`, `false` unless the widget author passes `true`; a non-boolean value throws rather than being coerced. A widget wrongly marked public is an authenticated capability exposed to anonymous visitors, so opting in is a reviewed decision.
+
+`CnWidgetGrid` takes a `host` prop (`nextcloud` or `public`; or the injected `cnHost`). Under `public` a component can only come from a catalog entry registered `public: true`: the consumer registry and the built-ins are not consulted, so the decision and the lookup are one thing. Any other key, known or not, renders the inert placeholder (with a console warning) and its component code never runs; the other widgets on the page render normally. Under the default `nextcloud` host nothing changes. `isPublicWidgetType(type)` answers the same question for tooling.
+
+The gate `scripts/gates/public-widget.mjs <manifest.json>...` (skill `hydra-gate-public-widget`) fails a portal manifest that places a non-public key, naming the page and the key.

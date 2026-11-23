@@ -24,12 +24,13 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
 import { registerDashboardWidget } from '@/components/CnWidgetGrid/dashboardWidgetRegistry.js'
-import { readVisibleWhenValue } from '@/utils/visibleWhen.js'
+import { evaluateVisibleWhen, readVisibleWhenValue } from '@/utils/visibleWhen.js'
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
 jest.mock('@/utils/visibleWhen.js', () => ({
 	...jest.requireActual('@/utils/visibleWhen.js'),
 	readVisibleWhenValue: jest.fn(),
+	evaluateVisibleWhen: jest.fn(),
 }))
 
 const renderer = { template: '<div class="rend" />' }
@@ -98,6 +99,54 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 		expect(cells(wrapper)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
 	})
 
+	describe('an attention card with a title and a reason and no text', () => {
+		const SOURCE = { source: { register: 'pipelinq', schema: 'ticket', filter: { 'slaDeadline[lt]': '@today+1d' } }, op: 'gt', value: 0 }
+		const attention = { content: { layout: 'attention', variant: 'error', title: '{value} tickets are late', reason: 'Their deadline ends today.', visibleWhen: SOURCE } }
+		const realBanner = { CnWidgetWrapper: stubs.CnWidgetWrapper }
+
+		it('renders in its cell when the condition is met', async () => {
+			readVisibleWhenValue.mockResolvedValue(58)
+			const wrapper = mount(CnDashboardPage, {
+				propsData: {
+					widgets: [{ id: 'b', type: 'banner', ...attention }, { id: 'w', type: 'test-banner-neighbour' }],
+					layout: [
+						{ id: '1', widgetId: 'b', gridX: 0, gridY: 0, gridWidth: 12, gridHeight: 1 },
+						{ id: '2', widgetId: 'w', gridX: 0, gridY: 1, gridWidth: 6, gridHeight: 4 },
+					],
+				},
+				stubs: { ...stubs, ...realBanner },
+			})
+			await flushPromises()
+			expect(cells(wrapper)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
+			const card = wrapper.find('[data-testid="cn-banner-widget-attention"]')
+			expect(card.exists()).toBe(true)
+			expect(card.text()).toContain('58 tickets are late')
+			expect(card.text()).toContain('Their deadline ends today.')
+		})
+
+		it('is not rendered and gives its cell up when the condition is unmet', async () => {
+			readVisibleWhenValue.mockResolvedValue(0)
+			const wrapper = mountWith({ banner: attention })
+			await flushPromises()
+			expect(cells(wrapper)).toEqual([{ wid: 'w', y: '0' }])
+			expect(wrapper.find('[data-testid="cn-banner-widget-attention"]').exists()).toBe(false)
+		})
+
+		it('says the title once when text repeats it', async () => {
+			readVisibleWhenValue.mockResolvedValue(58)
+			const same = { content: { layout: 'attention', title: 'Tickets are late', text: 'Tickets are late', visibleWhen: SOURCE } }
+			const wrapper = mountWith({ banner: same })
+			await flushPromises()
+			const card = wrapper.find('[data-testid="cn-banner-widget-attention"]')
+			expect(card.text().split('Tickets are late')).toHaveLength(2)
+		})
+
+		it('still collapses a plain banner that has a title and no text', () => {
+			const wrapper = mountWith({ banner: { content: { title: 'Only a title' } } })
+			expect(cells(wrapper)).toEqual([{ wid: 'w', y: '0' }])
+		})
+	})
+
 	it('paints immediately when the page has no conditional banners', () => {
 		const wrapper = mountWith({ banner: { content: { text: 'Static notice' } } })
 		expect(cells(wrapper)).toHaveLength(2)
@@ -118,6 +167,20 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 		expect(readVisibleWhenValue).toHaveBeenCalledTimes(1)
 		expect(wrapper.find('[data-testid="cn-banner-widget-text"]').text())
 			.toBe('3 application(s) awaiting approval')
+	})
+
+	it('decides a composed condition as a whole, so a widget behind two endpoints can show', async () => {
+		const composed = { all: [CONDITION, { endpoint: '/api/other', field: 'available', op: 'eq', value: true }] }
+		evaluateVisibleWhen.mockResolvedValue(true)
+		const shown = mountWith({ banner: { content: { text: 'T' }, visibleWhen: composed } })
+		await flushPromises()
+		expect(evaluateVisibleWhen).toHaveBeenCalledWith(composed)
+		expect(readVisibleWhenValue).not.toHaveBeenCalled()
+		expect(cells(shown)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
+		evaluateVisibleWhen.mockResolvedValue(false)
+		const hidden = mountWith({ banner: { content: { text: 'T' }, visibleWhen: composed } })
+		await flushPromises()
+		expect(cells(hidden)).toEqual([{ wid: 'w', y: '0' }])
 	})
 
 	it('collapses ANY widget with an unmet def-level visibleWhen — not just banners', async () => {
@@ -168,7 +231,7 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 		readVisibleWhenValue.mockResolvedValue('none')
 		const wrapper = mountWith({ banner: { props: { text: 'T', visibleWhen: CONDITION } } })
 		await flushPromises()
-		expect(readVisibleWhenValue).toHaveBeenCalledWith(CONDITION)
+		expect(readVisibleWhenValue).toHaveBeenCalledWith(CONDITION, undefined, expect.any(Object))
 		expect(cells(wrapper)).toEqual([{ wid: 'w', y: '0' }])
 	})
 

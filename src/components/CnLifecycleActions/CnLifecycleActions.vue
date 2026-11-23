@@ -3,14 +3,16 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div v-if="visibleTransitions.length > 0 || error" class="cn-lifecycle-actions" data-testid="cn-lifecycle-actions">
+	<div v-if="(barTransitions.length > 0) || error || inputTransition || confirmTransition" class="cn-lifecycle-actions" data-testid="cn-lifecycle-actions">
 		<NcButton
-			v-for="tr in visibleTransitions"
+			v-for="tr in barTransitions"
 			:key="tr.action"
 			class="cn-lifecycle-actions__button"
 			:variant="tr.variant || 'secondary'"
 			:disabled="working"
 			:data-testid="`cn-lifecycle-action-${tr.action}`"
+			:title="tr.description || undefined"
+			:aria-description="tr.description || undefined"
 			@click="onTransition(tr)">
 			<template v-if="working && pendingAction === tr.action" #icon>
 				<NcLoadingIcon :size="18" />
@@ -20,14 +22,27 @@
 		<p v-if="error" class="cn-lifecycle-actions__error" data-testid="cn-lifecycle-actions-error">
 			{{ error }}
 		</p>
+		<!-- Asked before a danger or final-state transition, or one with
+		     `confirm`: Cancel sends no request. -->
+		<CnWriteConfirmDialog
+			v-if="confirmTransition"
+			:message="confirmMessage"
+			:confirmLabel="confirmTransition.label"
+			:variant="confirmTransition.variant === 'danger' || confirmTransition.variant === 'error' || isFinalTransition(confirmTransition) ? 'error' : 'primary'"
+			@close="onConfirmClose" />
 		<!-- Input collection for a transition that declares `inputs` — the POST
 		     only happens after the dialog confirms (or never, on cancel). -->
 		<CnTransitionInputDialog
 			v-if="inputTransition"
 			:transition="inputTransition"
 			:schema="schema"
+			:currentObject="object"
+			:register="register"
+			:error="inputError"
+			:fieldErrors="inputFieldErrors"
+			:busy="working"
 			@confirm="onInputConfirm"
-			@close="inputTransition = null" />
+			@close="closeInputDialog" />
 	</div>
 </template>
 
@@ -35,11 +50,15 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CnTransitionInputDialog from '../../dialogs/CnTransitionInputDialog.vue'
+import CnWriteConfirmDialog from '../../dialogs/CnWriteConfirmDialog.vue'
 import {
 	performTransition,
 	readAvailableActions,
 	transitionError,
+	transitionFieldErrors,
 } from '../../composables/useLifecycleTransitions.js'
+import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
+import { objectDisplayName } from '../../utils/objectName.js'
 
 /**
  * CnLifecycleActions — declarative status-gated transition buttons for a
@@ -90,7 +109,7 @@ import {
 export default {
 	name: 'CnLifecycleActions',
 
-	components: { NcButton, NcLoadingIcon, CnTransitionInputDialog },
+	components: { NcButton, NcLoadingIcon, CnTransitionInputDialog, CnWriteConfirmDialog },
 
 	props: {
 		/** Object id/uuid/slug the transitions apply to. */
@@ -114,7 +133,7 @@ export default {
 		 * The lifecycle config block. A declared transition may carry
 		 * `inputs: [{ field, required }]` to collect data before it is applied.
 		 *
-		 * @type {{field?: string, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>, autoFetch?: boolean}}
+		 * @type {{field?: string, inputs?: Object<string, Array<{field: string, picker?: object, fields?: string[]}>>, transitions?: Array<{from?: (string|Array<string>), to?: string, action?: string, label?: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>, autoFetch?: boolean}}
 		 */
 		config: {
 			type: Object,
@@ -133,9 +152,34 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Register slug the dialog's reference pickers look in when the schema
+		 * property names none of its own.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Where the transitions are drawn. `buttons` (the default) renders one
+		 * NcButton each. `menu` renders none and emits `entries`, so the host
+		 * can put them in its Actions menu while this component keeps the
+		 * input dialog and the error.
+		 *
+		 * @type {'buttons'|'menu'}
+		 */
+		display: {
+			type: String,
+			default: 'buttons',
+			validator: (v) => ['buttons', 'menu'].includes(v),
+		},
 	},
 
-	emits: ['transitioned', 'reload'],
+	emits: ['transitioned', 'reload', 'entries'],
 
 	data() {
 		return {
@@ -152,10 +196,30 @@ export default {
 			 * non-null mounts CnTransitionInputDialog; the POST waits for confirm.
 			 */
 			inputTransition: null,
+			/** The transition waiting for the user's yes in the confirm dialog. */
+			confirmTransition: null,
+			/** @type {string} The refusal the open input dialog is showing, '' while there is none. */
+			inputError: '',
+			/** @type {string[]} The input keys that refusal named. */
+			inputFieldErrors: [],
+			/** @type {string[]} The field keys the most recent refusal named. */
+			lastFieldErrors: [],
 		}
 	},
 
 	computed: {
+		/** The message the confirm dialog asks: the transition's own `confirm` text, else a generic question. */
+		confirmMessage() {
+			const tr = this.confirmTransition
+			if (!tr) {
+				return ''
+			}
+			if (typeof tr.confirm === 'string' && tr.confirm !== '') {
+				return tr.confirm
+			}
+			return t('nextcloud-vue', 'Are you sure you want to "{action}"?', { action: tr.label })
+		},
+
 		/** The lifecycle field name (`status` by default). */
 		field() {
 			return this.config.field || this.config.property || 'status'
@@ -189,17 +253,21 @@ export default {
 		 * declared `inputs` list is carried through on both paths so clicking
 		 * the button collects the fields before POSTing.
 		 *
-		 * @return {Array<{action: string, to: string, label: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
+		 * @return {Array<{action: string, to: string, label: string, description: string, confirm?: string, variant?: string, inputs?: Array<{field: string, required?: boolean}>}>}
 		 */
 		visibleTransitions() {
 			if (this.useServer) {
-				return this.serverActions.map((a) => ({
-					action: a.action,
-					to: a.to,
-					label: this.labelFor(a.action, a.to, a.description),
-					variant: 'secondary',
-					...(Array.isArray(a.inputs) && a.inputs.length > 0 ? { inputs: a.inputs } : {}),
-				}))
+				return this.serverActions.map((a) => {
+					const inputs = this.withInputHints(a.action, a.inputs)
+					return {
+						action: a.action,
+						to: a.to,
+						label: this.labelFor(a.action, a.to, a.label),
+						description: this.descriptionFor(a.description),
+						variant: 'secondary',
+						...(inputs.length > 0 ? { inputs } : {}),
+					}
+				})
 			}
 			const declared = Array.isArray(this.config.transitions) ? this.config.transitions : []
 			return declared
@@ -207,15 +275,59 @@ export default {
 				.map((tr) => ({
 					action: tr.action || tr.to,
 					to: tr.to,
-					label: tr.label || this.labelFor(tr.action || tr.to, tr.to),
+					label: this.labelFor(tr.action || tr.to, tr.to, tr.label),
+					description: this.descriptionFor(tr.description),
 					confirm: tr.confirm,
+					final: tr.final === true,
 					variant: tr.variant || 'secondary',
-					...(Array.isArray(tr.inputs) && tr.inputs.length > 0 ? { inputs: tr.inputs } : {}),
+					...(this.withInputHints(tr.action || tr.to, tr.inputs).length > 0 ? { inputs: this.withInputHints(tr.action || tr.to, tr.inputs) } : {}),
 				}))
+		},
+
+		/**
+		 * The transitions this component draws as buttons itself. Empty in
+		 * `display: "menu"`, where the host draws them.
+		 *
+		 * @return {Array<object>}
+		 */
+		barTransitions() {
+			return this.display === 'menu' ? [] : this.visibleTransitions
+		},
+
+		/**
+		 * Menu-ready descriptors for a `display: "menu"` host, in the shape
+		 * CnActionButtons emits.
+		 *
+		 * @return {Array<object>}
+		 */
+		menuEntries() {
+			return this.visibleTransitions.map((tr) => ({
+				id: `cn-lifecycle-${tr.action}`,
+				label: tr.label,
+				// Generic, so a transition never renders as the lone iconless item.
+				iconName: 'PlayCircleOutline',
+				iconClass: null,
+				disabled: this.working,
+				pressed: null,
+				testid: `cn-lifecycle-action-${tr.action}`,
+				run: () => this.onTransition(tr),
+			}))
 		},
 	},
 
 	watch: {
+		menuEntries: {
+			immediate: true,
+			handler(entries) {
+				if (this.display === 'menu') {
+					/**
+					 * @event entries Emitted in `display: "menu"` only, whenever the transitions or the pending state change. Payload: one menu-ready descriptor per transition, carrying `id`, `label`, `disabled`, `pressed`, `testid` and a pre-bound `run()`.
+					 */
+					this.$emit('entries', entries)
+				}
+			},
+		},
+
 		objectId: {
 			immediate: true,
 			handler() {
@@ -227,6 +339,49 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Merge the manifest's input hints (`config.inputs[<action>]`, a list of
+		 * `{ field, picker?, fields? }`) onto a transition's declared inputs by
+		 * `field`. A hint for a field the transition does not declare is ignored
+		 * with one console warning; hints never add an input.
+		 *
+		 * @param {string} action The transition's action name.
+		 * @param {Array<object>|undefined} declared The inputs the transition declares.
+		 * @return {Array<object>} The inputs, with hints applied.
+		 * @spec openspec/changes/transition-input-reference-and-subfields/tasks.md#task-3
+		 */
+		withInputHints(action, declared) {
+			const inputs = Array.isArray(declared) ? declared : []
+			const hints = this.config && this.config.inputs && Array.isArray(this.config.inputs[action]) ? this.config.inputs[action] : []
+			if (hints.length === 0) {
+				return inputs
+			}
+			for (const hint of hints) {
+				if (hint && typeof hint.field === 'string' && !inputs.some((i) => i && i.field === hint.field)) {
+					const key = `${action}:${hint.field}`
+					if (!this._warnedHints) {
+						this._warnedHints = new Set()
+					}
+					if (!this._warnedHints.has(key)) {
+						this._warnedHints.add(key)
+						// eslint-disable-next-line no-console
+						console.warn(`[CnLifecycleActions] The input hint for "${hint.field}" on "${action}" is ignored: the transition does not declare that input.`)
+					}
+				}
+			}
+			return inputs.map((input) => {
+				const hint = hints.find((h) => h && input && h.field === input.field)
+				if (!hint) {
+					return input
+				}
+				return {
+					...input,
+					...(hint.picker && typeof hint.picker === 'object' ? { picker: hint.picker } : {}),
+					...(Array.isArray(hint.fields) ? { fields: hint.fields } : {}),
+				}
+			})
+		},
+
 		/**
 		 * Whether a config-declared transition's `from` includes the object's
 		 * current state. Missing `from` means "any state".
@@ -243,23 +398,39 @@ export default {
 		},
 
 		/**
-		 * Human label for a transition button. Prefers the action name (title-cased)
-		 * with a fallback to the description / target state.
+		 * Human label for a transition button: an explicit label when one is
+		 * given, else the action name (title-cased), else the target state.
+		 *
+		 * A transition's `description` is NOT a label. Schemas write it as a
+		 * sentence for the person deciding ("The coordinator approves the
+		 * enrolment; the learner gets access."), so using it as the button text
+		 * put a paragraph on the button. It goes on the button's tooltip and
+		 * accessible description instead (see `descriptionFor`).
 		 *
 		 * @param {string} action The transition action key.
 		 * @param {string} to The target state.
-		 * @param {string} [description] Optional schema-provided description.
+		 * @param {string} [label] An explicit label (config `label`, or a server `label`).
 		 * @return {string}
 		 */
-		labelFor(action, to, description) {
-			if (description) {
-				return description
+		labelFor(action, to, label) {
+			if (typeof label === 'string' && label.trim() !== '') {
+				return label
 			}
 			const src = action || to || ''
 			if (!src) {
 				return t('nextcloud-vue', 'Apply')
 			}
 			return src.charAt(0).toUpperCase() + src.slice(1).replace(/[_-]+/g, ' ')
+		},
+
+		/**
+		 * A transition's description as tooltip / accessible-description text.
+		 *
+		 * @param {unknown} description The schema- or config-provided description.
+		 * @return {string} The trimmed description, or '' when there is none.
+		 */
+		descriptionFor(description) {
+			return typeof description === 'string' ? description.trim() : ''
 		},
 
 		/**
@@ -289,12 +460,63 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async onTransition(tr) {
-			if (tr.confirm && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-				if (!window.confirm(tr.confirm)) {
-					return
-				}
+			if (this.needsConfirm(tr)) {
+				this.confirmTransition = tr
+				return
 			}
+			await this.proceed(tr)
+		},
+
+		/**
+		 * Whether a transition asks first: `variant: danger`, a move into a final
+		 * state, or `confirm` set. `confirm: false` skips it.
+		 *
+		 * @param {object} tr The transition.
+		 * @return {boolean}
+		 */
+		needsConfirm(tr) {
+			if (tr.confirm === false) {
+				return false
+			}
+			return Boolean(tr.confirm) || tr.variant === 'danger' || tr.variant === 'error' || this.isFinalTransition(tr)
+		},
+
+		/**
+		 * Whether a transition moves into a final state (`final: true` on the
+		 * transition, or the target listed in `config.finalStates`).
+		 *
+		 * @param {object} tr The transition.
+		 * @return {boolean}
+		 */
+		isFinalTransition(tr) {
+			const finals = Array.isArray(this.config.finalStates) ? this.config.finalStates.map(String) : []
+			return tr.final === true || (tr.to !== undefined && finals.includes(String(tr.to)))
+		},
+
+		/**
+		 * The confirm dialog answered: send the transition on yes, nothing on no.
+		 *
+		 * @param {boolean} ok True when confirmed.
+		 * @return {Promise<void>}
+		 */
+		async onConfirmClose(ok) {
+			const tr = this.confirmTransition
+			this.confirmTransition = null
+			if (ok === true && tr) {
+				await this.proceed(tr)
+			}
+		},
+
+		/**
+		 * Collect declared inputs, or POST the transition straight away.
+		 *
+		 * @param {object} tr The transition.
+		 * @return {Promise<void>}
+		 */
+		async proceed(tr) {
 			if (Array.isArray(tr.inputs) && tr.inputs.length > 0) {
+				this.inputError = ''
+				this.inputFieldErrors = []
 				this.inputTransition = tr
 				return
 			}
@@ -302,19 +524,48 @@ export default {
 		},
 
 		/**
-		 * Input dialog confirmed: close it and POST the transition with the
-		 * collected `data` payload.
+		 * Input dialog confirmed: POST the transition with the collected `data`,
+		 * and close the dialog only once the move actually happened.
+		 *
+		 * 🔑 THE DIALOG STAYS OPEN ON A REFUSAL. It used to close first and
+		 * report the refusal behind itself, which threw away everything the
+		 * person had typed and asked them to reconstruct it from memory — and
+		 * the refusal is usually about ONE of those fields. The 400 names the
+		 * offending keys, so they are handed back to the dialog to mark.
 		 *
 		 * @param {{[key: string]: unknown}} data The collected input values (exactly the declared keys).
 		 * @return {Promise<void>}
 		 */
 		async onInputConfirm(data) {
 			const tr = this.inputTransition
-			this.inputTransition = null
 			if (!tr) {
 				return
 			}
-			await this.postTransition(tr, data)
+			this.inputError = ''
+			this.inputFieldErrors = []
+
+			const applied = await this.postTransition(tr, data)
+			if (applied === true) {
+				this.closeInputDialog()
+				return
+			}
+
+			// Refused. Move the message from the page into the dialog the
+			// person is looking at, and name the fields it is about.
+			this.inputError = this.error
+			this.inputFieldErrors = this.lastFieldErrors
+			this.error = ''
+		},
+
+		/**
+		 * Close the input dialog and forget the refusal it was showing.
+		 *
+		 * @return {void}
+		 */
+		closeInputDialog() {
+			this.inputTransition = null
+			this.inputError = ''
+			this.inputFieldErrors = []
 		},
 
 		/**
@@ -325,12 +576,15 @@ export default {
 		 *
 		 * @param {object} tr The chosen transition descriptor.
 		 * @param {{[key: string]: unknown}} [data] Collected transition inputs, sent as `data`.
-		 * @return {Promise<void>}
+		 * @param {{silent?: boolean}} [options] `silent` skips the toast (an Undo reports nothing of its own).
+		 * @return {Promise<boolean>} True when the move was applied, false when it was refused.
 		 */
-		async postTransition(tr, data) {
+		async postTransition(tr, data, options = {}) {
+			const oldState = this.currentState
 			this.working = true
 			this.pendingAction = tr.action
 			this.error = ''
+			this.lastFieldErrors = []
 			try {
 				const saved = await performTransition(this.objectId, tr.action, data)
 				/**
@@ -347,12 +601,70 @@ export default {
 				if (this.useServer) {
 					await this.fetchActions()
 				}
+				if (options.silent !== true) {
+					this.reportMove(tr, oldState)
+				}
+
+				return true
 			} catch (e) {
 				this.error = this.extractError(e)
+				this.lastFieldErrors = transitionFieldErrors(e)
+				if (this.config.feedback !== false && options.silent !== true) {
+					useWriteFeedback().error(this.error)
+				}
+				return false
 			} finally {
 				this.working = false
 				this.pendingAction = null
 			}
+		},
+
+		/**
+		 * The transition that goes back from the new state to the old one, when
+		 * the graph declares one. Never guessed: no declared edge, no Undo.
+		 *
+		 * @param {object} tr The transition just applied.
+		 * @param {string} oldState The state before it.
+		 * @return {object|null} The reverse transition, or null.
+		 */
+		reverseOf(tr, oldState) {
+			if (!oldState) {
+				return null
+			}
+			if (this.useServer) {
+				const back = this.serverActions.find((a) => String(a.to) === String(oldState))
+				return back ? { action: back.action, to: back.to } : null
+			}
+			const declared = Array.isArray(this.config.transitions) ? this.config.transitions : []
+			const back = declared.find((d) => {
+				if (String(d.to) !== String(oldState)) {
+					return false
+				}
+				const from = d.from === undefined || d.from === null ? null : (Array.isArray(d.from) ? d.from : [d.from]).map(String)
+				return from === null || from.includes(String(tr.to))
+			})
+			return back ? { action: back.action || back.to, to: back.to } : null
+		},
+
+		/**
+		 * Toast that the move landed, naming the object and the new state, with an
+		 * Undo (ten seconds) when the graph declares the way back. `feedback:
+		 * false` on the config suppresses it.
+		 *
+		 * @param {object} tr The transition just applied.
+		 * @param {string} oldState The state before it.
+		 */
+		reportMove(tr, oldState) {
+			if (this.config.feedback === false) {
+				return
+			}
+			const title = objectDisplayName(this.object || {}) || String((this.schema && this.schema.title) || '').toLowerCase()
+			const state = this.labelFor(tr.to, tr.to)
+			const message = title !== ''
+				? t('nextcloud-vue', 'Moved {title} to {state}', { title, state })
+				: t('nextcloud-vue', 'Moved to {state}', { state })
+			const reverse = this.reverseOf(tr, oldState)
+			useWriteFeedback().success(message, reverse ? { undo: () => this.postTransition(reverse, undefined, { silent: true }) } : {})
 		},
 
 		/**

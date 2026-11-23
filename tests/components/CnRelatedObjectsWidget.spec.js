@@ -209,6 +209,22 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 		expect(counts).toContain('1')
 	})
 
+	it('renders an objects group for a pet that is only referenced by others (reverse relations via /used)', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [], total: 0 },
+			used: { results: [{ id: 'v1', title: 'Visit 1' }, { id: 'v2', title: 'Visit 2' }, { id: 'o1', title: 'Order 1' }], total: 3 },
+			files: { results: [], total: 0 },
+		})
+		const wrapper = mountTabbed()
+		await flush()
+		// One non-empty group: the tab strip folds away and the objects list shows directly.
+		const rows = wrapper.findAll('.cn-related-objects-widget__row')
+		expect(rows).toHaveLength(3)
+		expect(wrapper.text()).toContain('Visit 1')
+		expect(wrapper.text()).toContain('Order 1')
+	})
+
 	it('uses register/schema props over @self when building endpoint URLs', async () => {
 		const fetchMock = mockFetchBySuffix({ relations: {}, uses: { results: [], total: 0 }, used: { results: [], total: 0 }, files: { results: [], total: 0 } })
 		global.fetch = fetchMock
@@ -258,13 +274,16 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 			used: { results: [], total: 0 },
 			files: { results: [{ id: 4242, name: 'doc.pdf', size: 10 }], total: 1 },
 		})
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed()
 		await flush()
 		// Files is the only non-empty group → its tab is active.
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('/f/4242', '_blank', 'noopener,noreferrer')
-		openSpy.mockRestore()
+		const row = wrapper.find('.cn-related-objects-widget__row')
+		expect(row.element.tagName).toBe('A')
+		expect(row.attributes('href')).toBe('/f/4242')
+		expect(row.attributes('target')).toBe('_blank')
+		expect(row.attributes('rel')).toBe('noopener noreferrer')
+		await row.trigger('click')
+		expect(wrapper.emitted('select-file')).toBeUndefined()
 	})
 
 	it('falls back to select-related for a leaf with no owning-app page (notes)', async () => {
@@ -274,13 +293,13 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 			used: { results: [], total: 0 },
 			files: { results: [], total: 0 },
 		})
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed()
 		await flush()
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-		expect(openSpy).not.toHaveBeenCalled()
+		const row = wrapper.find('.cn-related-objects-widget__row')
+		expect(row.attributes('href')).toBeUndefined()
+		expect(row.attributes('role')).toBe('button')
+		await row.trigger('click')
 		expect(wrapper.emitted('select-related')[0][0]).toMatchObject({ group: 'notes' })
-		openSpy.mockRestore()
 	})
 
 	it('deep-links a deck card to its board/card route', async () => {
@@ -290,12 +309,9 @@ describe('CnRelatedObjectsWidget — tabbed self-fetch', () => {
 			used: { results: [], total: 0 },
 			files: { results: [], total: 0 },
 		})
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed()
 		await flush()
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-		expect(openSpy).toHaveBeenCalledWith('/apps/deck/board/3/card/9', '_blank', 'noopener,noreferrer')
-		openSpy.mockRestore()
+		expect(wrapper.find('.cn-related-objects-widget__row').attributes('href')).toBe('/apps/deck/board/3/card/9')
 	})
 
 	it('falls back to the deprecated store path and warns once when layout="list"', async () => {
@@ -570,21 +586,19 @@ describe('CnRelatedObjectsWidget — extraSections on the tabbed path', () => {
 
 	it('emits select-extra when one of its rows is clicked', async () => {
 		global.fetch = mockFetchBySuffix(EMPTY_SELF_FETCH)
-		const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {})
 		const wrapper = mountTabbed({ extraSections: PLANNED })
 		await flush()
 
-		await wrapper.find('.cn-related-objects-widget__row').trigger('click')
-
+		const row = wrapper.find('.cn-related-objects-widget__row')
 		// The host owns these rows, so the click must go back OUT rather than
 		// be routed by resolveItemHref against a leaf group it is not.
-		expect(openSpy).not.toHaveBeenCalled()
+		expect(row.attributes('href')).toBeUndefined()
+		await row.trigger('click')
 		expect(wrapper.emitted('select-extra')[0][0]).toMatchObject({
 			section: 'planned',
 			item: { id: 'p1' },
 		})
 		expect(wrapper.emitted('select-related')).toBeUndefined()
-		openSpy.mockRestore()
 	})
 
 	it('picks the section up when the host resolves its rows after mount', async () => {
@@ -616,5 +630,94 @@ describe('CnRelatedObjectsWidget — extraSections on the tabbed path', () => {
 		await flush()
 		expect(wrapper.findAll('.cn-related-objects-widget__tab-label').map((w) => w.text()))
 			.toContain('Planned cases')
+	})
+})
+
+/**
+ * Object rows name the object, never a bare number.
+ *
+ * OpenRegister's `/uses` and `/used` answer `@self.schema` as the numeric
+ * schema id, and `@self.name` as the uuid when the schema configures no name
+ * field. The row fell back to that schema id, so a learniq conference slot's
+ * panel read "120", "43", "122" (lq-polish, 2026-10-03).
+ */
+describe('CnRelatedObjectsWidget — object rows name the object', () => {
+	beforeEach(() => {
+		integrations.__resetForTests()
+		jest.clearAllMocks()
+		global.OC = { requestToken: 'tok' }
+	})
+
+	afterEach(() => {
+		delete global.fetch
+		delete global.OC
+	})
+
+	const rowsOf = (wrapper) => wrapper.findAll('.cn-related-objects-widget__row').map((row) => ({
+		label: row.find('.cn-related-objects-widget__label').text(),
+		meta: row.find('.cn-related-objects-widget__meta').exists() ? row.find('.cn-related-objects-widget__meta').text() : '',
+	}))
+
+	it('shows the schema title, not its numeric id, for an object without a name', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', '@self': { name: 'aaaaaaaa-0000-4000-8000-000000000001', schema: '9120' } }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+			9120: { id: 9120, slug: 'conference-signup', title: 'Conference Signup' },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF }, stubs })
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'Conference Signup', meta: '' }])
+	})
+
+	it('names a person by given and family name, with the schema title beside it', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [{ id: 'aaaaaaaa-0000-4000-8000-000000000002', givenName: 'Vera', familyName: 'Hulstkamp', '@self': { name: 'aaaaaaaa-0000-4000-8000-000000000002', schema: '9043' } }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+			9043: { id: 9043, slug: 'learner-profile', title: 'Learner profile' },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF }, stubs })
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'Vera Hulstkamp', meta: 'Learner profile' }])
+	})
+
+	it('translates the schema title through the host app catalogue', async () => {
+		global.fetch = mockFetchBySuffix({
+			relations: {},
+			uses: { results: [{ id: 'r1', name: 'Oudergesprekken groep 7', '@self': { schema: '9118' } }], total: 1 },
+			used: { results: [], total: 0 },
+			files: { results: [], total: 0 },
+			9118: { id: 9118, title: 'Conference Round' },
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, {
+			propsData: { objectData: SELF },
+			stubs,
+			provide: { cnTranslate: (key) => (key === 'Conference Round' ? 'Gespreksronde' : key) },
+		})
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'Oudergesprekken groep 7', meta: 'Gespreksronde' }])
+	})
+
+	it('shows no number when the schema cannot be read', async () => {
+		global.fetch = jest.fn((url) => {
+			const suffix = String(url).split('/').pop()
+			if (suffix === '9999') {
+				return Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
+			}
+			const bodies = {
+				uses: { results: [{ id: 'r2', title: 'A thing', '@self': { schema: '9999' } }], total: 1 },
+			}
+			return Promise.resolve({ ok: true, json: () => Promise.resolve(bodies[suffix] ?? {}) })
+		})
+		const wrapper = mount(CnRelatedObjectsWidget, { propsData: { objectData: SELF }, stubs })
+		await flush()
+		await flush()
+		expect(rowsOf(wrapper)).toEqual([{ label: 'A thing', meta: '' }])
 	})
 })

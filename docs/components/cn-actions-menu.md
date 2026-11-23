@@ -15,8 +15,16 @@ Most apps never instantiate `CnActionsMenu` directly — they configure it throu
 ## Behaviour
 
 - **Refresh** — emits `@refresh` with `{ widgetId, title }`. Unless a host listener calls `event.preventDefault()` on the second handler argument, it then emits on the `@nextcloud/event-bus` channel named by `refreshChannel` (`cn:widget:refresh` for widgets, `cn:page:refresh` for pages).
+  The menu stays open while the refresh runs, with the item disabled and spinning, and closes once it settles. Refresh work reports itself through `waitUntil(promise)`, which is on both the handler's event argument and the bus payload: the spinner lasts until every promise handed to it has settled (at least 400 ms, at most 15 s, so a hung request cannot lock the item) and the `refreshing` prop is false. A bus subscriber that refetches should pass its fetch in:
+
+  ```js
+  subscribe('cn:page:refresh', (payload) => {
+  	const done = this.fetchData()
+  	payload?.waitUntil?.(done)
+  })
+  ```
 - **Documentation** — rendered as an `NcActionLink` only when `documentationUrl` is non-empty. Opens the link in a new tab (`target="_blank"` + `rel="noopener noreferrer"`); there is no JS handler.
-- **Request a feature** — emits `@request-feature` with `{ widgetId, title }`, then (unless suppressed) opens the forge's feature-request issue form in a new tab, built from the `cnFeatureRequestRepo` / `cnFeatureRequestForge` injects provided by `CnAppRoot` with an English headline (authored title, else the surface slug). Without a resolvable repo it logs a one-line `console.warn` and skips opening.
+- **Request a feature** — a link to the forge's feature-request issue form, opening in a new tab, built from the `cnFeatureRequestRepo` / `cnFeatureRequestForge` injects provided by `CnAppRoot` with an English headline (authored title, else the surface slug). Being a real link, it can be middle-clicked or copied. A click emits `@request-feature` with `{ widgetId, title }`; a handler that calls `preventDefault()` on the second argument cancels the link. Without a resolvable repo the item is a button that emits the event and logs a one-line `console.warn`.
 
 The overflow trigger hides itself entirely when no built-in item is visible and no `#action-items` slot content is supplied.
 
@@ -44,6 +52,7 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 
 | Slot | Description |
 |------|-------------|
+| `lead-items` | Items at the very top of the menu, above Refresh. `CnTabsWidget` lists a board strip's overflow tabs here. The caller owns any separator after them. |
 | `action-items` | Additional `NcActionButton`-family items appended inside the overflow menu, after the built-in Refresh / Documentation / Request-a-feature group. |
 
 ### Labels & state props
@@ -54,6 +63,9 @@ The `data-testid`s are derived from `testidBase`: `<base>-actions` (container), 
 | `refreshLabel` | `t('Refresh')` | Pre-translated label for the Refresh item. |
 | `requestFeatureLabel` | `t('Request a feature')` | Pre-translated label for the Request-a-feature item. |
 | `actionsMenuLabel` | `t('Actions')` | Pre-translated aria-label / tooltip for the overflow trigger. |
+| `trailingChevron` | `false` | Draw a 14px chevron after the label instead of the dots before it, as the board's "Meer" menu in a detail header. `CnDetailPage` sets it in the board look. |
+| `placement` | `'bottom'` | Where the menu opens against its trigger. `CnDetailPage` passes `bottom-end` in the board look, so "Meer" lines up with its trigger's right edge. |
+| `hasPrimaryItems` | `false` | Tells the menu that `#primary-items` has content. Only needed by a host that switches every built-in item off: the menu decides in a computed whether to render at all, and a slot that fills in after mount is not something a computed notices. |
 | `refreshing` | `false` | While true, the Refresh item is disabled and shows a loading spinner — for exactly as long as this stays true, so it reflects the real refresh time. |
 | `specRef` | `''` | Accepted for backward compatibility with the removed in-product suggestion modal; no longer forwarded. |
 
@@ -84,3 +96,7 @@ The target is resolved in this order:
 3. the app's conventional docs site derived from `cnAppId` — a last resort so the item is never simply missing.
 
 An app that hosts its docs anywhere else should provide `cnDocumentationBaseUrl` rather than pass a URL per widget.
+
+## Trigger variant
+
+`variant` (String, default `''`): how the trigger button is drawn. Empty keeps the NcActions default (`tertiary`); `secondary` draws a bordered button, as the board look's "More" in the detail header.

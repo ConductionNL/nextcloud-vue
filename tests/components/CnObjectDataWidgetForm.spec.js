@@ -39,6 +39,16 @@ describe('CnObjectDataWidgetForm', () => {
 		})
 	})
 
+	it('keeps a field\'s formatter through an edit in the cog editor', async () => {
+		const w = mount({ register: 'learniq', schema: 'teacher-availability', overrides: { value: { formatter: 'timeBlocks' } } })
+		await w.vm.loadFields()
+		w.vm.setRow('status', 'label', 'State')
+		expect(w.vm.buildOverrides()).toEqual({
+			status: { label: 'State' },
+			value: { formatter: 'timeBlocks' },
+		})
+	})
+
 	it('validates that register + schema are present', () => {
 		const w = mount({ register: '', schema: '' })
 		expect(w.vm.validate().length).toBe(1)

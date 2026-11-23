@@ -48,6 +48,11 @@
 				</tr>
 			</tbody>
 		</table>
+		<pre
+			v-else-if="monospace && hasText"
+			class="cn-text-widget__mono"
+			data-testid="cn-text-widget-mono"
+			:style="monoStyle">{{ text }}</pre>
 		<div
 			v-else-if="hasText"
 			class="cn-text-widget__content"
@@ -60,6 +65,17 @@
 			:style="contentStyle">
 			{{ placeholderText }}
 		</span>
+		<a
+			v-if="link"
+			class="cn-text-widget__link"
+			data-testid="cn-text-widget-link"
+			:href="link.url"
+			:target="link.external ? '_blank' : null"
+			:rel="link.external ? 'noopener noreferrer' : null"
+			@click="openLink">
+			{{ link.label }}
+			<ChevronRight :size="16" />
+		</a>
 	</div>
 </template>
 
@@ -67,6 +83,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { Marked } from 'marked'
+import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
+import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { isPlaceholderCell } from '../../utils/textTable.js'
 
 // Per-module `Marked` instance so configuration is scoped here and does NOT
@@ -95,6 +113,24 @@ function ensureDomPurifyHook() {
 	hookRegistered = true
 }
 
+// The widget's own sanitiser config: `target` survives (the hook above adds
+// `rel`), `data-*` attributes do not.
+const SANITIZE_CONFIG = {
+	ADD_ATTR: ['target'],
+	ALLOW_DATA_ATTR: false,
+}
+
+/**
+ * Sanitise author HTML with the widget's own config.
+ *
+ * @param {string} html The HTML.
+ * @return {string} HTML safe for `v-html`.
+ */
+function sanitize(html) {
+	ensureDomPurifyHook()
+	return DOMPurify.sanitize(html, SANITIZE_CONFIG)
+}
+
 /**
  * CnTextWidget — renders user-authored multi-line text (or a small table)
  * inside a dashboard cell. Text content is passed through DOMPurify before
@@ -114,30 +150,113 @@ function ensureDomPurifyHook() {
  * attributes. Merge-swallowed cells are hidden via `v-show` so the visual
  * grid stays rectangular.
  *
+ * With `monospace: true` the text is shown as typed, in a fixed-width font
+ * with its spaces and line breaks kept, and is never parsed as HTML or
+ * markdown: a receipt or a log line. `textField` reads the text from that
+ * field of the detail page's object instead of `text`.
+ *
  * Registered as the `text` dashboard widget type via the renderer's
  * `index.js`.
  */
 export default {
 	name: 'CnTextWidget',
 
+	components: { ChevronRight },
+
+	inject: {
+		/** The app's translate function, provided by CnAppRoot. Identity outside one. */
+		cnTranslate: { default: () => (key) => key },
+	},
+
 	props: {
 		/**
 		 * Persisted widget content blob: `{text, fontSize, color,
-		 * backgroundColor, textAlign, contentMode, tableMode, tableData}`.
+		 * backgroundColor, textAlign, contentMode, tableMode, tableData, link,
+		 * monospace, textField}`.
 		 * All keys are optional; missing keys collapse to documented defaults.
+		 * `text` and `link.label` go through the app's translate function.
+		 * `link` is `{label, route}` (a page id, or a path starting with `/`) or
+		 * `{label, href}` (an external URL), drawn under the text.
+		 * `monospace` shows the text as typed in a fixed-width font;
+		 * `textField` reads the text from that field of `objectData`.
 		 *
-		 * @type {{text: string, fontSize: string, color: string, backgroundColor: string, textAlign: string, contentMode: string, tableMode: boolean, tableData: object}}
+		 * @type {{text: string, fontSize: string, color: string, backgroundColor: string, textAlign: string, contentMode: string, tableMode: boolean, tableData: object, link: {label: string, route: string, href: string}, monospace: boolean, textField: string}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/** The detail page's object, which `content.textField` reads from. */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	computed: {
-		/** The author text, or '' when absent / non-string. */
+		/**
+		 * The text: `content.textField` of the object as it is, else
+		 * `content.text`; '' when absent. Plain text goes through the app's
+		 * translate function; text holding markup (`<`, `>`, `&`) is author
+		 * content and is shown as written, because the translate function
+		 * sanitises with its own allow-list (which drops `target`).
+		 *
+		 * @spec openspec/changes/text-widget-monospace/tasks.md#task-2
+		 */
 		text() {
-			return typeof this.content?.text === 'string' ? this.content.text : ''
+			const field = this.content?.textField
+			if (typeof field === 'string' && field !== '') {
+				const value = this.objectData?.[field]
+				return value === undefined || value === null ? '' : String(value)
+			}
+			const text = this.content?.text
+			if (typeof text !== 'string') {
+				return ''
+			}
+			return /[<>&]/.test(text) ? text : this.tr(text)
+		},
+
+		/**
+		 * Whether the text shows as typed, in a fixed-width font.
+		 *
+		 * @spec openspec/changes/text-widget-monospace/tasks.md#task-1
+		 */
+		monospace() {
+			return this.content?.monospace === true
+		},
+
+		/** Inline style for the fixed-width text. */
+		monoStyle() {
+			return {
+				'font-size': this.fontSize,
+				color: this.color,
+			}
+		},
+
+		/**
+		 * The link under the text, from `content.link`: `{ label, route }`
+		 * (a page id, or a router path when it starts with `/`) or
+		 * `{ label, href }` (an external URL, opened in a new tab). The label
+		 * goes through the app's translate function. Null without a label or
+		 * a target.
+		 *
+		 * @return {{label: string, url: string, location: (object|null), external: boolean}|null} The link.
+		 */
+		link() {
+			const link = this.content?.link
+			if (!link || typeof link !== 'object' || typeof link.label !== 'string' || link.label === '') {
+				return null
+			}
+			if (typeof link.route === 'string' && link.route !== '') {
+				const location = link.route.startsWith('/') ? { path: link.route } : { name: link.route }
+				const url = resolveHref(location, this.$router)
+				return url ? { label: this.tr(link.label), url, location, external: false } : null
+			}
+			if (typeof link.href === 'string' && link.href !== '') {
+				return { label: this.tr(link.label), url: link.href, location: null, external: true }
+			}
+			return null
 		},
 
 		/** Whether the text has any non-whitespace content. */
@@ -181,9 +300,7 @@ export default {
 			} else {
 				html = this.text
 			}
-			return DOMPurify.sanitize(html, {
-				ADD_ATTR: ['target'],
-			})
+			return sanitize(html)
 		},
 
 		/** Localised placeholder shown when there is no text content. */
@@ -249,10 +366,11 @@ export default {
 				height: '100%',
 				padding: '16px',
 				display: 'flex',
-				'align-items': 'center',
-				'justify-content': 'center',
+				'align-items': 'safe center',
+				'justify-content': 'safe center',
 				overflow: 'auto',
 				'background-color': this.backgroundColor,
+				...(this.link ? { 'flex-direction': 'column', gap: '8px', 'align-items': 'flex-start' } : {}),
 			}
 		},
 
@@ -282,11 +400,28 @@ export default {
 		},
 	},
 
-	created() {
-		ensureDomPurifyHook()
-	},
-
 	methods: {
+		/**
+		 * A manifest string through the app's translate function.
+		 *
+		 * @param {string} text The string.
+		 * @return {string} The translated string.
+		 */
+		tr(text) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(text) : text
+		},
+
+		/**
+		 * Route a plain click on an in-app link, so the page does not reload.
+		 *
+		 * @param {MouseEvent} event The click.
+		 */
+		openLink(event) {
+			if (this.link && !this.link.external) {
+				followLinkClick(event, this.link.location, this.$router)
+			}
+		},
+
 		/**
 		 * Run cell text through DOMPurify so the table-mode render path has
 		 * the same XSS-stripping guarantees as the text-mode path.
@@ -295,7 +430,7 @@ export default {
 		 * @return {string} sanitised HTML safe to render via `v-html`.
 		 */
 		sanitizeCell(text) {
-			return DOMPurify.sanitize(typeof text === 'string' ? text : '')
+			return sanitize(typeof text === 'string' ? text : '')
 		},
 
 		/**
@@ -365,6 +500,20 @@ export default {
 .cn-text-widget {
 	width: 100%;
 	height: 100%;
+}
+
+.cn-text-widget__mono {
+	width: 100%;
+	margin: 0;
+	padding: 12px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	text-align: start;
+	background: var(--color-background-dark);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
 }
 
 .cn-text-widget__content,
@@ -517,5 +666,20 @@ export default {
 .cn-text-widget__cell-placeholder {
 	color: var(--color-text-maxcontrast);
 	font-style: italic;
+}
+
+.cn-text-widget__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-primary-element);
+	text-decoration: none;
+}
+
+.cn-text-widget__link:hover,
+.cn-text-widget__link:focus-visible {
+	text-decoration: underline;
 }
 </style>

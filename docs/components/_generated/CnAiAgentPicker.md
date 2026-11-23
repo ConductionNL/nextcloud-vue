@@ -12,10 +12,7 @@
 
 ### Events
 
-| Name                | Payload | Description                                                              |
-| ------------------- | ------- | ------------------------------------------------------------------------ |
-| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers. |
-| `update:modelValue` | —       |                                                                          |
-
-| `update:modelValue The value changed. Vue 3's v-model
-  dialect — what a plain `v-model` listens for.` | — | |
+| Name                | Payload | Description                                                                      |
+| ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers.         |
+| `update:modelValue` | —       | The value changed. Vue 3's v-model dialect — what a plain `v-model` listens for. |

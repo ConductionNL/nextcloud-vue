@@ -60,6 +60,15 @@ function setupSse(events) {
 	})
 }
 
+// The chat URLs are asserted in their `/index.php` form, so describe an
+// instance without pretty URLs.
+beforeEach(() => {
+	window.OC.config.modRewriteWorking = false
+})
+afterEach(() => {
+	window.OC.config.modRewriteWorking = true
+})
+
 describe('useAiChatStream', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()

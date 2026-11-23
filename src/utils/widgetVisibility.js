@@ -1,5 +1,11 @@
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { getCurrentUserId, peekCurrentUserGroups, resetGroupsPeek } from './userGroupsPeek.js'
+
+// The pure peek and user-id read live in userGroupsPeek.js so the filter-token
+// resolver can use them without importing axios; re-exported here so the public
+// API is unchanged.
+export { getCurrentUserId, peekCurrentUserGroups }
 
 /**
  * Cached user groups — fetched once per session and reused.
@@ -10,17 +16,6 @@ const _cache = {
 	userId: null,
 	groups: null,
 	promise: null,
-}
-
-/**
- * Get the current Nextcloud user ID from OC.currentUser.
- *
- * @return {string|null} The current user ID, or null if not logged in
- */
-export function getCurrentUserId() {
-	return window.OC?.currentUser?.uid
-		|| window.OC?.currentUser
-		|| null
 }
 
 /**
@@ -161,4 +156,5 @@ export function resetVisibilityCache() {
 	_cache.userId = null
 	_cache.groups = null
 	_cache.promise = null
+	resetGroupsPeek()
 }

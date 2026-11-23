@@ -55,7 +55,10 @@
 		<div v-else-if="cards.length === 0" class="cn-sidebar-tab__empty cn-deck-tab__empty">
 			<ViewColumnOutline :size="32" class="cn-deck-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openDeckApp">
+			<NcButton
+				variant="primary"
+				:href="deckAppUrl"
+				target="_blank">
 				<template #icon>
 					<ViewColumnOutline :size="20" />
 				</template>
@@ -164,7 +167,9 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnDeckCardCreate from '../../../components/CnDeckCardCreate/CnDeckCardCreate.vue'
 import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { userLocale } from '../../../utils/userLocale.js'
+import { cardAssignees, cardBoardTitle, cardLabels, cardStackTitle } from './deckCardParts.js'
 
 /** Maximum assignee avatars shown before collapsing the rest into a +N overflow badge. */
 const MAX_VISIBLE_ASSIGNEES = 3
@@ -349,7 +354,7 @@ export default {
 		},
 
 		cardUrl(card) {
-			if (card.url) {
+			if (card.url && safeHref(card.url) !== '#') {
 				return card.url
 			}
 			const boardId = card.boardId ?? card.board?.id ?? ''
@@ -361,8 +366,7 @@ export default {
 		},
 
 		cardLabels(card) {
-			const labels = card.labels ?? card.tags ?? []
-			return Array.isArray(labels) ? labels : []
+			return cardLabels(card)
 		},
 
 		chipText(label) {
@@ -424,7 +428,7 @@ export default {
 			if (Number.isNaN(date.getTime())) {
 				return ''
 			}
-			return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+			return date.toLocaleDateString(userLocale(), { dateStyle: 'medium' })
 		},
 
 		/**
@@ -447,8 +451,8 @@ export default {
 		 * @return {string} board (or board · stack) label, or '' when unknown
 		 */
 		boardBadge(card) {
-			const board = card.boardTitle ?? card.board?.title ?? ''
-			const stack = card.stackTitle ?? card.stack?.title ?? ''
+			const board = cardBoardTitle(card)
+			const stack = cardStackTitle(card)
 			if (board && stack) {
 				return `${board} · ${stack}`
 			}
@@ -464,8 +468,7 @@ export default {
 		 * @return {Array} assignee entries
 		 */
 		cardAssignees(card) {
-			const raw = card.assignedUsers ?? card.assignees ?? card.users ?? []
-			return Array.isArray(raw) ? raw : []
+			return cardAssignees(card)
 		},
 
 		/**
@@ -530,12 +533,6 @@ export default {
 		assigneeKey(assignee) {
 			const p = this.assigneeParticipant(assignee)
 			return String(p.uid ?? p.id ?? p.displayname ?? p.displayName ?? Math.random())
-		},
-
-		openDeckApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.deckAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchCards() {

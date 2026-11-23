@@ -78,7 +78,10 @@
 		<div v-else-if="rows.length === 0" class="cn-sidebar-tab__empty cn-time-tracker-tab__empty">
 			<Clock :size="32" class="cn-time-tracker-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openTimeTrackerApp">
+			<NcButton
+				variant="primary"
+				:href="timeTrackerAppUrl"
+				target="_blank">
 				<template #icon>
 					<Clock :size="20" />
 				</template>
@@ -181,7 +184,7 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Timer from 'vue-material-design-icons/Timer.vue'
 import CnTimeTrackerCreate from '../../../components/CnTimeTrackerCreate/CnTimeTrackerCreate.vue'
 import CnTimeTrackerPicker from '../../../components/CnTimeTrackerPicker/CnTimeTrackerPicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnTimeTrackerTab — bespoke sidebar tab for the `time-tracker`
@@ -357,7 +360,7 @@ export default {
 		},
 
 		rowUrl(row) {
-			if (row.url) {
+			if (row.url && safeHref(row.url) !== '#') {
 				return row.url
 			}
 			const kind = this.rowKind(row)
@@ -464,12 +467,6 @@ export default {
 
 		isBillable(row) {
 			return row.billable === true || row.billable === 1 || row.billable === '1'
-		},
-
-		openTimeTrackerApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.timeTrackerAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

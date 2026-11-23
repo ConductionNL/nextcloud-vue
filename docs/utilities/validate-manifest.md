@@ -23,6 +23,7 @@ const { valid, errors } = validateManifest(manifest, options)
 |-----|------|-------------|
 | `valid` | `boolean` | `true` when `errors` is empty. |
 | `errors` | `string[]` | JSON-pointer-style messages, e.g. `'/pages/2/id "settings" must be unique within pages[]'`. |
+| `warnings` | `string[]` | v2 manifests only. Non-fatal findings that never affect `valid`, e.g. `'pages[0]/config/actions: "builtin:delete" is not the last row action …'` when an index page places the built-in Delete before other row actions. Absent for a v1 manifest, so read it as `result.warnings ?? []`. |
 
 ## Rules enforced
 
@@ -55,6 +56,24 @@ if (!valid) {
   process.exit(1)
 }
 ```
+
+### Printing warnings from `check:manifest`
+
+An app's `check:manifest` script usually runs Ajv against the raw schema, which reports errors only. To see the library's warnings in CI, call `validateManifest()` from the same script and print `warnings` without failing on them.
+
+A plain node script cannot load the package barrel: `require('@conduction/nextcloud-vue')` throws `ERR_PACKAGE_PATH_NOT_EXPORTED` on a browser-only dependency. Import the built validator module directly instead. It is an ES module, so a CommonJS script loads it with a dynamic `import()`:
+
+```js
+async function printManifestWarnings(manifest) {
+  const { validateManifest } = await import('@conduction/nextcloud-vue/dist/esm/utils/validateManifest.js')
+  const { warnings = [] } = validateManifest(manifest)
+  for (const warning of warnings) {
+    console.warn(`warning: ${warning}`)
+  }
+}
+```
+
+The module pulls in the precompiled schema validator next to it in `dist/`, so it needs no Ajv at runtime.
 
 ### Inside test fixtures
 

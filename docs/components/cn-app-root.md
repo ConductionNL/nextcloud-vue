@@ -54,6 +54,10 @@ Both instances receive `completedStepIds`, so a wizard mounted mid-way resumes a
 
 "Actionable" excludes `info` and `summary` steps. The server has nothing to persist for those, so they report `done: false` forever; counting them would auto-prompt every user on every version, including fully-configured ones.
 
+"Actionable" also excludes `run-action` steps marked `onDemand: true`: they run only when the user asks, so they never open the wizard. See [On-demand steps](./cn-setup-wizard.md#on-demand-steps).
+
+A step whose `requires` names an app that is not installed and enabled is not applicable. The wizard skips it, so it neither opens the wizard nor, when `required`, gates the app. See [Missing apps](./cn-setup-wizard.md#missing-apps).
+
 ### Dismissal
 
 The non-gating overlay records dismissal in `localStorage` under:
@@ -66,6 +70,10 @@ cn-setup-wizard-dismissed:{appId}:{manifest.setup.version}
 - Because the key includes `setup.version`, bumping it in the manifest (e.g. after adding a new optional step) re-prompts everyone exactly once.
 - Storage failures (private mode, disabled storage) are non-fatal: dismissal falls back to a session-only flag.
 - On `@complete` the overlay stays mounted so `CnSetupWizard`'s result phase ("Setup complete.") is visible; its **Close** button drives the unmount.
+
+### The walkthrough waits for setup
+
+When the manifest also declares a `walkthrough`, the tour is held back until the setup status has loaded and the non-gating wizard is closed, so on a first run the wizard comes first and the tour starts when the wizard is cancelled or finished. See [CnWalkthrough](./cn-walkthrough.md#when-cnapproot-starts-the-tour).
 
 ## Usage
 
@@ -115,11 +123,12 @@ export default {
 |------|------|---------|-------------|
 | `manifest` | `Object` | — (required) | Reactive manifest. The renderer reads `manifest.dependencies` and `manifest.menu`; descendants `inject('cnManifest')`. |
 | `appId` | `String` | — (required) | Nextcloud app id. Forwarded to `NcContent` as `app-name` and to `CnDependencyMissing`. |
-| `appDisplayName` (`app-display-name`) | `String` | `''` | Human-readable name shown in the Nextcloud top bar. When set it overrides the technical `appId` so a virtual app shows its own name (e.g. "Pet Store") instead of the host app id. |
+| `appDisplayName` (`app-display-name`) | `String` | `''` | Human-readable name shown in the Nextcloud top bar. When set it overrides the technical `appId` so a virtual app shows its own name (e.g. "Pet Store") instead of the host app id. The user settings dialog, the setup wizard and the credentials section show it through the app's `translate`; without it they show the name Nextcloud's app menu gives (localised), else the id with a capital, never the bare id. The top bar's own name, which also keys the stored list-pane width (`pane-list-size-<name>`), stays untranslated so a reader's pane width survives a language switch. |
 | `persistManifestDelta` | `Function` | `null` | Optional persistence hook for in-app editing (ADR-041). Called with the minimal manifest delta when the user saves an edit. When omitted, Save updates the rendered manifest in memory but persists nothing — wire it to the Buildiq app-override endpoint to make edits durable. When Buildiq is reachable for the user, CnAppRoot surfaces a Conduction-orange edit button (`CnBuildiqEditButton`) top-right of the content and provides a shared `cnManifestEditor`; the body grid becomes drag/resizable in edit mode. Emits `@manifest-save(delta)`. |
 | `dataSources` | `Object \| null` | `null` | App registers/schemas for the in-app pages editor (ADR-041). Lets the Edit-pages modal offer Register / Schema / Columns dropdowns for `index`/`detail` pages instead of free-text slug inputs, so a created page actually renders a table. Shape: `{ registers: [{ value, label, schemas: [{ value, label, columns: string[] }] }] }`. Provided to descendants as `cnDataSources`; when omitted the editor falls back to free-text register/schema fields. **A snapshot** — captured once, so it cannot show anything created after boot. Prefer `dataSourcesLoader`. |
 | `dataSourcesLoader` (`data-sources-loader`) | `Function \| null` | `null` | Async loader for the same data, re-invoked every time a pages-editor modal opens: `async () => ({ registers: [...] })`. Because `provide()` runs once, the static `dataSources` snapshot can never change — so a register or schema created after the app booted (in another tab, the OpenRegister UI, or via the API) would never appear in the dropdowns. A loader fixes that with no page reload, and moves the fetch off the app-boot path onto the far rarer editor-open path. When both props are given, `dataSources` seeds the initial list and the loader's result replaces it on the first refresh. |
 | `routerViewKey` (`router-view-key`) | `String \| Number` | `'cn-router-view'` | Remount key for the routed `<router-view>`. Hosts that rebuild the router at runtime (e.g. the Buildiq builder adding a page mid-edit) bump this **after** the rebuild so the view drops its stale component-instance cache and mounts the new routes — a Vue Router 3 matcher swap alone resolves the new hrefs but leaves SPA-navigation to a just-added route rendering a blank view. Keep the default for static apps: the key is stable across ordinary navigation, so the view is never needlessly remounted (and the shell / teleported modals are untouched). |
+| `pageGround` (`page-ground`) | `Boolean` | `false` | Paint the content area with the page ground (the NL Design System content-surface token, or Nextcloud's hover background) instead of the main-background panel. For a dashboard app whose canvas is the page; widgets keep their own surfaces. |
 | `isLoading` | `Boolean` | `false` | Wire to `useAppManifest().isLoading`. Apps using only the bundled manifest skip the loading phase. |
 | `customComponents` | `Object` | `{}` | Registry consumed by `CnPageRenderer` for `type: "custom"` pages and slot overrides. Provided as `cnCustomComponents`. |
 | `formatters` | `Object` | `{}` | Cell-formatter registry — map of formatter-id → `(value, row, property) => string\|number`. Resolves the `pages[].config.columns[].formatter` ids that `index` / `logs` pages declare, so per-column value formatting lives in small pure data functions instead of bespoke `type:"custom"` table views. Provided to descendant `CnDataTable` / `CnCellRenderer` as `cnFormatters`. See [migrating-to-manifest → Column formatters](../migrating-to-manifest.md#column-formatters). |
@@ -127,10 +136,20 @@ export default {
 | `kbSearchProviders` | `Object` | `{}` | Pluggable knowledge-base search providers (#91 Wave 3) — map of provider-key → `{ search(query, opts), externalOpen? }`, merged OVER the library built-in `default` (endpoint) provider and provided to descendant `CnKbSearchWidget` as `cnKbSearchProviders`. A `kb-search` widget picks its provider via `content.provider`; an app talking to a bespoke KB backend (the xwiki proxy) registers its client here — the library ships only the seam. See [CnActionButtons / kb-search](./cn-kb-search-widget.md). |
 | `pageTypes` | `Object \| null` | `null` | Map of `pages[].type` → Vue component. Provided to descendant renderers as `cnPageTypes`. When omitted, the renderer falls back to `defaultPageTypes`. |
 | `translate` | `Function` | identity | App-supplied translator — typically `(key) => t(appId, key)`. Named `translate` (not `t`) to avoid shadowing the global `t()` mixin. Provided as `cnTranslate`. |
+| `environment` | String | `''` | Environment this instance is: `development`, `test`, `acceptance` or `production`. Wins over the active organisation's `environment` field. A non-production value shows a [CnEnvironmentBanner](cn-environment-banner.md) and prefixes the tab title. |
+| `language` | `String` | user's language | The language labels are shown in. Defaults to the user's Nextcloud language; a preview can pass another. The label lookup tries `manifest.i18n.labels[language]` (then its base, `en_GB` to `en`), then the host `translate`, then the text as written. See [Manifest labels](../i18n/manifest-labels.md). |
+| `diagnostics` | `Function` | `null` | Listener for diagnostics: called with one report per request, render error, unknown component and binding problem (`{ kind, at, pageId, ... }`), and provided as `cnDiagnostics`. Without it no report is built. See [Diagnostics channel](../utilities/diagnostics.md). |
+| `notificationLabels` (`notification-labels`) | `Object` | `{}` | Labels for the app's notification rules in the user-settings notification pane, keyed `<schema>.<key>` or `<key>`. Values are translated strings or per-locale maps. A rule without a label reads as its key split into words, never as the raw key. Provided as `cnNotificationLabels`. |
 | `permissions` | `Array<string>` | `[]` | Permission strings the current user holds. Forwarded to `CnAppNav` for menu filtering. |
-| `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to `translate('User settings')` so the title follows the user's locale. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsTitle` | `String` | `''` | Title shown at the top of the hosted `NcAppSettingsDialog`. Empty (the default) resolves to "User settings" from the library catalogue ("Persoonlijke instellingen" in Dutch), then the app's `translate`. Override per app to brand the modal (e.g. `'Decidiq preferences'`). |
+| `userSettingsEyebrow` | `String` | `''` | Deprecated and ignored: the board user-settings dialog (DqPersoonlijkeInstellingen) draws its title alone, at the top of its navigation column. |
+| `userSettingsSubtitle` | `String` | `''` | Deprecated and ignored, for the same reason. |
+| `userSettingsNextcloudLinks` | `Array` | `[]` | Board look: Nextcloud's own personal settings, listed first in the user-settings navigation as links, `[{ label, section? \| href?, icon? }]` (`section` is a personal settings section id, opened at `/settings/user/<section>`). With any, the app's sections sit under one entry named after the app. Labels go through the app's `translate`. |
+| `userSettingsSections` | `Array` | `null` | The sections of the user-settings modal, in the order they are drawn: `app` (the app's own slot content), `notifications`, `credentials`, `walkthrough`, `integrations`. A key left out is not drawn, so `['app', 'credentials', 'walkthrough']` hides the notifications pane and the integrations section. The app's slot content always renders; without `app` it comes first. `null` keeps the defaults: every section after `#user-settings-sections` content, or only the `#user-settings` content and the integrations section. See [User-settings modal](#user-settings-modal). |
 | `adminSettingsTitle` | `String` | `''` | Title shown at the top of the admin-settings `NcAppSettingsDialog`. Empty (the default) resolves to `translate('Administration')`. Override per app (e.g. `'Pipelinq administration'`). |
 | `requiresApps` | `Array<string>` | `['openregister']` | App ids that MUST be installed for the host app to function. Checked against the OCS capabilities API on mount. When any required app is missing, CnAppRoot renders the `or-missing` slot (default `<NcEmptyContent>`) instead of the renderer. Pass `[]` to opt out (e.g. launchpad, the docs/styleguide app). See [App-availability guard](../architecture/schemas-and-registers.md#app-availability-guard-opt-out). |
+| `brand` | `Object \| null` | `null` | The brand block (`{ logo?, emblem?, name?, caption?, alt?, placement? }`) the board look draws at the start of Nextcloud's header. Empty falls back to the manifest's `nav.brand`. |
+| `look` | `''\|'board'\|'nextcloud'` | `''` | The look the app is drawn in. Empty falls back to the manifest's top-level `look`, then `nextcloud`. Provided to descendants as `cnLook`; in the `board` look the library's empty states draw as the card-size `CnWidgetEmptyState`. |
 | `initialOrganisationUuid` | `String \| null` | `null` | Seed value for the multi-tenancy provider's `activeOrganisationUuid`. CnAppRoot calls [`provideTenantContext`](../utilities/provide-tenant-context.md)`(initialOrganisationUuid, initialOrganisation)` on mount, so consumers wired to [`useTenantContext`](../utilities/composables/use-tenant-context.md) see the seeded tenant from the first render. Single-tenant deployments leave both props `null`. |
 | `initialOrganisation` | `Object \| null` | `null` | Optional resolved organisation entity matching `initialOrganisationUuid`. Stored on `activeOrganisation` so downstream components ([`CnTenantBadge`](./cn-tenant-badge.md), [`CnFormDialog`](./cn-form-dialog.md) auto-fill) have the name/icon available immediately without a follow-up fetch. |
 | `chatAppId` | `String` | `'openregister'` | Backend app id the hosted [`CnAiCompanion`](./cn-ai-companion.md) targets for its chat/agent HTTP calls (see [`chatApiBase`](../utilities/chat-api-base.md) / [`DEFAULT_CHAT_APP_ID`](../utilities/default-chat-app-id.md)). Override (e.g. `'hermiq'`) to point the companion at another backend. |
@@ -167,26 +186,49 @@ CnAppRoot calls `provide()` with the following keys; descendants `inject` these:
 | `header-actions` | — | — | Mounted inside `NcAppContent`, alongside the default slot |
 | `sidebar` | — | The resolved `cnPageSidebarComponent` when set, otherwise empty | Mounted next to `NcAppContent` (e.g. for `NcAppSidebar`). Gated by the `cnPageSidebarVisible` inject — when a descendant `CnPageRenderer` flips it to `false` (because the current manifest page declares `sidebar.show: false`), this slot stops rendering. The default (no provider) is value-true so the slot keeps rendering. The slot's **default content** is driven by the `cnPageSidebarComponent` inject — when the current page declares a `sidebarComponent` registry name, the resolved component renders here unless the consumer supplies a `#sidebar` slot override (override wins). See [Per-page sidebar visibility](./cn-page-renderer.md#per-page-sidebar-visibility) and [Per-page sidebar component](./cn-page-renderer.md#per-page-sidebar-component). |
 | `footer` | — | — | Mounted inside `NcAppContent`, after the default slot |
-| `user-settings` | — | Notification preferences, plus a "Restart walkthrough" section when the manifest declares an enabled tour | `NcAppSettingsSection` children rendered inside the host `NcAppSettingsDialog`. The dialog is always mounted; CnAppNav opens it via `cnOpenUserSettings` (manifest items with `action: "user-settings"`). Supplying this slot replaces the default content (including the walkthrough section). |
+| `user-settings-sections` | — | — | The app's own `NcAppSettingsSection` children, ADDED to the library's default sections (notifications, credentials, walkthrough replay, integrations). Place, order or hide the defaults with `userSettingsSections`. |
+| `user-settings` | — | — | The older slot: the app's own `NcAppSettingsSection` children, REPLACING the default sections. Filling it draws only this content and the integrations section, unless `userSettingsSections` names more. Prefer `user-settings-sections`. |
 
 ## User-settings modal
 
 CnAppRoot always mounts a single `NcAppSettingsDialog` and exposes a `cnOpenUserSettings` provide-injected method any descendant can call to open it. The default trigger is [CnAppNav](./cn-app-nav.md) — manifest entries declaring `action: "user-settings"` are wired to this method automatically.
 
+The modal draws five kinds of section, in this order by default:
+
+| Key | Section | Drawn when |
+|---|---|---|
+| `app` | The app's own sections, from `#user-settings-sections` (and the older `#user-settings`) | the app fills a slot |
+| `notifications` | The notification-preferences pane ([CnNotificationPreferences](./cn-notification-preferences.md)) | always |
+| `credentials` | The personal credential broker ([CnCredentials](./cn-credentials.md)) | always |
+| `walkthrough` | A **Walkthrough** section with a **Restart walkthrough** button (ADR-043): it closes the dialog and re-fires the tour from step 1 | the manifest declares an enabled `walkthrough` with at least one tour |
+| `integrations` | The links that leave this app for another one (ADR-110) | the manifest declares `section: "integrations"` menu entries |
+
+An app adds its own sections through `#user-settings-sections` and keeps every default:
+
 ```vue {static}
 <CnAppRoot :manifest="manifest" app-id="decidesk">
-  <template #user-settings>
+  <template #user-settings-sections>
     <NcAppSettingsSection id="general" :name="t('decidesk', 'General')">
       <p>{{ t('decidesk', 'Personal preferences for Decidiq.') }}</p>
-    </NcAppSettingsSection>
-    <NcAppSettingsSection id="notifications" :name="t('decidesk', 'Notifications')">
-      <!-- toggles, selects, etc. -->
     </NcAppSettingsSection>
   </template>
 </CnAppRoot>
 ```
 
-When no `#user-settings` slot is supplied, the modal renders the built-in notification-preferences pane. If the app's manifest declares an enabled `walkthrough` with at least one tour (ADR-043), a **Walkthrough** section is appended with a **Restart walkthrough** button — a self-service way to re-run the product tour. Clicking it closes the settings dialog and re-fires the tour from step 1. The section is strictly gated on `walkthroughEnabled`, so apps without a walkthrough never show it. Supplying your own `#user-settings` slot replaces this default content entirely.
+To place, order or hide the defaults, pass `userSettingsSections`. A board that draws the app's sections, then credentials and the walkthrough, and no notifications pane or integrations:
+
+```vue {static}
+<CnAppRoot :manifest="manifest" app-id="decidesk"
+  :user-settings-sections="['app', 'credentials', 'walkthrough']">
+  <template #user-settings-sections>
+    <!-- the app's own NcAppSettingsSection children -->
+  </template>
+</CnAppRoot>
+```
+
+The older `#user-settings` slot keeps what it always did: it replaces the defaults, so only its content and the integrations section are drawn. An app on that slot that draws credentials or the walkthrough by hand can drop its copies and pass `userSettingsSections` (for example `['app', 'credentials', 'walkthrough']`), or move to `#user-settings-sections`.
+
+The dialog's title and the names of the sections the library draws come from the library catalogue first ("Persoonlijke instellingen", "Inloggegevens", "Rondleiding" in Dutch), then from the app's `translate`.
 
 ## Hoisted index sidebar
 
@@ -255,6 +297,38 @@ Before this overload existed, virtual-app hosts had to fake an HTTP fetch by pas
 - [migrating-to-manifest](../migrating-to-manifest.md) — Tier-by-tier adoption guide.
 - [useScopedTheme](../utilities/composables/use-scoped-theme.md) — Backs the `runtime.theme` scoped-theming wiring above.
 
+## Board look
+
+An app opts in to the look of the screens on identity.conduction.nl with one key. An app without it renders exactly as before.
+
+```json
+{ "look": "board", "pages": [ { "id": "settings", "type": "settings", "config": { "look": "nextcloud" } } ] }
+```
+
+- `look` at the manifest root is `"nextcloud"` (the default) or `"board"`. The `look` prop of `CnAppRoot` wins over it.
+- In the board look `CnAppRoot` puts the class `cn-look-board` on its root element. A page with its own `config.look` that differs puts `cn-look-board` or `cn-look-nextcloud` on its own root, and the nearest class wins.
+- `src/css/look-board.css` defines the board dimensions as `--cn-board-*` custom properties on `.cn-look-board`: `--cn-board-content-padding`, `--cn-board-content-max-width`, `--cn-board-section-gap`, `--cn-board-control-height`, `--cn-board-control-radius`, `--cn-board-card-radius`, `--cn-board-card-padding`, `--cn-board-hairline` and `--cn-board-text-soft`. Colours stay Nextcloud variables.
+- `CnAppRoot` provides the resolved look as `cnLook`, and a page with `config.look` re-provides its own to its descendants. Components read it with `useLook(props)`, which returns `look`, `isBoard` and `lookClass`. A `look` prop on the component overrides the injected value.
+- A dialog is teleported to `document.body`, outside `CnAppRoot`, so a `.cn-look-board` rule cannot reach it. Bind `lookClass` on the dialog's own container.
+
+```js
+import { useLook } from '@conduction/nextcloud-vue'
+
+export default {
+  props: { look: { type: String, default: '' } },
+  setup(props) {
+    const { isBoard, lookClass } = useLook(props)
+    return { isBoard, lookClass } // <div :class="lookClass"> on the teleported container
+  },
+}
+```
+
+### The brand block in Nextcloud's header
+
+Under the board look, an app that declares a brand (`nav.brand`, or the `brand` prop) gets a 237px block at the start of Nextcloud's own header (`#header`), before the app menu: the emblem, the organisation (`caption`) above the app name (`name`), and a 1px divider at its end. The block exists without `CnAppNav`, so an app with its own menu has it too. `CnAppNav` stops drawing the block while the header does (`cnBrandInHeader`). Set `nav.brand.placement: "nav"` to keep the block in the navigation.
+
+Nextcloud offers no extension point for apps in `#header`, so this is unsupported by Nextcloud and may break on an update. The library limits the damage: it adds one node of its own and never moves, edits or removes a node Nextcloud drew, puts that node back if Nextcloud re-renders the header, and falls back to the navigation when `#header` is absent. Sizes: `--cn-board-brand-width` (237px), `--cn-nav-emblem-size` (34px).
+
 ## Support dialog
 
 | Prop | Type | Default | Description |
@@ -289,3 +363,33 @@ CnAppRoot's root `<NcContent>` always carries `data-nldesign-theme-scope="<appId
 They are off by default because they stacked: an app declaring four optional leaves showed four cards above its own content and pushed the page below the fold, on every load, for an audience who cannot act on them. Mount [`CnLeafDependencySettings`](./cn-leaf-dependency-settings.md) in the app's admin settings instead — it carries the same two states and the same install/enable action.
 
 `unresolvedSoftDependencies` is unchanged and still exposed, so an app rendering its own surface from it keeps working. The prop is a bridge for one release and is slated for removal.
+
+## Hiding the navigation (`hideMenu`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `hideMenu` | `Boolean` | `false` | Render no app navigation at all: neither the default `CnAppNav` nor the `#menu` slot, so the content starts at the left edge. An empty `#menu` override cannot do this (an empty slot falls back to the default `CnAppNav`), which is why launchpad passed a hidden empty span. |
+
+`CnAppRoot` also provides `cnMenuItemCounts`, the filtered totals for menu entries whose `count` is `{ register, schema, filter }` (see [CnAppNav](./cn-app-nav.md)).
+
+## User settings in the board look
+
+Under the board look (`look: "board"` or manifest `look`) the user settings open in the board dialog (board
+PqPersoonlijk) instead of `NcAppSettingsDialog`: an eyebrow, the title and a subtitle, a 200px navigation listing every
+section with its icon, the sections, and a footer "Changes are saved straight away · Pipelinq" (the app's name) with Close. The sections
+stay the app's: every `NcAppSettingsSection` in `#user-settings-sections` registers itself with the board dialog as it
+does with `NcAppSettingsDialog`, so give each one an `#icon` slot to show an icon in the navigation. The library's own
+sections carry one. The Nextcloud look is unchanged.
+
+Nextcloud does not expose its personal settings sections to an app's page, so the board's list of Nextcloud's own
+settings (Persoonlijke info, Beveiliging, ..., Privacy) is configured with `userSettingsNextcloudLinks`. With it, the
+navigation lists those links first and then one entry named after the app, with the app's sections under it (board
+DqPersoonlijkeInstellingen). A section's `#icon` also stands before its heading in the board dialog. The board dialog shows one section at a time: picking a navigation entry shows that section and moves focus to its heading; the other sections stay mounted but hidden, so what was typed in them survives a switch.
+
+```js
+const userSettingsNextcloudLinks = [
+	{ label: 'Personal info', section: 'personal-info', icon: 'AccountOutline' },
+	{ label: 'Security', section: 'security', icon: 'LockOutline' },
+	{ label: 'Privacy', section: 'privacy', icon: 'ShieldAccountOutline' },
+]
+```

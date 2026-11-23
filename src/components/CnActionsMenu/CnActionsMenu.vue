@@ -25,18 +25,26 @@
 			:forceMenu="true"
 			:forceName="true"
 			:menuName="actionsMenuLabel"
-			:data-testid="`${testidBase}-actions`">
+			:variant="variant || undefined"
+			:placement="placement"
+			:open="menuOpen"
+			:data-testid="`${testidBase}-actions`"
+			@update:open="menuOpen = $event">
 			<template #icon>
-				<DotsHorizontal :size="20" />
+				<ChevronDown v-if="trailingChevron" :size="14" />
+				<DotsHorizontal v-else :size="20" />
 			</template>
+			<!-- @slot lead-items Items rendered at the very top of the menu, above Refresh: the tabs a board strip lists here instead of drawing them (CnTabsWidget). The caller owns any separator after them. -->
+			<slot name="lead-items" />
+			<!-- Stays open while refreshing; onRefreshClick closes the menu once the refresh settles. -->
 			<NcActionButton
 				v-if="showRefresh"
 				:data-testid="`${testidBase}-action-refresh`"
-				:disabled="refreshing"
-				:closeAfterClick="true"
+				:disabled="refreshBusy"
+				:closeAfterClick="false"
 				@click="onRefreshClick">
 				<template #icon>
-					<NcLoadingIcon v-if="refreshing" :size="20" />
+					<NcLoadingIcon v-if="refreshBusy" :size="20" />
 					<Refresh v-else :size="20" />
 				</template>
 				{{ refreshLabel }}
@@ -59,8 +67,23 @@
 			     `showRequestFeature` / `showReportBug` / `showDocumentation`
 			     exist only for the rare surface that must suppress one
 			     deliberately; they all default to true. -->
+			<!-- A real link whenever the form's URL is known, so it can be
+			     middle-clicked or copied; a button only for a host with no
+			     URL that handles @request-feature itself. -->
+			<NcActionLink
+				v-if="showRequestFeature && resolvedRequestFeatureUrl"
+				:href="resolvedRequestFeatureUrl"
+				target="_blank"
+				:data-testid="`${testidBase}-action-request-feature`"
+				:closeAfterClick="true"
+				@click="onRequestFeatureClick">
+				<template #icon>
+					<LightbulbOutline :size="20" />
+				</template>
+				{{ requestFeatureLabel }}
+			</NcActionLink>
 			<NcActionButton
-				v-if="showRequestFeature"
+				v-else-if="showRequestFeature"
 				:data-testid="`${testidBase}-action-request-feature`"
 				:closeAfterClick="true"
 				@click="onRequestFeatureClick">
@@ -73,7 +96,6 @@
 				v-if="showReportBug && resolvedReportBugUrl"
 				:href="resolvedReportBugUrl"
 				target="_blank"
-				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-report-bug`"
 				:closeAfterClick="true">
 				<template #icon>
@@ -85,7 +107,6 @@
 				v-if="showDocumentation && resolvedDocumentationUrl"
 				:href="resolvedDocumentationUrl"
 				target="_blank"
-				rel="noopener noreferrer"
 				:data-testid="`${testidBase}-action-documentation`"
 				:closeAfterClick="true">
 				<template #icon>
@@ -108,10 +129,12 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import BugOutline from 'vue-material-design-icons/BugOutline.vue'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import LightbulbOutline from 'vue-material-design-icons/LightbulbOutline.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import { buildBugReportUrl, buildFeatureRequestUrl, DEFAULT_FORGE } from '../../utils/forge.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * The fleet's per-app documentation site, derived from the app id. Used only
@@ -160,10 +183,10 @@ export function resolveDocsUrl(base, anchor) {
 		try {
 			return new URL(a, b).toString()
 		} catch {
-			return `${b.replace(/\/+$/, '')}${a}`
+			return `${stripTrailingSlashes(b)}${a}`
 		}
 	}
-	return `${b.replace(/#.*$/, '').replace(/\/+$/, '')}#${a}`
+	return `${stripTrailingSlashes(b.replace(/#.*$/, ''))}#${a}`
 }
 
 /**
@@ -175,17 +198,28 @@ export function resolveDocsUrl(base, anchor) {
  * re-emitting `@refresh`), so a host listener on the outer component can
  * still suppress the default.
  *
- * @return {{defaultPrevented: boolean, preventDefault: () => void}}
+ * `waitUntil(promise)` lets a listener keep the Refresh item spinning, and the
+ * menu open, until that promise settles.
+ *
+ * @param {(promise: Promise<unknown>) => void} [waitUntil] Collector for refresh work.
+ * @return {{defaultPrevented: boolean, preventDefault: () => void, waitUntil: (promise: Promise<unknown>) => void}}
  */
-function createSyntheticEvent() {
+function createSyntheticEvent(waitUntil = () => {}) {
 	const ev = {
 		defaultPrevented: false,
 		preventDefault() {
 			this.defaultPrevented = true
 		},
+		waitUntil,
 	}
 	return ev
 }
+
+/** Shortest time the Refresh spinner shows, so a fast refresh is still visible. */
+const MIN_REFRESH_SPIN_MS = 400
+
+/** Longest the Refresh item waits on `waitUntil` work; axios has no default timeout. */
+const MAX_REFRESH_WAIT_MS = 15000
 
 /**
  * CnActionsMenu — the shared built-in overflow Actions menu.
@@ -218,6 +252,7 @@ export default {
 		NcActionButton,
 		NcActionLink,
 		NcLoadingIcon,
+		ChevronDown,
 		DotsHorizontal,
 		Refresh,
 		LightbulbOutline,
@@ -457,10 +492,56 @@ export default {
 			default: () => t('nextcloud-vue', 'Request a feature'),
 		},
 
+		/**
+		 * Draw a 14px chevron after the label instead of the dots before it:
+		 * the board's "Meer" menu in a detail header (DqZaak). The board look
+		 * puts the icon after the label; the Nextcloud look keeps it first.
+		 */
+		trailingChevron: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Where the menu opens against its trigger: NcActions' `bottom`
+		 * (centred under it), or `bottom-end`, the board's "Meer" menu, whose
+		 * right edge lines up with the trigger's (DqZaakMeer).
+		 */
+		placement: {
+			type: String,
+			default: 'bottom',
+		},
+
 		/** Pre-translated aria-label / tooltip for the overflow trigger. */
 		actionsMenuLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Actions'),
+		},
+
+		/**
+		 * How the trigger button is drawn: `tertiary` (NcActions' own default,
+		 * used when empty), `secondary` for a header that wants a bordered
+		 * button, as the board look's "More".
+		 *
+		 * @type {''|'primary'|'secondary'|'tertiary'|'tertiary-no-background'}
+		 * @spec openspec/changes/screens-detail-page-parity/specs/detail-page-board-look/spec.md#requirement-the-detail-header-buttons-follow-one-order
+		 */
+		variant: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Tell the menu that `#primary-items` has content. Only needed by a
+		 * host that switches every built-in item off: the menu decides whether
+		 * to render at all in a computed, and a slot that fills in later (a
+		 * page's actions arrive after mount) is not something a computed
+		 * notices. With any built-in item showing, the menu renders anyway
+		 * and this changes nothing.
+		 */
+		hasPrimaryItems: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -478,7 +559,23 @@ export default {
 
 	emits: ['refresh', 'request-feature'],
 
+	data() {
+		return {
+			/** Whether the overflow menu is open. */
+			menuOpen: false,
+			/** Whether a refresh this menu started is still settling. */
+			refreshPending: false,
+			/** Close the menu once the host's `refreshing` falls back to false. */
+			closeWhenIdle: false,
+		}
+	},
+
 	computed: {
+		/** Whether the Refresh item spins: the host's flag or our own pending refresh. */
+		refreshBusy() {
+			return this.refreshing || this.refreshPending
+		},
+
 		/**
 		 * Whether the overflow `…` menu renders at all. True when at least
 		 * one built-in item is visible OR the caller provided an
@@ -499,7 +596,7 @@ export default {
 			if (this.showRequestFeature) {
 				return true
 			}
-			if (this.$slots['primary-items']) {
+			if (this.hasPrimaryItems || this.$slots['primary-items'] || this.$slots['lead-items']) {
 				return true
 			}
 			return Boolean(this.$slots['action-items']) || Boolean(this.$slots && this.$slots['action-items'])
@@ -615,43 +712,84 @@ export default {
 		},
 	},
 
+	watch: {
+		refreshing(busy) {
+			if (!busy && this.closeWhenIdle) {
+				this.closeWhenIdle = false
+				this.menuOpen = false
+			}
+		},
+	},
+
 	methods: {
 		/**
 		 * Refresh click — emits `@refresh`, then runs the built-in default
 		 * (emit on `refreshChannel`) unless a host called
-		 * `event.preventDefault()` on the second handler arg.
+		 * `event.preventDefault()` on the second handler arg. The item spins
+		 * and the menu stays open until every promise handed to `waitUntil`
+		 * (on the event or the bus payload) settles, or 15 s pass, and the
+		 * host's `refreshing` is false; then the menu closes.
 		 *
-		 * @return {void}
+		 * @return {Promise<void>}
 		 */
-		onRefreshClick() {
-			const ev = createSyntheticEvent()
+		async onRefreshClick() {
+			if (this.refreshBusy) {
+				return
+			}
+			const work = []
+			const waitUntil = (promise) => {
+				work.push(Promise.resolve(promise))
+			}
+			const ev = createSyntheticEvent(waitUntil)
+			this.refreshPending = true
+			const startedAt = Date.now()
 			/**
 			 * @event refresh User clicked the Refresh item. Payload:
 			 * `{ widgetId, title }`. Handlers may call the second arg's
 			 * `preventDefault()` to suppress the built-in default (event-bus
-			 * emit on `refreshChannel`).
+			 * emit on `refreshChannel`), and its `waitUntil(promise)` to keep
+			 * the item spinning until that work settles.
 			 * @type {{ widgetId: string, title: string }}
 			 */
 			this.$emit('refresh', { widgetId: this.widgetId, title: this.title }, ev)
-			if (ev.defaultPrevented) {
-				return
+			if (!ev.defaultPrevented) {
+				emitOnBus(this.refreshChannel, {
+					widgetId: this.widgetId,
+					title: this.title,
+					waitUntil,
+				})
 			}
-			emitOnBus(this.refreshChannel, {
-				widgetId: this.widgetId,
-				title: this.title,
-			})
+			let ceiling
+			await Promise.race([
+				Promise.allSettled(work),
+				new Promise((resolve) => {
+					ceiling = setTimeout(resolve, MAX_REFRESH_WAIT_MS)
+				}),
+			])
+			clearTimeout(ceiling)
+			const hold = MIN_REFRESH_SPIN_MS - (Date.now() - startedAt)
+			if (hold > 0) {
+				await new Promise((resolve) => setTimeout(resolve, hold))
+			}
+			this.refreshPending = false
+			if (this.refreshing) {
+				this.closeWhenIdle = true
+			} else {
+				this.menuOpen = false
+			}
 		},
 
 		/**
-		 * Request-a-feature click — emits `@request-feature`, then runs the
-		 * built-in default (open the forge's feature-request issue form in a
-		 * new tab, exactly like Report a bug) unless a host called
-		 * `event.preventDefault()`. Warns and skips opening when no
-		 * `cnFeatureRequestRepo` inject can be resolved.
+		 * Request-a-feature click — emits `@request-feature`. The item is a
+		 * link to the forge's feature-request form, so the browser opens it
+		 * unless a host called `event.preventDefault()`, which then cancels
+		 * the link. With no `cnFeatureRequestRepo` the item is a button and
+		 * this only warns.
 		 *
+		 * @param {Event} [nativeEvent] The link's click event.
 		 * @return {void}
 		 */
-		onRequestFeatureClick() {
+		onRequestFeatureClick(nativeEvent) {
 			const ev = createSyntheticEvent()
 			/**
 			 * @event request-feature User clicked the Request a feature
@@ -662,14 +800,15 @@ export default {
 			 */
 			this.$emit('request-feature', { widgetId: this.widgetId, title: this.title }, ev)
 			if (ev.defaultPrevented) {
+				if (nativeEvent && typeof nativeEvent.preventDefault === 'function') {
+					nativeEvent.preventDefault()
+				}
 				return
 			}
 			if (!this.resolvedRequestFeatureUrl) {
 				// eslint-disable-next-line no-console
 				console.warn('[CnActionsMenu] Cannot open the feature-request form: missing cnFeatureRequestRepo inject (mount under CnAppRoot or bind a custom @request-feature listener).')
-				return
 			}
-			window.open(this.resolvedRequestFeatureUrl, '_blank', 'noopener,noreferrer')
 		},
 	},
 }

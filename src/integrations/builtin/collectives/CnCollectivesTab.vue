@@ -69,7 +69,10 @@
 			class="cn-sidebar-tab__empty cn-collectives-tab__empty">
 			<BookOpenPageVariant :size="32" class="cn-collectives-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="primary" @click="openCollectivesApp">
+			<NcButton
+				variant="primary"
+				:href="collectivesAppUrl"
+				target="_blank">
 				<template #icon>
 					<BookOpenPageVariant :size="20" />
 				</template>
@@ -115,12 +118,15 @@
 								relativeTime="short" />
 						</template>
 						<template #actions>
-							<NcActionButton :closeAfterClick="true" @click="openPage(page)">
+							<NcActionLink
+								:closeAfterClick="true"
+								:href="pageUrl(page)"
+								target="_blank">
 								<template #icon>
 									<OpenInNew :size="20" />
 								</template>
 								{{ t('nextcloud-vue', 'Open in Knowledge') }}
-							</NcActionButton>
+							</NcActionLink>
 							<NcActionButton :closeAfterClick="true" @click="unlinkPage(page)">
 								<template #icon>
 									<LinkOff :size="20" />
@@ -149,7 +155,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcButton, NcDateTime, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import BookOpenPageVariant from 'vue-material-design-icons/BookOpenPageVariant.vue'
 import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
@@ -160,7 +166,7 @@ import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnCollectivePageCreate from '../../../components/CnCollectivePageCreate/CnCollectivePageCreate.vue'
 import CnCollectivePagePicker from '../../../components/CnCollectivePagePicker/CnCollectivePagePicker.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { stripMarker } from '../../utils/marker.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -180,6 +186,7 @@ export default {
 
 	components: {
 		NcActionButton,
+		NcActionLink,
 		NcButton,
 		NcDateTime,
 		NcListItem,
@@ -324,8 +331,9 @@ export default {
 			return text
 		},
 
+		// A provider URL is used only when it is a safe scheme; else the app link.
 		pageUrl(page) {
-			if (typeof page.url === 'string' && page.url !== '') {
+			if (typeof page.url === 'string' && page.url !== '' && safeHref(page.url) !== '#') {
 				return page.url
 			}
 			const d = this.dataOf(page)
@@ -392,18 +400,6 @@ export default {
 		 */
 		sublineLabel(page) {
 			return this.collectiveLabel(page)
-		},
-
-		openPage(page) {
-			if (typeof window !== 'undefined') {
-				window.open(this.pageUrl(page), '_blank', 'noopener')
-			}
-		},
-
-		openCollectivesApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.collectivesAppUrl, '_blank', 'noopener')
-			}
 		},
 
 		openPicker() {

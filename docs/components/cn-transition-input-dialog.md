@@ -60,8 +60,9 @@ must be checked; whitespace does not count).
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `transition` | `Object` | — (required) | The transition being applied: `{ action, label, inputs: [{ field, required }] }`. `label` doubles as dialog title + confirm label. |
+| `transition` | `Object` | — (required) | The transition being applied: `{ action, label, inputs: [{ field, required, label?, options? }] }`. `label` doubles as dialog title + confirm label. |
 | `schema` | `Object \| null` | `null` | The object's JSON Schema (with `properties`) used to resolve labels/widgets. Optional — undeclared fields render as plain text inputs. |
+| `context` | `Object` | `{}` | What an input's `optionsSource` and the transition's `summary` read. |
 
 ## Events
 
@@ -69,3 +70,53 @@ must be checked; whitespace does not count).
 |-------|---------|-------------|
 | `confirm` | `{ <field>: <value>, ... }` | The user confirmed with all required inputs filled. Payload holds **exactly** the declared input keys; the parent POSTs `{ action, data }`. |
 | `close` | — | Cancel / dialog dismissed. No `confirm` was or will be emitted. |
+
+## Inputs that offer choices
+
+An input may say how it is asked for, which matters when the choices depend on
+the record rather than on its schema (the results a case may close with, say):
+
+| Key | Description |
+|-----|-------------|
+| `label` | The words beside the field, over the schema property's `title`. |
+| `options` | `[{ value, label }]`. The input becomes an `NcSelect` that shows each `label` and sends the chosen `value`. |
+
+An option without a value is dropped, one without a label shows its value, and
+an input whose `options` hold nothing usable renders from the schema as before.
+OpenRegister's `/available-actions` publishes both keys when a transition or a
+lifecycle provider declares them.
+
+```js
+{ field: 'resultTypeId', required: true, label: 'Result', options: [
+  { value: '3f2a…', label: 'Granted' },
+  { value: '9c1d…', label: 'Refused' },
+] }
+```
+
+## Declared widgets, choices from the context, previews
+
+The inputs are drawn by [`CnTransitionInputFields`](./cn-transition-input-fields.md), so an input may also declare `widget` (`text`, `textarea`, `number`, `date`, `template`), `optionsSource` (choices read off `context`), `other` (an "Other" entry that falls back to a free-text input, sent as `''`), `helperFrom`, `preview` and `default`. The transition may carry `columns`, `summary` and `notice` for the layout around the inputs. A hidden input is neither asked nor sent. See that page for every key.
+
+## Reference inputs and object inputs
+
+An input whose schema property is an object reference (`$ref`, as `fieldsFromSchema` reports it) is **picked, never typed**: the dialog renders [`CnResourceSelect`](./cn-resource-select.md) over the referenced schema (in the property's register, else the dialog's `register`) and sends the picked uuid. The input entry may carry `picker`:
+
+| Key | Description |
+|-----|-------------|
+| `filter` | Field values the candidates must match, e.g. `{ lifecycle: 'active' }`. |
+| `excludeSelf` | Drop the record the transition runs on (`currentObject`) from the options. |
+| `labelField` | The field shown as the label. |
+
+An input whose property is `type: object` renders its sub-properties as fields, narrowed to the input's `fields` list when it names one. On confirm the dialog sends **one object**: the record's current value of that property with the typed sub-values merged over it, so a sub-field that was not asked for keeps its value. It never sends a dotted key (the server checks top-level keys). A sub-field is required when the input names it in `fields` and the sub-schema lists it in `required`, or when the whole input is required and it is the only one asked. A refusal naming `<input>.<sub>` marks that sub-field.
+
+An input may also name one sub-field by a dotted path. The dotted inputs of one parent become one object input on that parent, in the place of the first, asking just those sub-fields in their order; each is required when its own input says `required: true` and is labelled by its own `label`. So the MAS route can be required while the note stays optional:
+
+```json
+[{ "field": "municipalityFeedback.masRoute", "required": true }, { "field": "municipalityFeedback.note" }]
+```
+
+It is sent as the object above: the record's `municipalityFeedback` with the two typed values merged over it.
+
+Two props support this: `currentObject` (default `null`, the record the transition runs on: the `excludeSelf` id and the merge base) and `register` (default `''`, the register the pickers look in).
+
+The server-declared inputs of an `/available-actions` transition get the same hints from the manifest: see [`CnLifecycleActions`](./cn-lifecycle-actions.md#input-hints).

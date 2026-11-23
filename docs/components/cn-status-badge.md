@@ -20,7 +20,7 @@ Color-coded pill badge for status, priority, or category display. Supports autom
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `label` | String | `''` | Display text |
-| `variant` | String | `'default'` | `'default'`, `'primary'`, `'success'`, `'warning'`, `'error'`, `'info'` |
+| `variant` | String | `'default'` | `'default'`, `'primary'`, `'success'`, `'warning'`, `'error'`, `'info'`, and the two board tones without a Nextcloud role: `'purple'` (work in progress, such as "In behandeling") and `'teal'` (handed on, such as "Omgezet naar een zaak"). The board tones read the tokens `--cn-status-purple-bg`, `--cn-status-purple-text`, `--cn-status-teal-bg` and `--cn-status-teal-text`, which a theme may redefine. Under the board look a primary pill takes `--color-primary-element-light-text` as its text colour. |
 | `size` | String | `'medium'` | `'small'` or `'medium'` |
 | `solid` | Boolean | `false` | Use solid background with white text instead of light background with colored text |
 | `colorMap` | Object | `null` | Map label values to variants (case-insensitive) |

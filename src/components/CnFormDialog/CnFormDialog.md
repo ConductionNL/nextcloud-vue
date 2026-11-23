@@ -95,15 +95,59 @@ export default {
 
 | Prop | Default | Description |
 |---|---|---|
+| `templateSource` | `null` | `{ register, schema }`: a create form offers the record templates of that register and schema in a "Start from a template" picker. |
 | `dialogTitle` | `''` | Dialog title. Defaults to `'Create {schema.title}'` or `'Edit {schema.title}'` when empty. |
 | `initialData` | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
 | `excludeFields` | `[]` | Array of field keys to exclude from the auto-generated form. |
 | `includeFields` | `null` | Array of field keys to include (whitelist mode). Null means all fields. |
-| `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. |
+| `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. A `widget` that names a registered component (v2 registry, then `customComponents`) mounts it as the field's control, with `value`/`modelValue`, `field`, `error` and `disabled`, writing back on `input` or `update:modelValue`. |
 | `nameField` | `'title'` | Which field is the "name" of the item (used in result messages). |
 | `size` | `'normal'` | NcDialog size — `'small'`, `'normal'`, or `'large'`. |
 | `dynamicLoadingLabel` | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See *Fields the data decides* below. |
+
+### Draft props
+
+| Prop | Default | Description |
+|---|---|---|
+| `recoverDraft` | `true` | Keep what the user typed in browser storage and offer it back when this form reopens. Local only — nothing reaches the server until they save. |
+| `allowDraft` | `false` | Offer a **Save draft** button that stores the record with a draft marker instead of validating it. Inert unless the schema declares `draftField`. |
+| `draftField` | `'isDraft'` | The boolean property that marks a record as a draft. |
+| `draftAppId` | `''` | The app the draft belongs to, for the storage key. |
+| `draftUserId` | `''` | Who is typing, for the storage key. Empty: the signed-in Nextcloud user, and `anonymous` only when nobody is signed in. |
+
+#### What the draft does and does not do
+
+The draft is **offered, never applied**. Reopening the form shows a bar with
+Restore and Discard; the values go in only when somebody presses Restore. A form
+that filled itself would be indistinguishable from one the server prefilled, and
+somebody would submit last week's answers without knowing they were there.
+
+The user is part of the storage key. A shared browser profile at a service
+desk is the ordinary case in a municipality, and a draft keyed without the user
+hands the next person at the counter what the last one typed. Without
+`draftUserId` the dialog uses the signed-in Nextcloud user. A draft stored
+under `anonymous` is removed, never offered, once somebody is signed in.
+
+A draft is written only after a person changes a field, and only while that
+field differs from the value the form opened with. Opening a dialog, or the
+form filling in values by itself, writes nothing and shows no Saving or Saved.
+
+A draft is dropped rather than offered when it is more than seven days old, when
+the record has been saved by somebody else since it was written, or when the
+stored entry cannot be read. The local copy is cleared on a **successful** save
+only: a failed save is exactly when somebody needs their typing back.
+
+`allowDraft` needs both halves. The host asks for the button, and the schema has
+to declare `draftField` for there to be anywhere to record it — writing a
+property the schema does not carry has OpenRegister drop it with a 200 and an
+object back, so the record would read as published while the user was told it
+was a draft.
+
+Save draft is the one path around required-field validation, which is the point
+of a draft, and it is reachable only by pressing a button that says so. It emits
+`draft-saved` with the payload; the host saves it and calls `setResult()` as it
+would for a confirm.
 
 ### Slots
 
@@ -126,6 +170,10 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+| `footnote` | `''` | A note the form closes on, under its fields, with an information icon. The host translates it. Empty shows none. |
+| `confirmIcon` | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. |
+| `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
+| `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
 
 ## Fields the data decides
 
@@ -195,8 +243,18 @@ two columns are merely two narrow ones.
 ```
 
 Textareas, JSON editors and code editors still span the full width, and the
-layout collapses back to one column below 700px. A manifest `open-form` action
-declares the same two keys directly:
+layout collapses back to one column below 700px. A field override can ask for
+the full width on any other field with `width: 'full'`, and a textarea is as
+many lines high as its override's `rows` (default 4):
+
+```json static
+{ "fieldOverrides": { "title": { "width": "full" }, "description": { "widget": "textarea", "rows": 3 } } }
+```
+
+In the board look a textarea is three lines tall on the normal leading; a field
+with its own `rows` is that many lines tall instead.
+
+A manifest `open-form` action declares `size` and `columns` directly:
 
 ```json static
 { "id": "new-case", "type": "open-form", "size": "large", "columns": 2 }
@@ -278,3 +336,7 @@ silently hiding a user-facing input.
 | Prop | Default | Description |
 |---|---|---|
 | `referenceContext` (`reference-context`) | `null` | Object context `{ register, schema, objectId }` forwarded to the integration single-entity widget rendered for fields that declare a `referenceType`. Optional. |
+
+## Board look
+
+The `optionalLabel` prop sets the word in "(optional)" after an optional field label. Required fields carry no asterisk in the board look.

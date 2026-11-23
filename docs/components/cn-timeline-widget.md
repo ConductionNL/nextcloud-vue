@@ -1,0 +1,193 @@
+# CnTimelineWidget
+
+An object's dated events in time order, on a detail page. Place it with the
+`timeline` widget type.
+
+```json
+{
+  "type": "timeline",
+  "content": {
+    "title": "Timeline",
+    "fields": [
+      { "field": "@self.created", "label": "Booking created" },
+      { "field": "depositClearedAt", "label": "Deposit cleared" },
+      { "field": "confirmationSentAt", "label": "Confirmation mail sent" },
+      { "field": "startsAt", "label": "Starts" },
+      { "field": "endsAt", "label": "Ends" }
+    ],
+    "related": [
+      { "schema": "payment", "field": "booking", "label": "Payment received", "titleField": "amount" }
+    ],
+    "auditTrail": true
+  }
+}
+```
+
+## Sources
+
+All five are optional and end up in one list.
+
+| Key | What it adds |
+|-----|--------------|
+| `fields` | The object's date properties, `[{ field, label }]`. A dotted path reaches metadata, such as `@self.created`. A field without a date adds nothing. |
+| `related` | Related objects, `[{ schema, field, register?, dateField?, label, titleField?, limit? }]`. Rows of `schema` whose `field` holds this object's id, each dated by `dateField` (default `@self.created`). `titleField` becomes the line under the label. |
+| `auditTrail` | `true` adds the object's audit trail: "Updated by Ruben". |
+| `lists` | A list held on the object, `[{ field, dateField, labelField?, valueLabels?, label?, detailField? }]`, such as a status history. Each entry with a date at `dateField` becomes one event, labelled by its `labelField` value (else `label`), with `detailField` as the line under it. `valueLabels` words a stored value (`{ "confirmed": "Status: Confirmed" }`), translated like every label; a value it does not name shows as stored. |
+| `timeline` | `true` adds OpenRegister's timeline of notes, calls and messages. |
+
+`order: "desc"` lists newest first; the default is oldest first. `limit: 3` keeps the first three events of that order, for a short History side card. An audit-trail read is not a change, so it is not listed.
+
+## A history in words
+
+The audit trail takes the History card's words: `actionLabels` (by action), `changeLabels` (`[{ field, to?, action?, label }]`, by the field an entry changed) and `valueLabels`, with the tokens `{actor}`, `{state}`, `{changed.<key>}` (the new value; `{changed.<key>.old}` the old one), `{object.<path>}`, and in a change label `{from}` and `{to}` (the rule field's old and new value; with `values: "user"` or `"group"` by display name). `excludeActions` and `excludeActors` leave entries out, as on the card. `limit` keeps the first few events after sorting. A `related` entry whose `label` holds `{path}` tokens names the row itself ("\{name\} is on the waiting list"), and its `when` (a local visibleWhen condition) keeps only the rows it holds for. Board PqEvenement:
+
+```json
+{ "type": "timeline", "content": {
+  "auditTrail": true, "order": "desc", "limit": 4, "excludeActions": ["read"],
+  "actionLabels": { "create": "Event created" },
+  "changeLabels": [{ "field": "capacity", "label": "Places raised from {changed.capacity.old} to {changed.capacity.new}" }],
+  "related": [{ "schema": "eventRegistration", "field": "event", "label": "{name} is on the waiting list", "when": { "field": "status", "value": "waitlist" } }]
+} }
+```
+
+`resolve` (`{ "<field>": { "register"?, "schema", "labelField"? } }`) names the record a reference points at: a label's `{object.<field>}` reads that record's label instead of its id, read once through the shared reference resolver ("Event created in campaign \{object.campaign\}" with `"resolve": { "campaign": { "schema": "campaign" } }`). The id stays until the label is known.
+
+An `actionLabels` value may also be a list of `{ when?, text }`: the first entry whose local visibleWhen condition holds for the record gives the words, and one without `when` is the fallback (`"create": [{ "when": { "field": "campaign", "op": "notEmpty" }, "text": "Event created in campaign {object.campaign}" }, { "text": "Event created" }]`). The History card (`audit-trail`) reads the same form.
+
+## Manage mode
+
+`manage: true` replaces the read view with a working view over OpenRegister's
+timeline alone (`/objects/{register}/{schema}/{id}/timeline`), newest first with
+pinned entries on top:
+
+- kind chips (All, then each kind present, with counts; a plain note has no kind),
+  filtering without a second read;
+- a visibility filter, pin / unpin, and "Mark as answered" on an open follow-up;
+- a note composer with the seeded standard notes (`/timeline/text-blocks`); a
+  picked block is sent as `textBlock`, so OpenRegister fills in the object's own
+  values;
+- Export of the shown entries as CSV;
+- `entryActions` that open a modal from the app's registry on one entry.
+
+The read says whether the reader may manage (`canManage`); every control that
+writes is drawn only then. A failed read is shown as an error, never as an
+empty history.
+
+```json
+{
+  "type": "timeline",
+  "content": {
+    "manage": true,
+    "title": "History",
+    "exportName": "history",
+    "entryActions": [
+      {
+        "id": "reply",
+        "label": "Reply",
+        "kinds": ["portal-message-in"],
+        "modal": "ReplyDialog",
+        "props": { "open": true, "recordId": "@objectId", "subject": "@row.fields.subject" },
+        "doneEvent": "sent",
+        "closesFollowUp": true
+      }
+    ]
+  }
+}
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `manage` | `false` | `true` renders the manage view. |
+| `title`, `subtitle` | "History", "What happened, who did it and when, newest first" | Headings (translated through the app). |
+| `publicLabel` | "Visible to the requester" | Label of the public badge, filter option and composer switch. |
+| `exportName` | `history` | CSV file name prefix; the object id is appended. |
+| `errorTitle`, `errorText` | unset | A failed read in the host's own words: a bold title and its sentence. Without them the library's sentence shows. A failed read always offers Try again. |
+| `composer` | `true` | `false` hides the note composer. `"only"` draws the composer alone, to stack as a card of its own under the list (board DqZaakHistorie "Notitie toevoegen"); `"separate"` draws the list without a composer but keeps "Add note", which focuses that card. A note saved in the card reloads the list of the same object. |
+| `visibilityLabel` | `true` | `false` draws the visibility filter without its "Visibility" label (it stays the accessible name), so the select reads "Internal and public" on its own (board DqZaakHistorie). |
+| `readsToggle` | — | `true` or a label adds a footer switch, off by default, that puts who read the record (the object's audit trail `read` events, as OpenRegister answers them to the reader) among the entries, without actions, with a "Viewed" chip; while off the count says "changes only". Offered only when OpenRegister answers `readEventsVisible: true` for the reader (the groups `audit.readEventsVisibleTo` names, and administrators); not an access control of its own (board DqZaakHistorie "Ook wie de zaak las"). |
+| `auditTrailLink` | unset | `true` ("Full audit trail in the sidebar") or a label: a link beside the event count that opens the object sidebar on its audit trail tab. Drawn only when the page has an object sidebar. |
+| `auditTrailTab` | `auditTrail` | The sidebar tab the audit trail link opens, for a page that declares its audit trail tab under its own id. |
+| `textBlocks` | `true` | `false` skips the standard notes. |
+| `entryActions` | `[]` | `{ id, label, kinds?, modal, props?, doneEvent?, closesFollowUp? }`. `modal` names a registry entry; `props` resolve `@objectId` and `@row.<path>`. On `doneEvent` (default `done`) an open follow-up is closed when `closesFollowUp` is set, else the timeline is read again; `close` dismisses. |
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `object` | Object | `null` | The object whose events the widget shows. |
+| `title` | String | `''` | Card title override. |
+| `content` | Object | `{}` | Stored widget content: `{ title, fields, related, auditTrail, timeline, order }`. |
+| `apiBase` | String | `'/apps/openregister/api'` | OpenRegister API base the widget reads related objects, the audit trail and the timeline from. |
+
+## Behaviour
+
+- Labels are authored in English and pass through the app's translation.
+- A calendar date shows as a date, a moment as date and time, in the reader's language.
+- A moment after now shows a hollow dot and the word "Upcoming".
+- Each source loads on its own. When one fails, a warning names it and the rest still show.
+- With no dated facts the widget says "Nothing has happened yet."
+
+The object comes from the detail page, as for `audit-trail`: explicit
+`register`, `schema`, `objectId` and `object` props win, then the page's
+object context, then `content`. When only the id is known, the widget fetches
+the object.
+
+## Related
+
+- [CnAuditTrailCard](./cn-audit-trail-card.md) for the change log alone.
+- [CnTimelineStages](./cn-timeline-stages.md) for a status progression.
+
+## Items from an app endpoint, with type chips
+
+An app that merges its own sources answers them from one endpoint. `endpointSource` reads it a page at a time, and `typeChips` narrow it on the server:
+
+```json
+{ "type": "timeline", "content": {
+  "order": "desc",
+  "endpointSource": {
+    "url": "/apps/pipelinq/api/timeline",
+    "params": { "entityType": "client", "entityId": "@objectId" },
+    "itemsPath": "items", "pagesPath": "pages",
+    "dateField": "date", "labelField": "title", "detailField": "description",
+    "typeField": "type", "userField": "user",
+    "typeLabels": { "interaction": "Contact moment", "task": "Task" },
+    "typesParam": "types[]", "limit": 20
+  },
+  "typeChips": [{ "value": "interaction", "label": "Contact moments" }, { "value": "task", "label": "Tasks" }]
+} }
+```
+
+`endpointSource.icons` (`{ path?, map?, typeMap?, default? }`) gives each event an icon instead of the dot: the value at `path` through `map` (a contact moment's channel: `{ "phone": "Phone", "email": "Email" }`), else its type through `typeMap`, else `default`. `emptyText` replaces "Nothing has happened yet." when there is nothing to show. Each item becomes an event: the label (an item without one reads "(no title)"), the detail cut at 120 characters, and a meta line of its type label and author. `pageParam` (default `_page`) and `limitParam` (default `_limit`) name the paging parameters; "Load more" reads the next page while the answer's `pages` is higher. A chip sends its value in `typesParam` and reads from page 1; All sends none. A failed read says that the activities could not load.
+
+
+## An activity card: feed rows and a note box
+
+`layout: "feed"` draws each event as one row: a round icon, a meta line of the
+moment, the kind and the author ("2 Oct, 09:30 · contact moment · Fatma
+Yildiz") and the text. A detail that says more than the text stands under it.
+`composer` puts a note box above the list; a note is written on the record
+(`POST /objects/{register}/{schema}/{id}/notes`) and the timeline reads again.
+The read view also reads again whenever `cn:timeline:changed` names its record.
+
+```json
+{
+  "type": "timeline",
+  "title": "Activity",
+  "headerActions": [
+    { "label": "Link email", "icon": "EmailOutline", "variant": "tonal", "action": { "type": "open-modal", "target": "EmailLinkDialog", "props": { "register": "pipelinq", "schema": "client", "objectId": "@objectId" } } },
+    { "label": "Compose in Mail", "icon": "EmailArrowRightOutline", "variant": "tonal", "action": { "type": "navigate", "target": "/index.php/apps/mail/compose?uri=mailto:@object.email" } }
+  ],
+  "content": {
+    "order": "desc",
+    "layout": "feed",
+    "composer": { "placeholder": "Add an internal note. Type @ to mention a colleague.", "label": "Add note", "submitLabel": "Add note" },
+    "endpointSource": { "url": "/apps/pipelinq/api/timeline", "params": { "entityType": "client", "entityId": "@objectId" } },
+    "typeChips": [{ "value": "interaction", "label": "Contact moments" }, { "value": "note", "label": "Notes" }]
+  }
+}
+```
+
+A header action's `navigate` target fills `@object.<field>` inside the URL.
+`CnEmailLinkDialog` (`register`, `schema`, `objectId`) is the "Link an existing
+email" picker on its own; register it in the app's registry as a modal to open
+it from a button.

@@ -23,7 +23,12 @@
   - update:open (false) — when the dialog is closed
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="wizard"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:open="open"
 		:name="dialogName"
 		:closeOnClickOutside="true"
@@ -62,20 +67,25 @@
 				</li>
 			</ol>
 		</div>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDialog, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
+import CnDialog from '../components/CnDialog/CnDialog.vue'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
 import { buildHeaders, prefixUrl } from '../utils/index.js'
+import { userLocale } from '../utils/userLocale.js'
 
 export default {
 	name: 'CnNoteHistoryDialog',
 
-	components: { NcDialog, NcEmptyContent, NcLoadingIcon, AlertCircleOutline, HistoryIcon },
+	components: { CnDialog, NcEmptyContent, NcLoadingIcon, AlertCircleOutline, HistoryIcon },
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/** Whether the dialog is open */
@@ -184,7 +194,7 @@ export default {
 				return ''
 			}
 			try {
-				return new Date(dateStr).toLocaleString(undefined, {
+				return new Date(dateStr).toLocaleString(userLocale(), {
 					year: 'numeric',
 					month: 'short',
 					day: 'numeric',

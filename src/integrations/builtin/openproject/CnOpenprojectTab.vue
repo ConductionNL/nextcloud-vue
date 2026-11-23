@@ -82,7 +82,10 @@
 			class="cn-sidebar-tab__empty cn-openproject-tab__empty">
 			<Briefcase :size="32" class="cn-openproject-tab__empty-icon" />
 			<p>{{ unconfiguredLabel }}</p>
-			<NcButton variant="primary" @click="openOpenconnectorAdmin">
+			<NcButton
+				variant="primary"
+				:href="openconnectorUrl"
+				target="_blank">
 				<template #icon>
 					<CogOutline :size="20" />
 				</template>
@@ -97,7 +100,10 @@
 		<div v-else-if="workPackages.length === 0" class="cn-sidebar-tab__empty cn-openproject-tab__empty">
 			<Briefcase :size="32" class="cn-openproject-tab__empty-icon" />
 			<p>{{ emptyLabel }}</p>
-			<NcButton variant="secondary" @click="openOpenprojectApp">
+			<NcButton
+				variant="secondary"
+				:href="openprojectAppUrl"
+				target="_blank">
 				<template #icon>
 					<OpenInNew :size="20" />
 				</template>
@@ -225,7 +231,7 @@ import StarFourPointsOutline from 'vue-material-design-icons/StarFourPointsOutli
 import CnOpenProjectCreate from '../../../components/CnOpenProjectCreate/CnOpenProjectCreate.vue'
 import CnOpenProjectPicker from '../../../components/CnOpenProjectPicker/CnOpenProjectPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
-import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 /**
  * CnOpenprojectTab — bespoke sidebar tab for the `openproject` integration.
@@ -541,7 +547,8 @@ export default {
 		},
 
 		wpUrl(wp) {
-			return wp.url ?? wp._links?.self?.href ?? this.openprojectAppUrl
+			const url = wp.url ?? wp._links?.self?.href
+			return url && safeHref(url) !== '#' ? url : this.openprojectAppUrl
 		},
 
 		wpStatus(wp) {
@@ -610,18 +617,6 @@ export default {
 				return 'cn-openproject-tab__type-badge--feature'
 			}
 			return 'cn-openproject-tab__type-badge--task'
-		},
-
-		openOpenprojectApp() {
-			if (typeof window !== 'undefined') {
-				window.open(this.openprojectAppUrl, '_blank', 'noopener')
-			}
-		},
-
-		openOpenconnectorAdmin() {
-			if (typeof window !== 'undefined' && this.openconnectorUrl) {
-				window.open(this.openconnectorUrl, '_blank', 'noopener')
-			}
 		},
 
 		async fetchWorkPackages() {

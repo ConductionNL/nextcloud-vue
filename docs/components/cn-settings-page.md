@@ -22,6 +22,8 @@ Mounted automatically by `CnPageRenderer` when a manifest page declares `type: "
 |------|------|---------|-------------|
 | `title` | String | `'Settings'` | Page title |
 | `description` | String | `''` | Subtitle shown under the title when `showTitle` is set |
+| `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`). |
 | `showTitle` | Boolean | `false` | Whether to render the inline `CnPageHeader` |
 | `icon` | String | `''` | MDI icon name |
 | `sections` | Array | `[]` | Section definitions for the flat shape (see schema below). Mutually exclusive with `tabs`. |
@@ -63,7 +65,7 @@ type Field = {
 }
 
 type WidgetRef = {
-  type: string                   // 'version-info' | 'register-mapping' | 'component' | <registry-name>
+  type: string                   // 'version-info' | 'register-mapping' | 'toggle-table' | 'component' | <registry-name>
   componentName?: string         // required when type === 'component' — registry name to resolve
   props?: object                 // v-bind to the resolved widget
 }
@@ -84,6 +86,7 @@ type Tab = {
 |---------------|-----------|--------------|
 | `version-info` | [`CnVersionInfoCard`](./cn-version-info-card.md) | `appName` (required), `appVersion` (required), `configuredVersion?`, `isUpToDate?`, `showUpdateButton?`, `additionalItems?`, `labels?` |
 | `register-mapping` | [`CnRegisterMapping`](./cn-register-mapping.md) | `name`, `groups` (required, non-empty), `configuration?`, `showSaveButton?`, `showReimportButton?`, `autoMatch?` |
+| `toggle-table` | [`CnToggleTableWidget`](./cn-toggle-table-widget.md) | `content` (required): rows with a switch, e.g. one per object with `bind.mode: "each"` ("Verplichte velden") or a config map with `bind.mode: "map"` |
 | `component` | (discriminator) | `componentName` (required, non-empty) — looks up the named entry in `customComponents`. `props` are forwarded as `v-bind` to the resolved component. The recommended way to host a consumer Vue component as a widget body. |
 
 Consumer-provided widget types may also still be referenced via the legacy `widget.type === <registry-name>` fallback (kept for back-compat with `manifest-settings-rich-sections` consumers). Migrate to the explicit `{ type: "component", componentName }` shape — it makes the manifest self-describing and forward-safe against future built-in widget names. Unknown types are skipped with a `console.warn`; the rest of the page keeps rendering.
@@ -284,9 +287,21 @@ The two shapes are XOR — pick one per page. A page mixing them is rejected by 
 - **Field-level validation is not enforced FE-side**. The PUT body is sent as-is; the consumer's settings controller is the source of truth. This mirrors how Nextcloud's `IAppConfig` already works.
 - **No inter-field dependencies / conditional visibility**. If you need "field X is only shown when field Y is true", use a `#field-<key>` slot to wrap a custom widget that reads `formData` from its parent.
 - **A section MUST declare exactly one body kind** (fields | component | widgets). The manifest validator rejects sections that mix two or more, or that declare none. Use multiple sections for stacked widget + flat-field layouts.
-- **Built-in widget types are reserved**. Consumers cannot shadow `version-info` / `register-mapping` via customComponents — built-ins always win on collision. To replace one of these entirely, use the `component: <registry-name>` body kind instead.
+- **Built-in widget types are reserved**. Consumers cannot shadow `version-info` / `register-mapping` / `toggle-table` via customComponents — built-ins always win on collision. To replace one of these entirely, use the `component: <registry-name>` body kind instead.
 - **Widget-internal slot overrides aren't piped through the manifest**. CnVersionInfoCard exposes `#footer`, `#extra-cards`, etc., but `widgets[]` doesn't yet carry per-widget slot maps. Consumers needing those slots should drop down to `component: <registry-name>` and write a tiny wrapper component that fills them.
 - **Tabs are XOR with flat sections at the page level**. The validator rejects manifests that declare both `sections` and `tabs` on the same `type:"settings"` page. Use a single "General" tab containing your top-level section if you need a mix of flat content + tab-grouped content.
 - **Tab IDs MUST be unique within a page**. The validator emits a duplicate-id error pointing at the second occurrence so you can fix the manifest fast.
 - **Active-tab persistence is the consumer's responsibility**. The page emits `@tab-change` and accepts `initialTab` — wire those to your preference store or URL hash if you want the active tab to survive a reload. The manifest never carries user state.
 - **`widget.type === "component"` is the recommended way to host consumer Vue components as widgets**. The legacy "fall back to customComponents on unknown `widget.type`" path still works (back-compat) but is JSDoc-deprecated; future built-in widget names risk silently shadowing consumer registry entries.
+
+## Board look and where the page saves
+
+Under the board look the sections are cards in a grid of `repeat(auto-fit, minmax(420px, 1fr))` (a section with `wide: true` spans the row) and the buildiq square sits in the header. `config.saveMode` declares one place to save:
+
+| `saveMode` | Result |
+|---|---|
+| `section` | Each section with fields ends in its own Save, bottom right of the card. No page save bar. |
+| `page` | One Save as the last header button and a Changes card listing the changed fields. No section save. |
+| empty | The save bar under the last section, as before. |
+
+`config.autosave: true` draws no save button, saves 600 ms after the last change, and ends the description with "Changes are saved automatically." `saveMode` together with `autosave`, or with a section that declares its own `save`, fails manifest validation.

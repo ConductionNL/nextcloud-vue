@@ -161,6 +161,42 @@ describe('CnObjectListWidget — rowActions', () => {
 		expect(cnDispatchAction).toHaveBeenCalledWith(expect.objectContaining({ args: ['x', row] }))
 	})
 
+	describe('a navigate-only action becomes a link', () => {
+		function mountWithRouter(rowActions) {
+			return shallowMount(CnObjectListWidget, {
+				propsData: { content: { register: 'dossiq', schema: 'zaakinformatieobject', limit: 5, rowActions } },
+				stubs: { CnDataTable: true, CnFormDialog: true, CnPagination: true, CnWidgetEmptyState: true, CnRowActions: true },
+				mocks: {
+					t: (_a, s) => s,
+					$router: { push: jest.fn(), resolve: jest.fn((to) => ({ href: `/apps/dossiq/${to.name || to}` })) },
+				},
+			})
+		}
+
+		it('gives an external navigate action an href opening in a new tab', async () => {
+			const w = mountWithRouter([{ label: 'Site', type: 'navigate', target: 'https://example.org' }])
+			await flushPromises()
+			const [mapped] = w.vm.mappedRowActions
+			expect(mapped.href).toBe('https://example.org')
+			expect(mapped.linkTarget).toBe('_blank')
+		})
+
+		it('gives an in-app open-page action a router location', async () => {
+			const w = mountWithRouter([{ label: 'All cases', type: 'open-page', target: 'Cases' }])
+			await flushPromises()
+			expect(w.vm.mappedRowActions[0].to).toEqual({ name: 'Cases' })
+		})
+
+		it('leaves a target with tokens to dispatch', async () => {
+			const w = mountWithRouter([{ label: 'Case', type: 'navigate', target: '/cases/@objectId' }])
+			await flushPromises()
+			const [mapped] = w.vm.mappedRowActions
+			expect(mapped.href).toBeUndefined()
+			expect(mapped.to).toBeUndefined()
+			expect(typeof mapped.handler).toBe('function')
+		})
+	})
+
 	it('marks a destructive action so CnRowActions can colour it', async () => {
 		const w = mountWidget({ rowActions: [{ label: 'Delete', destructive: true, type: 'handler', handler: 'del' }] })
 		await flushPromises()

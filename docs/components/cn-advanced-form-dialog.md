@@ -263,3 +263,7 @@ Both support the same two-phase confirm/result pattern and `setResult()`.
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnAdvancedFormDialog.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## Options from a source
+
+A property with `x-options-from` in its schema, or `optionsFrom` in `fieldOverrides`, is edited with a select over the options that source gives, and shown by the option's label. The shape is the one [`CnFormDialog`](./cn-form-dialog.md#options-from-a-source-optionsfrom) documents.

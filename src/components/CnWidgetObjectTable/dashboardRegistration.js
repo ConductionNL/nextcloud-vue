@@ -18,9 +18,11 @@
  */
 
 import { h } from 'vue'
-import CnObjectListWidgetForm from '../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'
-import CnWidgetObjectTable from './CnWidgetObjectTable.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+const LazyCnObjectListWidgetForm = lazyComponent(() => import('../CnObjectListWidgetForm/CnObjectListWidgetForm.vue'), 'CnObjectListWidgetForm')
+const LazyCnWidgetObjectTable = lazyComponent(() => import('./CnWidgetObjectTable.vue'), 'CnWidgetObjectTable')
 
 /**
  * Normalise a stored widget content blob onto CnWidgetObjectTable's props.
@@ -73,6 +75,11 @@ export function objectTableContentToProps(content) {
 	if (hasLimit) {
 		source.limit = limit
 	}
+	// The page controls the table listens to belong to its source.
+	if (rest.pageControls && typeof rest.pageControls === 'object') {
+		source.pageControls = rest.pageControls
+		delete rest.pageControls
+	}
 	return { ...rest, source }
 }
 
@@ -95,13 +102,13 @@ const CnHostedObjectTable = {
 		// carries parent listeners (onXxx) too. Vue 3: props/attrs/listeners are
 		// one flat object; slots are the 3rd arg.
 		const { content: _content, ...rest } = attrs
-		return h(CnWidgetObjectTable, { ...rest, ...objectTableContentToProps(content), hideWrapper: true }, this.$slots)
+		return h(LazyCnWidgetObjectTable, { ...rest, ...objectTableContentToProps(content), hideWrapper: true }, this.$slots)
 	},
 }
 
 registerDashboardWidget('object-table', {
 	renderer: CnHostedObjectTable,
-	form: CnObjectListWidgetForm,
+	form: LazyCnObjectListWidgetForm,
 	defaultContent: {
 		register: '',
 		schema: '',

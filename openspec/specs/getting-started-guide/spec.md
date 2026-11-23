@@ -362,14 +362,6 @@ The guide MUST end with a "Next Steps" section linking to:
 - WHEN a developer reads Next Steps
 - THEN each linked section SHALL correspond to an actual directory or page in the docs structure
 
-## MODIFIED Requirements
-
-_(none -- all new)_
-
-## REMOVED Requirements
-
-_(none -- all new)_
-
 ---
 
 ## Current Implementation Status

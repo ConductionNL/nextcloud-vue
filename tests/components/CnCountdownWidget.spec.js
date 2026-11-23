@@ -122,6 +122,32 @@ describe('CnCountdownWidget', () => {
 		})
 	})
 
+	describe('a settled record', () => {
+		it('reads Closed instead of overdue once settledField is truthy', () => {
+			const w = mountTile({ settledField: 'isFinalStatus' }, { deadline: daysFromToday(-24), isFinalStatus: true })
+			expect(w.text()).toContain('Closed')
+			expect(w.text()).not.toContain('overdue')
+			expect(w.classes()).toContain('cn-countdown-widget--default')
+		})
+
+		it('still counts overdue on a record that is open', () => {
+			const w = mountTile({ settledField: 'isFinalStatus' }, { deadline: daysFromToday(-24), isFinalStatus: false })
+			expect(w.text()).toContain('24 days overdue')
+			expect(w.classes()).toContain('cn-countdown-widget--error')
+		})
+
+		it('runs a configured settledLabel through the host translate function', () => {
+			const w = mount(CnCountdownWidget, {
+				props: {
+					content: { field: 'deadline', settledField: 'closed', settledLabel: 'Handled' },
+					objectData: { deadline: daysFromToday(-2), closed: true },
+				},
+				global: { provide: { cnTranslate: (key) => (key === 'Handled' ? 'Afgehandeld' : key) } },
+			})
+			expect(w.text()).toContain('Afgehandeld')
+		})
+	})
+
 	it('renders the configured label', () => {
 		const w = mountTile({ label: 'Time left' }, { deadline: daysFromToday(4) })
 		expect(w.text()).toContain('Time left')

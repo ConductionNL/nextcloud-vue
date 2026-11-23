@@ -1,0 +1,5 @@
+- [x] 1. `src/components/CnHandoffAction/` (component + `handoff` registration), exported from `src/index.js`.
+- [x] 2. `handoff` in `DASHBOARD_CATALOG_WIDGET_KEYS` and `CONTENT_ONLY_TYPES`.
+- [x] 3. `tests/components/CnHandoffAction.spec.js`.
+- [x] 4. `docs/components/cn-handoff-action.md`.
+- [x] 5. `CnBodySections`: a section may name a library widget `type` with `content` (`tests/components/CnBodySectionsWidgetType.spec.js`).

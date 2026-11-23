@@ -3,45 +3,41 @@
   - SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<NcDialog
+	<CnDialog
+		:look="look"
+		:width="width"
+		defaultWidth="form"
+		:eyebrow="eyebrow"
+		:subtitle="subtitle"
 		:name="dialogTitle"
 		size="normal"
 		@closing="$emit('close')">
 		<div
 			class="cn-transition-input"
+			:aria-busy="busy ? 'true' : null"
 			data-testid="cn-modal"
 			data-testid-modal="cn-transition-input-dialog">
-			<div v-for="field in fields"
-				:key="field.key"
-				class="cn-transition-input__field"
-				:data-testid="`cn-transition-input-${field.key}`">
-				<NcCheckboxRadioSwitch v-if="field.widget === 'checkbox'"
-					:modelValue="values[field.key] === true"
-					type="switch"
-					@update:modelValue="setValue(field.key, $event === true)">
-					{{ requiredLabel(field) }}
-				</NcCheckboxRadioSwitch>
-
-				<NcTextArea v-else-if="field.widget === 'textarea'"
-					:modelValue="String(values[field.key] ?? '')"
-					:label="requiredLabel(field)"
-					:helperText="field.description || ''"
-					rows="4"
-					@update:modelValue="setValue(field.key, $event)" />
-
-				<NcTextField v-else-if="field.widget === 'number'"
-					:modelValue="String(values[field.key] ?? '')"
-					type="number"
-					:label="requiredLabel(field)"
-					:helperText="field.description || ''"
-					@update:modelValue="setValue(field.key, $event)" />
-
-				<NcTextField v-else
-					:modelValue="String(values[field.key] ?? '')"
-					:label="requiredLabel(field)"
-					:helperText="field.description || ''"
-					@update:modelValue="setValue(field.key, $event)" />
-			</div>
+			<!-- A refusal keeps this dialog open with what was typed still in
+			     it. Closing first and reporting behind it loses the work and
+			     asks the person to retype it from memory. -->
+			<p v-if="error"
+				class="cn-transition-input__error"
+				data-testid="cn-transition-input-error">
+				{{ error }}
+			</p>
+			<CnTransitionInputFields
+				:inputs="transition.inputs || []"
+				:modelValue="values"
+				:schema="schema"
+				:currentObject="currentObject"
+				:register="register"
+				:context="context"
+				:fieldErrors="fieldErrors"
+				:disabled="busy"
+				:columns="transition.columns === 2 ? 2 : 1"
+				:summary="transition.summary || null"
+				:notice="transition.notice || null"
+				@update:modelValue="values = $event" />
 		</div>
 
 		<template #actions>
@@ -50,21 +46,36 @@
 				@click="$emit('close')">
 				{{ t('nextcloud-vue', 'Cancel') }}
 			</NcButton>
+			<!-- Busy while the parent's POST runs: a transition can take
+			     seconds, and a confirm button that only greys out reads as one
+			     that did nothing. -->
 			<NcButton
 				variant="primary"
 				:disabled="!canConfirm"
+				:aria-busy="busy ? 'true' : null"
 				data-testid="cn-transition-input-confirm"
 				@click="onConfirm">
+				<template v-if="busy" #icon>
+					<NcLoadingIcon :size="20" data-testid="cn-transition-input-busy" />
+				</template>
 				{{ confirmLabel }}
 			</NcButton>
 		</template>
-	</NcDialog>
+	</CnDialog>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextArea, NcTextField } from '@nextcloud/vue'
-import { fieldsFromSchema } from '../utils/schema.js'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import CnDialog from '../components/CnDialog/CnDialog.vue'
+import CnTransitionInputFields from '../components/CnTransitionInputFields/CnTransitionInputFields.vue'
+import { dialogBoardMixin } from '../mixins/dialogBoard.js'
+import {
+	initialInputValues,
+	inputFieldsComplete,
+	resolveInputFields,
+	submittedValue,
+} from '../utils/transitionInputs.js'
 
 /**
  * CnTransitionInputDialog — collects a lifecycle transition's declared
@@ -73,19 +84,27 @@ import { fieldsFromSchema } from '../utils/schema.js'
  * A schema's `x-openregister-lifecycle.transitions.<action>` block may declare
  * `inputs: [{ field, required }]`; the transition endpoint then accepts
  * `{ action, data: { <field>: <value> } }`. This dialog renders one input per
- * declared field, disables the confirm button until every `required: true`
- * field is filled, and emits the collected values — the parent
- * (`CnLifecycleActions`) performs the actual POST. Cancel emits `close`
+ * declared field, disables the confirm button until every shown
+ * `required: true` field is filled, and emits the collected values — the
+ * parent (`CnLifecycleActions`) performs the actual POST. Cancel emits `close`
  * without any confirm, so no request is made.
  *
- * Field rendering resolves each declared field against the object's JSON
- * Schema via `fieldsFromSchema()` when a `schema` is given: the label comes
- * from the property `title`, booleans render as a switch, numbers as a number
- * field, and long text (`maxLength > 255` or a `textarea`/`markdown` format)
- * as a textarea. Anything else — including a field the schema does not
- * declare — falls back to a plain labelled text input. Deliberately minimal:
- * text, textarea, number and checkbox cover transition inputs; this is not a
- * form engine (use `CnFormDialog` for full object forms).
+ * The inputs are drawn by `CnTransitionInputFields`, which a host can also
+ * use on its own to open an act's inputs in place. Field rendering resolves
+ * each declared field against the object's JSON Schema via
+ * `fieldsFromSchema()` when a `schema` is given: the label comes from the
+ * property `title`, booleans render as a switch, numbers as a number field,
+ * and long text (`maxLength > 255` or a `textarea`/`markdown` format) as a
+ * textarea. Anything else — including a field the schema does not declare —
+ * falls back to a plain labelled text input.
+ *
+ * An input may also say how it is asked for, which matters when the choices
+ * depend on the record rather than on its schema: `label` names the field,
+ * `options: [{ value, label }]` or `optionsSource` (a path into `context`)
+ * turn it into a picker, and `widget` names `text`, `textarea`, `number`,
+ * `date` or `template` outright. `other`, `helperFrom`, `preview` and
+ * `default` are described in `utils/transitionInputs.js`. The transition may
+ * carry `columns`, `summary` and `notice` for the layout around the inputs.
  *
  * Lives in its own file under `src/dialogs/` per the modal-isolation rule.
  *
@@ -102,20 +121,27 @@ export default {
 	name: 'CnTransitionInputDialog',
 
 	components: {
-		NcDialog,
+		CnDialog,
+		CnTransitionInputFields,
 		NcButton,
-		NcTextField,
-		NcTextArea,
-		NcCheckboxRadioSwitch,
+		NcLoadingIcon,
 	},
+
+	mixins: [dialogBoardMixin],
 
 	props: {
 		/**
 		 * The transition being applied. `inputs` is the declared input list from
 		 * `x-openregister-lifecycle.transitions.<action>.inputs` (server-derived
 		 * or config-declared); `label` doubles as dialog title + confirm label.
+		 * `columns`, `summary` and `notice` lay out the inputs (see
+		 * `CnTransitionInputFields`).
 		 *
-		 * @type {{action?: string, label?: string, inputs?: Array<{field: string, required?: boolean}>}}
+		 * An input may carry a `label` for its field and `options` to pick
+		 * from, each `{ value, label }`; the picker shows the label and sends
+		 * the value.
+		 *
+		 * @type {{action?: string, label?: string, columns?: number, summary?: object, notice?: object, inputs?: Array<{field: string, required?: boolean, label?: string, widget?: string, options?: Array<{value: string, label?: string}>, optionsSource?: string}>}}
 		 */
 		transition: {
 			type: Object,
@@ -133,6 +159,73 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The record the transition runs on. Gives `picker.excludeSelf` its id
+		 * to leave out, and the current value an object input is merged over.
+		 *
+		 * @type {object|null}
+		 */
+		currentObject: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Register slug the reference pickers look in when the schema property
+		 * names none of its own.
+		 *
+		 * @type {string}
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * What an input's `optionsSource` and the summary paths read.
+		 *
+		 * @type {object}
+		 */
+		context: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * The sentence a refused transition answered with. Present means the
+		 * dialog stayed open BECAUSE the attempt was refused, with everything
+		 * typed still in it.
+		 *
+		 * @type {string}
+		 */
+		error: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The input keys the refusal named (`fields` in the 400 body). Each one
+		 * that this dialog offers is marked on its own field; each one it does
+		 * not is reported as a key the transition does not accept.
+		 *
+		 * @type {string[]}
+		 */
+		fieldErrors: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Whether the parent is mid-POST. Keeps the confirm button from firing
+		 * a second attempt while the first is in flight.
+		 *
+		 * @type {boolean}
+		 */
+		busy: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['confirm', 'close'],
@@ -140,35 +233,18 @@ export default {
 	data() {
 		return {
 			/** @type {{[key: string]: unknown}} Collected input values, keyed by declared field name. */
-			values: this.initialValues(),
+			values: initialInputValues(this.transition?.inputs, this.schema, this.currentObject),
 		}
 	},
 
 	computed: {
-		/** The declared inputs, normalised to `{ field, required }`. */
-		inputs() {
-			const declared = Array.isArray(this.transition.inputs) ? this.transition.inputs : []
-			return declared
-				.filter((input) => input && typeof input.field === 'string' && input.field !== '')
-				.map((input) => ({ field: input.field, required: input.required === true }))
-		},
-
-		/**
-		 * One renderable field descriptor per declared input. Schema-declared
-		 * fields come from `fieldsFromSchema()` (label from the property title,
-		 * widget from the type/format); the widget is then clamped to the minimal
-		 * set this dialog renders (text / textarea / number / checkbox). Fields
-		 * the schema does not declare fall back to a plain text input.
-		 */
+		/** One field descriptor per declared input (see `resolveInputFields`). */
 		fields() {
-			const keys = this.inputs.map((input) => input.field)
-			const resolved = fieldsFromSchema(this.schema, { include: keys, includeReadOnly: true })
-			return this.inputs.map((input) => {
-				const field = resolved.find((f) => f.key === input.field)
-				if (!field) {
-					return { key: input.field, label: input.field, description: '', widget: 'text', required: input.required }
-				}
-				return { ...field, widget: this.clampWidget(field.widget), required: input.required }
+			return resolveInputFields(this.transition.inputs, {
+				schema: this.schema,
+				register: this.register,
+				context: this.context,
+				values: this.values,
 			})
 		},
 
@@ -182,65 +258,14 @@ export default {
 			return this.transition.label || t('nextcloud-vue', 'Confirm')
 		},
 
-		/** True when every `required: true` input holds a non-empty value. */
+		/** True when every shown `required: true` input holds a value. */
 		canConfirm() {
-			return this.fields.every((field) => !field.required || this.isFilled(field))
+			return this.busy !== true && inputFieldsComplete(this.fields, this.values)
 		},
 	},
 
 	methods: {
-		// Exposed to the template for the static button labels — the same
-		// `methods: { t }` pattern the other dialogs in this folder use.
 		t,
-
-		/** Seed each declared input from its schema default (booleans start false). */
-		initialValues() {
-			const values = {}
-			const declared = Array.isArray(this.transition?.inputs) ? this.transition.inputs : []
-			const properties = (this.schema && this.schema.properties) || {}
-			for (const input of declared) {
-				if (!input || typeof input.field !== 'string' || input.field === '') {
-					continue
-				}
-				const prop = properties[input.field] || {}
-				values[input.field] = prop.default !== undefined
-					? prop.default
-					: (prop.type === 'boolean' ? false : '')
-			}
-			return values
-		},
-
-		/**
-		 * Clamp a `fieldsFromSchema()` widget to the minimal set this dialog
-		 * renders. Anything richer (select, date, user picker, …) degrades to a
-		 * plain text input rather than pulling a form engine into the dialog.
-		 *
-		 * @param {string} widget The resolved widget name.
-		 * @return {'text'|'textarea'|'number'|'checkbox'}
-		 */
-		clampWidget(widget) {
-			if (widget === 'checkbox' || widget === 'switch') {
-				return 'checkbox'
-			}
-			if (widget === 'textarea') {
-				return 'textarea'
-			}
-			if (widget === 'number') {
-				return 'number'
-			}
-			return 'text'
-		},
-
-		/**
-		 * The field's visible label, with a `*` marker on required inputs so the
-		 * confirm-gating is visually explained.
-		 *
-		 * @param {object} field The field descriptor.
-		 * @return {string}
-		 */
-		requiredLabel(field) {
-			return field.required ? `${field.label} *` : field.label
-		},
 
 		/**
 		 * Store one input's value.
@@ -253,28 +278,71 @@ export default {
 		},
 
 		/**
-		 * Whether a required field counts as filled: a checked switch for
-		 * booleans, a non-blank string otherwise.
+		 * A typed sub-value of an object input.
 		 *
-		 * @param {object} field The field descriptor.
-		 * @return {boolean}
+		 * @param {string} key The input key.
+		 * @param {string} sub The sub-field key.
+		 * @return {unknown}
 		 */
-		isFilled(field) {
-			const value = this.values[field.key]
-			if (field.widget === 'checkbox') {
-				return value === true
-			}
-			return String(value ?? '').trim() !== ''
+		subValue(key, sub) {
+			const group = this.values[key]
+			return group && typeof group === 'object' ? group[sub] : undefined
 		},
 
-		/** Confirm: emit exactly the declared keys (numbers cast) and let the parent POST. */
+		/**
+		 * Store one sub-value, keeping the rest of the object input's values.
+		 *
+		 * @param {string} key The input key.
+		 * @param {string} sub The sub-field key.
+		 * @param {unknown} value The new value.
+		 */
+		setSubValue(key, sub, value) {
+			const group = this.values[key] && typeof this.values[key] === 'object' ? this.values[key] : {}
+			this.setValue(key, { ...group, [sub]: value })
+		},
+
+		/**
+		 * The object an object input sends: the record's current value with the
+		 * asked sub-fields merged over it, so a sub-field that was not asked for
+		 * keeps its value. A shown field left empty over an empty current value
+		 * is not written. Never a dotted key.
+		 *
+		 * @param {object} field The object field descriptor.
+		 * @return {object}
+		 */
+		mergedObject(field) {
+			const present = this.currentObject ? this.currentObject[field.key] : null
+			const base = present && typeof present === 'object' ? { ...present } : {}
+			for (const sub of field.subFields) {
+				let value = this.subValue(field.key, sub.key)
+				const empty = sub.widget === 'checkbox' ? value === undefined : String(value ?? '').trim() === ''
+				const had = base[sub.key]
+				if (empty && (had === undefined || had === null || had === '')) {
+					continue
+				}
+				if (sub.widget === 'number' && !empty && !Number.isNaN(Number(value))) {
+					value = Number(value)
+				}
+				base[sub.key] = value
+			}
+			return base
+		},
+
+		/** Confirm: emit the asked keys (numbers cast, "Other" as '') and let the parent POST. */
 		onConfirm() {
 			if (!this.canConfirm) {
 				return
 			}
 			const data = {}
 			for (const field of this.fields) {
-				let value = this.values[field.key]
+				if (field.hidden || field.widget === 'template') {
+					continue
+				}
+				if (field.widget === 'object') {
+					data[field.key] = this.mergedObject(field)
+					continue
+				}
+				let value = submittedValue(this.values[field.key])
 				if (field.widget === 'number' && String(value ?? '').trim() !== '') {
 					const parsed = Number(value)
 					if (!Number.isNaN(parsed)) {
@@ -285,8 +353,8 @@ export default {
 			}
 			/**
 			 * @event confirm Emitted when the user confirms with all required
-			 * inputs filled. Payload holds exactly the declared input keys; the
-			 * parent POSTs `{ action, data }`.
+			 * inputs filled. Payload holds the declared input keys that were
+			 * asked; the parent POSTs `{ action, data }`.
 			 * @type {{[key: string]: unknown}}
 			 */
 			this.$emit('confirm', data)
@@ -301,5 +369,10 @@ export default {
 	flex-direction: column;
 	gap: 12px;
 	padding: 4px 0;
+}
+
+.cn-transition-input__error {
+	margin: 0;
+	color: var(--color-error-text, var(--color-error));
 }
 </style>

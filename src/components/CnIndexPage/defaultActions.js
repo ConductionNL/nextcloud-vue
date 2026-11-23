@@ -10,12 +10,14 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
  * @param {{ view: boolean, edit: boolean, copy: boolean, del: boolean }} opts.flags
  *   Which built-in actions to include, from the page's `show*Action` props.
  * @param {object} opts.viewIcon Component to use as the View action icon.
+ * @param {((row: object) => object|null)|null} [opts.viewTo] Where View links to;
+ *   without it, or when it returns null, View is a button.
  * @param {{ onView: (row: object) => void, onEdit: (row: object) => void, onCopy: (row: object) => void, onDelete: (row: object) => void }} opts.handlers
  *   Click handlers bound to each emitted action, in the same order as `flags`.
- * @return {Array<object>} The enabled actions in menu order (view, edit, copy,
- *   delete), each `{label, icon, handler}` — delete additionally `destructive`.
+ * @return {Array<object>} The enabled actions in menu order (view, edit, copy, delete), each `{id, builtin: true, label, icon, handler}`.
+ *   The id is `view`, `edit`, `copy` or `delete`; delete additionally carries `destructive`, view additionally `to` when `viewTo` is given.
  */
-export function buildDefaultActions({ flags, viewIcon, handlers }) {
+export function buildDefaultActions({ flags, viewIcon, viewTo = null, handlers }) {
 	// t() at BUILD-actions time, not module time: the labels were string
 	// literals for the menu's whole life, which is why Edit/Copy/Delete
 	// rendered in English in every locale despite their catalog entries
@@ -23,16 +25,20 @@ export function buildDefaultActions({ flags, viewIcon, handlers }) {
 	// consuming app's language is already resolved.
 	const out = []
 	if (flags.view) {
-		out.push({ label: t('nextcloud-vue', 'View'), icon: viewIcon, handler: handlers.onView })
+		const view = { id: 'view', builtin: true, label: t('nextcloud-vue', 'View'), icon: viewIcon, handler: handlers.onView }
+		if (typeof viewTo === 'function') {
+			view.to = viewTo
+		}
+		out.push(view)
 	}
 	if (flags.edit) {
-		out.push({ label: t('nextcloud-vue', 'Edit'), icon: Pencil, handler: handlers.onEdit })
+		out.push({ id: 'edit', builtin: true, label: t('nextcloud-vue', 'Edit'), icon: Pencil, handler: handlers.onEdit })
 	}
 	if (flags.copy) {
-		out.push({ label: t('nextcloud-vue', 'Copy'), icon: ContentCopy, handler: handlers.onCopy })
+		out.push({ id: 'copy', builtin: true, label: t('nextcloud-vue', 'Copy'), icon: ContentCopy, handler: handlers.onCopy })
 	}
 	if (flags.del) {
-		out.push({ label: t('nextcloud-vue', 'Delete'), icon: TrashCanOutline, destructive: true, handler: handlers.onDelete })
+		out.push({ id: 'delete', builtin: true, label: t('nextcloud-vue', 'Delete'), icon: TrashCanOutline, destructive: true, handler: handlers.onDelete })
 	}
 	return out
 }

@@ -51,6 +51,17 @@ describe('CnCellRenderer — declarative format', () => {
 			expect(wrapper.text().replace(/[^\d]/g, '')).toBe('1000')
 		})
 
+		it('reads a value in cents as the amount with `minorUnits`', () => {
+			const wrapper = mountRenderer({
+				value: -990,
+				property: { type: 'number' },
+				format: { style: 'currency', currency: 'EUR', minorUnits: true },
+			})
+			expect(wrapper.text()).toContain('€')
+			expect(wrapper.text().replace(/[^\d-]/g, '')).toBe('-990')
+			expect(wrapper.text()).toMatch(/9[,.]90/)
+		})
+
 		it('renders an em-dash for an empty value', () => {
 			const wrapper = mountRenderer({
 				value: null,
@@ -88,6 +99,22 @@ describe('CnCellRenderer — declarative format', () => {
 				format: { style: 'number', prefix: '~', suffix: ' pts' },
 			})
 			expect(wrapper.text()).toBe('~42 pts')
+		})
+
+		it('formats style:"decimal" as a number with one fraction digit by default, as the metrics do', () => {
+			const expected = (num, digits) => new Intl.NumberFormat(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(num)
+			const wrapper = mountRenderer({
+				value: 56,
+				property: { type: 'number' },
+				format: { style: 'decimal' },
+			})
+			expect(wrapper.text()).toBe(expected(56, 1))
+			const two = mountRenderer({
+				value: 28.125,
+				property: { type: 'number' },
+				format: { style: 'decimal', decimals: 2 },
+			})
+			expect(two.text()).toBe(expected(28.125, 2))
 		})
 	})
 
@@ -171,6 +198,24 @@ describe('CnCellRenderer — declarative format', () => {
 			})
 			const dot = wrapper.find('.cn-cell-renderer__swatch-dot')
 			expect(dot.exists()).toBe(true)
+		})
+
+		it('maps a stored colour name to its CSS colour through colorMap (DqZaaktypeStatussen)', () => {
+			const wrapper = mountRenderer({
+				value: 'Ontvangen',
+				property: { type: 'string' },
+				format: { style: 'swatch', colorField: 'colour', colorMap: { blue: 'rgb(11, 113, 171)' } },
+				row: { colour: 'blue' },
+			})
+			expect(wrapper.find('.cn-cell-renderer__swatch-dot').attributes('style')).toContain('rgb(11, 113, 171)')
+			const unknown = mountRenderer({
+				value: 'Nieuw',
+				property: { type: 'string' },
+				format: { style: 'swatch', colorField: 'colour', colorMap: { blue: 'rgb(11, 113, 171)' } },
+				row: { colour: 'pink' },
+			})
+			expect(unknown.find('.cn-cell-renderer__swatch-dot').exists()).toBe(false)
+			expect(unknown.text()).toContain('Nieuw')
 		})
 
 		it('omits the dot when the colour field is empty', () => {

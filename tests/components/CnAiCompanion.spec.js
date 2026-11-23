@@ -26,6 +26,7 @@ jest.mock('@microsoft/fetch-event-source', () => ({
 
 const axios = require('@nextcloud/axios').default
 const CnAiCompanion = require('../../src/components/CnAiCompanion/CnAiCompanion.vue').default
+const { __resetAppInstalledCacheForTests } = require('../../src/utils/appInstalled.js')
 
 function mountCompanion(options = {}) {
 	const { aiContext = null, axiosGetMock = null, attachTo = null } = options
@@ -42,6 +43,24 @@ function mountCompanion(options = {}) {
 		...(attachTo ? { attachTo } : {}),
 	})
 }
+
+// The chat URLs are asserted in their `/index.php` form, so describe an
+// instance without pretty URLs.
+//
+// Both chat backends are installed unless a test says otherwise: the companion
+// only probes a backend Nextcloud lists in `OC.appswebroots`.
+let savedAppsWebRoots
+beforeEach(() => {
+	window.OC.config.modRewriteWorking = false
+	savedAppsWebRoots = window.OC.appswebroots
+	window.OC.appswebroots = { hermiq: '/apps/hermiq', openregister: '/apps/openregister' }
+	__resetAppInstalledCacheForTests()
+})
+afterEach(() => {
+	window.OC.config.modRewriteWorking = true
+	window.OC.appswebroots = savedAppsWebRoots
+	__resetAppInstalledCacheForTests()
+})
 
 describe('CnAiCompanion', () => {
 	beforeEach(() => {
@@ -77,6 +96,21 @@ describe('CnAiCompanion', () => {
 			'/index.php/apps/openregister/api/chat/health',
 			expect.any(Object),
 		)
+	})
+
+	it('🔴 does not probe a backend that is not installed, and renders nothing', async () => {
+		// cloud.conduction.nl, round-5 check: hermiq not installed, three
+		// `/apps/hermiq/api/chat/health` 404s on every page. Nextcloud already
+		// lists the installed apps, so the probe is skipped, not failed.
+		window.OC.appswebroots = { openregister: '/apps/openregister' }
+		__resetAppInstalledCacheForTests()
+		axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+		const wrapper = mountCompanion()
+		await flushPromises()
+
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(wrapper.vm.probeSucceeded).toBe(false)
+		expect(wrapper.find('.cn-ai-floating-button').exists()).toBe(false)
 	})
 
 	it('renders FAB when health probe returns 200', async () => {
@@ -168,6 +202,32 @@ describe('CnAiCompanion', () => {
 
 			expect(first.find('.cn-ai-companion').exists()).toBe(true)
 			expect(second.find('.cn-ai-companion').exists()).toBe(false)
+		})
+
+		it('the app\'s own companion takes the slot from a standalone one that claimed first', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const standalone = mountCompanion()
+			await flushPromises()
+			const inApp = mountCompanion({ aiContext: { appId: 'dossiq', pageKind: 'index' } })
+			await flushPromises()
+
+			expect(window.__cnAiCompanionPrimary).toBe(inApp.vm)
+			expect(inApp.find('.cn-ai-companion').exists()).toBe(true)
+			expect(standalone.find('.cn-ai-companion').exists()).toBe(false)
+		})
+
+		it('a standalone companion does not take the slot from the app\'s own', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const inApp = mountCompanion({ aiContext: { appId: 'dossiq', pageKind: 'index' } })
+			await flushPromises()
+			const standalone = mountCompanion()
+			await flushPromises()
+
+			expect(window.__cnAiCompanionPrimary).toBe(inApp.vm)
+			expect(inApp.find('.cn-ai-companion').exists()).toBe(true)
+			expect(standalone.find('.cn-ai-companion').exists()).toBe(false)
 		})
 
 		it('a companion whose probe FAILED does not take the slot from one that works', async () => {
@@ -281,6 +341,43 @@ describe('CnAiCompanion', () => {
 
 			expect(holder.find('.cn-ai-companion').exists()).toBe(true)
 			expect(third.find('.cn-ai-companion').exists()).toBe(false)
+		})
+	})
+	describe('the context handed to the panel', () => {
+		/**
+		 * CnAppRoot renders `<CnAiCompanion :chatAppId="chatAppId" />` and
+		 * passes no `:context`, providing `cnAiContext` for injection instead.
+		 * Handing the panel the raw prop left it with `null` inside every app
+		 * shell, and the panel treats an empty context as "no page to be
+		 * relevant to" — so it offered every agent and selected whichever the
+		 * API listed first. On the demo instance that was "Hydra Triage" on a
+		 * Buildiq page, answering "tool grants resolve to no tools".
+		 */
+		it('falls back to the injected context when no prop was passed', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+			const provided = { appId: 'buildiq', pageKind: 'custom' }
+
+			const wrapper = mountCompanion({ aiContext: provided })
+			await flushPromises()
+
+			const panel = wrapper.findComponent({ name: 'CnAiChatPanel' })
+			expect(panel.exists()).toBe(true)
+			expect(panel.props('context')).toEqual(provided)
+		})
+
+		it('still prefers an explicitly passed context prop', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+			const injected = { appId: 'buildiq', pageKind: 'custom' }
+			const explicit = { appId: 'hermiq', pageKind: 'file' }
+
+			const wrapper = mount(CnAiCompanion, {
+				props: { context: explicit },
+				provide: { cnAiContext: injected },
+			})
+			await flushPromises()
+
+			const panel = wrapper.findComponent({ name: 'CnAiChatPanel' })
+			expect(panel.props('context')).toEqual(explicit)
 		})
 	})
 })
