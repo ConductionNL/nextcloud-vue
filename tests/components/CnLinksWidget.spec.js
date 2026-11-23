@@ -56,7 +56,7 @@ describe('CnLinksWidgetForm', () => {
 	it('validate rejects an empty link URL', () => {
 		const wrapper = mount(CnLinksWidgetForm)
 		wrapper.vm.addSection()
-		// The new section starts with one empty link → invalid.
+		wrapper.vm.addLink(0)
 		expect(wrapper.vm.validate().length).toBeGreaterThan(0)
 	})
 })

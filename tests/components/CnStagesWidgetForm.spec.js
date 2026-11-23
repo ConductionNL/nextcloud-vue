@@ -14,6 +14,7 @@ import {
 	getWidgetTypeEntry,
 	listWidgetTypes,
 } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -45,10 +46,10 @@ function mountForm(content) {
 }
 
 describe('the stages registry entry', () => {
-	it('registers the renderer and the form under `stages`', () => {
+	it('registers the renderer and the form under `stages`', async () => {
 		const entry = getWidgetTypeEntry('stages')
-		expect(entry.renderer).toBe(CnStagesWidget)
-		expect(entry.form).toBe(CnStagesWidgetForm)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnStagesWidget)
+		expect(await loadLazyComponent(entry.form)).toBe(CnStagesWidgetForm)
 	})
 
 	it('is offered in the detail page picker and not on a dashboard', () => {

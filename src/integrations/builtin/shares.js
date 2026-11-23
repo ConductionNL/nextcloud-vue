@@ -31,8 +31,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnSharesCard from './shares/CnSharesCard.vue'
-import CnSharesTab from './shares/CnSharesTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnSharesCard = lazyComponent(() => import('./shares/CnSharesCard.vue'), 'CnSharesCard')
+const CnSharesTab = lazyComponent(() => import('./shares/CnSharesTab.vue'), 'CnSharesTab')
 
 /**
  * `shares` integration descriptor.

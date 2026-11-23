@@ -1,4 +1,3 @@
-import { denHaagIcons } from './denHaag.js'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl>
  * SPDX-License-Identifier: EUPL-1.2
@@ -7,15 +6,13 @@ import { denHaagIcons } from './denHaag.js'
  * `url-icon-groups` prop (one searchable sub-tab per set).
  *
  * Deliberately NOT part of `./index.js`: that barrel statically imports all three
- * sets, so anything touching it pulls RVO's ~1.9MB of data URIs (1163 icons) into
- * the eager bundle. Here the two small sets (Gemeente 256, Den Haag 69 — ~405KB
- * combined) are imported eagerly, and RVO is deferred behind an `import()`.
+ * sets, so anything touching it pulls their data URIs (RVO alone ~1.9MB, 1163
+ * icons) into the eager bundle. Here every set is deferred behind an `import()`.
  *
- * Rollup's `preserveModules` ESM output keeps that `import()` as a real async
- * chunk, so RVO is fetched the first time a user opens its tab and never
- * otherwise. Keep this module free of any static `./rvo.js` import.
+ * Rollup's `preserveModules` ESM output keeps each `import()` as a real async
+ * chunk, so a set is fetched the first time a user opens its tab and never
+ * otherwise. Keep this module free of static imports of the sets.
  */
-import { openGemeentenIcons } from './openGemeenten.js'
 
 /**
  * The default icon sets offered by every CnIconBrowser.
@@ -29,8 +26,18 @@ import { openGemeentenIcons } from './openGemeenten.js'
  */
 export function nlDesignIconGroups() {
 	return [
-		{ key: 'open-gemeenten', label: 'Gemeente', icons: openGemeentenIcons },
-		{ key: 'den-haag', label: 'Den Haag', icons: denHaagIcons },
+		{
+			key: 'open-gemeenten',
+			label: 'Gemeente',
+			icons: [],
+			load: () => import(/* webpackChunkName: "cn-icons-open-gemeenten" */ './openGemeenten.js').then((module) => module.openGemeentenIcons),
+		},
+		{
+			key: 'den-haag',
+			label: 'Den Haag',
+			icons: [],
+			load: () => import(/* webpackChunkName: "cn-icons-den-haag" */ './denHaag.js').then((module) => module.denHaagIcons),
+		},
 		{
 			key: 'rvo',
 			label: 'RVO',

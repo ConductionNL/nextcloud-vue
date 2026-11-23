@@ -14,7 +14,12 @@ const mockTotal = jest.fn()
 const mockSource = { load: jest.fn(async () => {}), rows: jest.fn(() => [{}, {}, {}, {}, {}, {}]) }
 jest.mock('../../src/utils/fetchFilterCounts.js', () => {
 	const actual = jest.requireActual('../../src/utils/fetchFilterCounts.js')
-	return { ...actual, fetchListTotal: (...args) => mockTotal(...args) }
+	return {
+		...actual,
+		fetchListTotal: (...args) => mockTotal(...args),
+		// Each list through the mocked single count, as the batch's fallback does.
+		fetchListTotals: (lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve().then(() => mockTotal(register, schema, filter, ctx)).catch(() => null))),
+	}
 })
 jest.mock('../../src/composables/indexSources.js', () => {
 	const actual = jest.requireActual('../../src/composables/indexSources.js')

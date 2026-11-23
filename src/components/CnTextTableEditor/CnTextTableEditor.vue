@@ -103,6 +103,7 @@
 							:colspan="cell.colSpan || 1"
 							:class="cellClass(rIdx, cIdx)"
 							:style="cellStyle(cIdx)"
+							@mousedown="onCellPointerDown"
 							@click="selectCell(rIdx, cIdx, $event)">
 							<input
 								type="text"
@@ -194,6 +195,7 @@ export default {
 		return {
 			anchor: { rIdx: 0, cIdx: 0 },
 			extent: { rIdx: 0, cIdx: 0 },
+			shiftPointer: false,
 			errorMessage: '',
 		}
 	},
@@ -295,12 +297,27 @@ export default {
 		 * @return {void}
 		 */
 		selectCell(rIdx, cIdx, event) {
-			if (event && event.shiftKey) {
+			// A focus event carries no modifier keys, so a Shift+click on an
+			// input reads the shift state from the mousedown before it.
+			const extend = Boolean(event && (event.shiftKey || (event.type === 'focus' && this.shiftPointer)))
+			this.shiftPointer = false
+			if (extend) {
 				this.extent = { rIdx, cIdx }
 			} else {
 				this.anchor = { rIdx, cIdx }
 				this.extent = { rIdx, cIdx }
 			}
+		},
+
+		/**
+		 * Remember whether Shift is held as a cell is pressed, for the focus
+		 * event that follows.
+		 *
+		 * @param {MouseEvent} event the mousedown event.
+		 * @return {void}
+		 */
+		onCellPointerDown(event) {
+			this.shiftPointer = event.shiftKey === true
 		},
 
 		/**

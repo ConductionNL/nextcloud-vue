@@ -14,27 +14,29 @@
  * Spec: REQ-MVR-005 (manifest-v2-renderer) — widget key resolution
  */
 
-import CnAuditTrailWidget from '../CnAuditTrailWidget/CnAuditTrailWidget.vue'
-import CnBannerWidget from '../CnBannerWidget/CnBannerWidget.vue'
-import CnDecisionListWidget from '../CnDecisionListWidget/CnDecisionListWidget.vue'
-import CnDividerWidget from '../CnDividerWidget/CnDividerWidget.vue'
-import CnExportsWidget from '../CnExportsWidget/CnExportsWidget.vue'
-import CnHeaderWidget from '../CnHeaderWidget/CnHeaderWidget.vue'
-import CnIntegrationWidget from '../CnIntegrationWidget/CnIntegrationWidget.vue'
-import CnNavCardGrid from '../CnNavCardGrid/CnNavCardGrid.vue'
-import CnNoticeWidget from '../CnNoticeWidget/CnNoticeWidget.vue'
-import CnObjectDataWidget from '../CnObjectDataWidget/CnObjectDataWidget.vue'
-import CnObjectGeoWidget from '../CnObjectGeoWidget/CnObjectGeoWidget.vue'
-import CnObjectMetadataWidget from '../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'
-import CnObjectTranslationsWidget from '../CnObjectTranslationsWidget/CnObjectTranslationsWidget.vue'
-import CnRelatedObjectsWidget from '../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'
-import CnSavedViewAlertWidget from '../CnSavedViewAlertWidget/CnSavedViewAlertWidget.vue'
-import CnTextWidget from '../CnTextWidget/CnTextWidget.vue'
-import CnTimelineWidget from '../CnTimelineWidget/CnTimelineWidget.vue'
-import CnWidgetCardGrid from '../CnWidgetCardGrid/CnWidgetCardGrid.vue'
-import CnWidgetFormRenderer from '../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'
-import CnWidgetMapViewer from '../CnWidgetMapViewer/CnWidgetMapViewer.vue'
-import CnWidgetObjectTable from '../CnWidgetObjectTable/CnWidgetObjectTable.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnAuditTrailWidget = lazyComponent(() => import('../CnAuditTrailWidget/CnAuditTrailWidget.vue'), 'CnAuditTrailWidget')
+const CnBannerWidget = lazyComponent(() => import('../CnBannerWidget/CnBannerWidget.vue'), 'CnBannerWidget')
+const CnDecisionListWidget = lazyComponent(() => import('../CnDecisionListWidget/CnDecisionListWidget.vue'), 'CnDecisionListWidget')
+const CnDividerWidget = lazyComponent(() => import('../CnDividerWidget/CnDividerWidget.vue'), 'CnDividerWidget')
+const CnExportsWidget = lazyComponent(() => import('../CnExportsWidget/CnExportsWidget.vue'), 'CnExportsWidget')
+const CnHeaderWidget = lazyComponent(() => import('../CnHeaderWidget/CnHeaderWidget.vue'), 'CnHeaderWidget')
+const CnIntegrationWidget = lazyComponent(() => import('../CnIntegrationWidget/CnIntegrationWidget.vue'), 'CnIntegrationWidget')
+const CnNavCardGrid = lazyComponent(() => import('../CnNavCardGrid/CnNavCardGrid.vue'), 'CnNavCardGrid')
+const CnNoticeWidget = lazyComponent(() => import('../CnNoticeWidget/CnNoticeWidget.vue'), 'CnNoticeWidget')
+const CnObjectDataWidget = lazyComponent(() => import('../CnObjectDataWidget/CnObjectDataWidget.vue'), 'CnObjectDataWidget')
+const CnObjectGeoWidget = lazyComponent(() => import('../CnObjectGeoWidget/CnObjectGeoWidget.vue'), 'CnObjectGeoWidget')
+const CnObjectMetadataWidget = lazyComponent(() => import('../CnObjectMetadataWidget/CnObjectMetadataWidget.vue'), 'CnObjectMetadataWidget')
+const CnObjectTranslationsWidget = lazyComponent(() => import('../CnObjectTranslationsWidget/CnObjectTranslationsWidget.vue'), 'CnObjectTranslationsWidget')
+const CnRelatedObjectsWidget = lazyComponent(() => import('../CnRelatedObjectsWidget/CnRelatedObjectsWidget.vue'), 'CnRelatedObjectsWidget')
+const CnSavedViewAlertWidget = lazyComponent(() => import('../CnSavedViewAlertWidget/CnSavedViewAlertWidget.vue'), 'CnSavedViewAlertWidget')
+const CnTextWidget = lazyComponent(() => import('../CnTextWidget/CnTextWidget.vue'), 'CnTextWidget')
+const CnTimelineWidget = lazyComponent(() => import('../CnTimelineWidget/CnTimelineWidget.vue'), 'CnTimelineWidget')
+const CnWidgetCardGrid = lazyComponent(() => import('../CnWidgetCardGrid/CnWidgetCardGrid.vue'), 'CnWidgetCardGrid')
+const CnWidgetFormRenderer = lazyComponent(() => import('../CnWidgetFormRenderer/CnWidgetFormRenderer.vue'), 'CnWidgetFormRenderer')
+const CnWidgetMapViewer = lazyComponent(() => import('../CnWidgetMapViewer/CnWidgetMapViewer.vue'), 'CnWidgetMapViewer')
+const CnWidgetObjectTable = lazyComponent(() => import('../CnWidgetObjectTable/CnWidgetObjectTable.vue'), 'CnWidgetObjectTable')
 
 /**
  * Built-in widget registry.

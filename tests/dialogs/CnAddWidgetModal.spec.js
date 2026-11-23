@@ -265,6 +265,58 @@ describe('CnAddWidgetModal', () => {
 		expect(wrapper.vm.state.type).toBe('tile')
 	})
 
+	it('initialType opens on that type and keeps the picker visible and changeable', async () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { displayName: 'Label', defaultContent: { text: 'l' } },
+			tile: { displayName: 'Tile', defaultContent: { title: '' } },
+		})
+		const wrapper = mount(CnAddWidgetModal, {
+			propsData: { show: true, initialType: 'tile' },
+		})
+		const select = wrapper.find('[data-testid="widget-type-select"]')
+		expect(select.exists()).toBe(true)
+		expect(wrapper.vm.state.type).toBe('tile')
+		expect(wrapper.vm.state.content).toEqual({ title: '' })
+
+		wrapper.vm.state.type = 'label'
+		wrapper.vm.onTypeSwitch()
+		await wrapper.vm.$nextTick()
+		expect(wrapper.vm.state.content).toEqual({ text: 'l' })
+	})
+
+	it('initialType that is not a registered type falls back to the first type', () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { displayName: 'Label' },
+			tile: { displayName: 'Tile' },
+		})
+		const wrapper = mount(CnAddWidgetModal, {
+			propsData: { show: true, initialType: 'nope' },
+		})
+		expect(wrapper.vm.state.type).toBe(wrapper.vm.availableTypes[0])
+	})
+
+	it('preselectedType wins over initialType and still hides the picker', () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { displayName: 'Label' },
+			tile: { displayName: 'Tile' },
+		})
+		const wrapper = mount(CnAddWidgetModal, {
+			propsData: { show: true, preselectedType: 'label', initialType: 'tile' },
+		})
+		expect(wrapper.find('[data-testid="widget-type-select"]').exists()).toBe(false)
+		expect(wrapper.vm.state.type).toBe('label')
+	})
+
+	it('a new initialType while open re-seeds the form on that type', async () => {
+		const { CnAddWidgetModal } = loadModal({
+			label: { displayName: 'Label', defaultContent: { text: 'l' } },
+			tile: { displayName: 'Tile', defaultContent: { title: '' } },
+		})
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		await wrapper.setProps({ initialType: 'tile' })
+		expect(wrapper.vm.state.type).toBe('tile')
+	})
+
 	it('edit mode hides the picker, pre-fills content, and relabels', () => {
 		const { CnAddWidgetModal } = loadModal({
 			header: { defaultContent: { title: '', subtitle: '' }, displayName: 'Header' },
@@ -302,6 +354,16 @@ describe('CnAddWidgetModal', () => {
 		const { CnAddWidgetModal } = loadModal({ label: {} })
 		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
 		wrapper.vm.onCancel()
+		expect(wrapper.emitted('close')).toBeTruthy()
+		expect(wrapper.emitted('submit')).toBeFalsy()
+	})
+
+	it('a click on the backdrop closes the dialog: NcDialog is told to close on an outside click', () => {
+		const { CnAddWidgetModal } = loadModal({ label: {} })
+		const wrapper = mount(CnAddWidgetModal, { propsData: { show: true } })
+		const dialog = wrapper.findComponent({ name: 'NcDialog' })
+		expect(dialog.vm.$attrs.closeOnClickOutside).toBe(true)
+		dialog.vm.$emit('closing')
 		expect(wrapper.emitted('close')).toBeTruthy()
 		expect(wrapper.emitted('submit')).toBeFalsy()
 	})

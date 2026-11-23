@@ -14,7 +14,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 const mockTotal = jest.fn()
 jest.mock('../../src/utils/fetchFilterCounts.js', () => {
 	const actual = jest.requireActual('../../src/utils/fetchFilterCounts.js')
-	return { ...actual, fetchListTotal: (...a) => mockTotal(...a) }
+	return {
+		...actual,
+		fetchListTotal: (...a) => mockTotal(...a),
+		// Each list through the mocked single count, as the batch's fallback does.
+		fetchListTotals: (lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve().then(() => mockTotal(register, schema, filter, ctx)).catch(() => null))),
+	}
 })
 
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'

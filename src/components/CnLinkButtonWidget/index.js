@@ -6,13 +6,15 @@
  * the shared dashboardWidgetRegistry at module load.
  */
 
-import CnLinkButtonWidgetForm from '../CnLinkButtonWidgetForm/CnLinkButtonWidgetForm.vue'
-import CnLinkButtonWidget from './CnLinkButtonWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnLinkButtonWidgetForm = lazyComponent(() => import('../CnLinkButtonWidgetForm/CnLinkButtonWidgetForm.vue'), 'CnLinkButtonWidgetForm')
+const LazyCnLinkButtonWidget = lazyComponent(() => import('./CnLinkButtonWidget.vue'), 'CnLinkButtonWidget')
+
 registerDashboardWidget('link', {
-	renderer: CnLinkButtonWidget,
-	form: CnLinkButtonWidgetForm,
+	renderer: LazyCnLinkButtonWidget,
+	form: LazyCnLinkButtonWidgetForm,
 	defaultContent: {
 		label: '',
 		url: '',
@@ -29,5 +31,5 @@ registerDashboardWidget('link', {
 	icon: 'LinkVariant',
 })
 
-export { CnLinkButtonWidget }
-export default CnLinkButtonWidget
+export { default as CnLinkButtonWidget } from './CnLinkButtonWidget.vue'
+export { default } from './CnLinkButtonWidget.vue'

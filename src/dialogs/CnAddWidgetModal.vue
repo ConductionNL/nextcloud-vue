@@ -8,6 +8,7 @@
 		v-if="show"
 		size="normal"
 		:name="modalTitle"
+		:closeOnClickOutside="true"
 		@closing="onCancel">
 		<!-- Type selector: shown only in pure-create mode (no preselected
 		     type, no editing widget). -->
@@ -15,20 +16,61 @@
 			<label class="cn-add-widget-modal__type-label" :for="typeSelectId">
 				{{ t('nextcloud-vue', 'Widget type') }}
 			</label>
-			<select
-				:id="typeSelectId"
-				v-model="state.type"
-				class="cn-add-widget-modal__type-select"
-				data-testid="widget-type-select"
-				@change="onTypeSwitch">
-				<option
-					v-for="type in availableTypes"
-					:key="type"
-					:value="type"
-					:data-testid="`widget-type-option-${type}`">
-					{{ typeDisplayName(type) }}
-				</option>
-			</select>
+			<!-- A native option cannot draw an icon, so the chosen type's
+			     icon stands in front of the select. -->
+			<div class="cn-add-widget-modal__type-row">
+				<span
+					v-if="state.type"
+					class="cn-add-widget-modal__type-icon"
+					data-testid="widget-type-icon"
+					aria-hidden="true">
+					<CnWidgetIcon :name="typeIcon(state.type)" :size="20" />
+				</span>
+				<select
+					:id="typeSelectId"
+					v-model="state.type"
+					class="cn-add-widget-modal__type-select"
+					data-testid="widget-type-select"
+					@change="onTypeSwitch">
+					<option
+						v-for="type in availableTypes"
+						:key="type"
+						:value="type"
+						:data-testid="`widget-type-option-${type}`">
+						{{ typeDisplayName(type) }}
+					</option>
+				</select>
+			</div>
+		</div>
+
+		<!-- Notices about the widget being edited, from the host: a finding
+		     the host made about its configuration (non-fatal), above the form. -->
+		<div
+			v-if="notices.length > 0 || $slots.notices"
+			class="cn-add-widget-modal__notices"
+			data-testid="cn-add-widget-modal-notices">
+			<!-- @slot Extra notices above the form; replaces nothing, follows the `notices` prop. -->
+			<NcNoteCard
+				v-for="(notice, index) in notices"
+				:key="notice.id || index"
+				:type="noticeType(notice)"
+				data-testid="cn-add-widget-modal-notice">
+				<div class="cn-add-widget-modal__notice">
+					<span class="cn-add-widget-modal__notice-text">{{ notice.text }}</span>
+					<NcButton
+						v-if="notice.dismissible"
+						variant="tertiary"
+						:aria-label="t('nextcloud-vue', 'Dismiss')"
+						:title="t('nextcloud-vue', 'Dismiss')"
+						data-testid="cn-add-widget-modal-notice-dismiss"
+						@click="$emit('dismiss-notice', notice.id ?? index)">
+						<template #icon>
+							<Close :size="20" />
+						</template>
+					</NcButton>
+				</div>
+			</NcNoteCard>
+			<slot name="notices" />
 		</div>
 
 		<!-- Active per-type sub-form. Driven by `<component :is>` from the
@@ -51,8 +93,9 @@
 
 		<!-- Widget appearance (chrome): title, background, icon. Shared with
 		     every consumer so the add/edit experience is identical across apps
-		     (the chrome rides alongside `content` in the submit payload). -->
-		<div v-if="activeSubFormComponent" class="cn-add-widget-modal__chrome">
+		     (the chrome rides alongside `content` in the submit payload). A type
+		     registered with `noChrome` (e.g. the divider) has no Appearance. -->
+		<div v-if="activeSubFormComponent && !activeTypeNoChrome" class="cn-add-widget-modal__chrome">
 			<h3 class="cn-add-widget-modal__chrome-title">
 				{{ t('nextcloud-vue', 'Appearance') }}
 			</h3>
@@ -111,10 +154,12 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDialog, NcNoteCard, NcTextField } from '@nextcloud/vue'
 import { computed, provide } from 'vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import CnColorPicker from '../components/CnColorPicker/CnColorPicker.vue'
 import CnIconBrowser from '../components/CnIconBrowser/CnIconBrowser.vue'
+import CnWidgetIcon from '../components/CnWidgetGrid/CnWidgetIcon.vue'
 import {
 	getWidgetTypeEntry,
 	listUserAddableWidgetTypes,
@@ -143,8 +188,11 @@ export default {
 		NcButton,
 		NcTextField,
 		NcCheckboxRadioSwitch,
+		NcNoteCard,
+		Close,
 		CnIconBrowser,
 		CnColorPicker,
+		CnWidgetIcon,
 	},
 
 	props: {
@@ -162,6 +210,17 @@ export default {
 		 * on this type (toolbar deep-links).
 		 */
 		preselectedType: {
+			type: String,
+			default: null,
+		},
+
+		/**
+		 * When set, the form opens on this type in create mode but the type
+		 * `<select>` stays visible, so the user can still change it (a host
+		 * picker that already asked which kind of widget). Ignored when
+		 * `preselectedType` or `editingWidget` is set.
+		 */
+		initialType: {
 			type: String,
 			default: null,
 		},
@@ -222,6 +281,23 @@ export default {
 		},
 
 		/**
+		 * Non-fatal notices about the widget, shown above its form: what the
+		 * host found about its configuration, e.g. a filter dimension the
+		 * dashboard does not publish. Each is `{ text, type?, id?, dismissible? }`,
+		 * `type` one of `warning` (default), `info`, `error`, `success`. A
+		 * `dismissible` notice has a Dismiss button that emits
+		 * `dismiss-notice` with its `id` (its index without one); the host
+		 * drops it from `notices`.
+		 *
+		 * @type {Array<{text: string, type?: string, id?: string, dismissible?: boolean}>}
+		 * @spec openspec/changes/add-widget-modal-notices/specs/add-widget-modal-notices/spec.md#requirement-the-widget-dialog-can-show-the-hosts-notices
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The surface the picker offers types for. `'detail-page'` surfaces
 		 * detail-only types (e.g. a second `data` widget) alongside the universal
 		 * widgets; the default `'app-dashboard'` lists the dashboard set. Types
@@ -279,6 +355,8 @@ export default {
 		'close',
 		/** Fired with the assembled `{type, content}` payload for the parent to persist. */
 		'submit',
+		/** Fired with a dismissible notice's id (its index without one) when the reader dismisses it. */
+		'dismiss-notice',
 	],
 
 	setup(props) {
@@ -359,6 +437,17 @@ export default {
 		activeTypeOwnsTitle() {
 			const entry = getWidgetTypeEntry(this.state.type)
 			return !!(entry && entry.ownsTitle)
+		},
+
+		/**
+		 * Whether the active type has no widget chrome (declares `noChrome` in
+		 * its registry entry), so the modal hides the whole Appearance block.
+		 *
+		 * @return {boolean} true when the type draws no title, background or icon.
+		 */
+		activeTypeNoChrome() {
+			const entry = getWidgetTypeEntry(this.state.type)
+			return !!(entry && entry.noChrome)
 		},
 
 		/**
@@ -507,6 +596,19 @@ export default {
 				this.form.resetForm(type)
 			}
 		},
+
+		/**
+		 * Re-seed the form when the initial type changes while open in create
+		 * mode, unless a preselected type pins it.
+		 *
+		 * @param {string|null} type the new initial type.
+		 * @return {void}
+		 */
+		initialType(type) {
+			if (this.show && type && !this.editingWidget && !this.preselectedType && this.availableTypes.includes(type)) {
+				this.form.resetForm(type)
+			}
+		},
 	},
 
 	created() {
@@ -535,6 +637,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The note card type of a notice: its own when known, else `warning`.
+		 *
+		 * @param {{type?: string}} notice The notice.
+		 * @return {string}
+		 * @spec openspec/changes/add-widget-modal-notices/specs/add-widget-modal-notices/spec.md#requirement-the-widget-dialog-can-show-the-hosts-notices
+		 */
+		noticeType(notice) {
+			return ['warning', 'info', 'error', 'success'].includes(notice && notice.type) ? notice.type : 'warning'
+		},
+
 		t,
 
 		/**
@@ -550,6 +663,7 @@ export default {
 				this.seedChrome(this.editingWidget)
 			} else {
 				const initialType = this.preselectedType
+					|| (this.availableTypes.includes(this.initialType) ? this.initialType : null)
 					|| this.availableTypes[0]
 					|| ''
 				this.form.resetForm(initialType)
@@ -745,6 +859,18 @@ export default {
 			const entry = getWidgetTypeEntry(type)
 			return entry?.displayName || type
 		},
+
+		/**
+		 * The icon a registry type declares (an MDI name, SVG path or URL), or
+		 * `null` for the default widget icon.
+		 *
+		 * @param {string} type the registry type key.
+		 * @return {string|null} the icon.
+		 */
+		typeIcon(type) {
+			const icon = getWidgetTypeEntry(type)?.icon
+			return typeof icon === 'string' && icon !== '' ? icon : null
+		},
 	},
 }
 </script>
@@ -761,7 +887,21 @@ export default {
 	font-weight: 500;
 }
 
+.cn-add-widget-modal__type-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-add-widget-modal__type-icon {
+	display: inline-flex;
+	flex: none;
+	color: var(--color-main-text);
+}
+
 .cn-add-widget-modal__type-select {
+	flex: 1;
+	min-width: 0;
 	padding: 8px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius);
@@ -814,5 +954,24 @@ export default {
 .cn-add-widget-modal__chrome-value {
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-add-widget-modal__notices {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-block-end: 12px;
+}
+
+.cn-add-widget-modal__notice {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cn-add-widget-modal__notice-text {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 </style>
