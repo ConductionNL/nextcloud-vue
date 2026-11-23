@@ -26,6 +26,7 @@ import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline
 import BellIcon from 'vue-material-design-icons/Bell.vue'
 import BookOpenVariantIcon from 'vue-material-design-icons/BookOpenVariant.vue'
 import BriefcaseIcon from 'vue-material-design-icons/Briefcase.vue'
+import BullhornIcon from 'vue-material-design-icons/Bullhorn.vue'
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
 import CashIcon from 'vue-material-design-icons/Cash.vue'
 import CashMultipleIcon from 'vue-material-design-icons/CashMultiple.vue'
@@ -105,6 +106,7 @@ export const DASHBOARD_ICONS = Object.freeze({
 	RocketLaunch: RocketLaunchIcon,
 	Earth: EarthIcon,
 	Briefcase: BriefcaseIcon,
+	Bullhorn: BullhornIcon,
 	Cash: CashIcon,
 	CashMultiple: CashMultipleIcon,
 	CurrencyEur: CurrencyEurIcon,

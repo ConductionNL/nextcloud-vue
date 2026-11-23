@@ -22,7 +22,7 @@
 		:is="iconComponent"
 		v-else-if="iconComponent"
 		:size="size" />
-	<!-- This registry is a CURATED 57-icon set for the tile/menu/links catalog,
+	<!-- This registry is a CURATED icon set for the tile/menu/links catalog,
 	     but a manifest `icon` field is authored against the fleet-wide
 	     vocabulary, which is far larger. A valid-but-unknown-here name landed on
 	     the DEFAULT icon, so a widget asking for a clock rendered a dashboard
