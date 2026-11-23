@@ -258,4 +258,3 @@ describe('CnDashboardGrid: cards added to a narrowed grid', () => {
 		wrapper.unmount()
 	})
 })
-
