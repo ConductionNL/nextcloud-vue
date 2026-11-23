@@ -6,13 +6,20 @@
  * must state a purpose. `{ required: false }` (the app recorded it itself,
  * as for the case's own handler) opens the record without the dialog; any
  * other answer or a failure asks as before. An option's `hint` reaches the
- * dialog translated.
+ * dialog translated. While the page cannot tell yet whether the record
+ * asks (the records its condition reads are on their way), it shows neither
+ * the record nor the dialog.
  *
  * @spec openspec/changes/detail-access-purpose/specs/detail-access-purpose/spec.md#requirement-a-detail-page-can-ask-for-a-purpose-before-it-opens
  */
 const mockGet = jest.fn()
 const mockPost = jest.fn()
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { post: (...a) => mockPost(...a), get: (...a) => mockGet(...a) } }))
+const mockFetchJson = jest.fn()
+jest.mock('../../src/utils/cnFetch.js', () => {
+	const actual = jest.requireActual('../../src/utils/cnFetch.js')
+	return { ...actual, cnFetchJson: (...a) => mockFetchJson(...a) }
+})
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => `/index.php${p}`, generateOcsUrl: (p) => p }))
 
 import { flushPromises, mount } from '@vue/test-utils'
@@ -59,6 +66,7 @@ function mountPage(extra = {}) {
 beforeEach(() => {
 	mockGet.mockReset()
 	mockPost.mockReset()
+	mockFetchJson.mockReset()
 	window.sessionStorage.clear()
 })
 
@@ -94,5 +102,29 @@ describe('CnDetailPage accessPurpose checkUrl', () => {
 		expect(w.findComponent({ name: 'CnAccessPurposeDialog' }).props('options')).toEqual([
 			{ value: 'handling', label: 'Handling the case', hint: 'Je wordt behandelaar van deze zaak.' },
 		])
+	})
+
+	it('shows neither the record nor the dialog while it cannot tell yet whether the record asks', async () => {
+		let answer
+		mockFetchJson.mockReturnValue(new Promise((resolve) => {
+			answer = resolve
+		}))
+		mockGet.mockResolvedValue({ data: { required: false, recorded: true } })
+		const w = mountPage({
+			objectStore: { objects: { case: { 'case-1': { id: 'case-1', caseType: 'ct-1' } } } },
+			visibilityContext: { caseType: { field: 'caseType', register: 'dossiq', schema: 'caseType' } },
+			accessPurpose: { ...GATE, when: { field: '@context.caseType.special', op: 'eq', value: true } },
+		})
+		await flushPromises()
+		expect(mockFetchJson).toHaveBeenCalled()
+		expect(w.find('[data-testid="cn-detail-page-access-purpose"]').exists()).toBe(true)
+		expect(w.find('.purpose-dialog').exists()).toBe(false)
+		expect(w.find('.record-body').exists()).toBe(false)
+
+		answer({ id: 'ct-1', special: true })
+		await flushPromises()
+		expect(mockGet).toHaveBeenCalledWith('/index.php/apps/dossiq/api/cases/case-1/access-purpose')
+		expect(w.find('.purpose-dialog').exists()).toBe(false)
+		expect(w.find('.record-body').exists()).toBe(true)
 	})
 })

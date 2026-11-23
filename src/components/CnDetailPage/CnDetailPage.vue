@@ -779,10 +779,12 @@
 		</div>
 
 		<!-- Access purpose (`accessPurpose`): nothing of the record shows until
-		     the reader has stated why they open it and the purpose is recorded. -->
+		     the reader has stated why they open it and the purpose is recorded.
+		     While the page cannot tell yet whether the record asks, it shows the
+		     loading icon, not the dialog. -->
 		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
 			<CnAccessPurposeDialog
-				v-if="accessPurposeAsking && !accessPurposeChecking"
+				v-if="accessPurposeAsking && accessPurposeRequired && !accessPurposeChecking"
 				:title="accessPurposeText('title')"
 				:description="accessPurposeText('description')"
 				:options="accessPurposeOptions"
