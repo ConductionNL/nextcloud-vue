@@ -199,7 +199,7 @@ export default {
 		 * - `facts` — `[{ label, field }]` rows under the caption.
 		 * - `extendedField` — property on the record that is truthy once the term has been extended.
 		 * - `states` — per state (`onTrack`, `warning`, `danger`, `overdue`, `extended`) a `{ headline?, caption?, notice?: { lead?, text?, type? } }`; texts take `{date}` and `{count}` and run through the host's translate.
-		 * - `actions` — several manifest actions under the card, each with an optional `disabledIn` list of states.
+		 * - `actions` — several manifest actions under the card, each with an optional `disabledIn` (greyed out) and `hiddenIn` (left out) list of states.
 		 *
 		 * @type {{ field?: string, label?: string, icon?: string, thresholds?: {warn?: number, danger?: number}, showDate?: boolean, settledField?: string, settledLabel?: string, daysLabel?: {one?: string, other?: string}, caption?: string, startField?: string, action?: object, emptyLabel?: string, emptyCaption?: string, emptyDateField?: string, facts?: Array<{label: string, field: string}>, extendedField?: string, states?: object, actions?: Array<object> }}
 		 */
@@ -432,13 +432,17 @@ export default {
 		},
 
 		/**
-		 * Every state that holds now: the term state, plus `extended` while a
+		 * Every state that holds now: `settled` once the record is done, else the
+		 * term state, plus `extended` while a
 		 * threshold or the date outranks it.
 		 *
 		 * @return {string[]} The states.
 		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
 		 */
 		activeStates() {
+			if (this.isSettled) {
+				return ['settled']
+			}
 			if (this.termState === null) {
 				return []
 			}
@@ -478,7 +482,9 @@ export default {
 
 		/**
 		 * The buttons under the card: `content.actions`, or `content.action`
-		 * alone, each greyed out while a state its `disabledIn` names holds.
+		 * alone, each greyed out while a state its `disabledIn` names holds and
+		 * left out while one its `hiddenIn` names holds (`settled` once the
+		 * record is done).
 		 *
 		 * @return {Array<{index: number, label: string, primary: boolean, disabled: boolean, action: object}>} The buttons.
 		 * @spec openspec/changes/countdown-term-states/specs/countdown-term-states/spec.md#requirement-an-action-can-be-greyed-out-per-state
@@ -488,6 +494,7 @@ export default {
 			return list
 				.map((action, index) => ({ action, index }))
 				.filter(({ action }) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				.filter(({ action }) => !(Array.isArray(action.hiddenIn) && action.hiddenIn.some((state) => this.activeStates.includes(state))))
 				.map(({ action, index }) => ({
 					index,
 					label: this.translate(action.label),
@@ -616,8 +623,9 @@ export default {
 			}
 			const ctx = resolveObjectTokenContext(this.cnObjectContextInjected, this.cnDetailObjectContextInjected) || {}
 			const tokenCtx = { ...ctx, object: this.record || ctx.object || null, objectId: this.record?.id ?? ctx.objectId ?? null }
-			const { disabledIn, ...declared } = action
-			if (Array.isArray(disabledIn) && disabledIn.some((state) => this.activeStates.includes(state))) {
+			const { disabledIn, hiddenIn, ...declared } = action
+			const holds = (states) => Array.isArray(states) && states.some((state) => this.activeStates.includes(state))
+			if (holds(disabledIn) || holds(hiddenIn)) {
 				return undefined
 			}
 			const resolved = resolveDeepTokens(declared, tokenCtx)

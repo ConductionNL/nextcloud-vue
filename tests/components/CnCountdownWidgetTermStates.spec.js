@@ -116,6 +116,14 @@ describe('CnCountdownWidget term states', () => {
 		expect(sent.disabledIn).toBeUndefined()
 	})
 
+	it('leaves out an action whose hiddenIn holds: settled once the record is done', () => {
+		const content = { ...TERM, settledField: 'done', actions: [{ ...TERM.actions[0], hiddenIn: ['settled'] }, TERM.actions[1]] }
+		const open = mountTile({ id: 'c1', deadline: daysFromToday(27) }, content)
+		expect(buttons(open).map((b) => b.label)).toEqual(['Verdagen', 'Termijn opschorten'])
+		const done = mountTile({ id: 'c1', deadline: daysFromToday(27), done: true }, content)
+		expect(buttons(done).map((b) => b.label)).toEqual(['Termijn opschorten'])
+	})
+
 	it('does not run a greyed-out action', () => {
 		const dispatch = jest.fn()
 		const w = mountTile({ id: 'c1', deadline: daysFromToday(-1) }, TERM, { cnDispatchAction: dispatch })
