@@ -6,12 +6,18 @@
 <template>
 	<div
 		class="cn-files-widget"
-		:class="{ 'cn-files-widget--dragging': isDragging }"
+		:class="{ 'cn-files-widget--dragging': isDragging, 'cn-files-widget--compact': compact }"
 		@dragenter="onDragEnter"
 		@dragover="onDragOver"
 		@dragleave="onDragLeave"
 		@drop="onDrop">
-		<div class="cn-files-widget__toolbar">
+		<!-- The compact list the boards draw (LpWerkplek "Bestanden"): the
+		     folder named on one line instead of the toolbar. -->
+		<p v-if="compact" class="cn-files-widget__folder" data-testid="cn-files-widget-folder">
+			<FolderOutline :size="16" aria-hidden="true" />
+			{{ t('nextcloud-vue', 'Folder {name}', { name: folderName }) }}
+		</p>
+		<div v-else class="cn-files-widget__toolbar">
 			<nav
 				v-if="!objectBound"
 				class="cn-files-widget__breadcrumb"
@@ -190,8 +196,12 @@
 					class="cn-files-widget__row-name"
 					@click="onRowClick(item, $event)">
 					<span aria-hidden="true" class="cn-files-widget__row-icon">
+						<template v-if="compact">
+							<FolderOutline v-if="item.isFolder" :size="18" />
+							<FileDocumentOutline v-else :size="18" />
+						</template>
 						<img
-							v-if="showThumbnails && !item.isFolder && item.thumbnailUrl && !failedThumbs[item.fileId]"
+							v-else-if="showThumbnails && !item.isFolder && item.thumbnailUrl && !failedThumbs[item.fileId]"
 							:src="item.thumbnailUrl"
 							alt=""
 							class="cn-files-widget__row-thumb"
@@ -201,8 +211,8 @@
 					</span>
 					<span class="cn-files-widget__row-label">{{ item.name }}</span>
 				</component>
-				<span class="cn-files-widget__row-modified">{{ item.modifiedAt }}</span>
-				<span class="cn-files-widget__row-size">{{ formatSize(item.size, item.isFolder) }}</span>
+				<span class="cn-files-widget__row-modified">{{ compact ? whenText(item.modifiedAt) : item.modifiedAt }}</span>
+				<span v-if="!compact" class="cn-files-widget__row-size">{{ formatSize(item.size, item.isFolder) }}</span>
 				<button
 					v-if="canDeleteItem(item)"
 					type="button"
@@ -234,12 +244,41 @@
 </template>
 
 <script>
-import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
 import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
+
+/** Milliseconds in a day. */
+const DAY_MS = 86400000
+
+/**
+ * When a file changed, as the boards word it in a file list: the time for
+ * today, the weekday within the last week, the day and month before that.
+ *
+ * @param {string} value ISO date of the change.
+ * @param {Date} now The current moment.
+ * @param {string} locale BCP 47 locale.
+ * @return {string} The moment, or the value as given when it is no date.
+ */
+export function fileWhenText(value, now, locale) {
+	const changed = new Date(value ?? '')
+	if (Number.isNaN(changed.getTime())) {
+		return value ?? ''
+	}
+	const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+	if (changed >= startOfToday) {
+		return changed.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+	}
+	if (startOfToday - changed < 6 * DAY_MS) {
+		return changed.toLocaleDateString(locale, { weekday: 'long' })
+	}
+	return changed.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+}
 
 /**
  * CnFilesWidget — an inline Nextcloud Files browser rendered as a dashboard
@@ -269,6 +308,8 @@ export default {
 	components: {
 		CnFilePreview,
 		CnFilesWidgetDeleteDialog,
+		FileDocumentOutline,
+		FolderOutline,
 	},
 
 	props: {
@@ -402,6 +443,25 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The compact list (`content.layout: 'compact'`): the folder named on
+		 * one line, then each file with its glyph, name and when it changed;
+		 * no toolbar, thumbnail or size.
+		 *
+		 * @return {boolean}
+		 */
+		compact() {
+			return Boolean(this.content && this.content.layout === 'compact')
+		},
+
+		/**
+		 * @return {string} The last segment of the configured folder.
+		 */
+		folderName() {
+			const parts = String((this.content && this.content.folderPath) || '').split('/').filter(Boolean)
+			return parts.length > 0 ? parts[parts.length - 1] : t('nextcloud-vue', 'Files')
+		},
+
 		/**
 		 * Numeric placement id used to scope the host Files endpoint.
 		 *
@@ -1261,6 +1321,14 @@ export default {
 		 * @param {boolean} isFolder whether the item is a folder.
 		 * @return {string} the formatted size.
 		 */
+		/**
+		 * @param {string} value ISO date of the change.
+		 * @return {string} When the file changed, in the reader's language.
+		 */
+		whenText(value) {
+			return fileWhenText(value, new Date(), getLanguage())
+		},
+
 		formatSize(bytes, isFolder) {
 			if (isFolder) {
 				return ''
@@ -1310,6 +1378,40 @@ export default {
 	color: var(--color-primary-element);
 	font-weight: 600;
 	border-radius: var(--border-radius);
+}
+
+.cn-files-widget__folder {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 4px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+}
+
+.cn-files-widget--compact .cn-files-widget__row {
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 12px;
+	padding: 7px 0;
+	border-bottom: none;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-files-widget--compact .cn-files-widget__row-name {
+	min-width: 0;
+	color: var(--color-main-text);
+	font-size: 14px;
+	text-decoration: none !important;
+}
+
+.cn-files-widget--compact .cn-files-widget__row-icon {
+	display: flex;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-widget--compact .cn-files-widget__row-modified {
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
 }
 
 .cn-files-widget__toolbar {
