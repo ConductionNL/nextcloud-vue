@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnEmailCard from './email/CnEmailCard.vue'
-import CnEmailTab from './email/CnEmailTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnEmailCard = lazyComponent(() => import('./email/CnEmailCard.vue'), 'CnEmailCard')
+const CnEmailTab = lazyComponent(() => import('./email/CnEmailTab.vue'), 'CnEmailTab')
 
 /**
  * `email` integration descriptor.

@@ -16,6 +16,7 @@
 import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
 import CnObjectTranslationsWidget from '../CnObjectTranslationsWidget.vue'
+import { loadLazyComponent } from '../../../utils/lazyComponent.js'
 import { completenessOf } from '../../../utils/objectTranslations.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), patch: jest.fn() } }))
@@ -182,8 +183,8 @@ describe('the language strip is a tablist', () => {
 })
 
 describe('registration', () => {
-	it('is the detail-page widget type object-translations', () => {
+	it('is the detail-page widget type object-translations', async () => {
 		const { BUILT_IN_WIDGETS } = require('../../CnWidgetGrid/builtInWidgets.js')
-		expect(BUILT_IN_WIDGETS['object-translations']).toBe(CnObjectTranslationsWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['object-translations'])).toBe(CnObjectTranslationsWidget)
 	})
 })

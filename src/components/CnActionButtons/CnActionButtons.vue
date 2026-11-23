@@ -235,9 +235,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
-import { inject } from 'vue'
-import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import CnRunNodeDialog from '../../dialogs/CnRunNodeDialog.vue'
+import { defineAsyncComponent, inject } from 'vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { actionLink, buildOnSuccessRoute, dispatchAction, interpolateActionTarget, isExternalActionTarget, postRunNode, resolveCreateOverrideHandler, resolveObjectOpType } from '../../utils/actionsDispatcher.js'
@@ -246,9 +244,12 @@ import { answersByArrayKey, mergeValueArray, usesArrayValues, valueRecordsFor } 
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
+
+const CnConfirmDialog = defineAsyncComponent(() => import('../../dialogs/CnConfirmDialog.vue').then((m) => m.default))
+const CnRunNodeDialog = defineAsyncComponent(() => import('../../dialogs/CnRunNodeDialog.vue').then((m) => m.default))
+const CnAdvancedFormDialog = defineAsyncComponent(() => import('../CnAdvancedFormDialog/CnAdvancedFormDialog.vue').then((m) => m.default))
+const CnFormDialog = defineAsyncComponent(() => import('../CnFormDialog/CnFormDialog.vue').then((m) => m.default))
 
 /**
  * CnActionButtons — declarative header-actions surface (#91 Wave 3).

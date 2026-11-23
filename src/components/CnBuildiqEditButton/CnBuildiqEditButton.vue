@@ -198,6 +198,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { defineAsyncComponent } from 'vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Database from 'vue-material-design-icons/Database.vue'
@@ -208,19 +209,20 @@ import PageLayoutSidebarRight from 'vue-material-design-icons/PageLayoutSidebarR
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Sitemap from 'vue-material-design-icons/Sitemap.vue'
-import CnAddWidgetModal from '../../dialogs/CnAddWidgetModal.vue'
-import CnEditActionsModal from '../../dialogs/CnEditActionsModal.vue'
-import CnEditDataModal from '../../dialogs/CnEditDataModal.vue'
-import CnEditMenuModal from '../../dialogs/CnEditMenuModal.vue'
-import CnEditPagesModal from '../../dialogs/CnEditPagesModal.vue'
-import CnEditSettingsModal from '../../dialogs/CnEditSettingsModal.vue'
-import CnEditSetupModal from '../../dialogs/CnEditSetupModal.vue'
-import CnEditSidebarModal from '../../dialogs/CnEditSidebarModal.vue'
-import CnEditSupportModal from '../../dialogs/CnEditSupportModal.vue'
-import CnEditWalkthroughModal from '../../dialogs/CnEditWalkthroughModal.vue'
-import CnFlowEditModal from '../../dialogs/CnFlowEditModal.vue'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import { getDefaultContent, getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+const CnAddWidgetModal = defineAsyncComponent(() => import('../../dialogs/CnAddWidgetModal.vue').then((m) => m.default))
+const CnEditActionsModal = defineAsyncComponent(() => import('../../dialogs/CnEditActionsModal.vue').then((m) => m.default))
+const CnEditDataModal = defineAsyncComponent(() => import('../../dialogs/CnEditDataModal.vue').then((m) => m.default))
+const CnEditMenuModal = defineAsyncComponent(() => import('../../dialogs/CnEditMenuModal.vue').then((m) => m.default))
+const CnEditPagesModal = defineAsyncComponent(() => import('../../dialogs/CnEditPagesModal.vue').then((m) => m.default))
+const CnEditSettingsModal = defineAsyncComponent(() => import('../../dialogs/CnEditSettingsModal.vue').then((m) => m.default))
+const CnEditSetupModal = defineAsyncComponent(() => import('../../dialogs/CnEditSetupModal.vue').then((m) => m.default))
+const CnEditSidebarModal = defineAsyncComponent(() => import('../../dialogs/CnEditSidebarModal.vue').then((m) => m.default))
+const CnEditSupportModal = defineAsyncComponent(() => import('../../dialogs/CnEditSupportModal.vue').then((m) => m.default))
+const CnEditWalkthroughModal = defineAsyncComponent(() => import('../../dialogs/CnEditWalkthroughModal.vue').then((m) => m.default))
+const CnFlowEditModal = defineAsyncComponent(() => import('../../dialogs/CnFlowEditModal.vue').then((m) => m.default))
 
 export default {
 	name: 'CnBuildiqEditButton',

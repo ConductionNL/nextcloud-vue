@@ -13,6 +13,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import CnDecisionListWidget from '../../src/components/CnDecisionListWidget/CnDecisionListWidget.vue'
 import { BUILT_IN_WIDGETS } from '../../src/components/CnWidgetGrid/builtInWidgets.js'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (p) => `/nc${p}`, generateOcsUrl: (p) => p }))
@@ -82,7 +83,7 @@ describe('CnDecisionListWidget', () => {
 	})
 
 	it('is the decision-list built-in widget and lists the rows with title and meta', async () => {
-		expect(BUILT_IN_WIDGETS['decision-list']).toBe(CnDecisionListWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['decision-list'])).toBe(CnDecisionListWidget)
 		const w = await mountList()
 		expect(axios.get.mock.calls[0][0]).toBe('/nc/apps/openregister/api/archival/reviews/pending')
 		const row = w.find('[data-testid="cn-decision-list-row-e-1"]')

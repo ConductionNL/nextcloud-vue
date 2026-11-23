@@ -15,8 +15,10 @@
 
 import { translate as t } from '@nextcloud/l10n'
 import { h } from 'vue'
-import CnNotesCard from '../../components/CnNotesCard/CnNotesCard.vue'
-import CnNotesTab from '../../components/CnObjectSidebar/CnNotesTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnNotesCard = lazyComponent(() => import('../../components/CnNotesCard/CnNotesCard.vue'), 'CnNotesCard')
+const CnNotesTab = lazyComponent(() => import('../../components/CnObjectSidebar/CnNotesTab.vue'), 'CnNotesTab')
 
 /**
  * Adapter component: forwards `register` → `registerId`,

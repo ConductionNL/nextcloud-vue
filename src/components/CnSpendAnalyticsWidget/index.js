@@ -16,11 +16,13 @@
  * wire it in here.
  */
 
-import CnSpendAnalyticsWidget from './CnSpendAnalyticsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnSpendAnalyticsWidget = lazyComponent(() => import('./CnSpendAnalyticsWidget.vue'), 'CnSpendAnalyticsWidget')
+
 registerDashboardWidget('spend-analytics', {
-	renderer: CnSpendAnalyticsWidget,
+	renderer: LazyCnSpendAnalyticsWidget,
 	form: null,
 	defaultContent: {
 		period: 'quarter',
@@ -33,5 +35,5 @@ registerDashboardWidget('spend-analytics', {
 	requires: { graphql: ['financeq', 'procest'] },
 })
 
-export { CnSpendAnalyticsWidget }
-export default CnSpendAnalyticsWidget
+export { default as CnSpendAnalyticsWidget } from './CnSpendAnalyticsWidget.vue'
+export { default } from './CnSpendAnalyticsWidget.vue'

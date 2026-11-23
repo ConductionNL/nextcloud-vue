@@ -47,8 +47,11 @@ export {
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAppTile,
 	CnAppTilesWidget,
 	CnAppTilesWidgetForm,
+	CnAppTileWidget,
+	CnAppTileWidgetForm,
 	CnAssignDialog,
 	CnAttentionFlagWidget,
 	CnAudioCapture,
@@ -370,6 +373,7 @@ export {
 	CnStatsPanel,
 	CnStatusBadge,
 	CnStatusExplainerWidget,
+	CnStatusList,
 	CnStatWidget,
 	CnStatWidgetForm,
 	CnStepper,
@@ -633,12 +637,16 @@ export {
 export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 export { encodeQr } from './utils/qr.js'
+export { APP_TILE_COLOURS, appTileColour, appTileColourValue, contrastWithWhite, defaultAppTileColour } from './utils/appTilePalette.js'
+export { navigationApps, notificationCountsByApp } from './utils/nextcloudApps.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'
 export { conditionSentence, formatConditionValue, operatorLabel, operatorsForType, operatorTakesValue } from './components/CnConditionListEditor/conditionOperators.js'
 // An identifier-shaped key made readable (`shortDescription` → "Short description").
 export { humaniseKey } from './utils/humaniseKey.js'
+// A component that loads its definition on first render, for registries.
+export { lazyComponent, loadLazyComponent, resolveLazyComponent } from './utils/lazyComponent.js'
 
 // Shared field validators. These are UX affordances that run in the browser —
 // they do NOT replace server-side validation, which stays authoritative at the

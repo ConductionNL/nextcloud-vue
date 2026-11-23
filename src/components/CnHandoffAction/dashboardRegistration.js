@@ -7,11 +7,13 @@
  * `sideEffects` allowlist, so a bundler does not drop the registration.
  */
 
-import CnHandoffAction from './CnHandoffAction.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnHandoffAction = lazyComponent(() => import('./CnHandoffAction.vue'), 'CnHandoffAction')
+
 registerDashboardWidget('handoff', {
-	renderer: CnHandoffAction,
+	renderer: LazyCnHandoffAction,
 	form: null,
 	defaultContent: {},
 	displayName: 'Handoff',

@@ -12,6 +12,7 @@ import axios from '@nextcloud/axios'
 import { mount } from '@vue/test-utils'
 import CnWeekStripWidget from '../../src/components/CnWeekStripWidget/CnWeekStripWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -51,10 +52,10 @@ describe('CnWeekStripWidget', () => {
 		jest.restoreAllMocks()
 	})
 
-	it('is registered as the week-strip widget with a form', () => {
+	it('is registered as the week-strip widget with a form', async () => {
 		const entry = getWidgetTypeEntry('week-strip')
-		expect(entry.renderer).toBe(CnWeekStripWidget)
-		expect(entry.form.name).toBe('CnWeekStripWidgetForm')
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnWeekStripWidget)
+		expect((await loadLazyComponent(entry.form)).name).toBe('CnWeekStripWidgetForm')
 	})
 
 	it('renders the five working days of the current week by default', () => {

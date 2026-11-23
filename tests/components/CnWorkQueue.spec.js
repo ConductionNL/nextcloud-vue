@@ -13,6 +13,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import CnWorkQueue from '../../src/components/CnWorkQueue/CnWorkQueue.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { openRowTarget } from '../../src/utils/linkNavigation.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
@@ -77,7 +78,7 @@ describe('CnWorkQueue', () => {
 	})
 
 	it('draws the server\'s groups, names an unreadable source, and is a catalog widget', async () => {
-		expect(getWidgetTypeEntry('work-queue').renderer).toBe(CnWorkQueue)
+		expect(await loadLazyComponent(getWidgetTypeEntry('work-queue').renderer)).toBe(CnWorkQueue)
 		const w = await mountQueue()
 		expect(axios.get.mock.calls[0][0]).toBe('/nc/apps/dossiq/api/personal-queue')
 		expect(w.find('[data-testid="cn-work-queue-group-tasks"]').text()).toContain('Closes when you complete the task.')

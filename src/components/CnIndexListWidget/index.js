@@ -6,11 +6,13 @@
  * page's list, with its toolbar, inside a detail page.
  */
 
-import CnIndexListWidget from './CnIndexListWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnIndexListWidget = lazyComponent(() => import('./CnIndexListWidget.vue'), 'CnIndexListWidget')
+
 registerDashboardWidget('index-list', {
-	renderer: CnIndexListWidget,
+	renderer: LazyCnIndexListWidget,
 	form: null,
 	defaultContent: {
 		register: '',
@@ -23,5 +25,5 @@ registerDashboardWidget('index-list', {
 	chrome: 'card',
 })
 
-export { CnIndexListWidget }
-export default CnIndexListWidget
+export { default as CnIndexListWidget } from './CnIndexListWidget.vue'
+export { default } from './CnIndexListWidget.vue'

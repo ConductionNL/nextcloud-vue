@@ -1459,7 +1459,7 @@ import {
 } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
-import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
@@ -6990,11 +6990,12 @@ export default {
 		},
 
 		/**
-		 * Read the totals `headerMetaCounts` names: a register list through
-		 * one list request, a named source by loading it and counting its
-		 * rows. A failed count is null and leaves the line out.
+		 * Read the totals `headerMetaCounts` names: the register lists all in
+		 * one batch count request, a named source by loading it and counting
+		 * its rows. A failed count is null and leaves the line out.
 		 *
 		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 * @return {Promise<void>}
 		 */
 		async loadHeaderMetaCounts() {
@@ -7005,35 +7006,39 @@ export default {
 			}
 			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
 			const values = {}
-			await Promise.all(JSON.parse(key)[0].map(async ([name, from]) => {
+			const entries = JSON.parse(key)[0]
+			const lists = entries.filter(([, from]) => !from.entitySource)
+			const totals = fetchListTotals(lists.map(([, from]) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
+			await Promise.all(entries.filter(([, from]) => from.entitySource).map(async ([name, from]) => {
 				try {
-					if (from.entitySource) {
-						const source = resolveIndexSource(from.entitySource)
-						if (!source) {
-							values[name] = null
-							return
-						}
-						await source.load()
-						values[name] = source.rows().length
+					const source = resolveIndexSource(from.entitySource)
+					if (!source) {
+						values[name] = null
 						return
 					}
-					values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx)
+					await source.load()
+					values[name] = source.rows().length
 				} catch {
 					values[name] = null
 				}
 			}))
+			const listTotals = await totals
+			lists.forEach(([name], index) => {
+				values[name] = listTotals[index]
+			})
 			if (key === this.headerMetaCountKey) {
 				this.headerMetaCountValues = values
 			}
 		},
 
 		/**
-		 * Count the lists behind the header's count pills (`countFrom`): one
-		 * list request each (`_limit=1`, the `total`). A failed count, or a
-		 * record without an id yet, shows no pill.
+		 * Count the lists behind the header's count pills (`countFrom`), all in
+		 * one batch count request. A failed count, or a record without an id
+		 * yet, shows no pill.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async refreshPillCounts() {
 			const pills = [['type', this.typePill], ['status', this.statusPill]]
@@ -7045,10 +7050,11 @@ export default {
 				return
 			}
 			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const totals = await fetchListTotals(pills.map(([, source]) => ({ register: source.register, schema: source.schema, filter: source.filter })), ctx)
 			const counts = {}
-			await Promise.all(pills.map(async ([key, source]) => {
-				counts[key] = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
-			}))
+			pills.forEach(([key], index) => {
+				counts[key] = totals[index]
+			})
 			if (seq === this.pillCountSeq) {
 				this.pillCounts = counts
 			}

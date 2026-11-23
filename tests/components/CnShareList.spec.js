@@ -12,6 +12,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import CnShareList from '../../src/components/CnShareList/CnShareList.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnShareList/index.js'
 
@@ -94,6 +95,6 @@ describe('CnShareList', () => {
 		mockFetchJson.mockRejectedValue(new Error('500'))
 		const w = await mountList()
 		expect(w.find('[data-testid="cn-share-list-error"]').text()).toBe('The shares could not be read.')
-		expect(getWidgetTypeEntry('share-list').renderer).toBe(CnShareList)
+		expect(await loadLazyComponent(getWidgetTypeEntry('share-list').renderer)).toBe(CnShareList)
 	})
 })
