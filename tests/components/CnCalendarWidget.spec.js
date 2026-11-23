@@ -139,6 +139,29 @@ describe('CnCalendarWidget agenda times, failed sources and slow loads', () => {
 		expect(wrapper.find('.cn-calendar-widget__agenda-time').text()).toBe('09:00 – 10:30')
 	})
 
+	it('reads daysAhead 0 as today alone', async () => {
+		const wrapper = await mountWith({ events: [], failures: [] }, { daysAhead: 0 })
+		expect(wrapper.vm.daysAhead).toBe(0)
+		expect(wrapper.vm.emptyMessage).toBe('No events today')
+	})
+
+	it('draws the list layout as time beside title and place, without a day heading for one day', async () => {
+		const start = new Date()
+		start.setHours(9, 30, 0, 0)
+		const end = new Date(start)
+		end.setHours(10, 0)
+		const wrapper = await mountWith(
+			{ events: [{ uid: 'a', title: 'Week start', location: 'City office, room 2.14', start: start.toISOString(), end: end.toISOString(), calendarName: 'Personal' }], failures: [] },
+			{ agendaLayout: 'list', showTitle: false, showViewModes: false },
+		)
+		expect(wrapper.find('[data-testid="cn-calendar-widget-list"]').exists()).toBe(true)
+		expect(wrapper.find('.cn-calendar-widget__list-time').text()).toBe('09:30 - 10:00')
+		expect(wrapper.find('.cn-calendar-widget__list-title').text()).toBe('Week start')
+		expect(wrapper.find('.cn-calendar-widget__list-place').text()).toBe('City office, room 2.14')
+		expect(wrapper.find('.cn-calendar-widget__agenda-header').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Personal')
+	})
+
 	it('shows the start alone for an event without a later end, and All day for an all-day event', async () => {
 		const start = new Date()
 		start.setHours(9, 0, 0, 0)
