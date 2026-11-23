@@ -47,7 +47,7 @@
 						<template #icon>
 							<EmailEditOutline :size="18" />
 						</template>
-						{{ t('nextcloud-vue', 'Compose mail') }}
+						{{ t('nextcloud-vue', 'Write mail') }}
 					</NcButton>
 				</div>
 			</div>
@@ -81,7 +81,7 @@
 						:disabled="closed || drafting"
 						data-testid="cn-mail-tab-draft-blank"
 						@click="draftBlank">
-						{{ t('nextcloud-vue', 'Empty draft') }}
+						{{ t('nextcloud-vue', 'Blank draft') }}
 					</NcButton>
 				</div>
 			</div>
@@ -406,7 +406,7 @@ export default {
 			return list.filter((key) => HEADER_ACTIONS.includes(key))
 		},
 
-		/** @return {boolean} Whether the header shows "Compose mail". */
+		/** @return {boolean} Whether the header shows "Write mail". */
 		showComposeAction() {
 			return this.headerActions.includes('compose')
 		},
@@ -497,7 +497,7 @@ export default {
 		},
 
 		/**
-		 * "Compose mail": the empty draft through the app's endpoint. Without
+		 * "Write mail": the empty draft through the app's endpoint. Without
 		 * one the button is a link to Mail's composer and needs no handler.
 		 *
 		 * @return {Promise<void>|undefined}

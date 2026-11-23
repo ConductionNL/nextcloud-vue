@@ -241,7 +241,7 @@ describe('CnMailTab', () => {
 			const header = wrapper.find('[data-testid="cn-mail-tab-header"]')
 			expect(header.find('.cn-mail-tab__title').text()).toBe('Email')
 			expect(header.find('[data-testid="cn-mail-tab-header-link"]').text()).toBe('Link mail')
-			expect(header.find('[data-testid="cn-mail-tab-header-compose"]').text()).toBe('Compose mail')
+			expect(header.find('[data-testid="cn-mail-tab-header-compose"]').text()).toBe('Write mail')
 			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').exists()).toBe(false)
 			expect(wrapper.findComponent({ name: 'CnEmailTab' }).props('showActions')).toBe(false)
 			wrapper.unmount()
@@ -251,7 +251,7 @@ describe('CnMailTab', () => {
 			const wrapper = mountWithActions({ heading: 'Email', draft: { ...CONTENT.draft, blankButton: true }, headerActions: ['compose', 'link'] })
 			await flushPromises()
 			expect(wrapper.find('[data-testid="cn-mail-tab-header-compose"]').exists()).toBe(true)
-			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').text()).toBe('Empty draft')
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').text()).toBe('Blank draft')
 			wrapper.unmount()
 		})
 

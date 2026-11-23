@@ -2107,6 +2107,8 @@
     "Email template": "E-mailsjabloon",
     "Open draft from template": "Concept openen uit sjabloon",
     "Empty draft": "Leeg concept",
+    "Blank draft": "Leeg concept",
+    "Write mail": "Mail opstellen",
     "Could not open draft": "Kon concept niet openen",
     "Some template fields could not be filled. Fill these in the draft yourself:": "Sommige sjabloonvelden konden niet worden ingevuld. Vul deze zelf in het concept in:",
     "No templates yet": "Nog geen sjablonen",
