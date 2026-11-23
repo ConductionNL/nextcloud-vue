@@ -1,0 +1,5 @@
+- [x] utils/headerFilterState.js
+- [x] CnWidgetObjectTable sortable + filterable
+- [x] CnObjectListWidget content.filterable
+- [x] Spec tests/components/TableWidgetHeaderControls.spec.js
+- [x] Docs: cn-widget-object-table.md, cn-object-list-widget.md

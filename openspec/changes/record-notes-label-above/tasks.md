@@ -1,0 +1,2 @@
+- [x] CnRecordNoteRows label above the field
+- [x] CnRecordListWidgetNotes label spec

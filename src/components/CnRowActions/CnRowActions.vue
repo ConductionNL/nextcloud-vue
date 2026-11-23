@@ -1,5 +1,38 @@
 <template>
-	<NcActions :forceMenu="isBoardLook || visibleActions.length > 3"
+	<!-- `inline`: the first actions as buttons beside the menu, the first a tonal
+	     pill, an `iconOnly` one an icon named by its label (board PqWachtrij). -->
+	<div v-if="inlineActions.length > 0" class="cn-row-actions-inline" @click.stop>
+		<NcButton
+			v-for="{ action, link } in inlineActions"
+			:key="actionKey(action)"
+			:class="{ 'cn-button--tonal': !action.iconOnly }"
+			:variant="action.iconOnly ? 'tertiary' : 'secondary'"
+			:aria-label="action.iconOnly ? shownLabel(action) : undefined"
+			:title="getTitle(action) || (action.iconOnly ? shownLabel(action) : undefined)"
+			:href="link ? link.href : undefined"
+			:disabled="isDisabled(action)"
+			data-testid="cn-row-action-inline"
+			@click="link ? onLinkAction(action, link, $event) : onAction(action)">
+			<template v-if="action.iconOnly && action.icon" #icon>
+				<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+				<component :is="action.icon" v-else :size="20" />
+			</template>
+			<template v-if="!action.iconOnly">
+				{{ shownLabel(action) }}
+			</template>
+		</NcButton>
+		<CnRowActions
+			v-if="menuActions.length > 0"
+			:actions="menuActions"
+			:row="row"
+			:primary="primary"
+			:rowLabel="rowLabel"
+			:triggerLabel="triggerLabel"
+			:menuName="menuName"
+			@action="$emit('action', $event)" />
+	</div>
+	<NcActions v-else
+		:forceMenu="isBoardLook || visibleActions.length > 3"
 		:primary="primary"
 		:variant="isBoardLook ? 'secondary' : undefined"
 		:class="{ 'cn-row-actions--board': isBoardLook }"
@@ -49,7 +82,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcActionButton, NcActionLink, NcActions } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcActions, NcButton } from '@nextcloud/vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { followItemActionLink, resolveItemActionLink } from '../../utils/actionLink.js'
@@ -93,6 +126,7 @@ export default {
 		NcActions,
 		NcActionButton,
 		NcActionLink,
+		NcButton,
 		CnIcon,
 		DotsHorizontal,
 	},
@@ -173,6 +207,19 @@ export default {
 			type: String,
 			default: undefined,
 		},
+
+		/**
+		 * How many of the visible actions show as buttons beside the menu
+		 * (0, the default: all in the menu). The first is a tonal pill; an
+		 * action with `iconOnly: true` is its icon, named by its label. The
+		 * menu holds the rest and is left out when nothing is left.
+		 *
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		inline: {
+			type: Number,
+			default: 0,
+		},
 	},
 
 	emits: ['action'],
@@ -209,6 +256,27 @@ export default {
 		 */
 		visibleActions() {
 			return this.actions.filter((action) => isRowActionVisible(action, this.row))
+		},
+
+		/**
+		 * The first `inline` visible actions, each with its link, drawn as buttons.
+		 *
+		 * @return {Array<{action: object, link: object|null}>}
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		inlineActions() {
+			const count = Number.isFinite(this.inline) ? Math.max(0, Math.floor(this.inline)) : 0
+			return this.renderedActions.slice(0, count)
+		},
+
+		/**
+		 * The visible actions the inline buttons leave for the menu.
+		 *
+		 * @return {Array} Actions for the menu.
+		 * @spec openspec/changes/index-row-inline-actions/specs/index-row-inline-actions/spec.md#requirement-a-row-can-show-its-first-actions-as-buttons
+		 */
+		menuActions() {
+			return this.visibleActions.slice(this.inlineActions.length)
 		},
 
 		/**
@@ -346,5 +414,11 @@ export default {
 <style scoped>
 .cn-row-action--destructive {
 	color: var(--color-error) !important;
+}
+
+.cn-row-actions-inline {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
 }
 </style>

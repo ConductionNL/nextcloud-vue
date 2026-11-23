@@ -60,12 +60,13 @@
 		<div
 			v-if="visible"
 			class="cn-ai-chat-window"
-			:class="[`cn-ai-chat-window--${position}`, { 'cn-ai-chat-window--has-mark': assistantMark }]"
-			role="dialog"
+			:class="[embedded ? 'cn-ai-chat-window--embedded' : `cn-ai-chat-window--${position}`, { 'cn-ai-chat-window--has-mark': assistantMark, 'cn-ai-chat-window--titled': titled }]"
+			:role="embedded ? 'region' : 'dialog'"
 			:aria-label="agentLabel"
 			data-testid="cn-ai-panel"
-			@keydown.esc="onClose">
-			<header class="cn-ai-chat-window__titlebar">
+			@keydown.esc="onEscape">
+			<!-- In a titled card the card names the panel; its controls go to the card's menu (`menu` event). -->
+			<header v-if="!titled" class="cn-ai-chat-window__titlebar">
 				<!--
 			  Identity FIRST in source order and left-aligned: a long agent name
 			  gets the whole remaining row, and the controls are pushed right by
@@ -195,6 +196,7 @@
 					</NcActions>
 
 					<NcButton
+						v-if="!embedded"
 						:aria-label="cnTranslate('Close')"
 						:title="cnTranslate('Close')"
 						variant="tertiary"
@@ -247,13 +249,14 @@
 						:key="approval.id"
 						class="cn-ai-approval">
 						<div class="cn-ai-approval__head">
-							<span class="cn-ai-approval__title">{{ approval.title }}</span>
+							<span class="cn-ai-approval__title">{{ approvalTitle(approval) }}</span>
 							<!--
 							  Reach is a FACT about the tool. The reason below is
 							  agent-authored text aimed at the person holding the
 							  permission, so the two are kept visually distinct.
+							  The boards draw no reach, so a host opts in.
 							-->
-							<span class="cn-ai-approval__reach">{{ approval.reach }}</span>
+							<span v-if="showApprovalReach" class="cn-ai-approval__reach">{{ approval.reach }}</span>
 						</div>
 						<p v-if="approval.reason" class="cn-ai-approval__reason">
 							{{ approval.reason }}
@@ -264,14 +267,14 @@
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-allow-' + approval.id"
 								@click="onApprovalDecision(approval, 'granted')">
-								{{ cnTranslate('Allow') }}
+								{{ approvalWording.allow || cnTranslate('Allow') }}
 							</NcButton>
 							<NcButton
 								variant="tertiary"
 								:disabled="resolvingApprovalId === approval.id"
 								:data-testid="'cn-ai-approval-deny-' + approval.id"
 								@click="onApprovalDecision(approval, 'refused')">
-								{{ cnTranslate('Decline') }}
+								{{ approvalWording.deny || cnTranslate('Decline') }}
 							</NcButton>
 						</div>
 					</li>
@@ -294,10 +297,21 @@
 					{{ streamState.error.message || cnTranslate('The assistant could not answer.') }}
 				</p>
 
+				<p
+					v-if="note"
+					class="cn-ai-chat-window__note"
+					data-testid="cn-ai-panel-note">
+					<InformationOutline :size="18" class="cn-ai-chat-window__note-icon" />
+					<span>{{ note }}</span>
+				</p>
+
 				<div class="cn-ai-chat-window__input">
 					<CnAiInput
 						ref="input"
 						:disabled="streamState.isStreaming"
+						:placeholder="inputPlaceholder"
+						:sendLabel="sendLabel"
+						:stacked="titled"
 						:chatAppId="chatAppId"
 						:speechInputEngine="speechPolicy.inputEngine"
 						:dictationSilenceTimeout="speechPolicy.silenceTimeout"
@@ -350,6 +364,7 @@ import Cog from 'vue-material-design-icons/Cog.vue'
 import Creation from 'vue-material-design-icons/Creation.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import History from 'vue-material-design-icons/History.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
@@ -372,6 +387,7 @@ import {
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
 import { getAssistantMark } from '../../utils/assistantMark.js'
+import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 /**
  * Shown when an agent has no `icon` set, which is most of them. Matches the
@@ -404,6 +420,7 @@ export default {
 		NcEmptyContent,
 		Plus,
 		History,
+		InformationOutline,
 		Creation,
 		Close,
 		Check,
@@ -417,7 +434,7 @@ export default {
 	},
 
 	inject: {
-		cnTranslate: { default: () => (key) => key },
+		cnTranslate: { default: () => libraryTranslate },
 	},
 
 	props: {
@@ -428,11 +445,69 @@ export default {
 		},
 
 		/**
+		 * Draw the window in the page's flow, as a panel of the page (a tab
+		 * of a detail page), instead of floating above it from the launcher:
+		 * no pointer, no close button, and Escape does not close it.
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The panel stands in a card that draws its title: no titlebar of its
+		 * own, and the session controls (new chat, conversations, read aloud,
+		 * agent) are reported through the `menu` event for the card's menu.
+		 */
+		titled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** A line above the input, already translated (what the assistant can see). */
+		note: {
+			type: String,
+			default: '',
+		},
+
+		/** The input's placeholder, already translated; '' keeps the default. */
+		inputPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated; '' keeps the icon. */
+		sendLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The approval cards' wording, already translated: `titlePrefix` before
+		 * the tool's name, `allow` and `deny` on the buttons. A missing entry
+		 * keeps the default.
+		 */
+		approvalWording: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * Reactive state from useAiChatStream: `{ messages, currentText, isStreaming, conversationUuid, error }`.
 		 */
 		streamState: {
 			type: Object,
 			required: true,
+		},
+
+		/**
+		 * Show each approval's reach (`instance`, `write`) as a label beside its
+		 * title. Off by default: the proposal cards the boards draw name the
+		 * proposal, the reason and the buttons only.
+		 */
+		showApprovalReach: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -481,7 +556,7 @@ export default {
 	 * component's outward surface without grepping for `$emit`. These four were
 	 * always emitted; only the declaration is new.
 	 */
-	emits: ['close', 'send', 'new-thread', 'load-conversation'],
+	emits: ['close', 'send', 'new-thread', 'load-conversation', 'menu'],
 
 	data() {
 		return {
@@ -734,9 +809,48 @@ export default {
 		isOnNewChatScreen() {
 			return !this.streamState.isStreaming && this.streamState.messages.length === 0
 		},
+
+		/**
+		 * The titlebar's controls as menu items, for a titled panel's card.
+		 *
+		 * @return {Array<{label: string, icon: string, run: () => void}>} The items.
+		 */
+		menuActions() {
+			const actions = []
+			if (!this.isOnNewChatScreen) {
+				actions.push({ label: this.cnTranslate('Start new chat'), icon: 'Plus', run: () => this.onNewChat() })
+			}
+			actions.push(this.activeView === 'history'
+				? { label: this.cnTranslate('Back to the chat'), icon: 'MessageTextOutline', run: () => { this.activeView = 'chat' } }
+				: { label: this.cnTranslate('View all conversations'), icon: 'History', run: () => { this.activeView = 'history' } })
+			if (this.speechSynthesisSupported) {
+				actions.push(this.speakReplies
+					? { label: this.cnTranslate('Stop reading replies aloud'), icon: 'VolumeOff', run: () => this.onSpeakRepliesToggled(false) }
+					: { label: this.cnTranslate('Read replies aloud'), icon: 'VolumeHigh', run: () => this.onSpeakRepliesToggled(true) })
+			}
+			for (const agent of this.agentOptions) {
+				if (agent.id !== this.selectedAgentUuid) {
+					actions.push({ label: this.cnTranslate('Talk to {agent}', { agent: agent.label }), icon: agent.icon || DEFAULT_AGENT_ICON, run: () => this.onAgentSelected(agent.id) })
+				}
+			}
+			return actions
+		},
 	},
 
 	watch: {
+		menuActions: {
+			immediate: true,
+			handler(actions) {
+				if (this.titled) {
+					/**
+					 * @event menu The session controls of a titled panel, for its card's menu.
+					 * @type {Array<{label: string, icon: string, run: () => void}>}
+					 */
+					this.$emit('menu', actions)
+				}
+			},
+		},
+
 		visible(newVal) {
 			if (newVal) {
 				this.$nextTick(() => {
@@ -1025,6 +1139,18 @@ export default {
 		},
 
 		/**
+		 * An approval card's title: the tool's name after the widget's prefix.
+		 *
+		 * @param {object} approval The approval.
+		 * @return {string} The title.
+		 * @spec openspec/changes/ai-chat-approval-wording/specs/ai-chat-approval-wording/spec.md#requirement-an-app-can-word-the-approval-card
+		 */
+		approvalTitle(approval) {
+			const prefix = this.approvalWording.titlePrefix
+			return prefix ? `${prefix} ${approval.title}` : approval.title
+		},
+
+		/**
 		 * Record the owner's decision on an approval, then let the agent carry on.
 		 *
 		 * Posts to the approval's OWN `resolveUrl` rather than to a URL built
@@ -1070,6 +1196,18 @@ export default {
 			}
 
 			this.resolvingApprovalId = ''
+		},
+
+		/**
+		 * Escape closes the floating window; an embedded panel is part of the
+		 * page and stays.
+		 *
+		 * @return {void}
+		 */
+		onEscape() {
+			if (!this.embedded) {
+				this.onClose()
+			}
 		},
 
 		onClose() {
@@ -1288,6 +1426,19 @@ export default {
 	left: 44px;
 }
 
+/* Embedded: a panel in the page's flow (a detail page tab), not a window over
+   it. It fills its container's width and takes no pointer, since no position
+   class is set. The doubled class outranks the window's `!important` rules. */
+.cn-ai-chat-window.cn-ai-chat-window--embedded {
+	position: relative !important;
+	z-index: auto !important;
+	width: auto;
+	max-width: none;
+	height: 520px;
+	max-height: none;
+	box-shadow: none;
+}
+
 /* The pointer: a white triangle under the window, aimed at the hex, so the
    window reads as speech FROM the launcher rather than as an unrelated panel
    that happened to appear. Built from two stacked triangles — the lower one is
@@ -1455,6 +1606,49 @@ export default {
 	color: var(--color-error-text, #a10000);
 	background: var(--color-error-hover, #f7e5e5);
 	font-size: 0.9em;
+}
+
+.cn-ai-chat-window__note {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	margin: 0 8px 8px;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--color-primary-element-light, #eaf0f7);
+	color: var(--color-primary-element-light-text, #234a78);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* The icon font's own align-self: center would centre it on a long note. */
+.cn-ai-chat-window__note-icon {
+	flex: none;
+	align-self: flex-start;
+	margin-top: 1px;
+}
+
+/* A titled panel is the body of its card: the card draws border and corners. */
+.cn-ai-chat-window.cn-ai-chat-window--titled {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.cn-ai-chat-window--titled .cn-ai-chat-window__input {
+	padding: 0;
+	border-top: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+/* In a card the panel's body takes the card's 16px 18px inset. */
+.cn-ai-chat-window--titled .cn-ai-chat-window__messages {
+	padding: 16px 18px;
+}
+
+.cn-ai-chat-window--titled .cn-ai-chat-window__note {
+	margin: 0 18px 16px;
 }
 
 .cn-ai-chat-window__input {

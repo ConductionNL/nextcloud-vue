@@ -15,6 +15,9 @@
  * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md
  */
 
+import { fillTemplate } from './fillTemplate.js'
+import { evaluateVisibleWhenLocal } from './visibleWhen.js'
+
 /**
  * Read a dotted path off an object (`@self.created`, `payment.clearedAt`).
  *
@@ -69,7 +72,9 @@ function makeEvent(spec, now) {
 		dateOnly: moment.dateOnly,
 		label: spec.label || '',
 		detail: spec.detail || '',
+		meta: spec.meta || '',
 		source: spec.source,
+		icon: spec.icon || '',
 		upcoming: moment.at.getTime() > now.getTime(),
 	}
 }
@@ -113,16 +118,34 @@ function textAt(row, path) {
 }
 
 /**
+ * A stored value in the words a `valueLabels` map gives it, else as stored.
+ *
+ * @param {string} value The stored value.
+ * @param {object|undefined} valueLabels Words per value.
+ * @return {string} The words.
+ * @spec openspec/changes/timeline-list-value-labels/specs/timeline-widget/spec.md#requirement-a-list-entry-s-value-reads-in-words
+ */
+function wordedValue(value, valueLabels) {
+	if (value !== '' && valueLabels && typeof valueLabels === 'object' && typeof valueLabels[value] === 'string') {
+		return valueLabels[value]
+	}
+	return value
+}
+
+/**
  * Events from a list held on the object itself, such as a status history:
- * `[{ field, dateField, labelField?, label?, detailField? }]`. Each entry of the
- * list at `field` becomes one event, dated by `dateField`, labelled by its
- * `labelField` value (else `label`), with `detailField` as the line under it.
+ * `[{ field, dateField, labelField?, valueLabels?, label?, detailField? }]`. Each
+ * entry of the list at `field` becomes one event, dated by `dateField`, labelled
+ * by its `labelField` value (else `label`), with `detailField` as the line under
+ * it. `valueLabels` words a stored value ("confirmed": "Status: Confirmed"); a
+ * value it does not name shows as stored.
  *
  * @param {object} object The object.
  * @param {Array<object>} lists The list configs.
  * @param {Date} now The moment that separates past from upcoming.
  * @return {Array<object>} The events.
  * @spec openspec/changes/timeline-audit-trails-url/specs/timeline-widget/spec.md#requirement-a-list-on-the-object-becomes-dated-events
+ * @spec openspec/changes/timeline-list-value-labels/specs/timeline-widget/spec.md#requirement-a-list-entry-s-value-reads-in-words
  */
 export function listEvents(object, lists, now = new Date()) {
 	return (Array.isArray(lists) ? lists : [])
@@ -132,7 +155,7 @@ export function listEvents(object, lists, now = new Date()) {
 			return (Array.isArray(rows) ? rows : []).map((row, i) => makeEvent({
 				id: `list:${l.field}:${i}`,
 				raw: readPath(row, l.dateField),
-				label: textAt(row, l.labelField) || l.label || l.field,
+				label: wordedValue(textAt(row, l.labelField), l.valueLabels) || l.label || l.field,
 				detail: textAt(row, l.detailField),
 				source: 'list',
 			}, now))
@@ -140,10 +163,27 @@ export function listEvents(object, lists, now = new Date()) {
 		.filter(Boolean)
 }
 
-export function relatedEvents(rows, config, now = new Date()) {
+/**
+ * Events from related records: each row becomes one event at its `dateField`
+ * (default `@self.created`), labelled `label` with the row's title as the
+ * line under it. A `label` with `{path}` tokens names the row itself ("{name}
+ * is on the waiting list"): it is translated, filled from the row and stands
+ * alone. `when` (a local visibleWhen condition) keeps only the rows it holds
+ * for.
+ *
+ * @param {Array<object>} rows The related rows.
+ * @param {object} config The `related` entry.
+ * @param {Date} [now] The reference moment.
+ * @param {(text: string) => string} [translate] The host translate, for a label with tokens.
+ * @return {Array<object>} The events.
+ * @spec openspec/changes/timeline-worded-history/specs/timeline-widget/spec.md#requirement-a-related-records-event-can-name-the-record
+ */
+export function relatedEvents(rows, config, now = new Date(), translate = (text) => text) {
 	const cfg = config || {}
 	const dateField = cfg.dateField || '@self.created'
+	const named = typeof cfg.label === 'string' && /\{[^{}]+\}/.test(cfg.label)
 	return (Array.isArray(rows) ? rows : [])
+		.filter((row) => !cfg.when || evaluateVisibleWhenLocal(cfg.when, row || {}))
 		.map((row, i) => {
 			const self = (row && row['@self']) || {}
 			const id = String(self.id || row.id || i)
@@ -151,8 +191,8 @@ export function relatedEvents(rows, config, now = new Date()) {
 			return makeEvent({
 				id: `related:${cfg.schema || ''}:${id}`,
 				raw: readPath(row, dateField),
-				label: cfg.label || '',
-				detail: title === undefined || title === null ? '' : String(title),
+				label: named ? fillTemplate(translate(cfg.label), row, now) : (cfg.label || ''),
+				detail: named || title === undefined || title === null ? '' : String(title),
 				source: 'related',
 			}, now)
 		})
@@ -160,19 +200,21 @@ export function relatedEvents(rows, config, now = new Date()) {
 }
 
 /**
- * Events from audit-trail entries.
+ * Events from audit-trail entries: one per change. A read changes nothing,
+ * so it is left out.
  *
  * @param {Array<object>} entries The audit-trail rows.
- * @param {(action: string, actor: string) => string} describe Builds the label from action and actor.
+ * @param {(action: string, actor: string, entry: object) => string} describe Builds the label from action, actor and the entry.
  * @param {Date} [now] The reference moment.
  * @return {Array<object>} The events.
  */
 export function auditEvents(entries, describe, now = new Date()) {
 	return (Array.isArray(entries) ? entries : [])
+		.filter((e) => String((e && (e.action || e.event)) || '') !== 'read')
 		.map((e, i) => makeEvent({
 			id: `audit:${e && (e.id || e.uuid) ? (e.id || e.uuid) : i}`,
 			raw: e && (e.created || e.creationDateTime || e.timestamp),
-			label: describe(String((e && (e.action || e.event)) || ''), String((e && (e.actorDisplayName || e.userName || e.user || e.actor)) || '')),
+			label: describe(String((e && (e.action || e.event)) || ''), String((e && (e.actorDisplayName || e.userName || e.user || e.actor)) || ''), e),
 			source: 'audit',
 		}, now))
 		.filter(Boolean)
@@ -195,6 +237,56 @@ export function timelineEntryEvents(entries, noteLabel, now = new Date()) {
 			detail: [e && e.author, e && e.message].filter(Boolean).join(': '),
 			source: 'timeline',
 		}, now))
+		.filter(Boolean)
+}
+
+/**
+ * The icon of an endpoint item (`icons`: `{ path?, map?, typeMap?, default? }`):
+ * the value at `path` through `map` (a contact moment's channel), else the
+ * type through `typeMap`, else `default`.
+ *
+ * @param {object} item The item.
+ * @param {string} type The item's type.
+ * @param {object} [icons] The icon config.
+ * @return {string} An MDI icon name, '' for none.
+ */
+function endpointIcon(item, type, icons) {
+	if (!icons || typeof icons !== 'object') {
+		return ''
+	}
+	const value = icons.path ? textAt(item, icons.path) : ''
+	const byValue = icons.map && value ? icons.map[value] : ''
+	const byType = icons.typeMap && type ? icons.typeMap[type] : ''
+	return byValue || byType || icons.default || ''
+}
+
+/**
+ * Events from an app endpoint's items (`endpointSource`): the label, a detail
+ * cut at 120 characters, and a meta line of the type label and the author.
+ *
+ * @param {Array<object>} items The items.
+ * @param {object} config The `endpointSource` keys: `dateField`, `labelField`, `detailField`, `typeField`, `userField`.
+ * @param {(type: string) => string} typeLabel The label of a type.
+ * @param {string} untitled The label of an item without one.
+ * @param {Date} [now] The reference moment.
+ * @return {Array<object>} One event per dated item.
+ */
+export function endpointEvents(items, config, typeLabel, untitled, now = new Date()) {
+	return (Array.isArray(items) ? items : [])
+		.filter((item) => item && typeof item === 'object')
+		.map((item, i) => {
+			const detail = textAt(item, config.detailField || 'description')
+			const type = textAt(item, config.typeField || 'type')
+			return makeEvent({
+				id: `endpoint:${type}:${item.id ?? i}`,
+				raw: readPath(item, config.dateField || 'date'),
+				label: textAt(item, config.labelField || 'title') || untitled,
+				detail: detail.length > 120 ? detail.substring(0, 120) + '...' : detail,
+				meta: [type ? typeLabel(type) : '', textAt(item, config.userField || 'user')].filter(Boolean).join(' · '),
+				source: 'endpoint',
+				icon: endpointIcon(item, type, config.icons),
+			}, now)
+		})
 		.filter(Boolean)
 }
 

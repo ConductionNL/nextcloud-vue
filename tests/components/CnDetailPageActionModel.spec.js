@@ -113,6 +113,21 @@ describe('CnDetailPage primary action follows the stage', () => {
 		expect(wrapper.emitted('primary-action')[0][0]).toMatchObject({ id: 'take-on', label: 'Take on' })
 	})
 
+	it('fills the button\'s primaryLabel from the record, and keeps label for the menu', async () => {
+		const call = { id: 'call', type: 'navigate', label: 'Call', primaryLabel: 'Call {phone}', target: 'tel:@object.phone' }
+		const { wrapper } = await mountPage(
+			{ primaryActionByStage: { received: 'call' }, headerActions: [call] },
+			{ object: { id: 'o1', status: 'received', phone: '06 18 44 27 30' } },
+		)
+		expect(primary(wrapper)[0].text()).toBe('Call 06 18 44 27 30')
+	})
+
+	it('falls back to label when primaryLabel has nothing to fill', async () => {
+		const call = { id: 'call', type: 'navigate', label: 'Call', primaryLabel: 'Call {phone}', target: 'tel:@object.phone' }
+		const { wrapper } = await mountPage({ primaryActionByStage: { received: call } })
+		expect(primary(wrapper)[0].text()).toBe('Call')
+	})
+
 	it('does not list the stage\'s action in the menu as well', async () => {
 		const { wrapper } = await mountPage({ primaryActionByStage: byStage, headerActions: HEADER_ACTIONS.slice(0, 2) })
 		expect(menuIds(wrapper)).toEqual(['message', 'document'])
@@ -319,6 +334,13 @@ describe('CnDetailPage "what now" card', () => {
 		expect(card(wrapper).text()).toContain('Then: step 2, handling')
 	})
 
+	it('titles the card one level under the record title: h2 in the board look, h3 in the Nextcloud look', async () => {
+		const board = (await mountPage({ nextStep, look: 'board' })).wrapper
+		expect(card(board).find('.cn-next-step-card__title').element.tagName).toBe('H2')
+		const nextcloud = (await mountPage({ nextStep })).wrapper
+		expect(card(nextcloud).find('.cn-next-step-card__title').element.tagName).toBe('H3')
+	})
+
 	it('moves the primary button into the card, so the page has one and only one', async () => {
 		const { wrapper } = await mountPage({ nextStep, primaryActionByStage: byStage })
 		expect(primary(wrapper)).toHaveLength(1)
@@ -436,7 +458,7 @@ describe('manifest: action model keys on a detail page', () => {
 		const result = validateManifestV2(manifest({
 			stageField: 'status',
 			primaryActionByStage: {
-				received: { id: 'take-on', label: 'Take on', type: 'api-call', url: '/x', method: 'POST' },
+				received: { id: 'take-on', label: 'Take on', primaryLabel: 'Take on {reference}', type: 'api-call', url: '/x', method: 'POST' },
 				handling: 'review',
 			},
 			quickActions: ['message', { id: 'document', label: 'Document', type: 'open-modal', target: 'DocumentDialog' }],

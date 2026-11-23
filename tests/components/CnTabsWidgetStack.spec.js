@@ -72,6 +72,21 @@ describe('CnTabsWidget widgetIds (a stack)', () => {
 		expect(w.findAll('.host').map((h) => h.text())).toEqual(['w-card|bare'])
 	})
 
+	// @spec openspec/changes/tab-stack-keeps-cards/specs/tab-stack-keeps-cards/spec.md#requirement-a-stack-stays-cards-when-one-of-its-widgets-shows
+	it('keeps a stack of titled cards when the record hides all but one of its widgets', async () => {
+		const widgets = [
+			{ id: 'w-request', type: 'facts', title: 'The request', visibleWhen: { field: 'kind', op: 'eq', value: 'general' } },
+			{ id: 'w-report', type: 'facts', title: 'The report', visibleWhen: { field: 'kind', op: 'eq', value: 'youth' } },
+		]
+		const w = mount(CnTabsWidget, {
+			props: { content: { tabs: [{ widgetIds: ['w-request', 'w-report'], label: 'Overview' }] }, availableWidgets: widgets, objectId: 'c-1', objectData: { id: 'c-1', kind: 'youth' }, register: 'r', schema: 'case' },
+			global: { stubs: { CnDetailWidgetHost: { name: 'CnDetailWidgetHost', props: ['widget', 'chrome'], template: '<div class="host">{{ widget.id }}|{{ chrome }}</div>' } } },
+		})
+		await nextTick()
+		expect(w.find('[data-testid="cn-tabs-widget-stack"]').exists()).toBe(true)
+		expect(w.findAll('.host').map((h) => h.text())).toEqual(['w-report|card'])
+	})
+
 	it('labels the tab after the first widget when it sets no label', async () => {
 		const w = mountTabs([{ widgetIds: ['w-card', 'w-cases'] }])
 		await nextTick()
@@ -119,6 +134,26 @@ describe('CnTabsWidget stack grid', () => {
 		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', layout: [{ widgetId: 'w-card', gridWidth: 3 }, { widgetId: 'w-cases', gridWidth: 9 }] }])
 		await flush()
 		expect(spans(w)).toEqual(['grid-column: span 3;', 'grid-column: span 9;', 'grid-column: span 12;'])
+	})
+
+	it('lets a widget `layout` sets beside a partner fill its row when it is alone there', async () => {
+		// DqZaakLocatie: Priority is hidden for this case type, so Locations,
+		// laid out at half width beside it, is alone between two full rows.
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', layout: [{ widgetId: 'w-cases', gridWidth: 6 }] }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 12;', 'grid-column: span 12;', 'grid-column: span 12;'])
+	})
+
+	it('keeps a widget at its `layout` width when its partner shares the row', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', layout: [{ widgetId: 'w-cases', gridWidth: 6 }, { widgetId: 'w-moments', gridWidth: 6 }] }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 12;', 'grid-column: span 6;', 'grid-column: span 6;'])
+	})
+
+	it('leaves a `columns` share as it is on a short last row', async () => {
+		const w = mountTabs([{ widgetIds: IDS, label: 'Overview', columns: 2 }])
+		await flush()
+		expect(spans(w)).toEqual(['grid-column: span 6;', 'grid-column: span 6;', 'grid-column: span 6;'])
 	})
 
 	it('clamps a width to 1..12 and ignores a bad columns value', async () => {

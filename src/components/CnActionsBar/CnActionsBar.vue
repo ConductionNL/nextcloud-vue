@@ -18,6 +18,20 @@
 				@description Under the board look: saved views as chips and the Save view button, in row 1 after the quick-filter chips.
 			-->
 			<slot name="actions-end" />
+			<!-- `searchPlacement: "toolbar"`: the search field on row 1, before
+			     Filter and the view switch, instead of opening row 2. -->
+			<div v-if="showSearch && searchInToolbar"
+				class="cn-actions-bar__search cn-actions-bar__search--toolbar"
+				data-testid="cn-actions-bar-search-toolbar">
+				<Magnify :size="18" class="cn-actions-bar__search-icon" />
+				<input
+					type="search"
+					class="cn-actions-bar__search-input"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
+					:value="searchValue"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
+					@input="onSearchInput">
+			</div>
 			<!--
 				Filter and the view switch are one unit: when row 1 is full they
 				wrap together to the start of the next line (the DqZaken board),
@@ -94,6 +108,26 @@
 						</button>
 					</template>
 				</div>
+				<!-- Board look: the views `viewSwitch` leaves out, under More views. -->
+				<NcActions v-if="viewOverflow.length > 0"
+					class="cn-actions-bar__view-more"
+					:class="{ 'cn-actions-bar__view-more--active': viewOverflowActive }"
+					:aria-label="t('nextcloud-vue', 'More views')"
+					:menuName="viewOverflowActive ? viewOverflowActive.label : ''"
+					data-testid="cn-actions-bar-view-more">
+					<NcActionButton v-for="entry in viewOverflow"
+						:key="entry.mode"
+						:modelValue="viewMode === entry.mode"
+						type="radio"
+						:data-mode="entry.mode"
+						@click="onViewOverflowPick(entry.mode)">
+						<template #icon>
+							<CnIcon v-if="entry.icon" :name="entry.icon" :size="18" />
+							<component :is="entry.fallback" v-else :size="18" />
+						</template>
+						{{ entry.label }}
+					</NcActionButton>
+				</NcActions>
 			</div>
 		</div>
 		<div v-if="!isBoardLayout" class="cn-actions-bar__info">
@@ -103,9 +137,9 @@
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
 			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
@@ -285,6 +319,7 @@
 					<NcActionButton
 						v-else
 						:disabled="Boolean(entry.disabled)"
+						:description="entry.disabled && entry.disabledReason ? entry.disabledReason : undefined"
 						@click="$emit('header-action', { action: entry.id, id: entry.id })">
 						<template #icon>
 							<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />
@@ -373,17 +408,17 @@
 
 		<!-- Board look, row 2: the search field, then the active filters. -->
 		<div v-if="isBoardLayout" class="cn-actions-bar__row cn-actions-bar__row--search" data-testid="cn-actions-bar-row-search">
-			<div v-if="showSearch" class="cn-actions-bar__search">
+			<div v-if="showSearch && !searchInToolbar" class="cn-actions-bar__search">
 				<Magnify :size="18" class="cn-actions-bar__search-icon" />
 				<input
 					type="search"
 					class="cn-actions-bar__search-input"
-					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search…')"
+					:placeholder="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					:value="searchValue"
-					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search')"
+					:aria-label="searchPlaceholder || t('nextcloud-vue', 'Search in this list')"
 					@input="onSearchInput">
 			</div>
-			<span v-else-if="showCount && hasTotal" class="cn-actions-bar__count">
+			<span v-else-if="showCount && hasTotal && !searchInToolbar" class="cn-actions-bar__count">
 				{{ countText }}
 			</span>
 			<slot name="after-search" />
@@ -469,7 +504,7 @@
 				@description User clicked a declarative bulk action. Payload carries the action id AND the selection, because a bulk action without its selection is not a bulk action.
 			-->
 			<NcButton
-				v-for="entry in bulkActions"
+				v-for="entry in inlineBulkActions"
 				:key="entry.id"
 				variant="secondary"
 				:disabled="entry.disabled === true"
@@ -478,6 +513,27 @@
 				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
 				{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 			</NcButton>
+			<!-- Bulk actions declared with `menu: true` gather under More. -->
+			<NcActions
+				v-if="menuBulkActions.length > 0"
+				:menuName="t('nextcloud-vue', 'More')"
+				variant="secondary"
+				:forceMenu="true"
+				data-testid="cn-bulk-more">
+				<NcActionButton
+					v-for="entry in menuBulkActions"
+					:key="entry.id"
+					:closeAfterClick="true"
+					:disabled="entry.disabled === true"
+					:data-testid="`cn-bulk-action-${entry.id}`"
+					:lang="bulkLang(entry)"
+					@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+					<template v-if="entry.icon" #icon>
+						<CnIcon :name="entry.icon" :size="20" />
+					</template>
+					{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+				</NcActionButton>
+			</NcActions>
 			<!--
 				@slot selection-actions The host app's bulk-action buttons (NcButton family), rendered inside the contextual selection strip that appears while a selection is active. This strip is the primary bulk-actions surface; #mass-actions remains available for hosts that ALSO want the actions listed in the overflow menu (optional — strip-only is fine).
 				@binding {number} count Length of the current selection.
@@ -507,42 +563,85 @@
 
 	<!--
 		Board look: the bulk band is its own row between the toolbar and the
-		table card, outside the toolbar element, and only while rows are
-		selected. The count stays announced by the live region above.
+		table card, outside the toolbar element, while rows are selected; with
+		`bulkBandAlways` also before, its buttons disabled until there is a
+		selection (DqZaken, DqWerkbord). The count stays announced by the live
+		region above.
 	-->
 	<div
-		v-if="isBoardLayout && selectable && selectedIds.length > 0"
+		v-if="isBoardLayout && selectable && (selectedIds.length > 0 || (bulkBandAlways && bulkBandHasActions))"
 		class="cn-actions-bar__band"
+		:class="{ 'cn-actions-bar__band--idle': selectedIds.length === 0 }"
 		role="region"
 		:aria-label="t('nextcloud-vue', 'Actions for the selection')"
 		data-testid="cn-bulk-band">
-		<strong class="cn-actions-bar__band-lead">{{ bulkBandLead }}</strong>
+		<strong class="cn-actions-bar__band-lead">{{ bulkLead || bulkBandLead }}</strong>
 		<NcButton
 			v-if="showMassCopy"
 			variant="secondary"
+			:disabled="selectedIds.length === 0"
 			@click="$emit('show-copy')">
+			<template #icon>
+				<ContentCopy :size="16" />
+			</template>
 			{{ t('nextcloud-vue', 'Copy selected') }}
 		</NcButton>
 		<NcButton
 			v-if="showMassDelete"
 			variant="secondary"
+			class="cn-actions-bar__band-delete"
+			:disabled="selectedIds.length === 0"
 			@click="$emit('show-delete')">
+			<template #icon>
+				<TrashCanOutline :size="16" />
+			</template>
 			{{ t('nextcloud-vue', 'Delete selected') }}
 		</NcButton>
 		<NcButton
-			v-for="entry in bulkActions"
+			v-for="entry in inlineBulkActions"
 			:key="entry.id"
 			variant="secondary"
-			:disabled="entry.disabled === true"
+			:disabled="entry.disabled === true || selectedIds.length === 0"
 			:data-testid="`cn-bulk-action-${entry.id}`"
 			:lang="bulkLang(entry)"
 			@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+			<template v-if="entry.icon" #icon>
+				<CnIcon :name="entry.icon" :size="16" />
+			</template>
 			{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
 		</NcButton>
+		<NcActions
+			v-if="menuBulkActions.length > 0"
+			:menuName="t('nextcloud-vue', 'More')"
+			variant="secondary"
+			:forceMenu="true"
+			:disabled="selectedIds.length === 0"
+			data-testid="cn-bulk-band-more">
+			<NcActionButton
+				v-for="entry in menuBulkActions"
+				:key="entry.id"
+				:closeAfterClick="true"
+				:disabled="entry.disabled === true"
+				:data-testid="`cn-bulk-action-${entry.id}`"
+				:lang="bulkLang(entry)"
+				@click="$emit('bulk-action', { id: entry.id, action: entry.id, selectedIds, count: selectedIds.length })">
+				<template v-if="entry.icon" #icon>
+					<CnIcon :name="entry.icon" :size="20" />
+				</template>
+				{{ entry.label ? effectiveTranslate(entry.label) : entry.label }}
+			</NcActionButton>
+		</NcActions>
 		<slot
 			name="selection-actions"
 			:count="selectedIds.length"
 			:selectedIds="selectedIds" />
+		<NcButton
+			v-if="bulkCancel"
+			variant="secondary"
+			data-testid="cn-bulk-band-cancel"
+			@click="$emit('clear-selection')">
+			{{ t('nextcloud-vue', 'Cancel') }}
+		</NcButton>
 		<span v-if="bulkHint" class="cn-actions-bar__band-hint" data-testid="cn-bulk-band-hint">{{ bulkHint }}</span>
 	</div>
 </template>
@@ -678,6 +777,19 @@ export default {
 		},
 
 		/**
+		 * Board look: the view switch's segments and their order (manifest
+		 * `config.viewSwitch`), `list` included; every other offered view is
+		 * listed under More views. Null keeps the fixed order.
+		 *
+		 * @type {Array<string>|null}
+		 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+		 */
+		viewSwitch: {
+			type: Array,
+			default: null,
+		},
+
+		/**
 		 * Board look: view modes that open another PAGE instead of switching in
 		 * place, by mode: `{ board: { href, to? } }`. Such a segment is drawn as
 		 * a link in its place in the switch; `to` (a router location) is pushed
@@ -717,6 +829,28 @@ export default {
 		bulkNoun: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Board look: draw the bulk band also before anything is selected, its
+		 * buttons disabled until there is a selection, as DqZaken and DqWerkbord
+		 * draw it. Only when the band has an action to offer.
+		 */
+		bulkBandAlways: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Board look: the band's lead instead of "With the selected …" ("1 zaak geselecteerd"). */
+		bulkLead: {
+			type: String,
+			default: '',
+		},
+
+		/** Board look: a Cancel button at the end of the band that clears the selection. */
+		bulkCancel: {
+			type: Boolean,
+			default: false,
 		},
 
 		/** The 13px hint after the board bulk band's buttons (`config.bulkHint`). */
@@ -928,6 +1062,19 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Where the board look draws the search field: `''` (the default) at
+		 * the start of row 2, `'toolbar'` on row 1 before Filter and the view
+		 * switch (DqTeamwachtrij). No effect outside the board look.
+		 *
+		 * @type {''|'toolbar'}
+		 */
+		searchPlacement: {
+			type: String,
+			default: '',
+			validator: (v) => ['', 'toolbar'].includes(v),
+		},
+
 		/** Current value of the inline search field (controlled) */
 		searchValue: {
 			type: String,
@@ -1042,8 +1189,10 @@ export default {
 		 * render side by side in one row.
 		 *
 		 * Clicking emits `bulk-action` with the id AND the current selection.
+		 * An entry with `menu: true` is listed under a More menu after the
+		 * buttons instead of as a button of its own.
 		 *
-		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean }>}
+		 * @type {Array<{ id: string, label: string, icon?: string, disabled?: boolean, menu?: boolean }>}
 		 */
 		bulkActions: {
 			type: Array,
@@ -1087,6 +1236,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the search field sits on the board's row 1.
+		 *
+		 * @spec openspec/changes/index-search-on-toolbar/specs/index-page/spec.md#requirement-the-search-field-can-sit-on-the-toolbar-row
+		 * @return {boolean}
+		 */
+		searchInToolbar() {
+			return this.isBoardLayout && this.searchPlacement === 'toolbar'
+		},
+
+		/**
 		 * Whether the board toolbar is drawn: the `layout` prop, else the look
 		 * the app provides.
 		 *
@@ -1115,6 +1274,38 @@ export default {
 		 */
 		filterCountLabel() {
 			return t('nextcloud-vue', '{count} active', { count: this.filterCount })
+		},
+
+		/**
+		 * Whether the bulk band has an action to offer: copy, delete, a
+		 * declared bulk action or the host's own buttons.
+		 *
+		 * @return {boolean}
+		 */
+		/**
+		 * The bulk actions drawn as buttons: every one without `menu: true`.
+		 *
+		 * @spec openspec/changes/bulk-actions-more-menu/specs/bulk-actions-more-menu/spec.md#requirement-a-bulk-action-can-sit-under-more
+		 * @return {Array<object>}
+		 */
+		inlineBulkActions() {
+			return (this.bulkActions || []).filter((entry) => entry && entry.menu !== true)
+		},
+
+		/**
+		 * The bulk actions gathered under the selection's More menu (`menu: true`).
+		 *
+		 * @spec openspec/changes/bulk-actions-more-menu/specs/bulk-actions-more-menu/spec.md#requirement-a-bulk-action-can-sit-under-more
+		 * @return {Array<object>}
+		 */
+		menuBulkActions() {
+			return (this.bulkActions || []).filter((entry) => entry && entry.menu === true)
+		},
+
+		bulkBandHasActions() {
+			return this.showMassCopy || this.showMassDelete
+				|| (Array.isArray(this.bulkActions) && this.bulkActions.length > 0)
+				|| Boolean(this.$slots['selection-actions'])
 		},
 
 		/**
@@ -1229,16 +1420,67 @@ export default {
 				const links = this.viewModeLinks && typeof this.viewModeLinks === 'object' ? this.viewModeLinks : {}
 				const linked = Object.keys(links).filter((mode) => !modes.includes(mode) && links[mode] && typeof links[mode].href === 'string' && links[mode].href !== '')
 				const disabled = (this.disabledViewModes || []).filter((mode) => !modes.includes(mode) && !linked.includes(mode))
+				defs.list.boardFallback = FormatListBulleted
 				const all = [...modes, ...linked, ...disabled]
+				// `viewSwitch` names the segments and their order; the views
+				// it leaves out go under More views (viewOverflow).
+				const named = this.namedViewSwitch
 				const fixed = ['table', 'cards', 'board', 'map']
-				const rest = all.filter((mode) => !fixed.includes(mode))
-				return [...fixed.filter((mode) => all.includes(mode)), ...rest]
+				const ordered = named
+					? named.filter((mode) => all.includes(mode))
+					: [...fixed.filter((mode) => all.includes(mode)), ...all.filter((mode) => !fixed.includes(mode))]
+				return ordered
 					.filter((mode) => defs[mode])
 					.map((mode) => ({ mode, ...defs[mode], disabled: disabled.includes(mode), link: linked.includes(mode) ? links[mode] : null }))
 			}
 			return modes
 				.filter((mode) => defs[mode])
 				.map((mode) => ({ mode, ...defs[mode] }))
+		},
+
+		/**
+		 * Board look: the `viewSwitch` list, or null without one.
+		 *
+		 * @return {Array<string>|null}
+		 */
+		namedViewSwitch() {
+			return Array.isArray(this.viewSwitch) && this.viewSwitch.length > 0 ? this.viewSwitch : null
+		},
+
+		/**
+		 * Board look: the views the page offers that `viewSwitch` does not
+		 * name, listed under More views after the segments.
+		 *
+		 * @return {Array<{mode: string, label: string, icon: string, fallback: object}>}
+		 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+		 */
+		viewOverflow() {
+			const named = this.namedViewSwitch
+			if (!this.isBoardLayout || !named) {
+				return []
+			}
+			const modes = [...this.availableViewModes]
+			if (this.showMap && !modes.includes('map')) {
+				modes.push('map')
+			}
+			const labels = {
+				table: { label: this.tableLabel || t('nextcloud-vue', 'Table'), icon: this.tableIcon, fallback: FormatListBulletedSquare },
+				cards: { label: this.cardsLabel || t('nextcloud-vue', 'Cards'), icon: this.cardsIcon, fallback: ViewGridOutline },
+				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
+				board: { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline },
+				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
+				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
+			}
+			return modes.filter((mode) => !named.includes(mode) && labels[mode]).map((mode) => ({ mode, ...labels[mode] }))
+		},
+
+		/**
+		 * The More views entry that is open, or null.
+		 *
+		 * @return {object|null}
+		 */
+		viewOverflowActive() {
+			return this.viewOverflow.find((entry) => entry.mode === this.viewMode) || null
 		},
 
 		/** The full sort option object matching `sortValue` (for NcSelect). */
@@ -1293,6 +1535,16 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Open a view chosen under More views.
+		 *
+		 * @param {string} mode The view.
+		 * @spec openspec/changes/view-switch-order-and-more/specs/view-switch-board-look/spec.md#requirement-viewswitch-sets-the-segments-and-their-order-the-other-views-go-under-more-views
+		 */
+		onViewOverflowPick(mode) {
+			this.$emit('view-mode-change', mode)
+		},
+
 		/**
 		 * A click on a segment that opens another page: a plain click goes
 		 * through the router when the link names a route; a modified click

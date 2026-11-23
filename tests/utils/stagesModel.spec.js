@@ -111,3 +111,29 @@ describe('stageSavePayload', () => {
 		expect(payload.id).toBe('c-1')
 	})
 })
+
+/**
+ * @spec openspec/changes/stages-off-path/specs/stages-widget/spec.md#requirement-a-side-status-stays-off-the-strip-unless-it-is-current
+ */
+describe('normalizeStages: side statuses', () => {
+	const rows = [
+		{ id: 'onderzoek', name: 'Onderzoek', order: 2 },
+		{ id: 'verlenging', name: 'Verlenging aangevraagd', order: 8, offPath: true },
+		{ id: 'afgehandeld', name: 'Afgehandeld', order: 9 },
+		{ id: 'ingetrokken', name: 'Ingetrokken', order: 90, offPath: true },
+	]
+
+	it('leaves a side status off the strip', () => {
+		const ids = normalizeStages(rows, { orderField: 'order', offPathField: 'offPath', currentId: 'onderzoek' }).map((s) => s.id)
+		expect(ids).toEqual(['onderzoek', 'afgehandeld'])
+	})
+
+	it('keeps the side status the record is in', () => {
+		const ids = normalizeStages(rows, { orderField: 'order', offPathField: 'offPath', currentId: 'ingetrokken' }).map((s) => s.id)
+		expect(ids).toEqual(['onderzoek', 'afgehandeld', 'ingetrokken'])
+	})
+
+	it('keeps every stage without offPathField', () => {
+		expect(normalizeStages(rows, { orderField: 'order' })).toHaveLength(4)
+	})
+})

@@ -24,6 +24,7 @@
  */
 
 import { routeParamNames } from './routeParams.js'
+import { stripTrailingSlashes } from './trailingSlashes.js'
 
 /**
  * Suffix that turns a page id into the name of its split route.
@@ -73,7 +74,7 @@ export function pageHasSplitView(page) {
  * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
  */
 export function splitRoutePath(route) {
-	const base = typeof route === 'string' ? route.replace(/\/+$/, '') : ''
+	const base = typeof route === 'string' ? stripTrailingSlashes(route) : ''
 	const param = routeParamNames(base).includes('id') ? 'splitId' : 'id'
 	return `${base}/split/:${param}`
 }

@@ -11,6 +11,7 @@ const fs = require('fs')
 const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/dialog.css'), 'utf8')
+const BOARD_BODY = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
 const indexCss = fs.readFileSync(path.join(__dirname, '../../src/css/index.css'), 'utf8')
 
 describe('dialog.css', () => {
@@ -23,10 +24,27 @@ describe('dialog.css', () => {
 		expect(css).toMatch(/max-width:\s*min\(var\(--cn-dialog-width\),\s*calc\(100% - 32px\)\)/)
 	})
 
+	/**
+	 * A dialog the board look did not open through CnDialog (an NcDialog or
+	 * NcModal of the app's own) dims the page as the boards do: 45% of the
+	 * text colour, not Nextcloud's 50% black (DqInstellen, DqFilterBewerken,
+	 * DqFilterDelen: 122 against 146).
+	 *
+	 * @spec openspec/changes/board-modal-backdrop/specs/board-modal-backdrop/spec.md#requirement-every-modal-in-a-board-app-dims-the-page-as-the-boards-do
+	 */
+	it('dims the page behind any modal of a board-look app', () => {
+		const at = css.indexOf(`${BOARD_BODY} .modal-mask {`)
+		expect(at).toBeGreaterThan(-1)
+		expect(css.slice(at, css.indexOf('}', at))).toContain('background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent)')
+	})
+
 	it('scopes every rule under the board container', () => {
 		const selectors = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/^[^{}@]+(?=\{)/gm).map((s) => s.trim())
 		for (const selector of selectors) {
-			for (const part of selector.split(',').map((p) => p.trim())) {
+			for (const part of selector.split(/,(?![^(]*\))/).map((p) => p.trim())) {
+				if (part.startsWith(BOARD_BODY)) {
+					continue
+				}
 				expect(part).toMatch(/cn-dialog-board|cn-dialog-header|cn-dialog__/)
 			}
 		}
@@ -44,21 +62,26 @@ describe('dialog.css', () => {
 		expect(css).toMatch(/color-mix\(in srgb, var\(--color-main-text\) 45%, transparent\)/)
 	})
 
-	it('draws the header: 20px/700 title, 13px/700 eyebrow at 0.06em, 36px round close', () => {
+	it('draws the header: 20px/700 title, 13px/700 eyebrow, 36px round close', () => {
 		expect(css).toMatch(/\.cn-dialog-header__title\s*\{[^}]*font-size:\s*20px;[^}]*font-weight:\s*700/)
-		expect(css).toMatch(/\.cn-dialog-header__eyebrow\s*\{[^}]*font-size:\s*13px;[^}]*font-weight:\s*700;[^}]*letter-spacing:\s*0\.06em/)
-		expect(css).toMatch(/\.cn-dialog-header__close\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px;[^}]*border-radius:\s*50%/)
+		// The boards set the title at the font's normal line height (24px at
+		// 20px, DqNieuweZaak, DqUwWachtrij), not 1.3.
+		expect(css).toMatch(/\.cn-dialog-header__title\s*\{[^}]*line-height:\s*normal;/)
+		expect(css).toMatch(/\.cn-dialog-header__eyebrow\s*\{[^}]*font-size:\s*13px;[^}]*font-weight:\s*700;[^}]*letter-spacing:\s*var\(--cn-dialog-eyebrow-tracking/)
+		expect(css).toMatch(/\.cn-dialog-header__close(\.button-vue)?\s*\{[^}]*width:\s*36px;[^}]*height:\s*36px;[^}]*border-radius:\s*50%/)
 	})
 
 	it('draws the body and footer: 18px gap, 16px 24px with a 1px hairline, 10px between buttons', () => {
 		expect(css).toMatch(/\.dialog__content\s*\{[^}]*gap:\s*18px/)
 		expect(css).toMatch(/\.dialog__actions\s*\{[^}]*gap:\s*10px;[^}]*padding:\s*16px 24px;[^}]*border-top:\s*1px solid var\(--color-border\)/)
+		expect(css).toMatch(/\.cn-dialog-board \.dialog \.dialog__actions\s*\{[^}]*margin:\s*0;/)
 	})
 
 	it('puts the tertiary region at the far left and fills a destructive primary with the danger token', () => {
 		expect(css).toMatch(/\.cn-dialog__tertiary\s*\{[^}]*margin-inline-end:\s*auto/)
-		expect(css).toMatch(/--cn-dialog-danger:\s*var\(--color-error\)/)
+		expect(css).toMatch(/--cn-dialog-danger:\s*color-mix\(in srgb, var\(--color-error\) 80%, #000\)/)
 		expect(css).toMatch(/background-color:\s*var\(--cn-dialog-danger\)/)
+		expect(css).toMatch(/\.button-vue--error\s*\{[^}]*border-width:\s*0;/)
 	})
 
 	it('holds a type-to-confirm button at 45% opacity', () => {

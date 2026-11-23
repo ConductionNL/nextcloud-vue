@@ -1,0 +1,5 @@
+- [x] 1. `CnRecordListWidget`: `set-field` row actions (button, done label, PATCH, setObject, re-read).
+- [x] 2. `CnDetailPage`: `setObject` on `cnObjectContext`.
+- [x] 3. `tests/components/CnRecordListWidgetSetField.spec.js`.
+- [x] 4. `docs/components/cn-record-list-widget.md`.
+- [x] 5. `footnote: { path, text }` reads another part of the endpoint answer.

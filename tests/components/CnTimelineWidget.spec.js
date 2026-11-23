@@ -21,6 +21,7 @@ const CnTimelineWidget = require('../../src/components/CnTimelineWidget/CnTimeli
 require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
 const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 
 const booking = {
 	'@self': { created: '2026-09-01T09:00:00Z' },
@@ -50,10 +51,10 @@ describe('CnTimelineWidget', () => {
 		axios.get.mockReset()
 	})
 
-	it('is registered as the `timeline` detail-page widget type and as a v2 built-in', () => {
-		expect(getWidgetTypeEntry('timeline').renderer).toBe(CnTimelineWidget)
+	it('is registered as the `timeline` detail-page widget type and as a v2 built-in', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('timeline').renderer)).toBe(CnTimelineWidget)
 		expect(getWidgetTypeEntry('timeline').surfaces).toEqual(['detail-page'])
-		expect(BUILT_IN_WIDGETS.timeline).toBe(CnTimelineWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.timeline)).toBe(CnTimelineWidget)
 	})
 
 	it('lists the object\'s date fields in time order and marks the future upcoming', async () => {
@@ -130,6 +131,27 @@ describe('CnTimelineWidget', () => {
 		expect(wrapper.text()).toContain('Deposit cleared')
 	})
 
+	it('words a list entry\'s stored value through the list\'s valueLabels', async () => {
+		const withHistory = {
+			...booking,
+			statusHistory: [
+				{ status: 'pending-deposit', changedAt: '2026-09-01T09:14:00Z' },
+				{ status: 'confirmed', changedAt: '2026-09-01T09:17:00Z' },
+				{ status: 'no-show', changedAt: '2026-09-02T09:17:00Z' },
+			],
+		}
+		const wrapper = mountWidget({
+			lists: [{
+				field: 'statusHistory',
+				dateField: 'changedAt',
+				labelField: 'status',
+				valueLabels: { 'pending-deposit': 'Status: Awaiting deposit', confirmed: 'Status: Confirmed' },
+			}],
+		}, { object: withHistory })
+		await flushPromises()
+		expect(labels(wrapper)).toEqual(['Status: Awaiting deposit', 'Status: Confirmed', 'no-show'])
+	})
+
 	it('says which part failed instead of showing a shorter history as complete', async () => {
 		axios.get.mockRejectedValue(new Error('down'))
 		const wrapper = mountWidget({ fields, auditTrail: true }, { object: booking })
@@ -147,6 +169,13 @@ describe('CnTimelineWidget', () => {
 	it('lists newest first with order: desc', async () => {
 		const wrapper = mountWidget({ fields, order: 'desc' }, { object: booking })
 		await flushPromises()
+		expect(labels(wrapper)[0]).toBe('Ends')
+	})
+
+	it('keeps the first `limit` events of the order', async () => {
+		const wrapper = mountWidget({ fields, order: 'desc', limit: 2 }, { object: booking })
+		await flushPromises()
+		expect(labels(wrapper)).toHaveLength(2)
 		expect(labels(wrapper)[0]).toBe('Ends')
 	})
 })

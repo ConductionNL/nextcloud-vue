@@ -16,10 +16,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                | Payload | Description                                                              |
-| ------------------- | ------- | ------------------------------------------------------------------------ |
-| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers. |
-| `update:modelValue` | —       | The same payload under Vue 3's v-model name; see the `modelValue` prop.  |
-
-| `update:modelValue The value changed. Vue 3's v-model
-  dialect — what a plain `v-model` listens for.` | — | |
+| Name                | Payload | Description                                                                      |
+| ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `input`             | —       | The value changed. Vue 2's v-model dialect, kept for existing consumers.         |
+| `update:modelValue` | —       | The value changed. Vue 3's v-model dialect — what a plain `v-model` listens for. |

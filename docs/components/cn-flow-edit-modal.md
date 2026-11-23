@@ -4,7 +4,9 @@ sidebar_position: 48
 
 # CnFlowEditModal
 
-Edit a flow **without leaving the page**. This is what Buildiq's "Edit flows…" opens.
+Edit a flow **without leaving the page**, in the list view of the flow editor.
+
+> **Deprecated (decision 379).** There is one flow editor with a canvas and a list. New code links to the flow page in list mode, `/flows/{id}?view=list` on a page with `config.listMode`. Buildiq's "Edit flows…" does so when the app has such a page, and opens this dialog otherwise. The dialog stays until its callers have moved.
 
 ```vue
 <template>
@@ -23,6 +25,7 @@ Edit a flow **without leaving the page**. This is what Buildiq's "Edit flows…"
 |---|---|---|---|
 | `flowId` | `String` | `'new'` | The flow to edit. `new` starts a blank one. |
 | `app` | `String` | `null` | The owning app id, stamped on a new flow. |
+| `view` | `String` | `'list'` | The view on arrival: `list` or `canvas`. The dialog carries the Canvas / List switch. |
 
 ## Events
 
@@ -39,7 +42,7 @@ If you imported any of them, import `CnFlowEditModal` instead.
 
 ## It hosts the real editor, not a simpler one
 
-The modal renders the **same** [`CnFlowDetail`](./cn-flow-detail.md) and [`CnFlowSidebar`](./cn-flow-sidebar.md) as the full page. A modal that could only edit a flow's name would quietly become a second product surface, and the two would drift until the same flow behaved differently depending on where you opened it.
+The modal renders the **same** [`CnFlowDetail`](./cn-flow-detail.md), in its list view, and [`CnFlowSidebar`](./cn-flow-sidebar.md) as the full page. A modal that could only edit a flow's name would quietly become a second product surface, and the two would drift until the same flow behaved differently depending on where you opened it.
 
 `size="full"` because a graph needs the room: the canvas and the controls have to be on screen together, and at any smaller size the sidebar either wraps under the canvas or squeezes it to a strip.
 

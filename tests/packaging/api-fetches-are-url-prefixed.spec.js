@@ -58,6 +58,7 @@ const URL_HELPERS = [
 	'chatHealthUrl',
 	'attachmentsUrl',
 	'conversationsUrl',
+	'sessionsUrl',
 	'conversationMessagesUrl',
 	'conversationUrl',
 	'agentsUrl',
@@ -85,7 +86,7 @@ const ALLOWED = new Map([
 	// ── DAV entry points (`remote.php/dav`) are real files on disk, reached
 	//    through a helper that already carries the webroot.
 	['src/components/CnFilesBrowser/CnFilesBrowser.vue:`${getRemoteURL()}${this.davPath(joinPath(this.currentPath, upload.name))}`', 'getRemoteURL() resolves the DAV entry point, a real file'],
-	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${remoteUrl.replace(/\\/+$/, '')}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
+	["src/components/CnFilesBrowser/filesBrowser.js:{ method: 'SEARCH', url: `${stripTrailingSlashes(remoteUrl)}/`, headers: { 'Content-Type': 'application/xml' }, data: fileIdSearchBody(folderId, uid), responseType: 'text', }", 'remoteUrl is the DAV entry point passed in by the caller, a real file'],
 
 	// ── Caller- or config-supplied endpoints. The value arrives from the host
 	//    app, a widget config or a server payload and may be absolute, so the
@@ -98,6 +99,11 @@ const ALLOWED = new Map([
 	['src/utils/diagnostics.js:url', 'trackedFetch wraps the caller\'s URL, which the caller already prefixed'],
 	['src/utils/cnFetch.js:`${target}${qs}`', 'public host mode: the URL is built from the configured base, there is no Nextcloud webroot to prefix'],
 	['src/composables/useRuntimeManifest.js:u', 'the fetcher receives a caller-resolved endpoint'],
+	['src/integrations/builtin/calendar/calendarEventLink.js:`${eventsUrl}/link`', 'every caller passes a prefixUrl()-built events address (CnEventsCard, CnCalendarCard, CnCalendarTab)'],
+
+	// ── Built by a computed that wraps `prefixUrl()` itself.
+	['src/components/CnTimelineWidget/CnTimelineManage.vue:this.timelineUrl', 'the timelineUrl computed returns prefixUrl(...)'],
+	['src/components/CnTimelineWidget/CnTimelineManage.vue:`${this.timelineUrl}/${entry.id}`', 'the timelineUrl computed returns prefixUrl(...)'],
 
 	// ── Built from a store base that is prefixed once, at store creation:
 	//    `baseState()` in useObjectStore.js and `prefixUrl(...)` in

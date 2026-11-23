@@ -1,9 +1,20 @@
 <template>
 	<span class="cn-cell-renderer" :class="cellClass">
+		<!-- OpenRegister's withheld marker ({ "@withheld": true, reason }),
+		     before every other path: a lock and "Withheld", the reason as the
+		     tooltip. The icon is decoration; the text carries the meaning. -->
+		<span v-if="withheld"
+			class="cn-cell-renderer__withheld"
+			:title="withheldHint"
+			data-testid="cn-cell-withheld">
+			<Lock :size="14" class="cn-cell-renderer__withheld-icon" aria-hidden="true" />
+			<span class="cn-cell-renderer__withheld-text">{{ withheldText }}</span>
+		</span>
+
 		<!-- Consumer-registered cell widget (cnCellWidgets[column.widget]) -->
 		<component
 			:is="widgetComponent"
-			v-if="widgetComponent"
+			v-else-if="widgetComponent"
 			:value="value"
 			:row="row"
 			:property="property"
@@ -24,28 +35,78 @@
 			</span>
 		</template>
 
+		<!-- Built-in "actions" widget: row actions as inline buttons ("Aan zaak
+		     koppelen", "Nieuwe zaak"). The page resolves the buttons
+		     (widgetProps.items) and runs a click (widgetProps.run). -->
+		<template v-else-if="widget === 'actions'">
+			<span class="cn-cell-renderer__actions" data-testid="cn-cell-actions">
+				<NcButton
+					v-for="item in actionItems"
+					:key="item.key"
+					:variant="item.variant"
+					size="small"
+					:disabled="item.disabled"
+					:data-testid="`cn-cell-action-${item.key}`"
+					@click.stop="runAction(item)">
+					{{ item.label }}
+				</NcButton>
+			</span>
+		</template>
+
+		<!-- Built-in "label" widget: the value's label (an enum's translated
+		     label) as plain text, where a list wants words and no pill. -->
+		<template v-else-if="widget === 'label'">
+			<span v-if="hasValue" :title="rawTitle">{{ shownLabel }}</span>
+			<span v-else class="cn-cell-renderer__dash">—</span>
+		</template>
+
 		<!-- Built-in "badge" widget: renders the value as a status pill. An enum
 		     value shows its label (x-enum-labels, translated) unless a formatter
 		     shapes it; the colour stays keyed on the raw value. -->
 		<template v-else-if="widget === 'badge'">
-			<CnStatusBadge v-if="hasValue"
-				:label="labelledValue"
+			<!-- A list (a job's datasets) draws one chip per entry. -->
+			<template v-if="badgeList !== null">
+				<span v-if="badgeList.length > 0" class="cn-cell-renderer__badges">
+					<CnStatusBadge
+						v-for="(entry, index) in badgeList"
+						:key="`${index}-${entry}`"
+						:label="entry"
+						:variant="(widgetProps && widgetProps.variant) || 'default'" />
+				</span>
+				<span v-else class="cn-cell-renderer__dash">—</span>
+			</template>
+			<CnStatusBadge v-else-if="hasValue"
+				:label="shownLabel"
 				:variant="badgeVariant"
 				:colorMap="badgeColorMap"
-				:colorKey="badgeColorKey" />
+				:colorKey="badgeColorKey"
+				:title="badgeTitle">
+				<template v-if="badgeLook.icon" #icon>
+					<CnIcon :name="badgeLook.icon" :size="14" class="cn-cell-renderer__badge-icon" />
+				</template>
+			</CnStatusBadge>
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
 		<!-- Built-in "fkResolve" widget — resolves a reference uuid to the related
 		     object's display label via the object store (per-schema caching).
-		     Config: widgetProps { register, schema, labelField }. -->
+		     Config: widgetProps { register, schema, labelField, matchField?,
+		     refField?, labelTemplate?, labelPath?, secondaryTemplate?,
+		     secondaryLabels? }, or schemaFrom { field,
+		     map } to read the schema off the row. -->
 		<template v-else-if="widget === 'fkResolve'">
 			<CnFkResolveCell
-				v-if="hasValue"
+				v-if="hasValue || fkRefValue !== null"
 				:value="value"
 				:register="(widgetProps && widgetProps.register) || ''"
-				:schema="(widgetProps && widgetProps.schema) || ''"
-				:labelField="(widgetProps && widgetProps.labelField) || 'name'" />
+				:schema="fkSchema"
+				:labelField="(widgetProps && widgetProps.labelField) || 'name'"
+				:matchField="(widgetProps && widgetProps.matchField) || ''"
+				:refValue="fkRefValue"
+				:labelTemplate="(widgetProps && widgetProps.labelTemplate) || ''"
+				:labelPath="(widgetProps && widgetProps.labelPath) || ''"
+				:secondaryTemplate="(widgetProps && widgetProps.secondaryTemplate) || ''"
+				:secondaryLabels="(widgetProps && widgetProps.secondaryLabels) || {}" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -86,8 +147,8 @@
 			<a
 				v-else-if="linkHref"
 				:href="linkHref"
-				target="_blank"
-				rel="noopener"
+				:target="linkTarget"
+				:rel="linkTarget ? 'noopener' : null"
 				class="cn-cell-renderer__link">
 				{{ labelledValue }}
 			</a>
@@ -128,7 +189,7 @@
 		</template>
 		<template v-else-if="widget === 'avatar'">
 			<span v-if="avatarName || avatarUserId" class="cn-cell-renderer__avatar">
-				<span v-if="avatarUserId" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
+				<span v-if="avatarUserId && !isBoardLook" class="cn-cell-renderer__avatar-picture" aria-hidden="true">
 					<NcAvatar
 						:user="avatarUserId"
 						:displayName="avatarName || avatarUserId"
@@ -139,6 +200,7 @@
 				<span
 					v-else
 					class="cn-cell-renderer__avatar-initials"
+					:class="avatarToneClass"
 					:style="{ width: avatarSize + 'px', height: avatarSize + 'px' }"
 					aria-hidden="true">{{ avatarInitials }}</span>
 				<span class="cn-cell-renderer__avatar-text">
@@ -176,7 +238,7 @@
 				<time
 					v-if="dateTimestamp"
 					class="cn-cell-renderer__date"
-					:class="dueResult.tone === 'danger' ? 'cn-cell-renderer__date--error' : null"
+					:class="dueClass"
 					:datetime="dateTimestamp.toISOString()"
 					:title="absoluteDateLabel"
 					data-testid="cn-cell-renderer-due">{{ dueResult.text }}</time>
@@ -205,7 +267,31 @@
 				:class="dateVariant ? 'cn-cell-renderer__date--' + dateVariant : null"
 				:datetime="dateTimestamp.toISOString()"
 				:title="isRelativeDate ? absoluteDateLabel : rawTitle">{{ dateLabel }}</time>
-			<span v-else class="cn-cell-renderer__dash">—</span>
+			<span v-else-if="!dateStateText" class="cn-cell-renderer__dash">—</span>
+			<!-- `widgetProps.pastText` / `otherText`: a state beside the date ("Ended", "Active"). -->
+			<span v-if="dateStateText"
+				class="cn-cell-renderer__date-state"
+				:class="{ 'cn-cell-renderer__date-state--past': dateIsPast }"
+				data-testid="cn-cell-date-state">{{ dateStateText }}</span>
+		</template>
+
+		<!-- Built-in "number" widget: the value with its unit
+		     (widgetProps.unit { one, other }) and, when widgetProps.flagWhen
+		     holds on the row, a chip with text beside it. An empty value is an
+		     empty cell, never 0. -->
+		<template v-else-if="widget === 'number'">
+			<span v-if="numberLabel !== ''"
+				class="cn-cell-renderer__number"
+				:class="numberFlag ? 'cn-cell-renderer__number--' + numberFlag.variant : null"
+				data-testid="cn-cell-number">
+				{{ numberLabel }}
+				<CnStatusBadge v-if="numberFlag"
+					class="cn-cell-renderer__number-flag"
+					:label="numberFlag.text"
+					:variant="numberFlag.variant"
+					size="small"
+					data-testid="cn-cell-number-flag" />
+			</span>
 		</template>
 
 		<!-- Built-in "progress" widget: a bar with the percentage beside it,
@@ -230,6 +316,54 @@
 					class="cn-cell-renderer__progress-badge"
 					:class="'cn-cell-renderer__progress-badge--' + progressBadge.tone">{{ progressBadge.label }}</span>
 			</span>
+		</template>
+
+		<!-- Built-in "switch" widget: an on/off switch with the value as its
+		     label. widgetProps { checked(row) => boolean, onToggle(row, on) =>
+		     Promise, ariaLabel?: string | (row) => string, type?: 'checkbox' }; with `ariaLabel`
+		     the switch shows no value and is named for screen readers only. The switch shows the new state at once and returns to
+		     the old one when onToggle rejects. Clicks stay in the cell, so
+		     toggling never opens the row. `type: 'checkbox'` draws a checkbox. -->
+		<template v-else-if="widget === 'switch'">
+			<span class="cn-cell-renderer__switch"
+				data-testid="cn-cell-switch"
+				@click.stop
+				@keydown.stop>
+				<NcCheckboxRadioSwitch
+					:type="switchType"
+					:modelValue="switchChecked"
+					:disabled="switchBusy || typeof (widgetProps && widgetProps.onToggle) !== 'function'"
+					@update:modelValue="onSwitchToggle">
+					<span v-if="switchAriaLabel" class="hidden-visually">{{ switchAriaLabel }}</span>
+					<template v-else>
+						{{ hasValue ? labelledValue : '' }}
+					</template>
+				</NcCheckboxRadioSwitch>
+			</span>
+		</template>
+
+		<!-- Built-in "iconLabel" widget: an icon before the value. widgetProps
+		     { icon }: a component or an icon name, or a function of the row
+		     returning one. The icon is decorative; the text carries the meaning. -->
+		<template v-else-if="widget === 'iconLabel'">
+			<span class="cn-cell-renderer__icon-label" data-testid="cn-cell-icon-label">
+				<CnIcon v-if="typeof iconLabelIcon === 'string' && iconLabelIcon"
+					:name="iconLabelIcon"
+					:size="16"
+					aria-hidden="true" />
+				<component :is="iconLabelIcon"
+					v-else-if="iconLabelIcon"
+					:size="16"
+					aria-hidden="true" />
+				<span v-if="hasValue">{{ labelledValue }}</span>
+				<span v-else class="cn-cell-renderer__dash">—</span>
+			</span>
+		</template>
+
+		<!-- Built-in "flowHealth" widget: a flow's health dot, read off the row
+		     of a `flows` source (`enabled`, `lastRunStatus`). -->
+		<template v-else-if="widget === 'flowHealth'">
+			<CnFlowHealthDot :enabled="row.enabled !== false" :lastRunStatus="row.lastRunStatus || null" />
 		</template>
 
 		<!-- Explicit column formatter — overrides the type-aware paths below -->
@@ -280,7 +414,12 @@
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
-		<!-- Boolean: icon -->
+		<!-- Boolean: words when `widgetProps.trueLabel` / `falseLabel` name
+		     them (the value `widgetProps.pill` names as a pill), else an icon -->
+		<template v-else-if="propertyType === 'boolean' && booleanWord !== ''">
+			<CnStatusBadge v-if="booleanPilled" :label="booleanWord" />
+			<span v-else>{{ booleanWord }}</span>
+		</template>
 		<template v-else-if="propertyType === 'boolean'">
 			<CheckBold v-if="value" :size="16" class="cn-cell-renderer__icon cn-cell-renderer__icon--success" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
@@ -312,19 +451,29 @@
 
 <script>
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcDateTime } from '@nextcloud/vue'
+import { NcAvatar, NcButton, NcCheckboxRadioSwitch, NcDateTime } from '@nextcloud/vue'
 import CheckBold from 'vue-material-design-icons/CheckBold.vue'
+import Lock from 'vue-material-design-icons/Lock.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
+import CnFlowHealthDot from '../CnFlowDetail/CnFlowHealthDot.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnGroupNameCell from './CnGroupNameCell.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { ageInDays, boardDateLocale, formatAge, formatBoardDate, formatRelativeDate, formatTimeOfDay, resolveAgeVariant } from '../../utils/boardDate.js'
-import { parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
+import { daysUntil, parseDateValue, resolveDateVariant } from '../../utils/dateVariant.js'
+import { pillLook } from '../../utils/detailActionModel.js'
 import { resolveDue } from '../../utils/dueText.js'
+import { fillTemplate, formatBoardDateTime } from '../../utils/fillTemplate.js'
 import { formatMoney } from '../../utils/formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from '../../utils/groupAutocomplete.js'
 import { objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
+import { indicatorApplies } from '../../utils/rowIndicators.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { formatValue, isGroupProp } from '../../utils/schema.js'
+import { userDisplayName } from '../../utils/userDisplayName.js'
+import { isWithheld, withheldReason } from '../../utils/withheldValue.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /** A uuid in any version, the shape OpenRegister ids take. */
@@ -352,22 +501,32 @@ export default {
 	name: 'CnCellRenderer',
 
 	components: {
+		CnFlowHealthDot,
+		CnIcon,
 		CnStatusBadge,
+		NcCheckboxRadioSwitch,
 		CnFkResolveCell,
 		CnGroupNameCell,
 		CheckBold,
+		Lock,
 		NcAvatar,
+		NcButton,
 		NcDateTime,
 	},
 
 	inject: {
 		/**
 		 * Cell-formatter registry, provided by CnAppRoot (`cnFormatters`).
-		 * Map of formatter-id → `(value, row, property) => string|number`.
+		 * Map of formatter-id → `(value, row, property, options, context) => string|number`;
+		 * `context` is the page record, `{ objectId, object }`.
 		 * Defaults to an empty object so standalone use (no CnAppRoot
 		 * ancestor) is unaffected.
 		 */
 		cnFormatters: { default: () => ({}) },
+		/** The detail page's record context (`{ objectId, object }`), for a formatter's fifth argument. */
+		cnObjectContext: { default: null },
+		/** The v2 grid's record holder (`{ value: { objectId, objectData } }`), the same. */
+		cnDetailObjectContext: { default: null },
 		/**
 		 * Cell-widget registry, provided by CnAppRoot (`cnCellWidgets`).
 		 * Map of widget-id → Vue component. Resolves a column's `widget` id;
@@ -391,9 +550,13 @@ export default {
 	},
 
 	props: {
-		/** The raw cell value */
+		/**
+		 * The raw cell value. String precedes Boolean: with Boolean first Vue
+		 * casts an empty string to `true`, and an empty cell drew a check mark.
+		 */
 		value: {
-			type: [Boolean, String, Number, Array, Object],
+			// eslint-disable-next-line vue/prefer-prop-type-boolean-first -- an empty string must stay a string
+			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
 
@@ -437,7 +600,7 @@ export default {
 		 * batch (`widgetProps { labels, route? }`, set by CnIndexPage for a
 		 * column with `labelField`).
 		 * The built-in id `"avatar"` renders a person as an avatar with the
-		 * name beside it (`widgetProps { userField?, user?, nameField?, size? }`;
+		 * name beside it (`widgetProps { userField?, user?, nameField?, size?, groupField?, groupLabel? }`; a row nobody holds names its first `groupField` group, in `groupLabel` ("{group}, unclaimed");
 		 * a free name gets its initials), and the built-in id `"date"` renders
 		 * a date whose colour follows `widgetProps.variantWhen`, rules on the
 		 * number of days until the date (`[{ op: "lt", value: 0, variant:
@@ -462,7 +625,8 @@ export default {
 		 * Extra props spread onto the resolved cell-widget component. The
 		 * built-in `"link"` reads its target from here: `route` (a manifest
 		 * page id), `params` (route param to row field), `href` (URL with
-		 * `{field}` placeholders), and `routeField` + `routeMap` to pick the
+		 * `{field}` placeholders; a new tab unless `target: "_self"` or a `#`
+		 * anchor), and `routeField` + `routeMap` to pick the
 		 * page per row from a sibling field (`{ person: 'ContactDetail' }`),
 		 * with `route` as the fallback for a value the map does not hold.
 		 */
@@ -502,7 +666,7 @@ export default {
 		 * type-aware rendering, so a manifest column can opt into currency or a
 		 * colour swatch without registering a function.
 		 *
-		 * @type {{style?: 'currency'|'number'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
+		 * @type {{style?: 'currency'|'number'|'decimal'|'percent'|'duration'|'swatch', currency?: string, decimals?: number, unit?: 'milliseconds'|'seconds'|'minutes'|'hours', prefix?: string, suffix?: string, colorField?: string}}
 		 */
 		format: {
 			type: Object,
@@ -537,9 +701,169 @@ export default {
 		},
 	},
 
+	data() {
+		return {
+			// The switch's state while its onToggle is in flight, or null.
+			switchPending: null,
+		}
+	},
+
 	computed: {
+		/**
+		 * The schema an `fkResolve` cell reads: `widgetProps.schema`, or the one
+		 * `widgetProps.schemaFrom` (`{ field, map }`) names for this row, for a
+		 * reference that points at objects of more than one schema.
+		 *
+		 * @return {string}
+		 */
+		fkSchema() {
+			const props = this.widgetProps || {}
+			const from = props.schemaFrom
+			if (from && typeof from === 'object' && from.field && this.row) {
+				const mapped = (from.map || {})[String(this.row[from.field])]
+				if (mapped) {
+					return mapped
+				}
+			}
+			return props.schema || ''
+		},
+
+		/**
+		 * The `actions` widget's buttons for this row: the page's resolved
+		 * `widgetProps.items` (a list, or a function of the row returning
+		 * one), each `{ key, label, variant?, disabled? }`.
+		 *
+		 * @return {Array<{key: string, label: string, variant: string, disabled: boolean}>}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		actionItems() {
+			const raw = typeof this.widgetProps?.items === 'function' ? this.widgetProps.items(this.row) : this.widgetProps?.items
+			const items = Array.isArray(raw) ? raw : []
+			return items.map((item) => ({
+				...item,
+				variant: item.variant || 'secondary',
+				disabled: item.disabled === true,
+			}))
+		},
+
+		/**
+		 * The `switch` widget's name for screen readers (`widgetProps.ariaLabel`,
+		 * a string or a function of the row), or '' to show the value instead.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/switch-cell-row-label/specs/switch-cell-row-label/spec.md#requirement-a-switch-cell-can-be-named-per-row-without-showing-the-name
+		 */
+		switchAriaLabel() {
+			const label = this.widgetProps && this.widgetProps.ariaLabel
+			const text = typeof label === 'function' ? label(this.row) : label
+			return typeof text === 'string' ? text.trim() : ''
+		},
+
+		/**
+		 * The `badge` widget's entries when the value is a list, each as its
+		 * label: the items' `x-enum-labels` (or the normalised `enumLabels`),
+		 * translated, else the entry as stored. Null for a single value.
+		 *
+		 * @return {string[]|null}
+		 * @spec openspec/changes/badge-cell-list/specs/badge-cell-list/spec.md#requirement-a-badge-cell-draws-one-chip-per-entry-of-a-list
+		 * @spec openspec/changes/badge-list-labels-and-tags/specs/badge-cell-list/spec.md#requirement-a-badge-list-chip-shows-its-entrys-label
+		 */
+		badgeList() {
+			if (!Array.isArray(this.value)) {
+				return null
+			}
+			const items = (this.property && this.property.items) || {}
+			const labels = items.enumLabels || items['x-enum-labels'] || (this.property && (this.property.enumLabels || this.property['x-enum-labels'])) || {}
+			return this.value
+				.filter((entry) => entry !== null && entry !== undefined && entry !== '' && typeof entry !== 'object')
+				.map((entry) => String(entry))
+				.map((entry) => (typeof labels[entry] === 'string' ? this.cnTranslate(labels[entry]) : entry))
+		},
+
+		/**
+		 * Whether the "switch" widget is on: the pending state while a toggle
+		 * is in flight, else `widgetProps.checked(row)`, else what a formatter
+		 * answers when it answers true or false, else the value.
+		 *
+		 * @return {boolean} The switch state.
+		 * @spec openspec/changes/cell-toggle-request/specs/cell-renderer/spec.md#requirement-a-switch-cell-can-draw-a-checkbox-whose-state-a-formatter-answers
+		 */
+		switchChecked() {
+			if (this.switchPending !== null) {
+				return this.switchPending
+			}
+			const checked = this.widgetProps && this.widgetProps.checked
+			if (typeof checked === 'function') {
+				return checked(this.row) === true
+			}
+			if (this.formatterFn !== null) {
+				const answer = this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined, this.formatterContext)
+				if (typeof answer === 'boolean') {
+					return answer
+				}
+			}
+			return this.value === true
+		},
+
+		/**
+		 * The "switch" widget's look: `checkbox` with `widgetProps.type`, else a switch.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-toggle-request/specs/cell-renderer/spec.md#requirement-a-switch-cell-can-draw-a-checkbox-whose-state-a-formatter-answers
+		 */
+		switchType() {
+			return this.widgetProps && this.widgetProps.type === 'checkbox' ? 'checkbox' : 'switch'
+		},
+
+		/**
+		 * @return {boolean} Whether a toggle is in flight.
+		 */
+		switchBusy() {
+			return this.switchPending !== null
+		},
+
+		/**
+		 * The "iconLabel" widget's icon, resolved against the row.
+		 *
+		 * @return {object|string|null} A component, an icon name, or null.
+		 */
+		iconLabelIcon() {
+			const props = this.widgetProps || {}
+			// `widgetProps.icons`: an icon per stored value, `icon` for the rest.
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-an-icon-label-cell-can-pick-its-icon-by-value
+			if (props.icons && typeof props.icons === 'object' && this.hasValue && typeof this.value !== 'object' && Object.hasOwn(props.icons, String(this.value))) {
+				return props.icons[String(this.value)] || null
+			}
+			const icon = props.icon
+			const resolved = typeof icon === 'function' ? icon(this.row) : icon
+			return resolved || null
+		},
+
 		propertyType() {
 			return this.property?.type || (typeof this.value)
+		},
+
+		/**
+		 * A boolean's word from `widgetProps.trueLabel` / `falseLabel`,
+		 * translated, or '' when the column names none.
+		 *
+		 * @return {string}
+		 */
+		booleanWord() {
+			const props = this.widgetProps || {}
+			const word = this.value === true ? props.trueLabel : (this.value === false ? props.falseLabel : '')
+			return typeof word === 'string' && word !== '' ? this.cnTranslate(word) : ''
+		},
+
+		/**
+		 * Whether this boolean's word is drawn as a pill: `widgetProps.pill`
+		 * names the value that is.
+		 *
+		 * @return {boolean}
+		 */
+		booleanPilled() {
+			const pill = (this.widgetProps || {}).pill
+			return typeof pill === 'boolean' && pill === this.value
 		},
 
 		isEnum() {
@@ -598,10 +922,13 @@ export default {
 
 		/**
 		 * `avatar` widget: the name shown beside the picture. Read from the
-		 * row field `widgetProps.nameField` when set, else the cell value.
+		 * row field `widgetProps.nameField` when set; a cell holding a user id
+		 * (`widgetProps.user`) shows that user's display name once it is
+		 * known; else the cell value.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
+		 * @spec openspec/changes/avatar-cell-user-display-name/specs/data-table/spec.md#requirement-an-avatar-cell-holding-a-user-id-shows-the-users-display-name
 		 */
 		avatarName() {
 			const props = this.widgetProps || {}
@@ -610,6 +937,16 @@ export default {
 				if (typeof name === 'string' && name !== '') {
 					return name
 				}
+			}
+			if (props.user === true && this.avatarUserId !== '') {
+				const displayName = userDisplayName(this.avatarUserId)
+				if (displayName !== '') {
+					return displayName
+				}
+			}
+			if (this.avatarGroupId !== '') {
+				const label = typeof props.groupLabel === 'string' && props.groupLabel !== '' ? this.cnTranslate(props.groupLabel) : '{group}'
+				return label.replace(/\{group\}/g, this.avatarGroupName)
 			}
 			if (!this.hasValue || typeof this.value === 'object') {
 				return ''
@@ -625,7 +962,36 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
 		avatarInitials() {
-			return this.initialsOf(this.avatarName)
+			return this.initialsOf(this.avatarGroupId !== '' ? this.avatarGroupName : this.avatarName)
+		},
+
+		/**
+		 * `avatar` widget: the group the row waits on when nobody holds it,
+		 * the first id in the row field `widgetProps.groupField`, or ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/avatar-cell-group-fallback/specs/data-table/spec.md#requirement-an-empty-avatar-cell-can-name-the-rows-group
+		 */
+		avatarGroupId() {
+			const props = this.widgetProps || {}
+			if (this.widget !== 'avatar' || typeof props.groupField !== 'string' || props.groupField === '' || this.avatarUserId !== '') {
+				return ''
+			}
+			if (this.hasValue && typeof this.value !== 'object') {
+				return ''
+			}
+			const groups = objectFieldValue(this.row, props.groupField)
+			const first = Array.isArray(groups) ? groups.find((gid) => typeof gid === 'string' && gid !== '') : groups
+			return typeof first === 'string' ? first : ''
+		},
+
+		/**
+		 * `avatar` widget: the display name of `avatarGroupId`, the id until it is known.
+		 *
+		 * @return {string}
+		 */
+		avatarGroupName() {
+			return groupDisplayName(this.avatarGroupId) || this.avatarGroupId
 		},
 
 		/**
@@ -655,9 +1021,74 @@ export default {
 		 * @return {number}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-avatar-and-date-cells
 		 */
+		/**
+		 * `avatar` widget: the chip's tone class in the board look,
+		 * `widgetProps.tone` `neutral` (DqContacten's grey chip) or the
+		 * default light primary. A grey chip of 32px or less is also
+		 * `--compact` (PqLeads' owner chip, PtToegangsverzoeken' requester:
+		 * 12px initials).
+		 *
+		 * @return {Array<string>}
+		 * @spec openspec/changes/board-avatar-chip/specs/data-table/spec.md#requirement-a-board-avatar-cell-draws-the-initials-chip
+		 */
+		avatarToneClass() {
+			const tone = this.widgetProps && this.widgetProps.tone
+			if (tone !== 'neutral') {
+				return []
+			}
+			return this.avatarSize <= 32
+				? ['cn-cell-renderer__avatar-initials--neutral', 'cn-cell-renderer__avatar-initials--compact']
+				: ['cn-cell-renderer__avatar-initials--neutral']
+		},
+
 		avatarSize() {
 			const size = Number(this.widgetProps && this.widgetProps.size)
 			return Number.isFinite(size) && size > 0 ? size : (this.isBoardLook ? 32 : 24)
+		},
+
+		/**
+		 * `date` widget with `widgetProps.due`: the colour class. The
+		 * `variantWhen` rules win when they match; else an overdue date reads
+		 * as an error and a soon one (`due.soonWithin`) as a warning.
+		 *
+		 * @return {string|null} The class, or null for the plain colour.
+		 * @spec openspec/changes/due-text-soon/specs/due-text-soon/spec.md#requirement-a-due-date-within-a-few-days-reads-as-soon
+		 */
+		dueClass() {
+			if (this.dateVariant) {
+				return 'cn-cell-renderer__date--' + this.dateVariant
+			}
+			if (this.dueResult && this.dueResult.tone === 'danger') {
+				return 'cn-cell-renderer__date--error'
+			}
+			if (this.dueResult && this.dueResult.tone === 'muted') {
+				return 'cn-cell-renderer__date--muted'
+			}
+			return this.dueResult && this.dueResult.soon ? 'cn-cell-renderer__date--warning' : null
+		},
+
+		/**
+		 * `date` widget: whether the date lies before today.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/object-list-by-field/specs/object-list-widget/spec.md#requirement-a-date-cell-can-say-its-state-and-groups-keep-a-set-order
+		 */
+		dateIsPast() {
+			const days = daysUntil(this.value)
+			return days !== null && days < 0
+		},
+
+		/**
+		 * `date` widget: `widgetProps.pastText` for a past date, else
+		 * `widgetProps.otherText` (also for an empty one), translated; '' without either.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/object-list-by-field/specs/object-list-widget/spec.md#requirement-a-date-cell-can-say-its-state-and-groups-keep-a-set-order
+		 */
+		dateStateText() {
+			const props = this.widgetProps || {}
+			const text = this.dateIsPast ? props.pastText : props.otherText
+			return typeof text === 'string' && text !== '' ? this.cnTranslate(text) : ''
 		},
 
 		/**
@@ -726,7 +1157,7 @@ export default {
 			if (this.widget !== 'date' || !due || typeof due !== 'object') {
 				return null
 			}
-			return resolveDue(this.value, due, (text) => this.cnTranslate(text))
+			return resolveDue(this.value, due, (text) => this.cnTranslate(text), new Date(), this.row)
 		},
 
 		/**
@@ -906,6 +1337,12 @@ export default {
 			if (props.relative === true) {
 				return formatRelativeDate(date, { withTime: props.showTime === true })
 			}
+			// `widgetProps.short: true` writes the board's short date in any
+			// look, with `showTime` followed by the time ("5 okt, 09:15").
+			// @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-date-cell-can-write-the-boards-short-date-with-its-time
+			if (props.short === true && props.timeOnly !== true) {
+				return props.showTime === true ? formatBoardDateTime(date) : formatBoardDate(date)
+			}
 			// The board look writes a plain date in its short form ("5 okt");
 			// a time of day keeps the full form below.
 			if (this.isBoardLook && props.timeOnly !== true && props.showTime !== true) {
@@ -948,6 +1385,110 @@ export default {
 		/** True when the cell has a renderable value (not null/undefined/empty string). */
 		hasValue() {
 			return this.value !== null && this.value !== undefined && this.value !== ''
+		},
+
+		/**
+		 * The row's own reference for an `fkResolve` cell (`widgetProps.refField`),
+		 * or null when the row has none.
+		 *
+		 * @return {string|number|Array|null}
+		 * @spec openspec/changes/fk-resolve-lookup/specs/fk-resolve-lookup/spec.md#requirement-a-reference-cell-can-look-its-record-up-by-a-property
+		 */
+		fkRefValue() {
+			const field = this.widgetProps && this.widgetProps.refField
+			if (!field || !this.row) {
+				return null
+			}
+			const ref = readPath(this.row, field)
+			const empty = ref === null || ref === undefined || ref === '' || (Array.isArray(ref) && ref.length === 0)
+			return empty || (typeof ref === 'object' && !Array.isArray(ref)) ? null : ref
+		},
+
+		/**
+		 * Whether the value is OpenRegister's withheld marker, which every
+		 * other path would stringify to `[object Object]`.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-withheld-value-reads-as-withheld
+		 */
+		withheld() {
+			return isWithheld(this.value)
+		},
+
+		/**
+		 * The text a withheld value reads as.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-withheld-value-reads-as-withheld
+		 */
+		withheldText() {
+			return t('nextcloud-vue', 'Withheld')
+		},
+
+		/**
+		 * Why a value is withheld, as the cell's tooltip.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-withheld-value-reads-as-withheld
+		 */
+		withheldHint() {
+			return withheldReason(this.value) === 'access'
+				? t('nextcloud-vue', 'You may not open the linked object, so its value is not shown.')
+				: t('nextcloud-vue', 'This value is not shown.')
+		},
+
+		/**
+		 * `number` widget: the value with `widgetProps.unit` (`{ one, other }`
+		 * with `{count}`, through the app's translate), else the number in the
+		 * user's locale. '' for an empty or unreadable value.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-number-cell-reads-with-its-unit-and-a-flag
+		 */
+		numberLabel() {
+			if (!this.hasValue || typeof this.value === 'object' || typeof this.value === 'boolean') {
+				return ''
+			}
+			const count = Number(this.value)
+			if (!Number.isFinite(count)) {
+				return ''
+			}
+			const unit = this.widgetProps && this.widgetProps.unit
+			if (unit && typeof unit === 'object' && (unit.one || unit.other)) {
+				const template = this.cnTranslate((count === 1 ? unit.one : unit.other) || unit.other || unit.one)
+				return template.replace(/\{count\}/g, String(count))
+			}
+			return count.toLocaleString(getCanonicalLocale() || undefined)
+		},
+
+		/**
+		 * `number` widget: the chip `widgetProps.flagWhen` asks for on this
+		 * row (`{ field, equals | in, text, variant }`), or null.
+		 *
+		 * @return {{text: string, variant: string}|null}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-number-cell-reads-with-its-unit-and-a-flag
+		 */
+		numberFlag() {
+			const flag = this.widgetProps && this.widgetProps.flagWhen
+			if (!flag || typeof flag !== 'object' || typeof flag.text !== 'string' || flag.text === '' || !indicatorApplies(flag, this.row || {})) {
+				return null
+			}
+			return { text: this.cnTranslate(flag.text), variant: isBadgeVariant(flag.variant) ? flag.variant : 'warning' }
+		},
+
+		/**
+		 * Built-in `badge`: the tooltip `widgetProps.titleWhen`
+		 * (`{ field, equals | in, text }`) asks for on this row, or undefined.
+		 *
+		 * @return {string|undefined}
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-badge-cell-can-carry-a-tooltip
+		 */
+		badgeTitle() {
+			const when = this.widgetProps && this.widgetProps.titleWhen
+			if (!when || typeof when !== 'object' || typeof when.text !== 'string' || when.text === '' || !indicatorApplies(when, this.row || {})) {
+				return undefined
+			}
+			return this.cnTranslate(when.text)
 		},
 
 		/**
@@ -1013,6 +1554,22 @@ export default {
 		 * @return {string}
 		 * @spec openspec/changes/cell-labels-and-draft-indicator/specs/cell-labels-and-draft-indicator/spec.md#requirement-a-built-in-cell-widget-shows-an-enum-value-by-its-label
 		 */
+		/**
+		 * What a `label` or `badge` cell shows: its label, worded by
+		 * `widgetProps.textTemplate` when given (translated, filled from the
+		 * row, `{value}` the label; DqPostvak "Lijkt op 2026-0079").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/cell-text-template/specs/cell-text-template/spec.md
+		 */
+		shownLabel() {
+			const template = this.widgetProps && this.widgetProps.textTemplate
+			if (typeof template !== 'string' || template === '') {
+				return this.labelledValue
+			}
+			return fillTemplate(this.cnTranslate(template), { ...(this.row || {}), value: this.labelledValue })
+		},
+
 		labelledValue() {
 			if (!this.hasFormatter && this.isEnum && this.hasValue && typeof this.value !== 'object') {
 				return this.enumLabel
@@ -1039,9 +1596,25 @@ export default {
 			return Object.keys(map).some((key) => key.toLowerCase() === raw) ? String(this.value) : ''
 		},
 
-		/** Variant for the built-in `badge` widget — `widgetProps.variant` or `'default'`. */
+		/**
+		 * What the built-in `badge` widget takes from the record its value
+		 * points at (`widgetProps.looks`, filled by CnIndexPage from
+		 * `widgetProps.resolve`): a tone and an icon, or nothing.
+		 *
+		 * @return {{variant?: string, colorMap?: null, icon?: string}}
+		 * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-badge-cell-takes-its-tone-and-icon-from-the-referenced-record
+		 */
+		badgeLook() {
+			const looks = this.widgetProps && this.widgetProps.looks
+			if (!looks || typeof looks !== 'object' || !this.hasValue || typeof this.value === 'object') {
+				return {}
+			}
+			return pillLook(looks[String(this.value)])
+		},
+
+		/** Variant for the built-in `badge` widget: the referenced record's tone, else `widgetProps.variant`, else `'default'`. */
 		badgeVariant() {
-			return (this.widgetProps && this.widgetProps.variant) || 'default'
+			return this.badgeLook.variant || (this.widgetProps && this.widgetProps.variant) || 'default'
 		},
 
 		/**
@@ -1056,6 +1629,9 @@ export default {
 		 * @return {object|null}
 		 */
 		badgeColorMap() {
+			if (this.badgeLook.variant) {
+				return null
+			}
 			return (this.widgetProps && this.widgetProps.colorMap) || this.enumColorMap || null
 		},
 
@@ -1191,6 +1767,23 @@ export default {
 		},
 
 		/**
+		 * Where a `widgetProps.href` link opens: a new tab, unless
+		 * `widgetProps.target` is `_self` or the href is an anchor on this
+		 * page (`#…`), so a row can open a card on the same page
+		 * (DqInstellingen: a connection row opens its settings card).
+		 *
+		 * @return {string|null} `_blank`, or null for the same tab.
+		 * @spec openspec/changes/cell-link-same-tab/specs/cell-link-same-tab/spec.md
+		 */
+		linkTarget() {
+			const target = this.widgetProps && this.widgetProps.target
+			if (target === '_self' || (typeof this.linkHref === 'string' && this.linkHref.startsWith('#'))) {
+				return null
+			}
+			return '_blank'
+		},
+
+		/**
 		 * Resolved formatter function for this cell, or `null`. A column's
 		 * `formatter` id resolves against the injected `cnFormatters` registry.
 		 *
@@ -1199,6 +1792,19 @@ export default {
 		formatterFn() {
 			const fn = this.formatter && this.cnFormatters && this.cnFormatters[this.formatter]
 			return typeof fn === 'function' ? fn : null
+		},
+
+		/**
+		 * The record of the page the table sits on, for a formatter that needs
+		 * more than its row: `{ objectId, object }`, both null outside a detail page.
+		 *
+		 * @return {{objectId: (string|null), object: (object|null)}}
+		 * @spec openspec/changes/cell-formatter-page-record/specs/cell-renderer/spec.md#requirement-a-cell-formatter-can-read-the-page-record
+		 */
+		formatterContext() {
+			const unwrap = (c) => (c && typeof c === 'object' && 'value' in c ? c.value : c)
+			const ctx = unwrap(this.cnObjectContext) || unwrap(this.cnDetailObjectContext) || {}
+			return { objectId: ctx.objectId ?? null, object: ctx.object || ctx.objectData || null }
 		},
 
 		/** True when an explicit formatter is in play for this cell. */
@@ -1218,9 +1824,9 @@ export default {
 			return typeof s === 'string' ? s : null
 		},
 
-		/** True when a built-in NUMERIC format (currency/number/percent/duration) applies. */
+		/** True when a built-in NUMERIC format (currency/number/decimal/percent/duration) applies. */
 		hasBuiltinFormat() {
-			return ['currency', 'number', 'percent', 'duration'].includes(this.formatStyle)
+			return ['currency', 'number', 'decimal', 'percent', 'duration'].includes(this.formatStyle)
 		},
 
 		/** True when this cell renders as a colour swatch (`format.style:"swatch"`). */
@@ -1230,8 +1836,9 @@ export default {
 
 		/**
 		 * The swatch colour — read from the sibling row field named by
-		 * `format.colorField` (default `'color'`). Returns null when no usable
-		 * colour string is present (the dot is then omitted).
+		 * `format.colorField` (default `'color'`), through `format.colorMap`
+		 * when given (a stored name such as `blue` to a CSS colour). Returns
+		 * null when no usable colour is present (the dot is then omitted).
 		 *
 		 * @return {string|null}
 		 */
@@ -1241,13 +1848,20 @@ export default {
 			}
 			const field = (this.format && this.format.colorField) || 'color'
 			const c = this.row && this.row[field]
-			return (typeof c === 'string' && c.trim() !== '') ? c : null
+			if (typeof c !== 'string' || c.trim() === '') {
+				return null
+			}
+			const map = this.format && this.format.colorMap
+			if (map && typeof map === 'object') {
+				return typeof map[c] === 'string' && map[c] !== '' ? map[c] : null
+			}
+			return c
 		},
 
 		formattedValue() {
 			if (this.formatterFn) {
 				try {
-					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined)
+					return this.formatterFn(this.value, this.row, this.property, this.formatterOptions || undefined, this.formatterContext)
 				} catch (e) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnCellRenderer] formatter "${this.formatter}" threw; falling back`, e)
@@ -1310,6 +1924,22 @@ export default {
 		},
 	},
 
+	watch: {
+		avatarGroupId: {
+			immediate: true,
+			/**
+			 * Look the group's display name up (cached, once per id per page).
+			 *
+			 * @param {string} gid The group id.
+			 */
+			handler(gid) {
+				if (gid !== '') {
+					loadGroupDisplayName(gid)
+				}
+			},
+		},
+	},
+
 	mounted() {
 		// Warn once per column-property-name when `widget:"link"` resolves
 		// to neither a `route` nor an `href` — silent fallback hides
@@ -1336,6 +1966,42 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Run an `actions` widget button for this row through the page.
+		 *
+		 * @param {{key: string}} item The button.
+		 * @return {void}
+		 * @spec openspec/changes/table-actions-column/specs/index-page/spec.md#requirement-a-column-can-show-row-actions-as-buttons
+		 */
+		runAction(item) {
+			if (typeof this.widgetProps?.run === 'function') {
+				this.widgetProps.run(item.key, this.row)
+			}
+		},
+
+		/**
+		 * The "switch" widget was flipped: show the new state and hand it to
+		 * `widgetProps.onToggle(row, on)`. A rejection puts the switch back.
+		 *
+		 * @param {boolean} on The new state.
+		 * @return {Promise<void>}
+		 */
+		async onSwitchToggle(on) {
+			const toggle = this.widgetProps && this.widgetProps.onToggle
+			if (typeof toggle !== 'function' || this.switchPending !== null) {
+				return
+			}
+			this.switchPending = on === true
+			try {
+				await toggle(this.row, on === true)
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('[CnCellRenderer] switch toggle failed', error)
+			} finally {
+				this.switchPending = null
+			}
+		},
+
 		/**
 		 * The initials of a name, at most two letters (first and last word).
 		 *
@@ -1369,13 +2035,16 @@ export default {
 			if (fmt.style === 'duration') {
 				return this.formatDuration()
 			}
-			const num = Number(this.value)
+			// `minorUnits` reads a currency stored in cents as the amount.
+			const num = Number(this.value) / (fmt.style === 'currency' && fmt.minorUnits === true ? 100 : 1)
 			if (!Number.isFinite(num)) {
 				return formatValue(this.value, this.property, { truncate: this.truncate })
 			}
+			// `decimal` defaults to one fraction digit, as formatMetricValue does.
+			const defaultDecimals = { currency: 2, decimal: 1 }
 			const decimals = Number.isFinite(fmt.decimals)
 				? fmt.decimals
-				: (fmt.style === 'currency' ? 2 : 0)
+				: (defaultDecimals[fmt.style] ?? 0)
 			let body
 			if (fmt.style === 'currency') {
 				// `format.currencyField` reads the code from the row's own field.
@@ -1449,6 +2118,23 @@ export default {
 </script>
 
 <style scoped>
+.cn-cell-renderer__actions {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cn-cell-renderer__icon-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+}
+
+.cn-cell-renderer__switch {
+	display: inline-flex;
+}
+
 .cn-cell-renderer__mono {
 	font-family: monospace;
 	font-size: 13px;
@@ -1467,6 +2153,21 @@ export default {
 
 .cn-cell-renderer--date {
 	white-space: nowrap;
+}
+
+.cn-cell-renderer__date-state {
+	margin-inline-start: 8px;
+	color: var(--color-success-text, var(--color-main-text));
+}
+
+.cn-cell-renderer__date-state--past {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__badges {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px 6px;
 }
 
 .cn-cell-renderer__dash {
@@ -1686,6 +2387,41 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/* A withheld value: the lock and the word in the muted text colour. */
+.cn-cell-renderer__withheld {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-cell-renderer__withheld-icon {
+	flex: 0 0 auto;
+}
+
+.cn-cell-renderer__withheld-text {
+	font-style: italic;
+}
+
+/* A number cell: the flagged number reads in its variant's text colour, with
+   the chip saying why (never colour alone). */
+.cn-cell-renderer__number {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	white-space: nowrap;
+}
+
+.cn-cell-renderer__number--warning {
+	color: var(--color-text-warning, var(--color-warning-text));
+	font-weight: 600;
+}
+
+.cn-cell-renderer__number--error {
+	color: var(--color-text-error, var(--color-error-text));
+	font-weight: 600;
+}
+
 .cn-cell-renderer__date--success {
 	color: var(--color-text-success, var(--color-success-text));
 }
@@ -1698,16 +2434,24 @@ export default {
 	color: var(--color-text-error, var(--color-error-text));
 }
 
+.cn-cell-renderer__date--muted {
+	color: var(--color-text-maxcontrast);
+}
+
 /* The text variant, not the fill: from Nextcloud 32 `--color-success` is a
    background colour and too pale for a 16px glyph on a light theme. */
 .cn-cell-renderer__icon--success {
 	color: var(--color-text-success, var(--color-success-text, var(--color-success)));
 }
 
+/* Top-aligned, so the inline-flex box sits on its line instead of raising the
+   line box by its baseline offset (a status row 42.2px against the board's 40,
+   DqZaaktypeStatussen). */
 .cn-cell-renderer__swatch-wrap {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
+	vertical-align: top;
 }
 
 .cn-cell-renderer__swatch-dot {

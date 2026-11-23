@@ -1,0 +1,4 @@
+- [x] planSameHeights
+- [x] CnDashboardGrid matchRowHeights (on build and on every resizeToContent)
+- [x] schema widgetEntry.sameHeight
+- [x] jest

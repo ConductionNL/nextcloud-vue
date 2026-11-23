@@ -26,7 +26,7 @@
  * A token is valid only in the context whose resolver runs on it:
  *
  *  - **filter**       — `resolveFilterTokens`, resolved at fetch time:
- *                       `@me`, `@myGroups`, `@now`, `@today`, `@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`,
+ *                       `@me`, `@myGroups`, `@myTeam`, `@now`, `@today`, `@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`,
  *                       `@quarterStart`, `@yearStart`.
  *  - **config**       — `IAppConfig`-sourced: `@resolve:<key>`, `@config.<key>`
  *                       (trailing `?` marks optional).
@@ -67,12 +67,14 @@
  * @type {Readonly<Record<string, string>>}
  */
 export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
-	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-][0-9]+d$',
+	filter: '^@(?:me(?:\\.(?:displayName|email))?|myGroups|myTeam|now|today|monthStart|monthEnd|nextMonthStart|quarterStart|yearStart)$|^@today[+-](?:[0-9]+|\\{@config\\.[A-Za-z][A-Za-z0-9_.]*\\})d$',
 	config: '^@resolve:[a-z][a-z0-9_-]*$|^@config\\.[A-Za-z][A-Za-z0-9_.]*\\??$',
 	object: '^@objectId$|^@object\\.[A-Za-z][A-Za-z0-9_]*$',
+	// party-actions: a record field made a link (`@object.phone|tel`, `|mailto`, `|geo`).
+	link: '^@object\\.[A-Za-z][A-Za-z0-9_]*\\|(?:tel|mailto|geo)$',
 	workspace: '^@workspace\\.[A-Za-z][A-Za-z0-9_]*\\??$',
 	route: '^@route\\.[A-Za-z][A-Za-z0-9_-]*$',
-	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
+	declarative: '^@self\\.[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_-]*)*$|^@ref:[A-Za-z][A-Za-z0-9_./-]*$|^@aggregate:.+$',
 	// manifest-form-logic: the shared visibleWhen predicate's source-mode
 	// collection-total marker (`field: "@total"`), resolved client-side by
 	// evaluateVisibleWhen — not one of the four IAppConfig/OpenRegister
@@ -92,6 +94,12 @@ export const SENTINEL_TOKEN_PATTERNS = Object.freeze({
 	// A record a detail page reads beside the loaded one (`visibilityContext`), read by a
 	// grid widget's or a tab's `visibleWhen` as `@context.<name>.<field>` (dot path).
 	context: '^@context\\.[A-Za-z][A-Za-z0-9_.]*$',
+	// A field of the object a facts widget shows (`@source.<field>`, dot path), read by a
+	// fact row's `route` params.
+	source: '^@source\\.[A-Za-z][A-Za-z0-9_.@]*$',
+	// What was typed into a facts widget's `input` field (`@input.<key>`), read by
+	// its actions' url and payload.
+	input: '^@input\\.[A-Za-z][A-Za-z0-9_]*$',
 	// Deprecated-but-not-yet-removed tokens. Kept in the schema union so
 	// deployed manifests still validate during the migration window; the gate
 	// downgrades them to a WARN (see SENTINEL_DEPRECATIONS).
@@ -116,6 +124,8 @@ export const SENTINEL_CONTEXTS = Object.freeze([
 	'row',
 	'subject',
 	'context',
+	'source',
+	'input',
 ])
 
 /**
@@ -129,7 +139,7 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 	filter: {
 		resolver: 'resolveFilterTokens',
 		description: 'Relative fetch-time tokens (current user, the current user\'s groups as an IN list, relative dates).',
-		members: ['@me', '@me.displayName', '@me.email', '@myGroups', '@now', '@today', '@today±Nd', '@monthStart', '@monthEnd', '@nextMonthStart', '@quarterStart', '@yearStart'],
+		members: ['@me', '@me.displayName', '@me.email', '@myGroups', '@myTeam', '@now', '@today', '@today±Nd', '@monthStart', '@monthEnd', '@nextMonthStart', '@quarterStart', '@yearStart'],
 	},
 	config: {
 		resolver: 'resolveManifestSentinels / resolveFilterTokens',
@@ -140,6 +150,11 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		resolver: 'resolveFilterTokens',
 		description: 'Detail-page object context. Resolve only when a `{ objectId, object }` ctx is supplied.',
 		members: ['@objectId', '@object.<field>'],
+	},
+	link: {
+		resolver: 'CnPartyActionsWidget',
+		description: 'A record field made a tel:, mailto: or geo: link, for an action target; the action is left out when the value makes no link.',
+		members: ['@object.<field>|tel', '@object.<field>|mailto', '@object.<field>|geo'],
 	},
 	workspace: {
 		resolver: 'resolveFilterTokens',
@@ -177,9 +192,19 @@ export const SENTINEL_VOCABULARY = Object.freeze({
 		members: ['@subject.<field>'],
 	},
 	context: {
-		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen',
+		resolver: 'CnDetailPage visibilityContext (detailWidgetVisibility), read by a grid widget\'s or a tab\'s visibleWhen, and by a widget\'s props (CnDetailWidgetHost)',
 		description: 'A record the detail page reads beside the loaded one, named in `config.visibilityContext` (a case\'s case type). A `visibleWhen` field reads it as `@context.<name>.<field>`, dot paths allowed (`@context.caseType.category`).',
 		members: ['@context.<name>.<field>'],
+	},
+	source: {
+		resolver: 'CnFactsWidget (a fact row\'s route params)',
+		description: 'A field of the object a facts widget shows, read when a fact row builds its link. Dot paths are allowed (`@source.caseType.parentCaseType`).',
+		members: ['@source.<field>'],
+	},
+	input: {
+		resolver: 'CnFactsWidget (action url and payload)',
+		description: 'What the user typed into a facts widget\'s `input` field, read when one of its actions runs; \'\' when nothing was typed.',
+		members: ['@input.<key>'],
 	},
 })
 

@@ -1,0 +1,2 @@
+- [x] look-board-index.css title rule skips .cn-widget-object-table
+- [x] Spec tests/css/lookBoardWidgetTablePlainTitle.spec.js

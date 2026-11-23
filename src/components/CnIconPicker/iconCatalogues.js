@@ -166,10 +166,23 @@ export function fromOpenGemeenten(list = []) {
  * @param {string|undefined} svg the SVG markup.
  * @return {string|undefined} the first path's `d` attribute, or undefined.
  */
-function extractSvgPath(svg) {
+export function extractSvgPath(svg) {
 	if (typeof svg !== 'string') {
 		return undefined
 	}
-	const match = svg.match(/<path[^>]*\sd="([^"]+)"/i)
-	return match ? match[1] : undefined
+	const open = /<path/gi
+	let tag
+	while ((tag = open.exec(svg)) !== null) {
+		const end = svg.indexOf('>', tag.index)
+		const attrs = svg.slice(tag.index + 5, end === -1 ? svg.length : end)
+		const d = /\sd="([^"]+)"/i.exec(attrs)
+		if (d) {
+			return d[1]
+		}
+		if (end === -1) {
+			return undefined
+		}
+		open.lastIndex = end
+	}
+	return undefined
 }

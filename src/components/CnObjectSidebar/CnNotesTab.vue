@@ -7,46 +7,61 @@
 	<div class="cn-sidebar-tab">
 		<!-- Add / Edit note -->
 		<div class="cn-sidebar-tab__action">
-			<!-- Replying: the composer says to whom, and a reply to a reply goes to the top of its thread. -->
-			<p
-				v-if="replyTo"
-				class="cn-sidebar-tab__replying"
-				role="status"
-				data-testid="cn-notes-replying">
-				{{ replyingLabel }}
-				<NcButton variant="tertiary" @click="cancelReply">
-					{{ cancelLabel }}
-				</NcButton>
-			</p>
-			<!-- @slot composer-before An app's own control above the composer, e.g. a template picker. Scope: `{ setText, text }`; `setText(text)` fills the composer, `text` is what it holds now. -->
-			<slot name="composer-before" :setText="setComposerText" :text="newNoteText" />
-			<CnNoteComposer
-				class="cn-sidebar-tab__composer"
-				:modelValue="newNoteText"
-				:placeholder="addNotePlaceholder"
-				:register="register"
-				:schema="schema"
-				:objectId="objectId"
-				:apiBase="apiBase"
-				@update:modelValue="newNoteText = $event"
-				@submit="submitComposer" />
-			<div class="cn-sidebar-tab__action--row">
+			<!-- `composer: 'button'`: the add form waits behind "Add note". -->
+			<div v-if="composerBehindButton" class="cn-sidebar-tab__composer-toggle">
 				<NcButton
-					v-if="editingNoteId"
-					variant="tertiary"
-					@click="cancelEdit">
-					{{ cancelLabel }}
-				</NcButton>
-				<NcButton
-					variant="primary"
-					:disabled="!newNoteText.trim() || saving"
-					@click="editingNoteId ? saveEdit() : addNote()">
+					variant="secondary"
+					:aria-expanded="composerShown ? 'true' : 'false'"
+					data-testid="cn-notes-open-composer"
+					@click="composerOpen = !composerOpen">
 					<template #icon>
-						<Send :size="20" />
+						<NotePlusOutline :size="20" />
 					</template>
-					{{ editingNoteId ? saveLabel : addNoteLabel }}
+					{{ addNoteLabel }}
 				</NcButton>
 			</div>
+			<template v-if="composerShown">
+				<!-- Replying: the composer says to whom, and a reply to a reply goes to the top of its thread. -->
+				<p
+					v-if="replyTo"
+					class="cn-sidebar-tab__replying"
+					role="status"
+					data-testid="cn-notes-replying">
+					{{ replyingLabel }}
+					<NcButton variant="tertiary" @click="cancelReply">
+						{{ cancelLabel }}
+					</NcButton>
+				</p>
+				<!-- @slot composer-before An app's own control above the composer, e.g. a template picker. Scope: `{ setText, text }`; `setText(text)` fills the composer, `text` is what it holds now. -->
+				<slot name="composer-before" :setText="setComposerText" :text="newNoteText" />
+				<CnNoteComposer
+					class="cn-sidebar-tab__composer"
+					:modelValue="newNoteText"
+					:placeholder="addNotePlaceholder"
+					:register="register"
+					:schema="schema"
+					:objectId="objectId"
+					:apiBase="apiBase"
+					@update:modelValue="newNoteText = $event"
+					@submit="submitComposer" />
+				<div class="cn-sidebar-tab__action--row">
+					<NcButton
+						v-if="editingNoteId"
+						variant="tertiary"
+						@click="cancelEdit">
+						{{ cancelLabel }}
+					</NcButton>
+					<NcButton
+						variant="primary"
+						:disabled="!newNoteText.trim() || saving"
+						@click="editingNoteId ? saveEdit() : addNote()">
+						<template #icon>
+							<Send :size="20" />
+						</template>
+						{{ editingNoteId ? saveLabel : addNoteLabel }}
+					</NcButton>
+				</div>
+			</template>
 		</div>
 
 		<!-- Notes list -->
@@ -66,21 +81,40 @@
 					<NcListItem
 						v-for="row in threadRows(thread)"
 						:key="row.note.id"
-						:class="{ 'cn-notes-tab__reply': row.isReply }"
+						:class="{ 'cn-notes-tab__reply': row.isReply, 'cn-notes-tab__row--authored': authoredRows }"
 						:name="row.note.actorDisplayName || row.note.author || 'Unknown'"
 						:bold="false"
 						:forceDisplayActions="true">
 						<template #icon>
-							<CommentTextOutline :size="32" />
+							<span
+								v-if="authoredRows"
+								class="cn-notes-tab__avatar"
+								:class="{ 'cn-notes-tab__avatar--own': canDelete(row.note) }"
+								aria-hidden="true">{{ initialsOf(authorOf(row.note)) }}</span>
+							<CommentTextOutline v-else :size="32" />
 						</template>
-						<template #subname>
+						<!-- `noteRows: 'authored'`: the text is the row's first line, "author · time" the second. -->
+						<template v-if="authoredRows" #name>
+							<span class="cn-notes-tab__text">
+								<CnNoteBody :message="row.note.message || row.note.content || ''" :record="record" :names="mentionNames" />
+							</span>
+						</template>
+						<template v-if="authoredRows" #subname>
+							<span v-if="row.quote" class="cn-notes-tab__quote" data-testid="cn-note-quote">{{ row.quote }}</span>
+							<span class="cn-notes-tab__meta">{{ authorOf(row.note) }} · {{ authoredTime(row.note) }}</span>
+							<span
+								v-if="wasEdited(row.note)"
+								class="cn-notes-tab__edited"
+								data-testid="cn-note-edited">{{ editedLine(row.note) }}</span>
+						</template>
+						<template v-else #subname>
 							<span class="cn-sidebar-tab__message">
 								<span v-if="row.quote" class="cn-notes-tab__quote" data-testid="cn-note-quote">{{ row.quote }}</span>
 								<CnNoteBody :message="row.note.message || row.note.content || ''" :record="record" :names="mentionNames" />
 							</span>
 						</template>
-						<template #details>
-							{{ formatDate(row.note.creationDateTime || row.note.created) }}
+						<template v-if="!authoredRows" #details>
+							{{ formatDate(noteCreatedAt(row.note)) }}
 							<!-- An edited note says so where its time is, because that
 							     is where a reader already looks to date what they are
 							     reading. The line names the editor, so nobody has to
@@ -129,11 +163,12 @@
 								v-for="action in noteActions"
 								:key="`${row.note.id}-${action.id}`"
 								:data-testid="`cn-note-action-${action.id}`"
-								@click="$emit('note-action', { action: action.id, note: row.note })">
+								@click="onNoteAction(action, row.note)">
 								<template v-if="action.icon" #icon>
-									<component :is="action.icon" :size="20" />
+									<CnIcon v-if="typeof action.icon === 'string'" :name="action.icon" :size="20" />
+									<component :is="action.icon" v-else :size="20" />
 								</template>
-								{{ action.label }}
+								{{ translateLabel(action.label) }}
 							</NcActionButton>
 						</template>
 					</NcListItem>
@@ -154,27 +189,38 @@
 </template>
 
 <script>
+import { showError, showSuccess, showWarning } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton, NcListItem, NcLoadingIcon } from '@nextcloud/vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
+import NotePlusOutline from 'vue-material-design-icons/NotePlusOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Reply from 'vue-material-design-icons/Reply.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnNoteHistoryDialog from '../../dialogs/CnNoteHistoryDialog.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
 import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
+import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
+import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { initialsOf } from '../../utils/initials.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
-import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
+import { noteCreatedAt, quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
 import { searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 export default {
 	name: 'CnNotesTab',
 
-	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, Send, Pencil, Delete, HistoryIcon, Reply },
+	components: { NcButton, NcListItem, NcActionButton, NcLoadingIcon, CnIcon, CnNoteBody, CnNoteComposer, CnNoteHistoryDialog, CommentTextOutline, NotePlusOutline, Send, Pencil, Delete, HistoryIcon, Reply },
+
+	inject: {
+		/** The host app's translate, for labels a manifest wrote (`noteActions`). */
+		cnTranslate: { default: () => (key) => key },
+	},
 
 	props: {
 		/** ID of the object this tab belongs to */
@@ -216,11 +262,16 @@ export default {
 		// `label` stays the app's to write and translate, so nc-vue phrases
 		// nothing for somebody else's domain and adds no catalogue string here.
 		/**
-		 * Per-note actions the consuming app owns, `[{ id, label, icon? }]`.
+		 * Per-note actions the consuming app owns, `[{ id, label, icon?, endpoint?, messages? }]`.
 		 * Each entry renders one NcActionButton in every note's action menu,
 		 * after the library's own, and clicking it emits `note-action`. Empty
 		 * by default, and an empty list changes nothing. `icon` is optional
-		 * and takes an icon component.
+		 * and takes an icon component or an icon name. With `endpoint` (an app
+		 * URL; `@objectId` and `{objectId}` are filled in) the click also POSTs
+		 * `{ note }` there and says what the server answered: `{ outcome,
+		 * reason }`, `sent` as a success, `failed` as an error, anything else
+		 * as a warning, each with the server's `reason`, else `messages.sent`,
+		 * `messages.failed` or `messages.other`.
 		 */
 		noteActions: {
 			type: Array,
@@ -228,6 +279,44 @@ export default {
 			validator: (actions) => actions.every((action) => action
 				&& typeof action.id === 'string' && action.id !== ''
 				&& typeof action.label === 'string' && action.label !== ''),
+		},
+
+		/**
+		 * An app endpoint the `mention` payload is POSTed to after a note with
+		 * an `@mention` was saved, so a manifest can wire the notification
+		 * without a component. The `mention` event fires either way.
+		 */
+		mentionUrl: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Where the add form lives: `inline` (default) keeps it open above the
+		 * notes; `button` puts it behind an "Add note" button (DqZaakEmail
+		 * "Notities") and closes it again once the note is saved. A reply or
+		 * an edit opens it either way.
+		 *
+		 * @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button
+		 */
+		composer: {
+			type: String,
+			default: 'inline',
+			validator: (v) => ['inline', 'button'].includes(v),
+		},
+
+		/**
+		 * How a note is drawn: `list` (default) is the sidebar list item, the
+		 * author as its name and the text under it; `authored` leads with the
+		 * author's initials, the text bold as the first line and
+		 * "author · time" under it (DqZaakEmail "Notities"). The actions stay.
+		 *
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
+		noteRows: {
+			type: String,
+			default: 'list',
+			validator: (v) => ['list', 'authored'].includes(v),
 		},
 	},
 
@@ -270,10 +359,27 @@ export default {
 			mentionNames: {},
 			/** The note a reply is being written to, or null. */
 			replyTo: null,
+			/** Whether the add form is open while `composer` is `button`. */
+			composerOpen: false,
 		}
 	},
 
 	computed: {
+		/** @return {boolean} Whether the add form waits behind the "Add note" button. */
+		composerBehindButton() {
+			return this.composer === 'button'
+		},
+
+		/** @return {boolean} Whether a note is drawn as an authored row. */
+		authoredRows() {
+			return this.noteRows === 'authored'
+		},
+
+		/** @return {boolean} Whether the add form shows. */
+		composerShown() {
+			return !this.composerBehindButton || this.composerOpen || Boolean(this.replyTo) || Boolean(this.editingNoteId)
+		},
+
 		/** @return {{apiBase: string, register: string, schema: string, objectId: string}} Where this record's files live, for pasted images. */
 		record() {
 			return { apiBase: this.apiBase, register: this.register, schema: this.schema, objectId: this.objectId }
@@ -307,6 +413,8 @@ export default {
 	},
 
 	methods: {
+		initialsOf,
+
 		async fetchNotes() {
 			if (!this.register || !this.schema) {
 				return
@@ -367,7 +475,7 @@ export default {
 			if (mentionedUserIds.length === 0 && mentionedGroupIds.length === 0) {
 				return
 			}
-			this.$emit('mention', {
+			const payload = {
 				objectId: this.objectId,
 				register: this.register,
 				schema: this.schema,
@@ -375,7 +483,76 @@ export default {
 				mentionedUserIds,
 				// Only when a group is mentioned: a note that names none keeps the payload it always had.
 				...(mentionedGroupIds.length > 0 ? { mentionedGroupIds } : {}),
-			})
+			}
+			this.$emit('mention', payload)
+			if (this.mentionUrl !== '') {
+				this.postJson(this.mentionUrl, payload).catch(() => {
+					// The note is saved; a notification that did not go out is
+					// not a reason to tell the writer their note failed.
+				})
+			}
+		},
+
+		/**
+		 * A manifest label through the host app's translate.
+		 *
+		 * @param {string} label The label.
+		 * @return {string} The translated label.
+		 */
+		translateLabel(label) {
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
+		},
+
+		/**
+		 * POST a JSON body to an app URL and answer the parsed response.
+		 *
+		 * @param {string} url The app URL (`/apps/...`), tokens filled.
+		 * @param {object} body The body.
+		 * @return {Promise<object>} The response body; rejects on a non-2xx status.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-notes-can-notify-and-act-without-a-wrapper
+		 */
+		async postJson(url, body) {
+			const target = interpolateUrlTokens(url, { objectId: this.objectId }).replaceAll('{objectId}', encodeURIComponent(String(this.objectId)))
+			const response = await fetch(prefixUrl(target), { method: 'POST', headers: buildHeaders(), body: JSON.stringify(body) })
+			const data = await response.json().catch(() => ({}))
+			if (!response.ok) {
+				const error = new Error(String(data?.message || data?.error || response.status))
+				error.data = data
+				throw error
+			}
+			return data || {}
+		},
+
+		/**
+		 * Run one of the app's note actions: emit `note-action`, and with an
+		 * `endpoint` POST the note there and say what became of it.
+		 *
+		 * @param {object} action The action entry.
+		 * @param {object} note The note.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-notes-can-notify-and-act-without-a-wrapper
+		 */
+		async onNoteAction(action, note) {
+			this.$emit('note-action', { action: action.id, note })
+			if (typeof action.endpoint !== 'string' || action.endpoint === '' || !this.objectId) {
+				return
+			}
+			const messages = action.messages && typeof action.messages === 'object' ? action.messages : {}
+			const say = (key, fallback) => (typeof messages[key] === 'string' && messages[key] !== '' ? this.translateLabel(messages[key]) : fallback)
+			try {
+				const outcome = await this.postJson(action.endpoint, { note })
+				const reason = String(outcome.reason || '').trim()
+				if (outcome.outcome === 'sent') {
+					showSuccess(reason || say('sent', t('nextcloud-vue', 'Done')))
+				} else if (outcome.outcome === 'failed') {
+					showError(reason || say('failed', t('nextcloud-vue', 'This did not work. Try again.')))
+				} else {
+					showWarning(reason || say('other', t('nextcloud-vue', 'Nothing was changed')))
+				}
+			} catch (error) {
+				const reason = String(error?.data?.reason || '').trim()
+				showError(reason || say('failed', t('nextcloud-vue', 'This did not work. Try again.')))
+			}
 		},
 
 		/**
@@ -475,6 +652,7 @@ export default {
 				this.emitMentionEvent(savedText, noteId)
 				this.newNoteText = ''
 				this.replyTo = null
+				this.composerOpen = false
 				await this.fetchNotes()
 			} catch (err) {
 				// eslint-disable-next-line no-console
@@ -591,6 +769,25 @@ export default {
 			}
 		},
 
+		noteCreatedAt,
+
+		/**
+		 * The time on an authored row, as the boards write it: "6 okt 15:52",
+		 * with the year outside the current one.
+		 *
+		 * @param {object} note The note.
+		 * @return {string} The time, or '' when the note has none.
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
+		authoredTime(note) {
+			const value = noteCreatedAt(note)
+			const date = value ? new Date(value) : null
+			if (date === null || Number.isNaN(date.getTime())) {
+				return ''
+			}
+			return formatBoardDate(date) + ' ' + formatTimeOfDay(date)
+		},
+
 		formatDate(dateStr) {
 			if (!dateStr) {
 				return ''
@@ -615,6 +812,8 @@ export default {
 .cn-sidebar-tab { padding: 12px; }
 
 .cn-sidebar-tab__action { margin-bottom: 16px; }
+
+.cn-sidebar-tab__composer-toggle { display: flex; justify-content: flex-end; }
 
 .cn-sidebar-tab__action--row { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
 
@@ -652,6 +851,43 @@ export default {
 	justify-content: space-between;
 	margin: 0 0 4px;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-notes-tab__avatar {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.cn-notes-tab__avatar--own {
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
+/* The text wraps as the row's bold first line; the name line is otherwise a single ellipsed line. */
+.cn-notes-tab__row--authored :deep(.list-item-content__name) {
+	white-space: normal;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-notes-tab__row--authored :deep(.list-item__anchor),
+.cn-notes-tab__row--authored :deep(.list-item__anchor:hover) {
+	text-decoration: none;
+}
+
+.cn-notes-tab__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-notes-tab__edited {

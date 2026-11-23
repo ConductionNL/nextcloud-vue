@@ -1,0 +1,4 @@
+- [x] `fieldSpansBothColumns` honours `width: 'full'` in a two-column form
+- [x] the textarea widget reads `rows` (default 4)
+- [x] docs: CnFormDialog.md two-column section
+- [x] jest CnFormDialogFieldWidthAndRows

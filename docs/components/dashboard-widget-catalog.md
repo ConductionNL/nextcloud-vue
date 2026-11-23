@@ -49,6 +49,11 @@ Static, configuration-only widgets — no data source required.
 Single-line styled text label (font size, colour, weight, alignment) for dashboard grids.
 → [`CnLabelWidget`](./cn-label-widget.md) · [`CnLabelWidgetForm`](./cn-label-widget-form.md)
 
+### Code · `code`
+
+A record as a code on a detail page: QR, Code 128 or EAN-13, drawn in the browser, with Download as SVG. `content.source` is `field` (a property of the record) or `address` (the record's address, QR only).
+→ [`CnCodeWidget`](./cn-code-widget.md)
+
 ### Notepad · `notepad`
 
 A personal note typed into in place, saved to the reader's own preferences rather than the layout. User-addable: a reader can add it to their own dashboard with no configuration.
@@ -70,6 +75,11 @@ It can also greet the user: `greeting: true` makes the heading read "Good aftern
 Pieter", `showDate: true` adds today's date above it, and `plain: true` drops the
 coloured background.
 → [`CnHeaderWidget`](./cn-header-widget.md) · [`CnHeaderWidgetForm`](./cn-header-widget-form.md)
+
+### Notice · `notice`
+
+A toned box with an icon, a bold `title` and a `text` (`variant`: `info`, `warning`, `error`, `success`), through the app's translate. Made for a detail page's side column (DqSociaalDomein's special-category warning) and gated like any widget by its `visibleWhen`.
+→ [`CnNoticeWidget`](./cn-notice-widget.md)
 
 ### Banner and attention card · `banner`
 
@@ -109,6 +119,8 @@ it renders the note card it always did.
 | `visibleWhen` | `object` | Same predicate as the banner. The card stays hidden until it holds. |
 
 **When the check itself fails.** An attention card whose `visibleWhen` request fails (the endpoint or source answers an error, or the network is down) does not stay hidden. It renders one muted line, "Could not check:" followed by the card's title, with the reason as a tooltip, and on a dashboard it keeps its cell. A hidden card would read as "nothing needs attention", and a failed count does not know that. The line carries no severity colour, no alert role and no actions. When the title uses `{value}`, the line says only "Could not check". A request that succeeds with a value that does not meet the condition still renders nothing, and a plain banner (no `layout`) still stays hidden on failure.
+
+**Matching any of a list.** `op: "anyOf"` holds when the value, or any entry of a list value, is one of the listed `value`s: `{ "field": "dataCategories", "op": "anyOf", "value": ["health", "ethnicity", "religion"] }` shows a special-category notice on a record that holds one of them among others (DqSociaalDomein). `in` compares the value as a whole. `op: "contains"` asks the other way round: whether a list value holds one given `value`, as a case type's `overviewCards` list switching a card on (`{ "field": "caseType.overviewCards", "op": "contains", "value": "tender-lots" }`). A value that is not a list never matches.
 
 **A card that names one record.** Give `visibleWhen.source` an `order` and the card reads the first row of that ordered query. `notEmpty` on `id` is the test that there is a first row, so an empty query shows nothing. The row is the card's subject: `{subject.<field>}` in the `kicker`, `title` and `reason` fills it (`{subject.createdAt|date}` and `{subject.createdAt|days}`, the whole days since, format it), and `@subject.<field>` in an action's `route` params or query becomes its value. A token the row has no value for empties that whole text. `stacked: true` puts the actions under the text with a 16px title, as PqMijnWerk's "Begin hier" card draws it. On a dashboard the page reads the query once and hands the row to the card.
 

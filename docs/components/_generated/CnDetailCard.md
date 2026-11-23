@@ -2,32 +2,40 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 11 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type               | Required | Default | Description                                                                                                                                                                                                                                                          |
-| ------------- | ------------------ | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `chromeless`  | `boolean`          |          | `false` | Render the card's content without the card: no border, no background, no padding, and no header. For a surface that already supplies both, such as a tab panel whose open tab names it. Drawing the card there nests a card inside a card and shows the title twice. |
-| `title`       | `string`           |          | `''`    | Card header title                                                                                                                                                                                                                                                    |
-| `icon`        | `object&#124;func` |          | `null`  | Optional MDI icon component for the header                                                                                                                                                                                                                           |
-| `collapsible` | `boolean`          |          | `false` | Whether the card can be collapsed                                                                                                                                                                                                                                    |
-| `collapsed`   | `boolean`          |          | `false` | Initial collapsed state (only relevant when collapsible is true)                                                                                                                                                                                                     |
-| `flush`       | `boolean`          |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge.                                                                                                                                                                                                 |
+| Name           | Type               | Required | Default | Description                                                                                                                                                                                                                                                          |
+| -------------- | ------------------ | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chromeless`   | `boolean`          |          | `false` | Render the card's content without the card: no border, no background, no padding, and no header. For a surface that already supplies both, such as a tab panel whose open tab names it. Drawing the card there nests a card inside a card and shows the title twice. |
+| `title`        | `string`           |          | `''`    | Card header title                                                                                                                                                                                                                                                    |
+| `subtitle`     | `string`           |          | `''`    | A muted line under the title, as given (translate before passing).                                                                                                                                                                                                   |
+| `icon`         | `object&#124;func` |          | `null`  | Optional MDI icon component for the header                                                                                                                                                                                                                           |
+| `collapsible`  | `boolean`          |          | `false` | Whether the card can be collapsed                                                                                                                                                                                                                                    |
+| `chevronStart` | `boolean`          |          | `false` | Draw the collapse chevron before the title instead of after the header actions (only relevant when collapsible is true).                                                                                                                                             |
+| `collapsed`    | `boolean`          |          | `false` | Initial collapsed state (only relevant when collapsible is true)                                                                                                                                                                                                     |
+| `flush`        | `boolean`          |          | `false` | Remove content padding — allows tables and lists to go edge-to-edge.                                                                                                                                                                                                 |
+| `notices`      | `Array<object>`    |          | `[]`    | The card's state banners, drawn at the top of the body (R1): each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`).                                                                                            |
 
 ### Events
 
 | Name               | Payload | Description |
 | ------------------ | ------- | ----------- |
+| `notice-action`    | —       |             |
 | `update:collapsed` | —       |             |
+| `notice-dismiss`   | —       |             |
 
 ### Slots
 
-| Name      | Bindings | Description |
-| --------- | -------- | ----------- |
-| `icon`    | —        |             |
-| `actions` | —        |             |
-| `default` | —        |             |
-| `footer`  | —        |             |
+| Name      | Bindings | Description                                           |
+| --------- | -------- | ----------------------------------------------------- |
+| `icon`    | —        |                                                       |
+| `actions` | —        |                                                       |
+| `notice`  | —        |                                                       |
+| `default` | —        | notice The card's state banners, above the body (R1). |
+| `footer`  | —        |                                                       |

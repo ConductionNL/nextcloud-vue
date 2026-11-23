@@ -1,6 +1,8 @@
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { formatRelativeDate } from './boardDate.js'
 import { formatMoney } from './formatMetric.js'
+import { parseDuration } from './isoDuration.js'
+import { userDisplayName } from './userDisplayName.js'
 
 /**
  * @file Built-in formatters merged into the `cnFormatters` registry
@@ -380,24 +382,44 @@ const CONNECTION_STATUS_LABELS = {
 }
 
 /**
+ * The short labels `formatterOptions.short` draws (board DqInstellingen
+ * "Aan / Uit / Fout"): a connection that works in some form is on, one that
+ * does not run is off, and a failing one is an error.
+ */
+const CONNECTION_STATUS_SHORT_LABELS = {
+	configured: 'On',
+	limited: 'On',
+	simulated: 'On',
+	unconfigured: 'Off',
+	disabled: 'Off',
+	unavailable: 'Off',
+	error: 'Error',
+}
+
+/**
  * Connection status formatter (`connectionStatus` registry key) for the
  * fleet connection registry. Renders one of the seven stored status values
  * as its translated label through the library's own slug (`nextcloud-vue`).
+ * With `formatterOptions.short` it renders the board's three short labels
+ * instead: On (configured, limited, simulated), Off (not configured,
+ * switched off, not available) and Error.
  *
  * An unknown value passes through unchanged, so a status added later still
  * shows as its raw value instead of an empty cell. Null and undefined render
  * as `''`. Never throws.
  *
  * @param {unknown} value The stored status value.
+ * @param {object} [row] The row (unused).
+ * @param {object} [property] The column's property (unused).
+ * @param {{short?: boolean}} [options] The column's `formatterOptions`.
  * @return {string} The translated label, or the value itself when it is not one of the seven.
  */
-export function formatConnectionStatus(value) {
+export function formatConnectionStatus(value, row, property, options) {
 	if (value === null || value === undefined) {
 		return ''
 	}
-	const label = Object.hasOwn(CONNECTION_STATUS_LABELS, value)
-		? CONNECTION_STATUS_LABELS[value]
-		: null
+	const labels = options && options.short === true ? CONNECTION_STATUS_SHORT_LABELS : CONNECTION_STATUS_LABELS
+	const label = Object.hasOwn(labels, value) ? labels[value] : null
 	return label ? t('nextcloud-vue', label) : String(value)
 }
 
@@ -418,9 +440,175 @@ export function formatConnectionSettingsLabel(value) {
 }
 
 /**
+ * Show a value with all but its last characters replaced by `*`, as the facts
+ * widget's `masked` format does: an IBAN or a BSN reads `*****4567`.
+ *
+ * DISPLAY ONLY, NOT ACCESS CONTROL. The full value is still in the row the
+ * page received; a reader with the browser's developer tools can read it.
+ * A value the reader must not have belongs hidden in OpenRegister (property
+ * authorization), not masked here.
+ *
+ * The column's `formatterOptions.visible` sets how many characters stay
+ * (default 4); at most five `*` are drawn, so the length does not leak.
+ * Null-safe: `''` for null or empty.
+ *
+ * @param {unknown} value The value.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{visible?: number}} [options] The column's `formatterOptions`.
+ * @return {string} The masked value.
+ * @spec openspec/changes/masked-formatter-max-aggregate/specs/index-page/spec.md#requirement-a-column-can-mask-its-value-for-display
+ */
+export function formatMasked(value, _row, _property, options) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const text = String(value)
+	const visible = Number.isInteger(options && options.visible) && options.visible >= 0 ? options.visible : 4
+	if (text.length <= visible) {
+		return text
+	}
+	return '*'.repeat(Math.min(text.length - visible, 5)) + (visible > 0 ? text.slice(-visible) : '')
+}
+
+/**
+ * A stored value through a display map (`valueMap` registry key): the label
+ * `options.map` gives the value, else the value as stored. "Besloten
+ * Vennootschap" reads "BV" on DqOrganisaties.
+ *
+ * @param {unknown} value The stored value.
+ * @param {object} [_row] The full row (unused).
+ * @param {object} [_property] The schema property (unused).
+ * @param {{map?: Object<string, string>}} [options] The column's `formatterOptions`.
+ * @return {string} The label, or the value.
+ * @spec openspec/changes/value-map-formatter/specs/index-page/spec.md#requirement-a-column-can-show-stored-values-through-a-display-map
+ */
+export function formatValueMap(value, _row, _property, options) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const map = options && options.map && typeof options.map === 'object' ? options.map : {}
+	const label = Object.hasOwn(map, String(value)) ? map[String(value)] : undefined
+	return typeof label === 'string' && label !== '' ? label : String(value)
+}
+
+/**
  * Built-in formatter registry merged under any consumer-registered
  * `formatters` in `CnAppRoot`'s `cnFormatters` provide.
  */
+/**
+ * An ISO-8601 period of one unit in words (`isoDuration` registry key):
+ * `P10Y` reads "10 years", `P6W` "6 weeks". A retention period or a term is
+ * stored as such a period and was shown raw. Anything that is not a one-unit
+ * period is returned as written, `''` for null or empty.
+ *
+ * @param {unknown} value The stored period.
+ * @return {string} The period in words.
+ */
+export function formatIsoDuration(value) {
+	if (value === null || value === undefined || value === '') {
+		return ''
+	}
+	const period = parseDuration(String(value))
+	if (period === null) {
+		return String(value)
+	}
+	const words = {
+		years: () => n('nextcloud-vue', '%n year', '%n years', period.amount),
+		months: () => n('nextcloud-vue', '%n month', '%n months', period.amount),
+		weeks: () => n('nextcloud-vue', '%n week', '%n weeks', period.amount),
+		days: () => n('nextcloud-vue', '%n day', '%n days', period.amount),
+		hours: () => n('nextcloud-vue', '%n hour', '%n hours', period.amount),
+		minutes: () => n('nextcloud-vue', '%n minute', '%n minutes', period.amount),
+	}
+	return words[period.unit] ? words[period.unit]() : String(value)
+}
+
+/** The ISO designator of each date unit a term is written in. */
+const UNIT_DESIGNATOR = { years: 'Y', months: 'M', weeks: 'W', days: 'D' }
+
+/**
+ * A one-unit ISO-8601 period, a day count that is whole weeks read as weeks
+ * (a term of `P28D` is "4 weeks"); null when it is not a one-unit period.
+ *
+ * @param {unknown} value The stored period.
+ * @return {{amount: number, unit: string}|null}
+ */
+function termPeriod(value) {
+	if (value === null || value === undefined || value === '') {
+		return null
+	}
+	const period = parseDuration(String(value))
+	if (period === null || !UNIT_DESIGNATOR[period.unit]) {
+		return null
+	}
+	if (period.unit === 'days' && period.amount > 0 && period.amount % 7 === 0) {
+		return { amount: period.amount / 7, unit: 'weeks' }
+	}
+	return period
+}
+
+/**
+ * A term in words, with the extension it may get (`format: 'duration'`):
+ * `P28D` reads "4 weeks", and with an extension of `P14D` "4 weeks,
+ * extendable by 2" (the unit is said once when both share it). A time of
+ * hours or minutes reads in words too (`PT6M` is "6 minutes"). A value that
+ * is not a one-unit period is returned as written, '' for null or empty.
+ *
+ * @spec openspec/changes/data-widget-duration-format/specs/data-widget/spec.md#requirement-a-term-reads-in-words-with-its-extension
+ * @spec openspec/changes/duration-time-units/specs/data-widget/spec.md#requirement-a-duration-in-hours-or-minutes-reads-in-words
+ * @param {unknown} value The stored term.
+ * @param {unknown} [extension] The stored extension period, if any.
+ * @return {string}
+ */
+export function formatTermDuration(value, extension = null) {
+	const term = termPeriod(value)
+	if (term === null) {
+		return value === null || value === undefined ? '' : formatIsoDuration(value)
+	}
+	const words = formatIsoDuration(`P${term.amount}${UNIT_DESIGNATOR[term.unit]}`)
+	const extra = termPeriod(extension)
+	if (extra === null || extra.amount === 0) {
+		return words
+	}
+	const extraWords = extra.unit === term.unit
+		? String(extra.amount)
+		: formatIsoDuration(`P${extra.amount}${UNIT_DESIGNATOR[extra.unit]}`)
+	return t('nextcloud-vue', '{term}, extendable by {extension}', { term: words, extension: extraWords })
+}
+
+/**
+ * A Nextcloud user id as its display name (`userName` registry key): the id
+ * while the name is looked up, and for a user nobody answers for.
+ *
+ * @spec openspec/changes/user-name-formatter/specs/user-name-formatter/spec.md#requirement-a-user-id-can-read-as-its-display-name
+ * @param {unknown} value The user id.
+ * @return {string} The display name, the id, or ''.
+ */
+export function formatUserName(value) {
+	if (value === null || value === undefined || value === '' || typeof value === 'object') {
+		return ''
+	}
+	return userDisplayName(value) || String(value)
+}
+
+/**
+ * A Dutch postcode as people read it: "2999AA" (as the registers store it)
+ * becomes "2999 AA". Anything that is not a Dutch postcode comes back as it is.
+ *
+ * @param {*} value The postcode.
+ * @return {string} The postcode with its space, the value as it is, or ''.
+ * @spec openspec/changes/facts-postcode-format/specs/facts-postcode-format/spec.md#requirement-a-facts-part-can-write-a-dutch-postcode-with-its-space
+ */
+export function formatPostcode(value) {
+	if (value === null || value === undefined || typeof value === 'object') {
+		return ''
+	}
+	const text = String(value).trim()
+	const match = /^([1-9]\d{3})\s*([a-zA-Z]{2})$/.exec(text)
+	return match ? `${match[1]} ${match[2].toUpperCase()}` : text
+}
+
 export const BUILT_IN_FORMATTERS = {
 	date: formatDate,
 	datetime: formatDateTime,
@@ -433,4 +621,10 @@ export const BUILT_IN_FORMATTERS = {
 	count: formatCount,
 	connectionStatus: formatConnectionStatus,
 	connectionSettingsLabel: formatConnectionSettingsLabel,
+	masked: formatMasked,
+	isoDuration: formatIsoDuration,
+	termDuration: formatTermDuration,
+	valueMap: formatValueMap,
+	userName: formatUserName,
+	postcode: formatPostcode,
 }

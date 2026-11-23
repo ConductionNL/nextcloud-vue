@@ -164,15 +164,15 @@ export function buildViewTree({ views = [], labelFilter = '', maxDepth = 3 } = {
 		}
 	}
 
-	// Seeded roots first, then the reader's own, each alphabetically. A
-	// dropdown whose order changes between two openings is a dropdown nobody
-	// can build a habit with.
+	// Seeded roots first, in the order the app declares them, then the
+	// reader's own in the order they were saved (DqFilterBeheren). Both are
+	// stable between two openings, so a person can build a habit with them.
 	const seededRoots = roots.filter(({ view }) => view?.seeded === true)
 	const ownRoots = roots.filter(({ view }) => view?.seeded !== true)
-	for (const { view, orphaned } of sortRootsByName(seededRoots)) {
+	for (const { view, orphaned } of seededRoots) {
 		emit(view, 0, orphaned)
 	}
-	for (const { view, orphaned } of sortRootsByName(ownRoots)) {
+	for (const { view, orphaned } of sortRootsBySaved(ownRoots)) {
 		emit(view, 0, orphaned)
 	}
 
@@ -228,11 +228,26 @@ function sortByName(views) {
 }
 
 /**
- * Root entries by the name of the view they carry.
+ * Root entries in the order their views were saved (`created`, oldest
+ * first); views without a saved time follow, by name.
  *
  * @param {Array<object>} roots - The root entries.
  * @return {Array<object>} The same entries, sorted.
  */
-function sortRootsByName(roots) {
-	return [...roots].sort((left, right) => String(left.view?.name ?? '').localeCompare(String(right.view?.name ?? '')))
+function sortRootsBySaved(roots) {
+	const savedAt = (entry) => (typeof entry.view?.created === 'string' ? entry.view.created : '')
+	return [...roots].sort((left, right) => {
+		const a = savedAt(left)
+		const b = savedAt(right)
+		if (a !== b) {
+			if (a === '') {
+				return 1
+			}
+			if (b === '') {
+				return -1
+			}
+			return a < b ? -1 : 1
+		}
+		return String(left.view?.name ?? '').localeCompare(String(right.view?.name ?? ''))
+	})
 }

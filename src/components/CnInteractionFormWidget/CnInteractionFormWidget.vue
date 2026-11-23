@@ -89,6 +89,7 @@ import { useObjectStore } from '../../store/index.js'
  *   clientSchema: 'client',
  *   clientField: 'client',
  *   summaryField: 'description',
+ *   summaryRows: 3, // the summary textarea's rows (default 4)
  *   channels: [{ value: 'telefoon', label: 'Phone' }, …],
  * }
  * ```
@@ -136,7 +137,7 @@ export default {
 		/**
 		 * Persisted configuration blob (see component description for the shape).
 		 *
-		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array, submitLabel?: string, detailRoute?: string, writeWorkspace?: boolean}}
+		 * @type {{register?: string, schema?: string, defaults?: object, clientSchema?: string, clientField?: string, clientLabelField?: string, subjectField?: string, summaryField?: string, summaryRows?: number, channelField?: string, outcomeField?: string, channels?: Array, outcomes?: Array, submitLabel?: string, detailRoute?: string, writeWorkspace?: boolean}}
 		 */
 		content: {
 			type: Object,
@@ -247,7 +248,7 @@ export default {
 				{ key: 'channel', type: 'select', label: this.channelLabel, options: this.channelOptions },
 				{ key: 'client', type: 'custom', label: this.clientLabel },
 				{ key: 'subject', type: 'text', label: this.subjectLabel },
-				{ key: 'summary', type: 'textarea', label: this.summaryLabel, rows: 4 },
+				{ key: 'summary', type: 'textarea', label: this.summaryLabel, rows: this.summaryRows },
 				{ key: 'outcome', type: 'select', label: this.outcomeLabel, options: this.outcomeOptions, clearable: true },
 			]
 		},
@@ -292,6 +293,17 @@ export default {
 
 		summaryLabel() {
 			return t('nextcloud-vue', 'Summary')
+		},
+
+		/**
+		 * The summary textarea's height in rows: `content.summaryRows`, else 4.
+		 *
+		 * @spec openspec/changes/interaction-form-summary-rows/specs/interaction-form-summary-rows/spec.md#requirement-the-summary-textarea-takes-its-rows-from-the-content
+		 * @return {number}
+		 */
+		summaryRows() {
+			const rows = Math.floor(Number(this.content?.summaryRows))
+			return rows > 0 ? rows : 4
 		},
 
 		outcomeLabel() {

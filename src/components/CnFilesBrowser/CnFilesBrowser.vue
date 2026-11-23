@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-files-browser"
-		:class="{ 'cn-files-browser--dragging': dragging }"
+		:class="{ 'cn-files-browser--dragging': dragging, 'cn-files-browser--drop-panel': dropOverlay && dropDetailTemplate !== '' }"
 		data-testid="cn-files-browser"
 		@dragenter.prevent="onDragEnter"
 		@dragover.prevent="onDragOver"
@@ -22,7 +22,10 @@
 			aria-hidden="true"
 			data-testid="cn-files-browser-drop-overlay">
 			<span class="cn-files-browser__drop-icon"><Upload :size="28" /></span>
-			<strong class="cn-files-browser__drop-label">{{ dropLabel }}</strong>
+			<strong class="cn-files-browser__drop-label">{{ cnTranslate(dropLabel) }}</strong>
+			<span v-if="dropDetailText"
+				class="cn-files-browser__drop-detail"
+				data-testid="cn-files-browser-drop-detail">{{ dropDetailText }}</span>
 		</div>
 		<p v-if="dropOverlay"
 			class="hidden-visually"
@@ -35,7 +38,7 @@
 		     Files app and its plugins registered for this folder (a new folder,
 		     a template, a file request) beside a plain upload. -->
 		<div class="cn-files-browser__bar">
-			<NcBreadcrumbs class="cn-files-browser__crumbs">
+			<NcBreadcrumbs class="cn-files-browser__crumbs" :class="{ 'cn-files-browser__crumbs--at-root': atRoot }">
 				<!-- The whole trail from the user's files root, as the Files app
 				     draws it. A crumb above the browser's root links into the Files
 				     app (the browser never leaves its root); the root and everything
@@ -71,7 +74,57 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
-			<NcActions v-if="canChange"
+			<!-- `toolbarSelectionActions`: a bulk action as a toolbar button,
+			     off with its reason while nothing is ticked (DqZaakDocumenten
+			     "Samenvoegen tot één PDF"). -->
+			<template v-for="action in toolbarSelectionList" :key="`toolbar-selection-${action.id}`">
+				<NcButton
+					variant="secondary"
+					:disabled="selectedIds.length === 0"
+					:title="selectedIds.length === 0 ? action.reason : undefined"
+					:aria-describedby="selectedIds.length === 0 ? `${toolbarReasonPrefix}-${action.id}` : undefined"
+					:data-testid="`cn-files-browser-toolbar-selection-${action.id}`"
+					@click="runBulkAction(action.action)">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="20" />
+					</template>
+					{{ action.label }}
+				</NcButton>
+				<span v-if="selectedIds.length === 0"
+					:id="`${toolbarReasonPrefix}-${action.id}`"
+					class="hidden-visually">{{ action.reason }}</span>
+			</template>
+			<!-- `facetPresentation: "menu"`: each facet as a toolbar menu
+			     "<column>: <value>" (DqZaakDocumenten "Trefwoord: alle"),
+			     one value at a time, "all" clears it. -->
+			<template v-if="facetPresentation === 'menu'">
+				<NcActions v-for="facet in facetGroups"
+					:key="`facet-menu-${facet.key}`"
+					:menuName="facetMenuName(facet)"
+					:forceMenu="true"
+					:forceName="true"
+					variant="tertiary"
+					:data-testid="`cn-files-browser-facet-menu-${facet.key}`">
+					<NcActionButton
+						:closeAfterClick="true"
+						:modelValue="!facet.values.some((option) => option.active)"
+						type="radio"
+						:data-testid="`cn-files-browser-facet-all-${facet.key}`"
+						@click="chooseFacet(facet.key, null)">
+						{{ facetAllLabel }}
+					</NcActionButton>
+					<NcActionButton v-for="option in facet.values"
+						:key="option.value"
+						:closeAfterClick="true"
+						:modelValue="option.active"
+						type="radio"
+						data-testid="cn-files-browser-facet-option"
+						@click="chooseFacet(facet.key, option.value)">
+						{{ option.value }} ({{ option.count }})
+					</NcActionButton>
+				</NcActions>
+			</template>
+			<NcActions v-if="canChange && newMenu"
 				:menuName="newLabel"
 				:forceMenu="true"
 				:forceName="true"
@@ -113,6 +166,35 @@
 					{{ hostLabel(action) }}
 				</NcActionButton>
 			</NcActions>
+			<!-- The host's own buttons in the bar ("Vraag een bestand aan een
+			     partij", DqZaakDocumenten), dispatched like a New-menu entry with
+			     the current folder; `#header-actions` adds anything else. -->
+			<NcButton v-for="action in headerActions"
+				:key="`header-${action.id}`"
+				:variant="action.variant === 'primary' ? 'primary' : 'secondary'"
+				:disabled="folder === null"
+				:data-testid="`cn-files-browser-header-action-${action.id}`"
+				@click="runHostAction(action, null)">
+				<template v-if="action.icon" #icon>
+					<CnIcon :name="action.icon" :size="20" />
+				</template>
+				{{ hostLabel(action) }}
+			</NcButton>
+			<!-- New folder as its own button, when the host names it
+			     (`folderButton`): a bar without the New menu still creates
+			     folders. -->
+			<NcButton v-if="folderButton && canChange"
+				variant="secondary"
+				:disabled="folder === null"
+				data-testid="cn-files-browser-new-folder-button"
+				@click="askNewFolder">
+				<template #icon>
+					<FolderPlusOutline :size="20" />
+				</template>
+				{{ newFolderLabel }}
+			</NcButton>
+			<!-- @slot header-actions Buttons in the bar, before the upload button. -->
+			<slot name="header-actions" />
 			<!-- A plain upload as its own button, when the host names it
 			     (`uploadButton`). It takes the primary place and the New
 			     menu steps back beside it. -->
@@ -147,9 +229,34 @@
 			</li>
 		</ul>
 
+		<!-- The review summary (`reviewSummary`): how many files are reviewed,
+		     a bar in the review tones and a legend with the count per value. -->
+		<div v-if="review && review.total > 0 && !loading && error === ''"
+			class="cn-files-browser__review"
+			data-testid="cn-files-browser-review">
+			<div class="cn-files-browser__review-head">
+				<strong class="cn-files-browser__review-title">{{ reviewTitle }}</strong>
+				<span v-if="reviewSubtitle" class="cn-files-browser__review-sub">{{ reviewSubtitle }}</span>
+			</div>
+			<span class="cn-files-browser__review-bar" role="img" :aria-label="reviewTitle">
+				<span v-for="segment in review.segments"
+					v-show="segment.count > 0 && !isOpenValue(segment.value)"
+					:key="segment.value"
+					:class="`cn-files-browser__review-part cn-files-browser__review-part--${segment.tone}`"
+					:style="{ width: `${segment.share}%` }" />
+			</span>
+			<ul class="cn-files-browser__review-legend">
+				<li v-for="segment in review.segments" :key="segment.value" data-testid="cn-files-browser-review-entry">
+					<span :class="`cn-files-browser__review-dot cn-files-browser__review-part--${segment.tone}`" aria-hidden="true" />
+					{{ hostLabel(segment) }}
+					<strong>{{ segment.count }}</strong>
+				</li>
+			</ul>
+		</div>
+
 		<!-- The host's filter: per declared column, a chip per value in use
 		     with how many files carry it. Chips narrow the list. -->
-		<div v-if="facetGroups.length > 0 && !loading && error === ''"
+		<div v-if="facetPresentation !== 'menu' && facetGroups.length > 0 && !loading && error === ''"
 			class="cn-files-browser__facets"
 			data-testid="cn-files-browser-facets">
 			<div v-for="facet in facetGroups"
@@ -178,13 +285,13 @@
 		</div>
 
 		<!-- The host's bulk actions, once something is selected. -->
-		<div v-if="bulkEnabled && selectedIds.length > 0"
+		<div v-if="bulkEnabled && bulkActions.length > 0 && selectedIds.length > 0"
 			class="cn-files-browser__bulk-bar"
 			role="toolbar"
 			:aria-label="t('nextcloud-vue', 'Actions for the selected files')"
 			data-testid="cn-files-browser-bulk-bar">
-			<span class="cn-files-browser__bulk-count" aria-live="polite">
-				{{ t('nextcloud-vue', '{count} selected', { count: selectedIds.length }) }}
+			<span class="cn-files-browser__bulk-count" aria-live="polite" data-testid="cn-files-browser-bulk-count">
+				{{ selectionCountText }}
 			</span>
 			<NcButton v-for="action in bulkActions"
 				:key="action.id"
@@ -195,7 +302,8 @@
 				</template>
 				{{ hostLabel(action) }}
 			</NcButton>
-			<NcButton variant="tertiary"
+			<NcButton v-if="showClearSelection"
+				variant="tertiary"
 				data-testid="cn-files-browser-bulk-clear"
 				@click="clearSelection">
 				{{ t('nextcloud-vue', 'Clear selection') }}
@@ -233,275 +341,350 @@
 		     this page, offered under the same names and icons the Files app
 		     uses. What cannot run away from the Files page (the details
 		     sidebar) is left out, and Show in Files covers it. -->
-		<table v-else class="cn-files-browser__table" data-testid="cn-files-browser-table">
-			<thead>
-				<tr>
-					<th v-if="bulkEnabled" class="cn-files-browser__col-select" scope="col">
-						<input type="checkbox"
-							class="cn-files-browser__select"
-							:checked="allSelected"
-							:indeterminate.prop="someSelected && !allSelected"
-							:disabled="selectableIds.length === 0"
-							:aria-label="t('nextcloud-vue', 'Select all files')"
-							data-testid="cn-files-browser-select-all"
-							@change="toggleAll($event.target.checked)">
-					</th>
-					<th class="cn-files-browser__col-icon" scope="col">
-						<span class="hidden-visually">{{ t('nextcloud-vue', 'Type') }}</span>
-					</th>
-					<th v-for="column in renderedColumns"
-						:key="column.key"
-						scope="col"
-						:class="`cn-files-browser__col-${column.key}`"
-						:aria-sort="ariaSort(sortTokenOf(column))"
-						:data-testid="`cn-files-browser-header-${column.key}`">
-						<button v-if="column.sortable !== false"
-							type="button"
-							class="cn-files-browser__sort"
-							@click="sortBy(sortTokenOf(column))">
-							{{ columnLabel(column) }}
-							<component :is="sortIcon(sortTokenOf(column))" v-if="sortKey === sortTokenOf(column)" :size="16" />
-						</button>
-						<template v-else>
-							{{ columnLabel(column) }}
-						</template>
-					</th>
-					<th class="cn-files-browser__col-actions" scope="col">
-						<span class="hidden-visually">{{ t('nextcloud-vue', 'Actions') }}</span>
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				<!-- A heading row per group when the host groups on a column; the
-				     destructured entry is either a group or a node. -->
-				<template v-for="{ key, group, node } in displayRows" :key="key">
-					<tr v-if="group"
-						class="cn-files-browser__group"
-						data-testid="cn-files-browser-group">
-						<th :colspan="columnCount" scope="rowgroup" class="cn-files-browser__group-heading">
-							{{ group.label }}
-							<span class="cn-files-browser__group-count">{{ group.count }}</span>
+		<div v-else
+			class="cn-files-browser__body"
+			:class="{ 'cn-files-browser__body--with-side': sideNode !== null && !sideInPage }">
+			<table class="cn-files-browser__table" data-testid="cn-files-browser-table">
+				<thead>
+					<tr>
+						<th v-if="bulkEnabled" class="cn-files-browser__col-select" scope="col">
+							<input type="checkbox"
+								class="cn-files-browser__select"
+								:checked="allSelected"
+								:indeterminate.prop="someSelected && !allSelected"
+								:disabled="selectableIds.length === 0"
+								:aria-label="t('nextcloud-vue', 'Select all files')"
+								data-testid="cn-files-browser-select-all"
+								@change="toggleAll($event.target.checked)">
+						</th>
+						<th class="cn-files-browser__col-icon" scope="col">
+							<span class="hidden-visually">{{ t('nextcloud-vue', 'Type') }}</span>
+						</th>
+						<th v-for="column in renderedColumns"
+							:key="column.key"
+							scope="col"
+							:class="`cn-files-browser__col-${column.key}`"
+							:aria-sort="ariaSort(sortTokenOf(column))"
+							:data-testid="`cn-files-browser-header-${column.key}`">
+							<button v-if="column.sortable !== false"
+								type="button"
+								class="cn-files-browser__sort"
+								@click="sortBy(sortTokenOf(column))">
+								{{ columnLabel(column) }}
+								<component :is="sortIcon(sortTokenOf(column))" v-if="sortKey === sortTokenOf(column)" :size="16" />
+							</button>
+							<template v-else>
+								{{ columnLabel(column) }}
+							</template>
+						</th>
+						<th class="cn-files-browser__col-actions" scope="col" :style="actionsColumnStyle">
+							<span class="hidden-visually">{{ t('nextcloud-vue', 'Actions') }}</span>
 						</th>
 					</tr>
-					<tr
-						v-else
-						:key="key"
-						class="cn-files-browser__row"
-						:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
-						data-testid="cn-files-browser-row"
-						:data-name="node.basename"
-						@click="onRowClick(node, $event)"
-						@mousedown="preventMiddleClickAutoscroll"
-						@auxclick="onRowAuxClick(node, $event)">
-						<td v-if="bulkEnabled"
-							class="cn-files-browser__col-select"
-							@click.stop
-							@auxclick.stop>
-							<input v-if="!isFolder(node)"
-								type="checkbox"
-								class="cn-files-browser__select"
-								:checked="isSelected(node)"
-								:aria-label="t('nextcloud-vue', 'Select {name}', { name: node.basename })"
-								data-testid="cn-files-browser-select"
-								@change="toggleSelected(node, $event.target.checked)">
-						</td>
-						<td class="cn-files-browser__col-icon">
-							<img
-								v-if="previewUrlFor(node)"
-								class="cn-files-browser__thumb"
-								:src="previewUrlFor(node)"
-								alt=""
-								loading="lazy"
-								@error="onPreviewError(node)">
-							<img
-								v-else-if="mimeIconFor(node)"
-								class="cn-files-browser__mime"
-								:src="mimeIconFor(node)"
-								alt="">
-							<FolderOutline v-else-if="isFolder(node)" :size="32" />
-							<FileOutline v-else :size="32" />
-						</td>
-						<td v-for="column in renderedColumns"
-							:key="column.key"
-							:class="`cn-files-browser__col-${column.key}`"
-							:data-testid="`cn-files-browser-cell-${column.key}`">
-							<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
-							<template v-else-if="column.key === 'size'">
-								{{ isFolder(node) ? '' : formatSize(node.size) }}
-							</template>
-							<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
-							<!-- Everything the host declared renders through the same
+				</thead>
+				<tbody>
+					<!-- A heading row per group when the host groups on a column; the
+				     destructured entry is either a group or a node. -->
+					<template v-for="{ key, group, node } in displayRows" :key="key">
+						<tr v-if="group"
+							class="cn-files-browser__group"
+							data-testid="cn-files-browser-group">
+							<th :colspan="columnCount" scope="rowgroup" class="cn-files-browser__group-heading">
+								{{ group.label }}
+								<span class="cn-files-browser__group-count">{{ group.count }}</span>
+							</th>
+						</tr>
+						<tr
+							v-else
+							:key="key"
+							class="cn-files-browser__row"
+							:class="{ 'cn-files-browser__row--folder': isFolder(node) }"
+							data-testid="cn-files-browser-row"
+							:data-name="node.basename"
+							@click="onRowClick(node, $event)"
+							@mousedown="preventMiddleClickAutoscroll"
+							@auxclick="onRowAuxClick(node, $event)">
+							<td v-if="bulkEnabled"
+								class="cn-files-browser__col-select"
+								@click.stop
+								@auxclick.stop>
+								<input v-if="!isFolder(node)"
+									type="checkbox"
+									class="cn-files-browser__select"
+									:checked="isSelected(node)"
+									:aria-label="t('nextcloud-vue', 'Select {name}', { name: node.basename })"
+									data-testid="cn-files-browser-select"
+									@change="toggleSelected(node, $event.target.checked)">
+							</td>
+							<td class="cn-files-browser__col-icon">
+								<img
+									v-if="previewUrlFor(node)"
+									class="cn-files-browser__thumb"
+									:src="previewUrlFor(node)"
+									alt=""
+									loading="lazy"
+									@error="onPreviewError(node)">
+								<img
+									v-else-if="mimeIconFor(node)"
+									class="cn-files-browser__mime"
+									:src="mimeIconFor(node)"
+									alt="">
+								<FolderOutline v-else-if="isFolder(node)" :size="32" />
+								<FileOutline v-else :size="32" />
+							</td>
+							<td v-for="column in renderedColumns"
+								:key="column.key"
+								:class="`cn-files-browser__col-${column.key}`"
+								:data-testid="`cn-files-browser-cell-${column.key}`">
+								<span v-if="column.key === 'name'" class="cn-files-browser__name">{{ node.basename }}</span>
+								<span v-if="column.key === 'name' && nameSecondaryOf(node)"
+									class="cn-files-browser__name-secondary"
+									data-testid="cn-files-browser-name-secondary">{{ nameSecondaryOf(node) }}</span>
+								<template v-else-if="column.key === 'size'">
+									{{ isFolder(node) ? '' : formatSize(node.size) }}
+								</template>
+								<NcDateTime v-else-if="column.key === 'modified'" :timestamp="node.mtime" :ignoreSeconds="true" />
+								<!-- Everything the host declared renders through the same
 							     cell renderer the tables use, so a `formatter` means
 							     here what it means there. -->
-							<CnCellRenderer v-else
-								:value="cellValue(column, node)"
-								:formatter="column.formatter || null"
-								:formatterOptions="column.formatterOptions || null"
-								:widget="column.widget || null"
-								:row="node" />
-						</td>
-						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-							<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
-								<NcActionButton
-									v-for="action in actionsFor(node)"
-									:key="action.id"
-									:closeAfterClick="true"
-									:data-testid="`cn-files-browser-action-${action.id}`"
-									@click="run(action, node)">
-									<template #icon>
-										<NcIconSvgWrapper :svg="iconOf(action, node)" />
-									</template>
-									{{ labelOf(action, node) }}
-								</NcActionButton>
-								<!-- The host's own actions on a file (never on a folder): declared
+								<CnCellRenderer v-else
+									:class="column.widget !== 'badge' && toneOf(column, node) ? `cn-files-browser__tone cn-files-browser__tone--${toneOf(column, node)}` : null"
+									:value="cellValue(column, node)"
+									:formatter="column.formatter || null"
+									:formatterOptions="column.formatterOptions || null"
+									:widget="column.widget || null"
+									:widgetProps="cellWidgetProps(column, node)"
+									:row="node" />
+								<span v-if="column.key !== 'name' && cellSubline(column, node)"
+									class="cn-files-browser__cell-subline"
+									data-testid="cn-files-browser-cell-subline">{{ cellSubline(column, node) }}</span>
+							</td>
+							<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
+								<!-- The host's one visible button on a file ("Beoordelen"),
+								     primary while the row still asks for it. -->
+								<NcButton v-if="rowButtonApplies(node)"
+									:variant="rowButtonPrimary(node) ? 'primary' : 'secondary'"
+									class="cn-files-browser__row-button"
+									:aria-label="t('nextcloud-vue', '{action}: {name}', { action: hostLabel(rowButton), name: node.basename })"
+									data-testid="cn-files-browser-row-button"
+									@click="runHostAction(rowButton, node)">
+									{{ hostLabel(rowButton) }}
+								</NcButton>
+								<NcActions class="cn-files-browser__row-menu" :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: node.basename })">
+									<NcActionButton
+										v-for="action in actionsFor(node)"
+										:key="action.id"
+										:closeAfterClick="true"
+										:data-testid="`cn-files-browser-action-${action.id}`"
+										@click="run(action, node)">
+										<template #icon>
+											<NcIconSvgWrapper :svg="iconOf(action, node)" />
+										</template>
+										{{ labelOf(action, node) }}
+									</NcActionButton>
+									<!-- The host's own actions on a file (never on a folder): declared
 								     in its manifest, dispatched through the page's action runner
 								     with the node's file id, name and path merged in. -->
-								<template v-if="!isFolder(node)">
-									<NcActionButton
-										v-for="action in hostActionsFor(node)"
-										:key="`host-${action.id}`"
-										:closeAfterClick="true"
-										:data-testid="`cn-files-browser-host-action-${action.id}`"
-										@click="runHostAction(action, node)">
-										<template #icon>
-											<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
-										</template>
-										{{ hostLabel(action) }}
-									</NcActionButton>
-								</template>
-								<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
-								<!-- The Files app's own rename is its list's inline input,
+									<template v-if="!isFolder(node)">
+										<NcActionButton
+											v-for="action in hostActionsFor(node)"
+											:key="`host-${action.id}`"
+											:closeAfterClick="true"
+											:data-testid="`cn-files-browser-host-action-${action.id}`"
+											@click="runHostAction(action, node)">
+											<template #icon>
+												<CnIcon :name="action.icon || 'FileDocumentEditOutline'" :size="20" />
+											</template>
+											{{ hostLabel(action) }}
+										</NcActionButton>
+									</template>
+									<NcActionSeparator v-if="actionsFor(node).length > 0 || (!isFolder(node) && hostActionsFor(node).length > 0)" />
+									<!-- The Files app's own rename is its list's inline input,
 								     which is not here; this one is a dialog over a DAV move. -->
-								<!-- With a `source`, the Files app's actions (which act over
+									<!-- With a `source`, the Files app's actions (which act over
 								     WebDAV) are not offered; download and delete go through
 								     the source instead. -->
+									<NcActionLink
+										v-if="source && sourceDownloadUrl(node)"
+										:href="sourceDownloadUrl(node)"
+										:download="node.basename"
+										:closeAfterClick="true"
+										data-testid="cn-files-browser-action-download">
+										<template #icon>
+											<Download :size="20" />
+										</template>
+										{{ downloadLabel }}
+									</NcActionLink>
+									<NcActionButton v-if="source && canChange"
+										:closeAfterClick="true"
+										data-testid="cn-files-browser-action-delete"
+										@click="askRemove(node)">
+										<template #icon>
+											<TrashCanOutline :size="20" />
+										</template>
+										{{ deleteLabel }}
+									</NcActionButton>
+									<NcActionButton v-if="canChange"
+										:closeAfterClick="true"
+										data-testid="cn-files-browser-action-rename"
+										@click="askRename(node)">
+										<template #icon>
+											<Pencil :size="20" />
+										</template>
+										{{ renameLabel }}
+									</NcActionButton>
+									<NcActionLink
+										v-if="node.fileid && !source"
+										:href="permalink(node)"
+										target="_blank"
+										:closeAfterClick="true">
+										<template #icon>
+											<OpenInNew :size="20" />
+										</template>
+										{{ showInFilesLabel }}
+									</NcActionLink>
+								</NcActions>
+							</td>
+						</tr>
+					</template>
+					<tr v-if="facetActive && filteredFiles.length === 0" class="cn-files-browser__no-match-row">
+						<td :colspan="columnCount" class="cn-files-browser__no-match" data-testid="cn-files-browser-no-match">
+							{{ t('nextcloud-vue', 'No files match the filter.') }}
+						</td>
+					</tr>
+					<!-- Rows that are not nodes of this folder: documents the host
+				     joined from elsewhere (another object's folder). Open and
+				     download only; nothing here can change the file. -->
+					<tr
+						v-for="item in linkedItems"
+						:key="`linked-${item.id}`"
+						class="cn-files-browser__row cn-files-browser__row--linked"
+						data-testid="cn-files-browser-linked-row"
+						:data-name="item.name"
+						@click="openLinked(item)"
+						@mousedown="preventMiddleClickAutoscroll"
+						@auxclick="onLinkedAuxClick(item, $event)">
+						<td v-if="bulkEnabled" class="cn-files-browser__col-select" />
+						<td class="cn-files-browser__col-icon">
+							<img
+								v-if="mimeIconFor({ mime: item.mime })"
+								class="cn-files-browser__mime"
+								:src="mimeIconFor({ mime: item.mime })"
+								alt="">
+							<FileOutline v-else :size="32" />
+						</td>
+						<!-- A linked item is not a node of this folder, so it can only
+					     answer for name, size and modified. It still walks the same
+					     column list, or a declared column set would shift every
+					     linked row one cell out of line with its header. -->
+						<td v-for="column in renderedColumns"
+							:key="column.key"
+							:class="`cn-files-browser__col-${column.key}`">
+							<template v-if="column.key === 'name'">
+								<span class="cn-files-browser__name">{{ item.name }}</span>
+								<span v-if="item.note" class="cn-files-browser__note">
+									<a
+										v-if="item.noteHref"
+										:href="item.noteHref"
+										class="cn-files-browser__note-link"
+										@click.stop>{{ item.note }}</a>
+									<template v-else>{{ item.note }}</template>
+								</span>
+							</template>
+							<template v-else-if="column.key === 'size'">
+								{{ item.size ? formatSize(item.size) : '' }}
+							</template>
+							<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
+						</td>
+						<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
+							<NcActions class="cn-files-browser__row-menu" :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
 								<NcActionLink
-									v-if="source && sourceDownloadUrl(node)"
-									:href="sourceDownloadUrl(node)"
-									:download="node.basename"
+									v-if="item.href"
+									:href="item.href"
+									target="_blank"
 									:closeAfterClick="true"
-									data-testid="cn-files-browser-action-download">
+									data-testid="cn-files-browser-linked-open">
+									<template #icon>
+										<OpenInNew :size="20" />
+									</template>
+									{{ openLinkedLabel }}
+								</NcActionLink>
+								<NcActionLink
+									v-if="item.downloadHref"
+									:href="item.downloadHref"
+									:download="item.name"
+									:closeAfterClick="true"
+									data-testid="cn-files-browser-linked-download">
 									<template #icon>
 										<Download :size="20" />
 									</template>
 									{{ downloadLabel }}
 								</NcActionLink>
-								<NcActionButton v-if="source && canChange"
-									:closeAfterClick="true"
-									data-testid="cn-files-browser-action-delete"
-									@click="askRemove(node)">
-									<template #icon>
-										<TrashCanOutline :size="20" />
-									</template>
-									{{ deleteLabel }}
-								</NcActionButton>
-								<NcActionButton v-if="canChange"
-									:closeAfterClick="true"
-									data-testid="cn-files-browser-action-rename"
-									@click="askRename(node)">
-									<template #icon>
-										<Pencil :size="20" />
-									</template>
-									{{ renameLabel }}
-								</NcActionButton>
-								<NcActionLink
-									v-if="node.fileid && !source"
-									:href="permalink(node)"
-									target="_blank"
-									:closeAfterClick="true">
-									<template #icon>
-										<OpenInNew :size="20" />
-									</template>
-									{{ showInFilesLabel }}
-								</NcActionLink>
 							</NcActions>
 						</td>
 					</tr>
-				</template>
-				<tr v-if="facetActive && filteredFiles.length === 0" class="cn-files-browser__no-match-row">
-					<td :colspan="columnCount" class="cn-files-browser__no-match" data-testid="cn-files-browser-no-match">
-						{{ t('nextcloud-vue', 'No files match the filter.') }}
-					</td>
-				</tr>
-				<!-- Rows that are not nodes of this folder: documents the host
-				     joined from elsewhere (another object's folder). Open and
-				     download only; nothing here can change the file. -->
-				<tr
-					v-for="item in linkedItems"
-					:key="`linked-${item.id}`"
-					class="cn-files-browser__row cn-files-browser__row--linked"
-					data-testid="cn-files-browser-linked-row"
-					:data-name="item.name"
-					@click="openLinked(item)"
-					@mousedown="preventMiddleClickAutoscroll"
-					@auxclick="onLinkedAuxClick(item, $event)">
-					<td v-if="bulkEnabled" class="cn-files-browser__col-select" />
-					<td class="cn-files-browser__col-icon">
-						<img
-							v-if="mimeIconFor({ mime: item.mime })"
-							class="cn-files-browser__mime"
-							:src="mimeIconFor({ mime: item.mime })"
-							alt="">
-						<FileOutline v-else :size="32" />
-					</td>
-					<!-- A linked item is not a node of this folder, so it can only
-					     answer for name, size and modified. It still walks the same
-					     column list, or a declared column set would shift every
-					     linked row one cell out of line with its header. -->
-					<td v-for="column in renderedColumns"
-						:key="column.key"
-						:class="`cn-files-browser__col-${column.key}`">
-						<template v-if="column.key === 'name'">
-							<span class="cn-files-browser__name">{{ item.name }}</span>
-							<span v-if="item.note" class="cn-files-browser__note">
-								<a
-									v-if="item.noteHref"
-									:href="item.noteHref"
-									class="cn-files-browser__note-link"
-									@click.stop>{{ item.note }}</a>
-								<template v-else>{{ item.note }}</template>
-							</span>
-						</template>
-						<template v-else-if="column.key === 'size'">
-							{{ item.size ? formatSize(item.size) : '' }}
-						</template>
-						<NcDateTime v-else-if="column.key === 'modified' && item.mtime" :timestamp="item.mtime" :ignoreSeconds="true" />
-					</td>
-					<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
-						<NcActions :forceMenu="true" :ariaLabel="t('nextcloud-vue', 'Actions for {name}', { name: item.name })">
-							<NcActionLink
-								v-if="item.href"
-								:href="item.href"
-								target="_blank"
-								:closeAfterClick="true"
-								data-testid="cn-files-browser-linked-open">
-								<template #icon>
-									<OpenInNew :size="20" />
+				</tbody>
+			</table>
+
+			<!-- `sideCards`: cards about the last selected file, beside the list,
+			     or in the detail page's side column (`sideCardsPlacement`). -->
+			<Teleport v-if="sideNode !== null"
+				:to="pageSideTarget"
+				:disabled="!sideInPage"
+				defer>
+				<aside
+					class="cn-files-browser__side"
+					:class="{ 'cn-files-browser__side--in-page': sideInPage }"
+					:aria-label="t('nextcloud-vue', 'About {name}', { name: sideNode.basename })"
+					data-testid="cn-files-browser-side">
+					<section v-for="card in sideCardsFor(sideNode)"
+						:key="card.id"
+						class="cn-files-browser__side-card"
+						:data-testid="`cn-files-browser-side-card-${card.id}`">
+						<h3 class="cn-files-browser__side-title">
+							{{ card.title }}
+						</h3>
+						<dl v-if="card.fields.length > 0" class="cn-files-browser__side-facts">
+							<template v-for="field in card.fields" :key="field.key">
+								<dt>{{ field.label }}</dt>
+								<dd :class="field.tone ? `cn-files-browser__tone cn-files-browser__tone--${field.tone}` : ''">
+									<CnCellRenderer
+										:value="field.value"
+										:formatter="field.formatter || null"
+										:formatterOptions="field.formatterOptions || null"
+										:row="sideNode" />
+								</dd>
+							</template>
+						</dl>
+						<div v-if="card.actions.length > 0" class="cn-files-browser__side-actions">
+							<NcButton v-for="action in card.actions"
+								:key="action.id"
+								:data-testid="`cn-files-browser-side-action-${action.id}`"
+								@click="runHostAction(action, sideNode)">
+								<template v-if="action.icon" #icon>
+									<CnIcon :name="action.icon" :size="20" />
 								</template>
-								{{ openLinkedLabel }}
-							</NcActionLink>
-							<NcActionLink
-								v-if="item.downloadHref"
-								:href="item.downloadHref"
-								:download="item.name"
-								:closeAfterClick="true"
-								data-testid="cn-files-browser-linked-download">
-								<template #icon>
-									<Download :size="20" />
-								</template>
-								{{ downloadLabel }}
-							</NcActionLink>
-						</NcActions>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+								{{ hostLabel(action) }}
+							</NcButton>
+						</div>
+					</section>
+				</aside>
+			</Teleport>
+		</div>
 
 		<p v-if="dropHint && canChange && !loading && error === ''"
 			class="cn-files-browser__drop-hint"
 			data-testid="cn-files-browser-drop-hint">
 			<Upload :size="16" />
 			{{ dropHintLabel }}
+		</p>
+		<!-- The host's own line under the list ("Elk bestand wordt bij het
+		     uploaden op virussen gescand", DqDocumentenBeheer), apart from
+		     the drop hint. -->
+		<p v-if="footnote && !loading && error === ''"
+			class="cn-files-browser__footnote"
+			data-testid="cn-files-browser-footnote">
+			{{ cnTranslate(footnote) }}
 		</p>
 
 		<NcDialog
@@ -633,6 +816,7 @@ import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import FileOutline from 'vue-material-design-icons/FileOutline.vue'
 import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
+import FolderPlusOutline from 'vue-material-design-icons/FolderPlusOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -643,7 +827,10 @@ import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import { readUserPreference, writeUserPreference } from '../../composables/useUserPreferences.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { readPath } from '../../utils/readPath.js'
 import { isNewTabClick, isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { ACTIONS_NEEDING_THE_FILES_PAGE, crumbsFor, hostActionApplies, joinPath } from './filesBrowser.js'
 import {
 	attributePropertiesFor,
@@ -655,6 +842,7 @@ import {
 	sortNodesByColumn,
 	visibleFileColumns,
 } from './filesBrowserColumns.js'
+import { reviewSummary } from './filesReview.js'
 
 let uploadSeq = 0
 
@@ -667,6 +855,8 @@ const FOLDER_CHANGED_CHANNELS = ['cn:page:refresh', 'files:node:created', 'files
 
 const FOLDER_CHANGED_DEBOUNCE_MS = 300
 
+let reasonUid = 0
+
 export default {
 	name: 'CnFilesBrowser',
 
@@ -677,6 +867,7 @@ export default {
 		Download,
 		FileOutline,
 		FolderOutline,
+		FolderPlusOutline,
 		NcActionButton,
 		NcActionCheckbox,
 		NcActionLink,
@@ -707,6 +898,8 @@ export default {
 		// action or column the manifest declares is authored in English as
 		// the catalogue key, and read through this in the user's language.
 		cnTranslate: { default: () => (key) => key },
+		// The detail page's side column (CnDetailPage), for side cards placed there.
+		cnDetailSideColumn: { default: null },
 	},
 
 	props: {
@@ -764,6 +957,50 @@ export default {
 		newActions: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The host's own buttons in the bar, before the upload button ("Vraag
+		 * een bestand aan een partij", DqZaakDocumenten). Each is dispatched
+		 * like a New-menu entry, with the current folder; `variant:
+		 * 'primary'` draws it as the primary button.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, variant?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
+		 */
+		headerActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * One visible button on every file row ("Beoordelen"), dispatched like a
+		 * row action. `primaryWhen: { key, values }` draws it as the primary
+		 * button while the row-data field `key` holds one of `values` (a file
+		 * still to review), and secondary otherwise. `visibleIf` works as on a
+		 * row action.
+		 *
+		 * @type {{id: string, label: string, type?: string, target?: string, props?: object, handler?: string, args?: Array, primaryWhen?: {key: string, values: Array<string>}, visibleIf?: object}|null}
+		 */
+		rowButton: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A review summary above the list (DqZaakDocumenten "4 van 7
+		 * beoordeeld"): `{ key, open, values: [{ value, label?, tone? }], title?,
+		 * subtitle? }`. `key` is the row-data field with the review state, `open`
+		 * the value (or values) of a file still to review; a file without a
+		 * listed value counts as open. `tone` is `success`, `warning`, `error`,
+		 * `info` or `default`. `title` and `subtitle` take `{done}`, `{total}` and
+		 * `{open}`, through the host's translate; they default to the library's
+		 * "{done} of {total} reviewed" and "{open} still to review".
+		 *
+		 * @type {{key: string, open?: string|Array<string>, values: Array<{value: string, label?: string, tone?: string}>, title?: string, subtitle?: string}|null}
+		 */
+		reviewSummary: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -856,6 +1093,30 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Whether the bar has the New menu (upload, new folder, the Files
+		 * app's entries and `newActions`). `false` leaves it out, so the bar
+		 * holds the host's `headerActions` buttons and, with `uploadButton`,
+		 * the upload button (DqZaakDocumenten).
+		 *
+		 * @spec openspec/changes/files-browser-toolbar-actions/specs/files-browser/spec.md#requirement-the-host-chooses-whether-the-bar-has-a-new-menu
+		 */
+		newMenu: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show New folder as a button in the bar, before the host's buttons.
+		 * With `newMenu: false` it keeps folder creation in reach.
+		 *
+		 * @spec openspec/changes/files-browser-toolbar-actions/specs/files-browser/spec.md#requirement-the-host-can-put-new-folder-in-the-bar-as-a-button
+		 */
+		folderButton: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Label of the upload button `uploadButton` shows. */
 		uploadButtonLabel: {
 			type: String,
@@ -873,16 +1134,82 @@ export default {
 			default: false,
 		},
 
-		/** The line `dropOverlay` draws and announces. */
+		/** The line `dropOverlay` draws and announces, through the host translate. */
 		dropLabel: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Drop to add'),
+		},
+
+		/**
+		 * A second line under `dropLabel` in the drop state, through the host
+		 * translate: where the files go ("{count} bestanden komen bij zaak
+		 * 2026-0082, als nog te beoordelen document."). `{count}` is the number
+		 * of files dragged when the browser can tell, and the line is left out
+		 * when it cannot. The overlay then also fills the panel.
+		 *
+		 * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
+		 */
+		dropDetail: {
+			type: [String, Array],
+			default: '',
+		},
+
+		/**
+		 * Named values filled into `dropDetail` as `{name}`, such as the case
+		 * number (`{ "case": "@object.identifier" }` in a detail page's props).
+		 * While a value is unknown the line is left out.
+		 *
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailValues: {
+			type: Object,
+			default: null,
 		},
 
 		/** Show a line under the list saying files can be dropped on it. */
 		dropHint: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * A line of the host's own under the list, apart from the drop hint
+		 * ("Elk bestand wordt bij het uploaden op virussen gescand en krijgt een
+		 * controlegetal", DqDocumentenBeheer). Translated with the host's
+		 * catalogue.
+		 */
+		footnote: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A second line under each file's name (DqDocumentenBeheer "Inwoner ·
+		 * 4 okt", DqZaakDocumenten "PDF · 1,2 MB · 14 januari 2026"): a field
+		 * template read from the file's row data, plus `name`, `modified` (the
+		 * change date), `owner` (the owner's display name), `size` (formatted)
+		 * and `type` ("PDF", "Word", "Email", else the extension), e.g.
+		 * `"{type} · {size} · {modified|date}"`. A line with an empty
+		 * value is left out. Translated with the host's catalogue first.
+		 */
+		nameSecondary: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The second line as a list of fields joined with " · ", a field
+		 * without a value left out: the `nameSecondary` tokens without their
+		 * braces (`["type", "size", "modified|date"]`, a row-data field such as
+		 * `"senderName"`). Or a list of variants `{ when, fields }`: the first
+		 * whose `when` is `true`, or that has no `when`, is used (a case type
+		 * flag read through `@context`). Takes precedence over `nameSecondary`.
+		 *
+		 * @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-a-files-second-line-is-a-list-of-fields
+		 */
+		secondLine: {
+			type: Array,
+			default: null,
 		},
 
 		/** The line `dropHint` shows. */
@@ -913,9 +1240,12 @@ export default {
 		 * The columns this browser shows, in order. An entry is a built-in name
 		 * (`name`, `size`, `modified`, `owner`, `type`, `tags`) or an object
 		 * declaring its own: `{ key, label, source, attribute, formatter,
-		 * sortable }`, where `source` is `node` (a property of the node),
+		 * sortable, subline }`, where `source` is `node` (a property of the node),
 		 * `attribute` (a DAV property, added to the PROPFIND before listing) or
-		 * `row` (a value from `rowData`).
+		 * `row` (a value from `rowData`). `subline` is a template drawn as a
+		 * muted second line under the value, filled from the file's `rowData`
+		 * entry ("ground {reviewGrounds|values}"); it is left out when it
+		 * names no value.
 		 *
 		 * Declaring none keeps today's table: name, size and modified.
 		 *
@@ -981,6 +1311,71 @@ export default {
 		},
 
 		/**
+		 * Actions on the ticked files drawn as toolbar buttons, declared as
+		 * `bulkActions` plus `disabledReason` (translated; default "Select
+		 * files first"). Each is disabled, saying why, while no file is
+		 * ticked, and turns the row checkboxes on as `bulkActions` does.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, disabledReason?: string}>}
+		 * @spec openspec/changes/files-columns-by-flag-and-toolbar-selection/specs/files-browser/spec.md#requirement-a-selection-action-can-sit-in-the-toolbar
+		 */
+		toolbarSelectionActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * The bulk bar's count, as a translatable template with `{count}`
+		 * ("{count} documents selected"); `selectionLabelOne` is used for one.
+		 * Empty reads "{count} selected".
+		 *
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-the-bulk-bar-names-what-is-selected
+		 */
+		selectionLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** The bulk bar's count for one selected file, e.g. "{count} document selected". */
+		selectionLabelOne: {
+			type: String,
+			default: '',
+		},
+
+		/** Whether the bulk bar ends in a "Clear selection" button. */
+		showClearSelection: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Cards beside the list about the last selected file:
+		 * `[{ id, title, fields: [{ key, label, source?, formatter?, formatterOptions?, colorMap?, colorKey? }], actions? }]`.
+		 * `title` may hold `{name}`, the file's name. A field reads `rowData`
+		 * (`source: 'row'`, the default) or the node (`source: 'node'`); a field
+		 * with no value is left out. `actions` are declared like `rowActions`
+		 * and run on that file. No side column while nothing is selected.
+		 *
+		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
+		 */
+		sideCards: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Where the side cards stand: `beside` (default) next to the list, or
+		 * `page-side` in the detail page's side column, in place of its
+		 * generic cards while a file is selected. Without a page side column
+		 * they stay beside the list.
+		 */
+		sideCardsPlacement: {
+			type: String,
+			default: 'beside',
+		},
+
+		/**
 		 * The key of a declared column to group the files on: a heading row
 		 * per value, in the order each is first met, with its count. Files
 		 * with no value come last under `groupEmptyLabel`; folders stay above.
@@ -1010,6 +1405,22 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * How the facets are drawn: `chips` (default, a row of chips with
+		 * counts under the toolbar) or `menu` (one toolbar menu per facet,
+		 * "<column>: <value>", one value at a time).
+		 */
+		facetPresentation: {
+			type: String,
+			default: 'chips',
+		},
+
+		/** The menu's word for no choice ("all"), through the host translate. */
+		facetAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'all'),
+		},
+
 		/** Label of the toolbar's Columns chooser. */
 		columnsLabel: {
 			type: String,
@@ -1020,7 +1431,12 @@ export default {
 	emits: ['changed'],
 
 	data() {
+		reasonUid += 1
 		return {
+			/** The id prefix of the toolbar selection buttons' reasons. */
+			toolbarReasonPrefix: `cn-files-browser-reason-${reasonUid}`,
+			/** The actions column's measured width while a row button stands in it, else null. */
+			actionsColumnWidth: null,
 			currentPath: this.rootPath,
 			/** The open folder as a node, or null before the first listing. */
 			folder: null,
@@ -1043,6 +1459,8 @@ export default {
 			 */
 			visibleColumnKeys: null,
 			dragging: false,
+			/** The number of files the current drag carries, null when unknown. */
+			dragCount: null,
 			/** Nested dragenter/dragleave pairs, so a child does not end the drag. */
 			dragDepth: 0,
 			/** What the live region says: the drop label, then what was added. */
@@ -1079,6 +1497,64 @@ export default {
 
 	computed: {
 		/**
+		 * The actions column's width. The table lays out fixed, so its columns
+		 * take their widths from the head; a row button (Beoordelen) beside the
+		 * row menu needs more than the menu's 48px, measured from the first row.
+		 *
+		 * @return {object} The head cell's style.
+		 * @spec openspec/changes/files-actions-column-fits-row-button/specs/files-actions-column-fits-row-button/spec.md#requirement-the-actions-column-fits-a-row-button
+		 */
+		actionsColumnStyle() {
+			return this.actionsColumnWidth ? { width: this.actionsColumnWidth + 'px' } : {}
+		},
+
+		/**
+		 * The `dropDetail` text: the string, or the text of the first variant
+		 * `{ when, text }` whose `when` is `true` or that has none.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+		 */
+		dropDetailTemplate() {
+			if (typeof this.dropDetail === 'string') {
+				return this.dropDetail
+			}
+			const variants = Array.isArray(this.dropDetail) ? this.dropDetail : []
+			const chosen = variants.find((item) => item && typeof item.text === 'string' && (!('when' in item) || item.when === true))
+			return chosen ? chosen.text : ''
+		},
+
+		/**
+		 * `dropDetail` through the host translate with `{count}` filled, '' when
+		 * there is none or the count it needs is unknown.
+		 *
+		 * @spec openspec/changes/files-drop-panel/specs/files-browser/spec.md#requirement-the-drop-state-fills-the-panel-and-says-where-the-files-go
+		 * @return {string}
+		 */
+		dropDetailText() {
+			const template = this.dropDetailTemplate
+			if (!template) {
+				return ''
+			}
+			let text = this.cnTranslate(template)
+			// `dropDetailValues`: named values such as the case number; a value
+			// still unknown (an unresolved `@` token, or empty) leaves the line out.
+			// @spec openspec/changes/files-drop-detail-values/specs/files-drop-detail-values/spec.md#requirement-the-drop-detail-line-can-name-the-record
+			const values = this.dropDetailValues && typeof this.dropDetailValues === 'object' ? this.dropDetailValues : {}
+			for (const [name, value] of Object.entries(values)) {
+				const shown = value === null || value === undefined ? '' : String(value)
+				if (shown === '' || shown.startsWith('@')) {
+					return ''
+				}
+				text = text.split(`{${name}}`).join(shown)
+			}
+			if (!text.includes('{count}')) {
+				return text
+			}
+			return this.dragCount === null ? '' : text.replace(/\{count\}/g, String(this.dragCount))
+		},
+
+		/**
 		 * Whether this person may add to and change the open folder. Over
 		 * WebDAV the server answers each write on its own, so this is true;
 		 * with a `source` it is what the listing said.
@@ -1099,6 +1575,19 @@ export default {
 		 */
 		crumbs() {
 			return crumbsFor(this.rootPath, this.currentPath, this.rootLabel)
+		},
+
+		/**
+		 * Whether the open folder is the browser's root: the trail then ends on
+		 * the root itself (the board look draws no trail there).
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/board-files-root-crumb/specs/board-files-root-crumb/spec.md#requirement-the-board-files-bar-draws-no-trail-at-the-root
+		 */
+		atRoot() {
+			const root = stripTrailingSlashes(String(this.rootPath || '/')) || '/'
+			const last = this.crumbs[this.crumbs.length - 1]
+			return Boolean(last) && last.path === root
 		},
 
 		/**
@@ -1195,7 +1684,27 @@ export default {
 		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
 		 */
 		bulkEnabled() {
-			return Array.isArray(this.bulkActions) && this.bulkActions.length > 0
+			return (Array.isArray(this.bulkActions) && this.bulkActions.length > 0) || this.toolbarSelectionList.length > 0
+		},
+
+		/**
+		 * The toolbar's selection buttons (`toolbarSelectionActions`), labels translated.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string, reason: string, action: object}>}
+		 * @spec openspec/changes/files-columns-by-flag-and-toolbar-selection/specs/files-browser/spec.md#requirement-a-selection-action-can-sit-in-the-toolbar
+		 */
+		toolbarSelectionList() {
+			return (Array.isArray(this.toolbarSelectionActions) ? this.toolbarSelectionActions : [])
+				.filter((action) => action && typeof action === 'object' && typeof action.id === 'string' && action.id !== '')
+				.map((action) => ({
+					id: action.id,
+					label: this.hostLabel(action),
+					icon: typeof action.icon === 'string' ? action.icon : '',
+					reason: typeof action.disabledReason === 'string' && action.disabledReason !== ''
+						? this.cnTranslate(action.disabledReason)
+						: t('nextcloud-vue', 'Select files first'),
+					action,
+				}))
 		},
 
 		/**
@@ -1212,8 +1721,95 @@ export default {
 		 *
 		 * @return {Array<object>} The file nodes.
 		 */
+		/**
+		 * The fields `secondLine` names for this browser: the list itself, or
+		 * the fields of its first variant whose `when` is `true` or absent.
+		 * Null without `secondLine` or a matching variant.
+		 *
+		 * @return {Array<string>|null}
+		 * @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-a-files-second-line-is-a-list-of-fields
+		 */
+		secondLineFields() {
+			const list = Array.isArray(this.secondLine) ? this.secondLine : []
+			if (list.length === 0) {
+				return null
+			}
+			if (list.every((item) => typeof item === 'string')) {
+				return list
+			}
+			const variant = list.find((item) => item && typeof item === 'object' && Array.isArray(item.fields) && (!('when' in item) || item.when === true))
+			return variant ? variant.fields.filter((field) => typeof field === 'string') : null
+		},
+
+		/**
+		 * The bulk bar's count text.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-the-bulk-bar-names-what-is-selected
+		 */
+		selectionCountText() {
+			const count = this.selectedIds.length
+			const template = count === 1 && this.selectionLabelOne ? this.selectionLabelOne : this.selectionLabel
+			if (template) {
+				return this.cnTranslate(template).replace(/\{count\}/g, String(count))
+			}
+			return t('nextcloud-vue', '{count} selected', { count })
+		},
+
+		/**
+		 * The file the side cards describe: the last one selected, or null
+		 * without side cards or a selection.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
+		 */
+		/** @return {boolean} Whether the side cards fill the page's side column now. */
+		sideClaimed() {
+			return this.sideInPage && this.sideNode !== null
+		},
+
+		/** @return {boolean} Whether the side cards stand in the page's side column. */
+		sideInPage() {
+			return this.sideCardsPlacement === 'page-side' && this.cnDetailSideColumn !== null && this.cnDetailSideColumn.available === true
+		},
+
+		/** @return {string} Where the side cards are teleported to in the page. */
+		pageSideTarget() {
+			return this.cnDetailSideColumn?.target || 'body'
+		},
+
+		sideNode() {
+			if (!Array.isArray(this.sideCards) || this.sideCards.length === 0 || this.selectedIds.length === 0) {
+				return null
+			}
+			const id = this.selectedIds[this.selectedIds.length - 1]
+			return this.fileNodes.find((node) => String(node.fileid) === id) || null
+		},
+
 		fileNodes() {
 			return this.sorted.filter((node) => !this.isFolder(node))
+		},
+
+		/**
+		 * The review counts over the folder's files, or null without a summary.
+		 *
+		 * @return {object|null}
+		 */
+		review() {
+			return reviewSummary(this.reviewSummary, this.fileNodes, this.resolvedRowData)
+		},
+
+		/** @return {string} The summary's title, counts filled in. */
+		reviewTitle() {
+			return this.reviewText('title', t('nextcloud-vue', '{done} of {total} reviewed'))
+		},
+
+		/** @return {string} The summary's second line, or '' when nothing is open. */
+		reviewSubtitle() {
+			if (!this.review || this.review.open === 0) {
+				return ''
+			}
+			return this.reviewText('subtitle', t('nextcloud-vue', '{open} still to review'))
 		},
 
 		/**
@@ -1353,6 +1949,17 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Tell the page whether the side cards stand in its side column now,
+		 * so its generic cards stand aside meanwhile.
+		 */
+		sideClaimed: {
+			immediate: true,
+			handler(on) {
+				this.cnDetailSideColumn?.claim?.(this.$.uid, on)
+			},
+		},
+
 		rootPath(next) {
 			this.currentPath = next
 			this.refresh()
@@ -1375,7 +1982,12 @@ export default {
 		}
 	},
 
+	updated() {
+		this.measureActionsColumn()
+	},
+
 	beforeUnmount() {
+		this.cnDetailSideColumn?.claim?.(this.$.uid, false)
 		for (const channel of FOLDER_CHANGED_CHANNELS) {
 			unsubscribe(channel, this.onFolderChanged)
 		}
@@ -1383,6 +1995,34 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Measure the first row's actions cell (padding, the row button, the
+		 * gap and the menu) and keep it as the column's width, so a fixed
+		 * table does not push the button past its card. Without a row button
+		 * the column keeps its own width.
+		 *
+		 * @spec openspec/changes/files-actions-column-fits-row-button/specs/files-actions-column-fits-row-button/spec.md#requirement-the-actions-column-fits-a-row-button
+		 */
+		measureActionsColumn() {
+			const cell = this.$el && this.$el.querySelector ? this.$el.querySelector('tbody .cn-files-browser__col-actions') : null
+			const button = cell ? cell.querySelector('.cn-files-browser__row-button') : null
+			if (!cell || !button) {
+				if (this.actionsColumnWidth !== null) {
+					this.actionsColumnWidth = null
+				}
+				return
+			}
+			const style = window.getComputedStyle(cell)
+			const content = [...cell.children].reduce((sum, child) => {
+				const childStyle = window.getComputedStyle(child)
+				return sum + child.offsetWidth + (parseFloat(childStyle.marginInlineStart) || 0) + (parseFloat(childStyle.marginInlineEnd) || 0)
+			}, 0)
+			const width = Math.ceil(content + (parseFloat(style.paddingInlineStart) || 0) + (parseFloat(style.paddingInlineEnd) || 0))
+			if (width > 0 && width !== this.actionsColumnWidth) {
+				this.actionsColumnWidth = width
+			}
+		},
+
 		t,
 
 		preventMiddleClickAutoscroll,
@@ -1458,7 +2098,7 @@ export default {
 				this.nodes = nodes
 				await this.resolveRowData(this.nodes)
 			} catch (err) {
-				const atRoot = (this.currentPath.replace(/\/+$/, '') || '/') === (this.rootPath.replace(/\/+$/, '') || '/')
+				const atRoot = (stripTrailingSlashes(this.currentPath) || '/') === (stripTrailingSlashes(this.rootPath) || '/')
 				this.error = err?.status === 404
 					? (atRoot ? t('nextcloud-vue', 'You cannot see these files') : t('nextcloud-vue', 'This folder no longer exists'))
 					: (err?.status === 403 ? t('nextcloud-vue', 'You cannot see this folder') : t('nextcloud-vue', 'The folder could not be read'))
@@ -1517,7 +2157,7 @@ export default {
 		 * @return {void}
 		 */
 		navigate(path) {
-			const root = this.rootPath.replace(/\/+$/, '') || '/'
+			const root = stripTrailingSlashes(this.rootPath) || '/'
 			if (path !== root && !path.startsWith(root === '/' ? '/' : `${root}/`)) {
 				return
 			}
@@ -1676,6 +2316,132 @@ export default {
 		 */
 		hostLabel(action) {
 			return this.cnTranslate(String(action?.label ?? ''))
+		},
+
+		/**
+		 * The second line under a file's name, or '' without `nameSecondary`,
+		 * for a folder, or when a value in it is empty.
+		 *
+		 * @param {object} node The file.
+		 * @return {string}
+		 */
+		nameSecondaryOf(node) {
+			const fields = this.secondLineFields
+			if ((!this.nameSecondary && fields === null) || this.isFolder(node)) {
+				return ''
+			}
+			const entry = this.rowEntryOf(node)
+			const owner = node.attributes ? node.attributes['owner-display-name'] : undefined
+			const object = {
+				...entry,
+				name: node.basename,
+				// A template drops an object value, so the Date is handed over as ISO text.
+				modified: node.mtime instanceof Date ? node.mtime.toISOString() : node.mtime,
+				size: this.formatSize(node.size),
+				type: this.typeLabelOf(node),
+				...(owner ? { owner } : {}),
+			}
+			if (fields !== null) {
+				return fields
+					.map((field) => fillTemplate(`{${field}}`, object))
+					.filter((text) => text !== '')
+					.join(' · ')
+			}
+			return fillTemplate(this.cnTranslate(this.nameSecondary), object)
+		},
+
+		/**
+		 * A file's type as a reader names it: the application for common
+		 * office types ("PDF", "Word", "Excel"), "Email" for a mail, "Image"
+		 * for a picture, else the extension in capitals.
+		 *
+		 * @param {object} node The file.
+		 * @return {string} The label, or ''.
+		 * @spec openspec/changes/files-browser-second-line-size-type/specs/files-browser-second-line-size-type/spec.md#requirement-a-files-second-line-can-name-its-type-and-size
+		 */
+		typeLabelOf(node) {
+			const mime = String(node?.mime || '')
+			if (mime === 'application/pdf') {
+				return 'PDF'
+			}
+			if (/msword|wordprocessingml/.test(mime)) {
+				return 'Word'
+			}
+			if (/ms-excel|spreadsheetml/.test(mime)) {
+				return 'Excel'
+			}
+			if (/ms-powerpoint|presentationml/.test(mime)) {
+				return 'PowerPoint'
+			}
+			if (mime === 'message/rfc822' || mime === 'application/vnd.ms-outlook') {
+				return t('nextcloud-vue', 'Email')
+			}
+			if (mime.startsWith('image/')) {
+				return t('nextcloud-vue', 'Image')
+			}
+			const match = /\.([a-z0-9]+)$/i.exec(String(node?.basename || ''))
+			return match ? match[1].toUpperCase() : ''
+		},
+
+		/**
+		 * A review summary line: the host's template through its translate, else
+		 * the library's, with the counts filled in.
+		 *
+		 * @param {string} key `title` or `subtitle`.
+		 * @param {string} fallback The library's line, already translated.
+		 * @return {string}
+		 */
+		reviewText(key, fallback) {
+			const own = this.reviewSummary && typeof this.reviewSummary[key] === 'string' && this.reviewSummary[key] !== ''
+				? this.cnTranslate(this.reviewSummary[key])
+				: fallback
+			const counts = this.review || { done: 0, total: 0, open: 0 }
+			return own.replace(/\{(done|total|open)\}/g, (match, name) => String(counts[name]))
+		},
+
+		/**
+		 * Whether a review value is one of the summary's open values.
+		 *
+		 * @param {string} value The value.
+		 * @return {boolean}
+		 */
+		isOpenValue(value) {
+			const open = this.reviewSummary ? this.reviewSummary.open : undefined
+			const list = (Array.isArray(open) ? open : [open]).filter((v) => v !== undefined && v !== null)
+			return list.some((v) => String(v).toLowerCase() === String(value).toLowerCase())
+		},
+
+		/**
+		 * Whether the row button is drawn on a file: never on a folder, and
+		 * only where its `when` and `visibleIf` (row included) hold.
+		 *
+		 * @param {object} node The file.
+		 * @return {boolean}
+		 */
+		rowButtonApplies(node) {
+			if (!this.rowButton || this.isFolder(node)) {
+				return false
+			}
+			return hostActionApplies(this.rowButton, node, this.rowValueOf(node))
+		},
+
+		/**
+		 * Whether a file's row button is the primary one: the row-data field
+		 * `primaryWhen.key` holds one of `primaryWhen.values`.
+		 *
+		 * @param {object} node The file.
+		 * @return {boolean}
+		 */
+		rowButtonPrimary(node) {
+			const when = this.rowButton && this.rowButton.primaryWhen
+			if (!when || typeof when.key !== 'string' || !Array.isArray(when.values)) {
+				return false
+			}
+			const raw = fileColumnValue({ key: when.key, source: 'row' }, node, this.resolvedRowData)
+			if (raw === null || raw === undefined) {
+				return false
+			}
+			return when.values.some((v) => String(v).toLowerCase() === String(raw).toLowerCase())
 		},
 
 		/**
@@ -1912,7 +2678,8 @@ export default {
 			this.dragDepth++
 			if (!this.dragging) {
 				this.dragging = true
-				this.dropStatus = this.dropOverlay ? this.dropLabel : ''
+				this.dragCount = this.draggedFileCount(event)
+				this.dropStatus = this.dropOverlay ? [this.cnTranslate(this.dropLabel), this.dropDetailText].filter(Boolean).join(' ') : ''
 			}
 		},
 
@@ -1940,6 +2707,22 @@ export default {
 				this.dragging = false
 				this.dropStatus = ''
 			}
+		},
+
+		/**
+		 * How many files a drag carries, or null when the browser does not
+		 * say (it lists the items only once they are dropped in some browsers).
+		 *
+		 * @param {DragEvent} event The drag.
+		 * @return {number|null}
+		 */
+		draggedFileCount(event) {
+			const items = event?.dataTransfer?.items
+			if (!items || typeof items.length !== 'number') {
+				return null
+			}
+			const count = Array.from(items).filter((item) => item && item.kind === 'file').length
+			return count > 0 ? count : null
 		},
 
 		/**
@@ -2096,6 +2879,109 @@ export default {
 		 */
 		cellValue(column, node) {
 			return fileColumnValue(column, node, this.resolvedRowData)
+		},
+
+		/**
+		 * The host's row data for one file (`rowData`, by file id), `{}` without it.
+		 *
+		 * @param {object} node The node.
+		 * @return {object} The row entry.
+		 */
+		rowEntryOf(node) {
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			return byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+		},
+
+		/**
+		 * A declared column's second line under its value: the column's
+		 * `subline` template, translated and filled from the file's row data
+		 * ("ground {reviewGrounds|values}"), '' when it names no value.
+		 *
+		 * @param {object} column A resolved column.
+		 * @param {object} node The node.
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/files-column-subline/specs/files-column-subline/spec.md#requirement-a-declared-column-can-draw-a-second-line-under-its-value
+		 */
+		cellSubline(column, node) {
+			if (!column || typeof column.subline !== 'string' || column.subline === '') {
+				return ''
+			}
+			return fillTemplate(this.cnTranslate(column.subline), this.rowEntryOf(node))
+		},
+
+		/**
+		 * The tone a column or card field draws a value in: its `colorMap`
+		 * entry for the value (case-insensitive), read from the `colorKey` field
+		 * of the row when given, else from the value itself. '' without one.
+		 *
+		 * @param {object} column A resolved column or a side card field.
+		 * @param {object} node The node.
+		 * @return {string} A badge variant (`success`, `warning`, `error`, ...) or ''.
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-a-row-column-can-draw-its-values-in-tones
+		 */
+		toneOf(column, node) {
+			const map = column && column.colorMap
+			if (!map || typeof map !== 'object') {
+				return ''
+			}
+			const raw = column.colorKey
+				? fileColumnValue({ key: column.colorKey, source: 'row' }, node, this.resolvedRowData)
+				: this.cellValue(column, node)
+			if (raw === null || raw === undefined || typeof raw === 'object') {
+				return ''
+			}
+			const wanted = String(raw).toLowerCase()
+			const hit = Object.keys(map).find((key) => key.toLowerCase() === wanted)
+			return hit ? String(map[hit]) : ''
+		},
+
+		/**
+		 * The widget props a cell gets: the column's own, and for a `badge`
+		 * its tone as the variant.
+		 *
+		 * @param {object} column A resolved column.
+		 * @param {object} node The node.
+		 * @return {object|null}
+		 */
+		cellWidgetProps(column, node) {
+			if (column.widget !== 'badge') {
+				return column.widgetProps || null
+			}
+			const tone = this.toneOf(column, node)
+			return { ...(column.widgetProps || {}), ...(tone ? { variant: tone } : {}) }
+		},
+
+		/**
+		 * The side cards for a file, resolved: the title with `{name}` filled
+		 * in, the fields that have a value with their tone, and the actions.
+		 *
+		 * @param {object} node The node.
+		 * @return {Array<{id: string, title: string, fields: Array<object>, actions: Array<object>}>}
+		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
+		 */
+		sideCardsFor(node) {
+			return this.sideCards
+				.filter((card) => card && card.id)
+				.map((card) => ({
+					id: String(card.id),
+					title: this.cnTranslate(String(card.title || '')).replace(/\{name\}/g, node.basename),
+					fields: (Array.isArray(card.fields) ? card.fields : [])
+						.filter((field) => field && field.key)
+						.map((field) => {
+							const column = { ...field, source: field.source || 'row' }
+							return {
+								key: String(field.key),
+								label: this.cnTranslate(String(field.label || field.key)),
+								value: this.cellValue(column, node),
+								formatter: field.formatter,
+								formatterOptions: field.formatterOptions,
+								tone: this.toneOf(column, node),
+							}
+						})
+						.filter((field) => field.value !== null && field.value !== undefined && field.value !== ''),
+					actions: (Array.isArray(card.actions) ? card.actions : [])
+						.filter((action) => action && action.id && hostActionApplies(action, node, this.rowValueOf(node))),
+				}))
 		},
 
 		/**
@@ -2370,6 +3256,29 @@ export default {
 		 * @param {string} value The value.
 		 * @return {void}
 		 */
+		/**
+		 * A facet menu's name: "<column>: <chosen value>", or "<column>: all".
+		 *
+		 * @param {{label: string, values: Array<{value: string, active: boolean}>}} facet The facet.
+		 * @return {string} The name.
+		 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+		 */
+		facetMenuName(facet) {
+			const chosen = facet.values.filter((option) => option.active).map((option) => option.value)
+			return `${facet.label}: ${chosen.length > 0 ? chosen.join(', ') : this.facetAllLabel}`
+		},
+
+		/**
+		 * Choose one value of a facet, or none.
+		 *
+		 * @param {string} key The facet column.
+		 * @param {string|null} value The value, or null for all.
+		 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+		 */
+		chooseFacet(key, value) {
+			this.facetSelections = { ...this.facetSelections, [key]: value === null ? [] : [value] }
+		},
+
 		toggleFacet(key, value) {
 			const chosen = this.facetSelections[key] || []
 			const next = chosen.includes(value) ? chosen.filter((entry) => entry !== value) : [...chosen, value]
@@ -2390,7 +3299,18 @@ export default {
 		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
 		 */
 		hostActionsFor(node) {
-			return this.rowActions.filter((action) => hostActionApplies(action, node))
+			return this.rowActions.filter((action) => hostActionApplies(action, node, this.rowValueOf(node)))
+		},
+
+		/**
+		 * A reader of the host's row fields for one file, for `visibleIf.row`.
+		 *
+		 * @param {object} node The file.
+		 * @return {(key: string) => unknown} `(key) => value` over the row the host gave for the file.
+		 * @spec openspec/changes/files-browser-action-visible-if-row/specs/files-browser/spec.md#requirement-a-host-action-can-be-offered-by-a-field-of-the-files-row
+		 */
+		rowValueOf(node) {
+			return (key) => fileColumnValue({ key, source: 'row' }, node, this.resolvedRowData)
 		},
 
 		/**
@@ -2416,7 +3336,7 @@ export default {
 				? { path: this.currentPath }
 				: { fileId: node.fileid, fileName: node.basename, path: node.path }
 			if (type === 'open-modal') {
-				wrapped = { ...action, props: { ...(action.props || {}), ...context } }
+				wrapped = { ...action, props: { ...(action.props || {}), ...context, ...this.rowPropsOf(action, node) } }
 			} else if (type === 'handler') {
 				wrapped = { ...action, args: [...(action.args || []), node ?? this.folder] }
 			}
@@ -2425,6 +3345,32 @@ export default {
 				return
 			}
 			dispatchAction(wrapped, { router: this.$router || null })
+		},
+
+		/**
+		 * The clicked file's row-data fields an action asks for as modal props
+		 * (`rowProps: { prop: field }`), or none.
+		 *
+		 * @param {object} action The declared action.
+		 * @param {object|null} node The file, or null for a New-menu entry.
+		 * @return {object} The props.
+		 * @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-modal-action-can-carry-fields-of-the-clicked-files-row-data
+		 */
+		rowPropsOf(action, node) {
+			const wanted = action && action.rowProps
+			if (node === null || !wanted || typeof wanted !== 'object') {
+				return {}
+			}
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+			const out = {}
+			for (const [prop, field] of Object.entries(wanted)) {
+				const value = readPath(entry, String(field))
+				if (value !== undefined && value !== null && value !== '') {
+					out[prop] = value
+				}
+			}
+			return out
 		},
 
 		/**
@@ -2477,6 +3423,18 @@ export default {
 .cn-files-browser--dragging {
 	outline: 2px dashed var(--color-primary-element);
 	outline-offset: 4px;
+}
+
+/* With a `dropDetail` the drop state fills the panel it sits in, as the
+   board draws it (DqZaakDocumentenSlepen), not only the list's own height. */
+.cn-files-browser--dragging.cn-files-browser--drop-panel {
+	min-height: max(320px, 100%);
+}
+
+.cn-files-browser__drop-detail {
+	max-width: 520px;
+	font-size: 14px;
+	color: var(--color-main-text);
 }
 
 .cn-files-browser__drop-overlay {
@@ -2577,6 +3535,111 @@ export default {
 	padding: 24px 0;
 }
 
+/* `sideCards`: the list and, while a file is selected, a column of cards. */
+.cn-files-browser__body--with-side {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+	align-items: start;
+	gap: 16px;
+}
+
+@media (max-width: 900px) {
+	.cn-files-browser__body--with-side {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.cn-files-browser__side {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+/* In the detail page's side column the cards take its gap and its card
+   anatomy, as the page's own side cards are drawn. */
+.cn-files-browser__side--in-page {
+	gap: calc(5 * var(--default-grid-baseline));
+}
+
+.cn-files-browser__side--in-page .cn-files-browser__side-card {
+	padding: var(--cn-board-card-padding, 16px 18px);
+	border-radius: var(--cn-board-card-radius, var(--border-radius-large));
+}
+
+.cn-files-browser__side-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 18px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+}
+
+.cn-files-browser__side-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.cn-files-browser__side-facts {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 6px 12px;
+	margin: 0;
+	font-size: 14px;
+}
+
+/* Core's apps.css draws every dt/dd inline-block with a fixed, end-aligned dt.
+   @spec openspec/changes/files-side-facts-core-dl/specs/files-side-facts-core-dl/spec.md#requirement-a-file-side-cards-facts-are-not-drawn-by-cores-dl-rules */
+.cn-files-browser__side-facts dt,
+.cn-files-browser__side-facts dd {
+	display: block;
+	width: auto;
+	padding: 0;
+	text-align: start;
+	white-space: normal;
+}
+
+.cn-files-browser__side-facts dt {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-files-browser__side-facts dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.cn-files-browser__side-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* A value drawn in a tone (`colorMap` on a column that is not a badge): the
+   text in the tone's colour, as the boards write a restricted level. */
+.cn-files-browser__tone {
+	font-weight: 600;
+}
+
+.cn-files-browser__tone--success {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-files-browser__tone--warning {
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-files-browser__tone--error {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-files-browser__tone--primary,
+.cn-files-browser__tone--info {
+	color: var(--color-primary-element-light-text, var(--color-primary-element));
+}
+
 .cn-files-browser__table {
 	width: 100%;
 	border-collapse: collapse;
@@ -2666,6 +3729,88 @@ export default {
 	margin-inline-end: 8px;
 }
 
+.cn-files-browser__review {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-block-end: 12px;
+	padding: 14px 16px;
+	border-radius: 10px;
+	background: var(--color-background-hover);
+}
+
+.cn-files-browser__review-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cn-files-browser__review-title {
+	font-size: 15px;
+}
+
+.cn-files-browser__review-sub {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-files-browser__review-bar {
+	display: flex;
+	height: 8px;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--color-border);
+}
+
+.cn-files-browser__review-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 18px;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+	list-style: none;
+}
+
+.cn-files-browser__review-legend li {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-files-browser__review-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 5px;
+}
+
+.cn-files-browser__review-part--success {
+	background: var(--color-success-text, var(--color-success));
+}
+
+.cn-files-browser__review-part--warning {
+	background: var(--color-warning);
+}
+
+.cn-files-browser__review-part--error {
+	background: var(--color-error-text, var(--color-error));
+}
+
+.cn-files-browser__review-part--info {
+	background: var(--color-primary-element);
+}
+
+.cn-files-browser__review-part--default {
+	background: var(--color-border-dark);
+}
+
+.cn-files-browser__row-button {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
 .cn-files-browser__facets {
 	display: flex;
 	flex-wrap: wrap;
@@ -2716,6 +3861,24 @@ export default {
 
 .cn-files-browser__col-actions {
 	width: 48px;
+	white-space: nowrap;
+}
+
+.cn-files-browser__col-actions:has(.cn-files-browser__row-button) {
+	width: auto;
+}
+
+/* The row button and the row menu stand side by side on one line, not
+   stacked (DqZaakDocumenten: Beoordelen, then the menu, 14px apart).
+   @spec openspec/changes/files-row-button-gap-14/specs/files-row-button-gap-14/spec.md#requirement-the-row-button-and-menu-stand-14px-apart */
+.cn-files-browser__col-actions > .cn-files-browser__row-button,
+.cn-files-browser__col-actions > .cn-files-browser__row-menu {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
+.cn-files-browser__col-actions > .cn-files-browser__row-button + .cn-files-browser__row-menu {
+	margin-inline-start: 14px;
 }
 
 .cn-files-browser__col-name {
@@ -2727,6 +3890,30 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-files-browser__cell-subline {
+	display: block;
+	margin-top: 3px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	line-height: normal;
+}
+
+.cn-files-browser__name-secondary {
+	display: block;
+	overflow: hidden;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cn-files-browser__footnote {
+	margin: 0;
+	padding-top: 12px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }
 
 .cn-files-browser__row--linked {

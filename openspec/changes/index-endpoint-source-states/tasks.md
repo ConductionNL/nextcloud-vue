@@ -1,0 +1,4 @@
+- [x] Endpoint source: `searchParam`, `notePath`/`noteText`, refusal and failure state
+- [x] useNamedSource sends the search term; CnIndexPage holds it
+- [x] CnIndexPage renders the refusal, the failure and the note
+- [x] Specs and docs

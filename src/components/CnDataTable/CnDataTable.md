@@ -180,6 +180,7 @@ export default {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `stackOnPhone` | Boolean | `false` | Under 600px draw every row as a stacked block, one line per cell with its column name; wider screens keep the table. |
 | `schema` | Object | `null` | JSON Schema with `properties` — enables schema-driven column generation |
 | `columnOverrides` | Object | `{}` | Per-key column overrides when using `schema` mode: `{ key: { width, label, sortable, … } }` |
 | `excludeColumns` | Array | `[]` | Column keys to exclude in schema mode |
@@ -193,12 +194,16 @@ export default {
 | `cellClass` | Function | `null` | `(row, col) => string` — CSS class(es) applied to each `<td>` |
 | `scrollable` | Boolean | `false` | Constrain height and make the table vertically scrollable |
 | `loadingText` | String | `'Loading…'` | Text shown below the spinner during loading |
-| `rowIcon` | String \| Function | `null` | Optional leading icon for every row: a static MDI name applied to all rows, or `(row) => iconName` to vary it per row (resolved via the CnIcon registry). Unset = no icon column. |
+| `rowIcon` | String \| Function \| Object | `null` | Optional leading icon for every row: a static MDI name applied to all rows, `(row) => iconName` to vary it per row, or `{ field, icons, tones?, icon? }` to pick the icon (`icons[value]`, else `icon`) and its tile tone (`tones[value]`, else `rowIconTone`) by a field of the row, as a manifest can declare (resolved via the CnIcon registry). Unset = no icon column. |
+| `rowIconTone` | String | `'primary'` | The tone of the leading icon's tile in the board look: `primary`, `teal`, `neutral` or `warning` (DqOrganisaties draws a teal tile). |
 | `rowIndicators` | Array | `[]` | State indicators the page declares for its rows: `{ id, field, equals?, in?, icon, text, tooltip? }`. The condition is `equals`, `in`, or plain truthiness when neither is given. `text` is required, so an indicator is never colour and shape alone. The page declares which indicators exist; a record cannot add one it has not declared. |
 | `rowIndicatorCap` | Number | `3` | How many declared indicators render on the row before the rest move into the row menu, reachable as `indicatorsFor(row).overflow`. |
 | `selectAllLabel` | String | `'Select all rows'` | Accessible name (`aria-label`) for the header select-all checkbox, so screen readers announce a named control (WCAG 4.1.2) |
 | `selectRowLabel` | String | `'Select row'` | Accessible name (`aria-label`) for each per-row select checkbox, so screen readers announce a named control (WCAG 4.1.2) |
+| `showUnread` | Boolean | `true` | Draw an unread record (`@self.unread`) in bold with the unread dot. Off, every row reads alike. CnIndexPage turns it off under the board look unless the page offers the Unread lens. |
+| `columns[].template` | String | | The cell reads a line built from the row's fields, such as `Shift {floatAt|date}, {drawer}` (`fillTemplate` formats), in the host's translation, instead of the column's own field. An empty field drops out with its separator. |
 | `rowTitle` | String | `'link'` | Board look only: how the title column draws its title. `link` underlines the title (not its secondary line). `plain` draws it as 15px bold text without an underline over a 13px muted secondary line, as the PqTickets board does; the row stays clickable. The Nextcloud look ignores it. |
+| `reorderable` | Boolean | `false` | Lets the reader drag rows into another order; a drop emits `row-move` with `{ row, from, to }` |
 | `hideHeader` | Boolean | `false` | Hide the column-header row (`<thead>`) — for compact dashboard list widgets that want a plain bordered-row list without column labels |
 | `pinnedCount` | Number | `0` | How many data columns are pinned to the start of the table. They, and the selection and icon columns, stay in view when the table scrolls sideways |
 | `fixedLayout` | Boolean | `false` | Switch to `table-layout: fixed` so each column's `width` is authoritative rather than a hint the browser may override from cell content. Long unbreakable values (a PHP FQCN, a UUID) then wrap inside their cell instead of widening the column or painting past it, and no single unsized column soaks up all remaining width. Size every column when using it — percentages summing to 100 are easiest to reason about |
@@ -206,6 +211,10 @@ export default {
 | `fillHeight` | Boolean | `false` | Fill the parent's height (a flex-column card / widget content area) so an optional `#footer` is pushed to the bottom instead of floating under a short list; the footer stays pinned via its sticky rule when the list overflows. No-op outside a height-constrained parent — opt-in |
 | `filterable` | Boolean | `false` | Show a filter button in every header whose column can filter: enum, boolean, text, number, date and reference columns backed by a schema property. A column opts out with `filterable: false`. Applying a filter emits `column-filter`; the host owns the state and passes it back as `activeFilters`. `CnIndexPage` turns it on by default. |
 | `activeFilters` | Object | `{}` | The active filter map, `{ paramKey: values[] }`: the same map the facet sidebar writes, so a header filter and a sidebar filter on one field show the same state. |
+| `localHeaders` (`local-headers`) | Boolean | `false` | Sort and filter the `rows` the table holds from its own headers, in the browser: for a table that holds every row (a settings table read from an app endpoint) and has no host keeping the state. `sort` and `column-filter` still emit; `sortKey`, `sortKeys` and `activeFilters` are not read. |
+| `framed` | Boolean | `false` | Frame a table that sits straight in a card, as the Pipelinq POS boards draw it: a 1px frame with an 8px radius, 18px outer cell insets and a rule under the head and every row but the last. Board look only; the Nextcloud look ignores it. |
+| `filterSchema` | Object | `null` | The schema the header filters read instead of `schema`, for a page that filters through other fields than the rows' own (a named source's search fields). Null: the header filters read `schema`. |
+| `filterChips` | Boolean | `true` | Draw the active header filters as removable chips above the table. A host that lists them itself (the index page's board Active line) turns this off, so a filter is not shown twice. |
 | `filterRegister` | String | `''` | Register slug a reference column's filter searches in when the column names none. |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable personal lens in self-fetch mode, keyed `<lens>.<reason>` or `<reason>`. Without it the library's text is used (see below). |
 
@@ -228,6 +237,7 @@ features are folded in here as opt-in props (bare-table usage is unchanged):
 - `borderless` — drop the container's card chrome so the table sits flush inside
   a parent card (e.g. a `CnWidgetWrapper` dashboard slot).
 - `limit` — show only the first N rows; with `viewAllRoute` a "View all" footer appears.
+- `pageSize` — rows per page: one page of the rows the table holds, with the board's pager under them ("4 of 7", the page buttons, Next) once there is more than one page (DqCatalogus). 0 (the default) shows every row, or the first `limit`.
 - `viewAllRoute` / `viewAllLabel` — the footer control's route and label. It renders
   as a real `<a :href>` when the router resolves the route, and as a
   `<button type="button">` (emitting `view-all`) otherwise, so it always has a
@@ -271,3 +281,32 @@ against. Note that only some hosts forward that prop from a manifest: a
 `type: 'logs'` page passes `config.fixedLayout` straight through, while
 `CnIndexPage` accepts the key and ignores it, leaving the class to truncate
 against the browser's own auto layout.
+
+## Cell pills (`col.pills`)
+
+A column can put a pill beside a cell's value when a condition holds on the row:
+`pills: [{ field: 'indicatieGeheim', equals: true, label: 'Data protection', variant: 'warning' }]`
+draws "*****4054 Geheimhouding" for a protected resident (DqContacten). The condition is
+the row-indicator grammar (`equals`, `in`, a date `after`/`before`, a number `lt`/`gt`, or
+truthiness), the label goes through the host translation, and `variant` is a
+`CnStatusBadge` variant (`default` when left out).
+
+## Value by rule (`col.valueWhen`)
+
+`valueWhen: [{ when, value }]` names what a cell holds by the row's fields: the first rule whose `when` holds (a condition `{ field, op?, value }` or a list of them, the `rowClass` grammar with `@now` and `@today`) gives the cell's value, drawn as any value; no rule holding leaves the stored value. PtMededelingenActies draws a published notice whose window runs as "Nu zichtbaar":
+
+```json
+{ "key": "status", "widget": "badge", "valueWhen": [
+  { "when": [{ "field": "status", "value": "published" }, { "field": "startsAt", "op": "lte", "value": "@now" }, { "field": "endsAt", "op": "gte", "value": "@now" }], "value": "visible" }
+] }
+```
+
+A list field on a `secondary` line names each value through `secondaryLabels` and reads as a list in the page's language: `{surfaces}` on `['site', 'portal']` with `{ surfaces: { site: "website", portal: "Mijn Zuiddrecht" } }` reads "website en Mijn Zuiddrecht".
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn above the rows, such as a source that is down or a bulk move that was partly done: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](../../../docs/components/cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

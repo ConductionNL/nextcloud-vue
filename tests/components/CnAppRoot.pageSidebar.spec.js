@@ -136,4 +136,33 @@ describe('CnAppRoot page sidebar resolution', () => {
 
 		expect(wrapper.findComponent(SidebarStub).exists()).toBe(true)
 	})
+
+	it.each(['flow', 'flow-detail'])('mounts no sidebar for a %s page in the board look', (type) => {
+		// CnFlowBoard carries the flow's controls behind its own side panel
+		// button; an app sidebar beside it takes the canvas's width (PqFlow).
+		const wrapper = mountRoot(
+			makeManifest({ type, sidebarComponent: 'DetailSidebar' }),
+			{ registry: registryWith(SidebarStub), look: 'board' },
+		)
+
+		expect(wrapper.findComponent(SidebarStub).exists()).toBe(false)
+	})
+
+	it('keeps the sidebar of a flow page in the Nextcloud look', () => {
+		const wrapper = mountRoot(
+			makeManifest({ type: 'flow', sidebarComponent: 'DetailSidebar' }),
+			{ registry: registryWith(SidebarStub), look: 'nextcloud' },
+		)
+
+		expect(wrapper.findComponent(SidebarStub).exists()).toBe(true)
+	})
+
+	it('keeps the sidebar of a flow page that draws itself in the Nextcloud look', () => {
+		const wrapper = mountRoot(
+			makeManifest({ type: 'flow', sidebarComponent: 'DetailSidebar', config: { look: 'nextcloud' } }),
+			{ registry: registryWith(SidebarStub), look: 'board' },
+		)
+
+		expect(wrapper.findComponent(SidebarStub).exists()).toBe(true)
+	})
 })

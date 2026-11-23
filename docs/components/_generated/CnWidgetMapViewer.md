@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 3 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 13 files reached through imports.
 
-Through: `CnActionsMenu`, `CnMapWidget`.
+Through: `CnActionDialog`, `CnActionsMenu`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`, `CnMapWidget`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

@@ -133,6 +133,14 @@ export default {
 
 	components: { NcDialog, NcSelect, NcTextField },
 
+	props: {
+		/** Add the step at the bottom of the list view, wired in, not loose on the canvas. */
+		append: {
+			type: Boolean,
+			default: false,
+		},
+	},
+
 	emits: ['close'],
 
 	setup() {
@@ -290,7 +298,11 @@ export default {
 		 * @return {void}
 		 */
 		add(id) {
-			this.store.addNode(id)
+			if (this.append) {
+				this.store.appendStep(id)
+			} else {
+				this.store.addNode(id)
+			}
 			this.$emit('close')
 		},
 	},

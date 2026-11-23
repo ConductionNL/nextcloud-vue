@@ -1,0 +1,1 @@
+- [x] 1.1 sort + filter (tests/components/CnTasksWidgetTableHead.spec.js)

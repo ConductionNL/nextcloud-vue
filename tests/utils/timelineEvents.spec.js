@@ -37,6 +37,14 @@ describe('timelineEvents', () => {
 			.toMatchObject({ label: 'Note', detail: 'Ana: Called back', source: 'timeline' })
 	})
 
+	it('leaves audit reads out: a read is not a change', () => {
+		const events = auditEvents([
+			{ id: 1, action: 'read', actorDisplayName: 'Ruben', created: '2026-09-05T00:00:00Z' },
+			{ id: 2, action: 'update', actorDisplayName: 'Ruben', created: '2026-09-06T00:00:00Z' },
+		], (a) => a, now)
+		expect(events.map((e) => e.id)).toEqual(['audit:2'])
+	})
+
 	it('sorts oldest first by default and newest first on request', () => {
 		const a = { at: new Date('2026-01-02') }
 		const b = { at: new Date('2026-01-01') }

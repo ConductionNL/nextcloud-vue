@@ -89,6 +89,7 @@ export function createIntegrationRegistry() {
 	 * @param {?object} [entry.offlineConfig] Opaque per-integration config bag forwarded verbatim to the integration's components (e.g. the field-inspection leaf's offline schema/filter config). A consuming app overrides it by pre-registering the same id.
 	 * @param {'component'|'mount'} [entry.renderMode] Render strategy (openregister#2127 / ADR-066). `'component'` (default) interprets the SFC `tab`/`widget` under the host's own Vue runtime. `'mount'` hands the leaf a bare host-owned DOM element via `mount`/`unmount`, so a leaf built against a different Vue major than the host renders its own framework instance inside that element.
 	 * @param {(el: Element, props: object) => void} [entry.mount] Mount hand-off. Required together with `unmount` when `renderMode` is `'mount'`; the host calls it against a bare element with the same context an SFC widget/tab receives (`{ register, schema, objectId, surface, integrationContext, … }`). May also be supplied alongside an SFC pair as a same-major fast path.
+	 * @param {'card'} [entry.chrome] `'card'` when a mount-mode leaf draws no card of its own: a detail page then hosts it in the library card and hands it `onHeader(header)` to report its count, actions and empty state.
 	 * @param {(el: Element) => void} [entry.unmount] Teardown hand-off, called by the host before it removes the element and on surface hide / bound-object change. Travels as a pair with `mount`.
 	 *
 	 * @return {?object} Normalised entry, or null on collision / malformed mount pair in prod.
@@ -209,6 +210,9 @@ export function createIntegrationRegistry() {
 			// registration, with the tabbed panel silently keeping the sidebar
 			// component.
 			bareWidget: entry.bareWidget === true,
+			// `card`: a mount-mode leaf that draws no card of its own, so a
+			// detail page hosts it in the library card (CnDetailWidgetHost).
+			chrome: entry.chrome === 'card' ? 'card' : null,
 			// Marker set by `registerBuiltinIntegrations` /
 			// `registerLeafIntegrations` so `useIntegrationRegistry` can
 			// distinguish lib-owned registrations (whose components must

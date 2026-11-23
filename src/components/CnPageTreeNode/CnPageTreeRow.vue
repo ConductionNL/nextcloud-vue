@@ -462,7 +462,16 @@ export default {
 		 * @return {void}
 		 */
 		commitSlug() {
-			const next = String(this.slugDraft || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+			const dashed = String(this.slugDraft || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+			let start = 0
+			let end = dashed.length
+			while (start < end && dashed[start] === '-') {
+				start++
+			}
+			while (end > start && dashed[end - 1] === '-') {
+				end--
+			}
+			const next = dashed.slice(start, end)
 			if (!next || next === this.page.id) {
 				this.slugDraft = this.page.id
 				return

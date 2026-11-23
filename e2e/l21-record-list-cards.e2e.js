@@ -4,7 +4,7 @@
 // A record list with `presentation: "cards"` draws a framed card per row in a
 // grid, as board ShBank draws the four bank accounts: 1px border, radius 12px,
 // padding 16px 18px, 16px apart, the balance at 24px bold. In a titled card
-// the cards keep a 24px side inset; in a borderless cell they are flush with
+// the cards keep the dashboard card's 22px side inset; in a borderless cell they are flush with
 // the cell (?l8=record-list-cards, harness l8/RecordListCards.vue).
 //
 // WHY PLAYWRIGHT: the claim is measured layout (four cards side by side in one
@@ -53,12 +53,12 @@ test('the bank accounts are four cards side by side, each with its figure', asyn
 	await expect(cards.nth(3)).toContainText('Afschrift importeren')
 	await expect(cards.first().locator('svg')).toHaveCount(1)
 
-	// Inset 24px inside the titled card (plus its 1px edge), flush in the borderless cell.
+	// Inset 22px inside the titled card (plus its 1px edge), flush in the borderless cell.
 	const inset = async (i) => {
 		const cell = await lists.nth(i).locator('xpath=ancestor::div[contains(@class, "cn-widget-wrapper ")][1]').boundingBox()
 		const first = await lists.nth(i).locator('[data-testid="cn-record-list-card"]').first().boundingBox()
 		return Math.round(first.x - cell.x)
 	}
-	expect(await inset(0)).toBe(25)
+	expect(await inset(0)).toBe(23)
 	expect(await inset(1)).toBe(0)
 })

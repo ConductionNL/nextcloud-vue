@@ -106,6 +106,7 @@ All user-visible strings have props so they can be pre-translated by the consume
 
 | Prop | Default (English) | Description |
 |---|---|---|
+| `description` | (empty) | What the delete removes besides the item, a muted line under the question; `{name}` is the item name. |
 | `nameFormatter` | `null` | Optional function `(item) => string` to format the displayed item name. Overrides `nameField` when provided. |
 | `successText` | `'Item successfully deleted.'` | Message shown in the success note card after deletion. |
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |

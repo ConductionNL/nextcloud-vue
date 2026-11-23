@@ -374,9 +374,18 @@
 							"items": { "$ref": "#/$defs/widgetRefItem" }
 						},
 						"layout": {
-							"type": "array",
-							"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
-							"items": { "$ref": "#/$defs/layoutItem" }
+							"oneOf": [
+								{
+									"type": "array",
+									"description": "Dashboard layout entries consumed by CnDashboardGrid / CnDashboardPage (for type='dashboard'). Each item references the `layoutItem` $def.",
+									"items": { "$ref": "#/$defs/layoutItem" }
+								},
+								{
+									"type": "string",
+									"enum": ["cards", "canvas"],
+									"description": "type='flow' / 'flow-detail' in the board look: `canvas` draws the page as boards PqFlow and PqFlowRun do; `cards` (default) keeps the DqFlow grid."
+								}
+							]
 						},
 						"pageFilters": {
 							"type": "array",
@@ -388,7 +397,8 @@
 								"properties": {
 									"key": { "type": "string", "description": "Workspace-context key written on change (the `@page.<key>` / `@workspace.<key>` token name)." },
 									"label": { "type": "string", "description": "Optional control label (i18n key or plain text)." },
-									"type": { "type": "string", "enum": ["select"], "default": "select", "description": "Control type. Closed enum — \"select\" only for now." },
+									"type": { "type": "string", "enum": ["select", "quarter", "year"], "default": "select", "description": "Control type. \"quarter\" and \"year\" generate their options: the current quarter or year first, then `count - 1` before it, valued YYYY-Qn or YYYY." },
+									"count": { "type": "integer", "minimum": 1, "description": "With type \"quarter\" or \"year\": how many to offer (default 8 quarters, 5 years)." },
 									"default": { "type": ["string", "number"], "description": "Initial value seeded into the context on mount. Defaults to the first option's value when omitted." },
 									"options": {
 										"type": "array",
@@ -568,6 +578,11 @@
 					"default": true,
 					"description": "Whether the column header is clickable to sort. Defaults to true."
 				},
+				"filterField": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The stored field the header filter filters on, when it is not `key`. A dotted path (\"address.place\") names a field inside an object property. Gives a computed column (`aggregate`) a header filter on a field the server stores."
+				},
 				"width": {
 					"type": "string",
 					"description": "Optional CSS width (e.g. \"200px\", \"15%\"). When omitted CnDataTable falls back to its built-in default-width heuristic by type+format."
@@ -664,6 +679,11 @@
 							"type": "object",
 							"additionalProperties": true,
 							"description": "Filter applied to the related collection. String values \"@self.<path>\" are replaced per-row with `getCellValue(row, path)`; everything else is a literal."
+						},
+						"filterable": {
+							"type": "boolean",
+							"default": false,
+							"description": "Give the column a header filter through OpenRegister's related-row filter (`_related[<schema>][<fk>]`): `where` must link one field to \"@self.id\"; a count offers rows WITH a related row matching the other `where` entries, a max over `field` a date range on a related row's `field`."
 						}
 					}
 				},
@@ -777,7 +797,7 @@
 				},
 				"props": {
 					"type": "object",
-					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type, so it stays open — only the few keys whose VALUE is a closed enum are typed below, to catch a misspelt value that would otherwise fall back to the default in silence. For type='chart' the forwarded keys are: chartKind, series, categories, labels, options, colors, toolbar, legend, height, width, horizontal, legendPosition, valueFormat, valueAxisBaseline, colorMap, emptyLabel, unavailableLabel, views, endpointSource. Note that a misspelt KEY cannot be caught here (the bag is open by design) and is dropped at render time.",
+					"description": "Free-form props object passed through to the rendered widget component. The shape varies per widget type, so it stays open — only the few keys whose VALUE is a closed enum are typed below, to catch a misspelt value that would otherwise fall back to the default in silence. For type='chart' the forwarded keys are: chartKind, series, categories, labels, options, colors, toolbar, legend, height, width, horizontal, legendPosition, legendValues, valueFormat, valueAxisBaseline, colorMap, emptyLabel, unavailableLabel, views, endpointSource. Note that a misspelt KEY cannot be caught here (the bag is open by design) and is dropped at render time.",
 					"additionalProperties": true,
 					"properties": {
 						"valueAxisBaseline": {

@@ -23,6 +23,13 @@ import CnDashboardPage from '@/components/CnDashboardPage/CnDashboardPage.vue'
 import { writeUserPreference } from '@/composables/useUserPreferences.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '@/store/plugins/dashboardLayouts.js'
 
+// The page loads the panel on first open (defineAsyncComponent): wait for the import.
+async function panelLoaded() {
+	for (let i = 0; i < 5; i++) {
+		await new Promise((resolve) => setTimeout(resolve, 0))
+	}
+}
+
 const ITEMS = [
 	{ id: 'urgent', label: 'Urgent', hidden: false },
 	{ id: 'waiting', label: 'Waiting on me', hidden: false },
@@ -148,6 +155,7 @@ describe('CnDashboardPage: layoutPanel', () => {
 		expect(button.text()).toBe('Arrange page')
 		expect(button.attributes('aria-expanded')).toBe('false')
 		await button.trigger('click')
+		await panelLoaded()
 		expect(button.attributes('aria-expanded')).toBe('true')
 		const panel = w.findComponent(CnDashboardLayoutPanel)
 		expect(panel.props('items').map((entry) => entry.label)).toEqual(['Urgent', 'Appointments', 'Waiting on me'])
@@ -160,6 +168,7 @@ describe('CnDashboardPage: layoutPanel', () => {
 		const w = mountPage({ layoutPanel: true, userLayoutStore: store })
 		await new Promise((resolve) => setTimeout(resolve, 0))
 		await w.find('[data-testid="cn-dashboard-page-layout-panel-button"]').trigger('click')
+		await panelLoaded()
 		w.findComponent(CnDashboardLayoutPanel).vm.$emit('save', [
 			{ id: 'waiting', hidden: false },
 			{ id: 'urgent', hidden: false },
@@ -182,6 +191,7 @@ describe('CnDashboardPage: layoutPanel', () => {
 		const w = mountPage({ layoutPanel: true, userLayoutStore: store })
 		await new Promise((resolve) => setTimeout(resolve, 0))
 		await w.find('[data-testid="cn-dashboard-page-layout-panel-button"]').trigger('click')
+		await panelLoaded()
 		w.findComponent(CnDashboardLayoutPanel).vm.$emit('reset')
 		await new Promise((resolve) => setTimeout(resolve, 0))
 		expect(store.resetDashboardLayout).toHaveBeenCalledWith('pipelinq', 'MyWork')

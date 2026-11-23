@@ -14,10 +14,15 @@ import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 import { pillCountSource, resolveCountPill, resolvePill } from '../../src/utils/detailActionModel.js'
 import { fetchListTotal } from '../../src/utils/fetchFilterCounts.js'
 
-jest.mock('../../src/utils/fetchFilterCounts.js', () => ({
-	__esModule: true,
-	fetchListTotal: jest.fn(),
-}))
+jest.mock('../../src/utils/fetchFilterCounts.js', () => {
+	const fetchListTotal = jest.fn()
+	return {
+		__esModule: true,
+		fetchListTotal,
+		// Each list through the mocked single count, as the batch's fallback does.
+		fetchListTotals: (lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve().then(() => fetchListTotal(register, schema, filter, ctx)).catch(() => null))),
+	}
+})
 
 const PERSON = { name: 'Sanne de Vries', kind: 'resident' }
 const COUNT = { countFrom: { register: 'r', schema: 'case', filter: { requester: '@objectId' } }, countLabel: { one: '{count} lopende zaak', other: '{count} lopende zaken' }, variant: 'purple' }

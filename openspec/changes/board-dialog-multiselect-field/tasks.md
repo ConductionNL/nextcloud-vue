@@ -1,0 +1,2 @@
+- [x] dialog.css: clickable area and toggle ring for a multiple select in a board dialog
+- [x] Spec tests/css/dialogBoardMultiSelect.spec.js

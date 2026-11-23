@@ -54,8 +54,19 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `rowSource` | `{ url, path?, key }`: live per-row state merged over each entry by key, never written back. |
 | `add` | `{ label?, fields[], unique?, defaults? }`. A field is `{ key, label, type?: "text" \| "select", options?, required?, pattern?, patternMessage?, default? }`. `unique` refuses an entry whose key is already stored. `defaults` are written with every new entry. |
 | `remove` | `{ label? }`: a remove button per row. Omitted: no remove. |
-| `readOnly` | No add form, no remove, no row actions. |
+| `readOnly` | No add form, no remove, no request row actions (dialog row actions stay). |
 | `hint`, `emptyText` | Muted texts. |
+| `row.href` | Path of a link for the row title. Only http(s) and root-relative links are drawn; an absolute one opens in a new tab. A row with no safe link shows its title as text. |
+| `row.href` as `{ path, scheme }` | `scheme` `mailto` or `tel`: the title links to `mailto:<value>` or `tel:<digits>`. |
+| `edit` | `true` or `{ label?, saveLabel? }`: an Edit button per row (named `Edit: <title>`) opens the add form prefilled; saving replaces that entry in the same one PATCH. Not in `readOnly`. |
+| `add.fields[].type: "checkbox"` | A switch; its value is `true` or `false`. |
+| `add.fields[].type: "multiselect"` | A select of several values; its value is a list. An emptied list saves as empty. |
+| `add.fields[].optionsSource` | `{ url, path?, valuePath?, labelPath? }`: options read from an endpoint after the static ones, each value once (`@objectId`, `@object.<field>` filled in). Defaults `id` and `name`. |
+| `columns[].labelsFrom` | An add field key: a column value (or each item of a list value) reads as that field's option label. |
+| `add.requireOneOf` | Keys of which at least one must be filled (a handle or a profile URL); `add.requireOneOfMessage` is the sentence under the first. |
+| `add.exclusive` | Flags (`["primary"]`) only one entry may hold: an entry added or edited with the flag `true` clears it on every other entry. |
+| `lead` | A bold line above the rows, translated, with `{path}` placeholders filled from the object (`"Question about the dossier \"{subjectReference.title}\""`). |
+| `afterSave` | `{ url, method?, body?, failureText? }`: called after every save that went through, with `@objectId` / `@object.<field>` tokens (a contacts write-back). When it fails, the save stands and `failureText` shows as a warning. |
 
 `when` is `{ field: value }`, every field equal; `false` also matches an absent value. Labels, map values, templates, hint and empty text go through the host app's `cnTranslate`.
 
@@ -93,9 +104,12 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 | `columns[]` | `{ header, path, map?, format?, strong?, pill?, variantMap? }`: a cell reads the entry like a row part (`map`, `format`); `pill` draws a status pill (`variantMap` picks the colour); `strong` makes the cell bold. |
 | menu | Each row gets a "..." menu named after the row with its row actions (not those with `placement: "band"`) and remove. |
 | `row.detail` | In the table variant: a warning band under the table, one per matching row, with the row actions marked `placement: "band"` as buttons. |
-| `rowActions[].placement` | `"band"` puts the action in the warning band instead of the menu. |
+| `rowActions[].placement` | `"band"` puts the action in the warning band instead of the menu; `"inline"` draws it as a button in the row, named by `ariaLabel` (a template filled from the row, such as `"Compare {fileName} with the original"`). |
+| `rowActions[].dialog` | `{ id, label, dialog, props }` opens the modal registered under `dialog` in the app registry (`cnOpenModal`) instead of sending a request. `props` values are templates with `@objectId`, `@object.<field>`, `@row.<field>` and `@index`; a `/apps/...` value becomes an absolute url. A dialog action shows in a `readOnly` list too, since it writes nothing, and only on rows where every token in its props fills. |
+| `rowActions[].when` | Besides `{ field: value }`, a field may take operators `{ eq?, neq?, set? }`, where an operand `@row.<field>` (or `@<field>`) is another field of the same row: `{ deliveredRef: { set: true, neq: '@originalRef' } }`. |
+| `columns[].code` | Draw the cell as code (a hash, an id). |
 | `add.trigger` | `"button"`: the add form shows only after a "+ label" button; it closes after a successful add. |
-| `add.placement` | `"header"` (button above the rows, right-aligned) or `"footer"` (default). |
+| `add.placement` | `"header"` (button above the rows, right-aligned), `"title"` (the button in the card's title row, reported on the `header` event; the form opens above the rows; DqZaaktype "Variant toevoegen") or `"footer"` (default). |
 
 ## Props
 
@@ -118,3 +132,37 @@ Every change is ONE `PATCH` of that one field on the object, after re-reading th
 - Content-only on the detail page: it gets the titled card; in a tab panel or a `sections` widget it renders bare.
 - A save without a register, schema or id says "This list cannot be saved here." and writes nothing.
 - Renderer only: no config form.
+
+## A list of plain values (`add.scalar`)
+
+A field that holds strings, such as a choice list's `enumValues`, takes `"add": { "scalar": true, "fields": [{ "key": "value", "label": "Option" }] }`. Add then appends the trimmed value of the first add field itself, not an object. With `unique`, a value the list already holds is refused. A row of a plain value reads as the value.
+
+## Label and value pairs (`variant: "pairs"`)
+
+A side card that lists contact channels (board PqKlant "Contactkanalen": "E-mail, privé" beside the address) draws each entry as a label and a value:
+
+```json
+{
+  "field": "emails",
+  "variant": "pairs",
+  "row": {
+    "label": ["Email", { "path": "kind", "map": { "private": "private", "work": "work" } }],
+    "title": "value",
+    "meta": [{ "path": "primary", "map": { "true": "preferred", "false": "" } }],
+    "href": { "path": "value", "scheme": "mailto" }
+  },
+  "mirror": { "field": "email", "path": "value", "prefer": "primary" },
+  "emptyLabel": "Email",
+  "emptyText": "None yet"
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `variant: "pairs"` | Each entry a label beside its value, in one description list. Edit and remove go in a "..." menu named after the entry. |
+| `row.label` | A literal, or a list of parts: a string is a literal (translated), `{ path, map? }` a value of the entry. The filled parts join with ", ". |
+| value | `row.title`, then the filled `row.meta` parts, joined with ", ". A link with `row.href`. Map a value to `""` to leave it out ("false" otherwise shows as is). |
+| `emptyLabel` | An empty list shows this label beside `emptyText`. Without it an empty list draws nothing. |
+| `mirror` | `{ field, path, prefer? }`: every save also writes `field`, in the same PATCH, with the `path` of the entry whose `prefer` flag is true, else of the first entry, else `""`. Keeps a plain `email` in step with `emails[]`. |
+
+Several of these lists in one card with one Add menu is the [`field-groups`](./cn-field-groups-widget.md) widget.

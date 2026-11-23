@@ -1,0 +1,125 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * The board dialog's header, footer and fields as the dialog boards draw them
+ * (DqOverdragen, DqBesluit, DqDocumentGenereren, DqNieuweZaak). jsdom draws no
+ * layout, so the rules are read from the stylesheets.
+ *
+ * @spec openspec/changes/board-dialog-controls/specs/board-dialog-controls/spec.md#requirement-a-board-dialog-draws-its-controls-as-the-boards-do
+ */
+const fs = require('fs')
+const path = require('path')
+
+const read = (name) => fs.readFileSync(path.join(__dirname, '../../src/css', name), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const dialog = read('dialog.css')
+const board = read('look-board.css')
+
+/**
+ * The declarations of every rule that lists exactly this selector.
+ *
+ * @param {string} css The stylesheet text.
+ * @param {string} selector The selector.
+ * @return {string} The bodies, joined.
+ */
+function bodyOf(css, selector) {
+	const out = []
+	const re = /([^{}]+)\{([^{}]*)\}/g
+	let m
+	while ((m = re.exec(css))) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
+			out.push(m[2])
+		}
+	}
+	return out.join('\n')
+}
+
+describe('dialog.css: the board dialog', () => {
+	it('pads the footer buttons 16px, 18px with an icon, at 14px, above NcButton\'s text-only rule', () => {
+		const button = bodyOf(dialog, '.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue')
+		expect(button).toContain('--button-padding: 16px;')
+		expect(button).toContain('font-size: 14px;')
+		expect(bodyOf(dialog, '.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty))')).toContain('--button-padding: 18px;')
+		expect(bodyOf(dialog, '.modal-mask.cn-dialog-board .dialog__actions .button-vue .button-vue__text.button-vue__text')).toContain('padding-inline: 0;')
+	})
+
+	it('draws the close button as a 36px circle through NcButton\'s size token', () => {
+		const close = bodyOf(dialog, '.cn-dialog-header .cn-dialog-header__close.button-vue')
+		expect(close).toContain('--button-size: 36px;')
+		expect(close).toContain('border-radius: 50%;')
+		expect(close).not.toContain('--button-radius')
+	})
+
+	it('starts the body 22px under the subtitle, the header foot and the gap alone (r29: Bewerken, Delen, Verwijderen read 28/28/26)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-edit-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-share-view')).toContain('padding-top: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-confirm__confirm')).toContain('padding-top: 0;')
+	})
+
+	it('hands the subtitle\'s 14px muted line to the theme\'s paragraph tokens', () => {
+		const subtitle = bodyOf(dialog, '.cn-dialog-header__subtitle')
+		expect(subtitle).toContain('--nldesign-component-paragraph-font-size: 14px;')
+		expect(subtitle).toContain('--nldesign-component-paragraph-color: var(--color-text-maxcontrast);')
+	})
+
+	it('keeps the body 24px from the end edge over NcDialog\'s own 12px (DqInstellen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .dialog__content')).toContain('padding-inline-end: 24px;')
+	})
+
+	it('draws a checkbox choice card as tight as the board, the row at the 24px target (DqOverdragen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .cn-assign-dialog__toggle')).toContain('padding: 10px 14px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog .cn-assign-dialog__toggle')).toContain('border-radius: 8px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-content__text')).toContain('line-height: 18px;')
+		const row = bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content')
+		expect(row).toContain('min-height: 24px;')
+		expect(row).toContain('padding-block: 0;')
+		expect(bodyOf(dialog, '.cn-dialog-board .cn-assign-dialog__toggle-note')).toContain('line-height: 1.2;')
+	})
+
+	it('starts the body 22px under the header, as most dialog boards do (DqBerichtVersturen)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content > .cn-dialog-header')).toContain('margin-bottom: 4px;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content')).toContain('gap: 18px;')
+	})
+
+	it('sets a form dialog select level with the text fields beside it (DqNieuweZaak)', () => {
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label))')).toContain('margin-block: 0;')
+	})
+
+	it('sets a dialog checkbox flush with the fields, its label 10px after the box (DqBerichtVersturen)', () => {
+		const content = bodyOf(dialog, '.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content')
+		expect(content).toContain('padding-inline: 0;')
+		expect(content).toContain('gap: 10px;')
+		expect(bodyOf(dialog, '.cn-dialog-board')).toContain('--cn-dialog-check-label-inset: 30px;')
+		const assign = fs.readFileSync(path.join(__dirname, '../../src/components/CnAssignDialog/CnAssignDialog.vue'), 'utf8')
+		expect(assign).toMatch(/\.cn-assign-dialog__toggle-note \{\s*padding-inline-start: var\(--cn-dialog-check-label-inset, 44px\);/)
+	})
+
+	it('inks the eyebrow in a text colour, never the text on a primary fill', () => {
+		const root = bodyOf(dialog, '.cn-dialog-board')
+		expect(root).toContain('--cn-dialog-eyebrow-color: var(--color-primary-element-light-text')
+		expect(root).not.toContain('var(--color-primary-element-text')
+		expect(bodyOf(dialog, '.cn-dialog-header__eyebrow')).toContain('--nldesign-color-on-surface: var(--cn-dialog-eyebrow-color')
+	})
+
+	it('draws a field\'s edge as a 1px border and a plain input at 40px', () => {
+		const field = bodyOf(dialog, '.cn-dialog-board .dialog__content .textarea__input')
+		expect(field).toContain('border: 1px solid var(--color-border-maxcontrast);')
+		expect(field).toContain('box-shadow: none;')
+		expect(bodyOf(dialog, '.cn-dialog-board .dialog__content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]):not(.input-field__input)')).toContain('height: var(--cn-field-height, 40px);')
+	})
+})
+
+describe('look-board.css: a single select', () => {
+	it('lets the field take the full width, so its buttons sit inside its border', () => {
+		expect(bodyOf(board, '.cn-look-board .nc-select.v-select.select.vs--single .vs__selected-options')).toContain('max-width: none;')
+	})
+})
+
+describe('CnSearchSelect: the field takes its row', () => {
+	it('stretches NcSelect to the row and keeps the magnifier above the field', () => {
+		const sfc = fs.readFileSync(path.join(__dirname, '../../src/components/CnSearchSelect/CnSearchSelect.vue'), 'utf8')
+		const style = sfc.slice(sfc.indexOf('<style')).replace(/\/\*[\s\S]*?\*\//g, '')
+		expect(bodyOf(style, '.cn-search-select :deep(.v-select)')).toContain('width: 100%;')
+		expect(bodyOf(style, '.cn-search-select__magnifier')).toContain('z-index: 1;')
+	})
+})

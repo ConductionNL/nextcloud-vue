@@ -58,6 +58,7 @@ import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
 import { FILTER_OPERATORS } from './filterRows.js'
 
 /**
@@ -211,6 +212,9 @@ export default {
 		 * @return {void}
 		 */
 		update(i, cell, value) {
+			if (isPrototypeKey(cell)) {
+				return
+			}
 			this.rows[i][cell] = value
 			this.emit()
 		},

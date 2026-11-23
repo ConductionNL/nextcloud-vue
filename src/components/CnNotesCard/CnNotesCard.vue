@@ -10,9 +10,21 @@
 		:icon="CommentTextOutline"
 		:collapsible="collapsible"
 		:chromeless="chromeless">
+		<template v-if="composerBehindButton" #actions>
+			<NcButton
+				variant="secondary"
+				:aria-expanded="composerShown ? 'true' : 'false'"
+				data-testid="cn-notes-card-open-composer"
+				@click="composerOpen = !composerOpen">
+				<template #icon>
+					<NotePlusOutline :size="20" />
+				</template>
+				{{ addNoteLabel }}
+			</NcButton>
+		</template>
 		<div class="cn-notes-card">
 			<!-- Add note input -->
-			<div v-if="!unavailable" class="cn-notes-card__add-form">
+			<div v-if="!unavailable && composerShown" class="cn-notes-card__add-form">
 				<!-- Replying: the form says to whom; a reply to a reply goes to the top of its thread. -->
 				<p
 					v-if="replyTo"
@@ -28,9 +40,9 @@
 					class="cn-notes-card__textarea"
 					:modelValue="newNoteText"
 					:placeholder="addNotePlaceholder"
-					:register="isFileSource ? '' : registerId"
-					:schema="isFileSource ? '' : schemaId"
-					:objectId="isFileSource ? '' : objectId"
+					:register="isFileSource || isSourceMode ? '' : registerId"
+					:schema="isFileSource || isSourceMode ? '' : schemaId"
+					:objectId="isFileSource || isSourceMode ? '' : objectId"
 					:apiBase="apiBase"
 					@update:modelValue="newNoteText = $event"
 					@submit="submitNote" />
@@ -61,6 +73,12 @@
 			<div v-else-if="unavailable" class="cn-notes-card__empty" data-testid="cn-notes-card-unavailable">
 				{{ unavailableLabel }}
 			</div>
+			<p v-else-if="failed"
+				class="cn-notes-card__empty"
+				role="alert"
+				data-testid="cn-notes-card-failed">
+				{{ failedLabel }}
+			</p>
 			<div v-else-if="allNotes.length === 0" class="cn-notes-card__empty">
 				{{ noNotesLabel }}
 			</div>
@@ -78,6 +96,7 @@
 						:key="row.note.id"
 						class="cn-notes-card__note"
 						:class="{ 'cn-notes-card__note--reply': row.isReply }">
+						<span class="cn-notes-card__initials" aria-hidden="true">{{ initialsOf(getNoteAuthorName(row.note)) }}</span>
 						<div class="cn-notes-card__note-header">
 							<CnUserActionMenu
 								v-if="!isCurrentUser(row.note)"
@@ -88,7 +107,7 @@
 							<strong v-else class="cn-notes-card__author cn-notes-card__author--self">
 								{{ getNoteAuthorName(row.note) }}
 							</strong>
-							<span class="cn-notes-card__time">{{ formatDate(row.note.creationDateTime || row.note.created) }}</span>
+							<span class="cn-notes-card__time">{{ formatDate(noteCreatedAt(row.note)) }}</span>
 						</div>
 						<div v-if="visibilityShown" class="cn-notes-card__visibility">
 							<CnVisibilityChip :visibility="row.note.visibility" />
@@ -105,10 +124,11 @@
 							{{ row.quote }}
 						</p>
 						<p class="cn-notes-card__body">
-							<CnNoteBody :message="row.note.message || row.note.content || ''" :record="isFileSource ? null : record" />
+							<CnNoteBody :message="row.note.message || row.note.content || ''" :record="isFileSource || isSourceMode ? null : record" />
 						</p>
 						<NcButton
 							v-if="canReply"
+							class="cn-notes-card__reply-btn"
 							variant="tertiary"
 							size="small"
 							:aria-label="replyAria(row.note)"
@@ -148,6 +168,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import CommentTextOutline from 'vue-material-design-icons/CommentTextOutline.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import NotePlusOutline from 'vue-material-design-icons/NotePlusOutline.vue'
 import Send from 'vue-material-design-icons/Send.vue'
 import CnDetailCard from '../CnDetailCard/CnDetailCard.vue'
 import CnNoteBody from '../CnNoteBody/CnNoteBody.vue'
@@ -155,9 +176,14 @@ import CnNoteComposer from '../CnNoteComposer/CnNoteComposer.vue'
 import CnUserActionMenu from '../CnUserActionMenu/CnUserActionMenu.vue'
 import CnVisibilityChip from '../CnVisibilityChip/CnVisibilityChip.vue'
 import { useFileComments } from '../../composables/useFileComments.js'
+import { normalizeLook } from '../../composables/useLook.js'
+import { formatBoardDateTime } from '../../utils/fillTemplate.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
+import { initialsOf } from '../../utils/initials.js'
+import { leafSourceUrl } from '../../utils/leafSourceUrl.js'
 import { extractMentionedGroupIds, extractMentionedIds } from '../../utils/mentions.js'
-import { quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
+import { noteCreatedAt, quoteFor, supportsReplies, threadNotes, threadRootId } from '../../utils/noteThreads.js'
+import { serverErrorMessage } from '../../utils/serverErrorMessage.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 /**
@@ -191,6 +217,22 @@ import { userLocale } from '../../utils/userLocale.js'
  * @event mention Emitted after a note that mentions someone was added. Payload: `{ objectId, register, schema, noteId, mentionedUserIds }`, plus `mentionedGroupIds` when a group (`@"group/<gid>"`) is mentioned. nc-vue notifies nobody; the listener does.
  * @event show-all Emitted when the user clicks the "Show all" button — parents typically open a full notes sidebar tab.
  */
+/**
+ * The server's own sentence on a refused note write, '' when it gave none.
+ *
+ * @param {Response} response The refused response.
+ * @return {Promise<string>} The message.
+ */
+async function refusalMessage(response) {
+	try {
+		const data = await response.json()
+		const message = serverErrorMessage({ message: '-', response: { data } })
+		return message === '-' ? '' : message
+	} catch {
+		return ''
+	}
+}
+
 export default {
 	name: 'CnNotesCard',
 
@@ -203,8 +245,13 @@ export default {
 		NcButton,
 		NcCheckboxRadioSwitch,
 		NcLoadingIcon,
+		NotePlusOutline,
 		Send,
 		Delete,
+	},
+
+	inject: {
+		cnLook: { default: 'nextcloud' },
 	},
 
 	props: {
@@ -243,6 +290,28 @@ export default {
 			default: '/apps/openregister/api',
 		},
 
+		/**
+		 * Read the notes of something that is not an OpenRegister object:
+		 * `{ kind: 'flow-task', id }` reads `${apiBase}/flow-tasks/{id}/notes`.
+		 * `id` may be left out or written `@objectId` for `objectId`.
+		 *
+		 * @type {{kind: string, id?: (string|number)}|null}
+		 */
+		source: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * A notes URL that replaces the object's own: the list and the add go
+		 * to it, a delete to `{endpoint}/{noteId}`. `{id}` is filled with the
+		 * source's id or `objectId`.
+		 */
+		endpoint: {
+			type: String,
+			default: '',
+		},
+
 		/** Maximum number of notes to display */
 		maxDisplay: {
 			type: Number,
@@ -265,6 +334,21 @@ export default {
 		chromeless: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Where the add form lives: `inline` (default) keeps it open above the
+		 * notes; `button` puts it behind an "Add note" button in the card's
+		 * header (DqTaak "Notities"), and closes it again once the note is
+		 * saved. A reply opens it either way. Without the card's header
+		 * (`chromeless`) the form stays inline.
+		 *
+		 * @spec openspec/changes/notes-card-composer-button/specs/notes-card-composer-button/spec.md#requirement-a-notes-card-can-keep-its-composer-behind-a-header-button
+		 */
+		composer: {
+			type: String,
+			default: 'inline',
+			validator: (v) => ['inline', 'button'].includes(v),
 		},
 
 		/**
@@ -312,6 +396,8 @@ export default {
 		replyLabel: { type: String, default: () => t('nextcloud-vue', 'Reply') },
 		/** Aria label for the per-note delete icon button. */
 		deleteLabel: { type: String, default: () => t('nextcloud-vue', 'Delete note') },
+		/** Text shown when a `source` or `endpoint` read failed. */
+		failedLabel: { type: String, default: () => t('nextcloud-vue', 'The notes could not be loaded') },
 	},
 
 	emits: ['mention', 'note-added', 'note-deleted', 'show-all', 'visibility-changed'],
@@ -322,18 +408,32 @@ export default {
 			allNotes: [],
 			loading: false,
 			newNoteText: '',
+			/** Whether the add form is open while `composer` is `button`. */
+			composerOpen: false,
 			/** Visibility the next note is written with (only sent when the caller may set it). */
 			newNoteVisibility: 'internal',
 			noteSaving: false,
 			deleteConfirmId: null,
 			/** The file source answered 403 or 404: no notes and no add field. */
 			unavailable: false,
+			/** A `source` or `endpoint` read failed: said, rather than shown as no notes. */
+			failed: false,
 			/** The note a reply is being written to, or null. */
 			replyTo: null,
 		}
 	},
 
 	computed: {
+		/** @return {boolean} Whether the add form sits behind the header's button. */
+		composerBehindButton() {
+			return this.composer === 'button' && !this.chromeless && !this.unavailable
+		},
+
+		/** @return {boolean} Whether the add form shows. */
+		composerShown() {
+			return !this.composerBehindButton || this.composerOpen || Boolean(this.replyTo)
+		},
+
 		/** Chips are shown: the host asked for them (or lets the caller set visibility) and the notes are object notes. */
 		visibilityShown() {
 			return (this.showVisibility || this.canSetVisibility) && !this.isFileSource
@@ -342,6 +442,30 @@ export default {
 		/** The switch and the per-note toggle are offered: only when the host says the caller may set it. */
 		visibilityToggleShown() {
 			return this.canSetVisibility && !this.isFileSource
+		},
+
+		/**
+		 * The notes URL a `source` or `endpoint` names, '' while its record id
+		 * is unknown, or null when the card reads an object.
+		 *
+		 * @return {string|null}
+		 * @spec openspec/changes/leaf-cards-read-a-source/specs/leaf-cards-read-a-source/spec.md#requirement-a-leaf-card-reads-a-source-or-an-endpoint
+		 */
+		sourceUrl() {
+			return leafSourceUrl({ source: this.source, endpoint: this.endpoint, apiBase: this.apiBase, objectId: this.objectId }, 'notes')
+		},
+
+		/** The notes come from a `source` or `endpoint`, not from an object. */
+		isSourceMode() {
+			return this.sourceUrl !== null
+		},
+
+		/** @return {string} The notes URL the list, add and delete use. */
+		notesUrl() {
+			if (this.isSourceMode) {
+				return this.sourceUrl
+			}
+			return `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
 		},
 
 		/** The file source applies: a file id and no object. */
@@ -369,11 +493,17 @@ export default {
 			return this.replyTo ? t('nextcloud-vue', 'Replying to {author}', { author: this.getNoteAuthorName(this.replyTo) }) : ''
 		},
 
+		/**
+		 * The notes newest first, up to the card's limit.
+		 *
+		 * @return {Array<object>} The notes shown.
+		 * @spec openspec/changes/notes-tab-authored-rows/specs/notes-tab-authored-rows/spec.md#requirement-the-notes-tab-can-draw-a-note-as-an-authored-row
+		 */
 		displayedNotes() {
 			// Reverse chronological, limited to maxDisplay
 			const sorted = [...this.allNotes].sort((a, b) => {
-				const dateA = new Date(a.creationDateTime || a.created || 0)
-				const dateB = new Date(b.creationDateTime || b.created || 0)
+				const dateA = new Date(noteCreatedAt(a) || 0)
+				const dateB = new Date(noteCreatedAt(b) || 0)
 				return dateB - dateA
 			})
 			return sorted.slice(0, this.maxDisplay)
@@ -393,7 +523,16 @@ export default {
 		objectId: {
 			immediate: true,
 			handler(newId) {
-				if (newId && this.registerId && this.schemaId) {
+				if (newId && this.registerId && this.schemaId && !this.isSourceMode) {
+					this.fetchNotes()
+				}
+			},
+		},
+
+		sourceUrl: {
+			immediate: true,
+			handler(url) {
+				if (typeof url === 'string' && url !== '') {
 					this.fetchNotes()
 				}
 			},
@@ -401,6 +540,8 @@ export default {
 	},
 
 	methods: {
+		noteCreatedAt,
+
 		/**
 		 * A note's visibility; an entry with no value reads as internal.
 		 *
@@ -436,7 +577,7 @@ export default {
 			}
 			const next = this.noteVisibility(note) === 'public' ? 'internal' : 'public'
 			try {
-				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes/${note.id}`
+				const url = `${this.notesUrl}/${note.id}`
 				const response = await this.writeNote('PATCH', url, { visibility: next })
 				if (response.ok) {
 					this.allNotes = this.allNotes.map((n) => (n.id === note.id ? { ...n, visibility: next } : n))
@@ -511,11 +652,16 @@ export default {
 			return note.actorId || note.author || ''
 		},
 
+		initialsOf,
+
 		getNoteAuthorName(note) {
 			return note.actorDisplayName || note.author || 'Unknown'
 		},
 
 		isCurrentUser(note) {
+			if (note.isCurrentUser === true) {
+				return true
+			}
 			const authorId = this.getNoteAuthorId(note)
 			const currentUser = typeof OC !== 'undefined' ? OC?.currentUser : null
 			return authorId === currentUser
@@ -547,18 +693,22 @@ export default {
 				}
 				return
 			}
-			if (!this.registerId || !this.schemaId || !this.objectId) {
+			if (this.isSourceMode ? this.notesUrl === '' : (!this.registerId || !this.schemaId || !this.objectId)) {
 				return
 			}
 			this.loading = true
+			this.failed = false
 			try {
-				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
-				const response = await fetch(prefixUrl(url), { headers: buildHeaders() })
+				const response = await fetch(prefixUrl(this.notesUrl), { headers: buildHeaders() })
 				if (response.ok) {
 					const data = await response.json()
 					this.allNotes = data.results || data || []
+				} else if (this.isSourceMode) {
+					this.allNotes = []
+					this.failed = true
 				}
 			} catch (err) {
+				this.failed = this.isSourceMode
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
 				console.error('CnNotesCard: Failed to fetch notes', err)
 			} finally {
@@ -574,6 +724,7 @@ export default {
 			if (this.isFileSource) {
 				try {
 					await this.fileComments().add(this.newNoteText.trim())
+					this.composerOpen = false
 					this.newNoteText = ''
 					await this.fetchNotes()
 					this.$emit('note-added')
@@ -587,7 +738,7 @@ export default {
 				return
 			}
 			try {
-				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes`
+				const url = this.notesUrl
 				const body = { message: this.newNoteText.trim() }
 				if (this.visibilityToggleShown) {
 					body.visibility = this.newNoteVisibility
@@ -606,12 +757,13 @@ export default {
 					}
 					this.emitMentionEvent(body.message, noteId)
 					this.replyTo = null
+					this.composerOpen = false
 					this.newNoteText = ''
 					this.newNoteVisibility = 'internal'
 					await this.fetchNotes()
 					this.$emit('note-added')
 				} else {
-					this.showError('Failed to add note')
+					this.showError(await refusalMessage(response) || 'Failed to add note')
 				}
 			} catch (err) {
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
@@ -636,7 +788,7 @@ export default {
 				return
 			}
 			try {
-				const url = `${this.apiBase}/objects/${this.registerId}/${this.schemaId}/${this.objectId}/notes/${note.id}`
+				const url = `${this.notesUrl}/${note.id}`
 				const response = await fetch(prefixUrl(url), {
 					method: 'DELETE',
 					headers: buildHeaders(),
@@ -644,6 +796,8 @@ export default {
 				if (response.ok) {
 					this.allNotes = this.allNotes.filter((n) => n.id !== note.id)
 					this.$emit('note-deleted')
+				} else {
+					this.showError(await refusalMessage(response) || 'Failed to delete note')
 				}
 			} catch (err) {
 				// eslint-disable-next-line no-console -- diagnostic for a failure this code already degrades from
@@ -654,6 +808,10 @@ export default {
 		formatDate(dateStr) {
 			if (!dateStr) {
 				return ''
+			}
+			// The board look writes a note's moment as the boards do: "6 okt 11:10", the year only outside this year.
+			if (normalizeLook(this.cnLook) === 'board') {
+				return formatBoardDateTime(dateStr) || dateStr
 			}
 			try {
 				return new Date(dateStr).toLocaleString(userLocale(), {
@@ -735,6 +893,10 @@ export default {
 	border-bottom: none;
 }
 
+.cn-notes-card__initials {
+	display: none;
+}
+
 .cn-notes-card__note-header {
 	display: flex;
 	justify-content: space-between;
@@ -772,7 +934,10 @@ export default {
 	padding-right: 32px;
 }
 
-.cn-notes-card__delete-btn {
+/* The note's own class leads so the position outranks NcButton's
+   `position: relative`, which loads later at the same weight and put the
+   button in the flow under the note. */
+.cn-notes-card__note > .cn-notes-card__delete-btn {
 	position: absolute;
 	top: 8px;
 	right: -4px;
@@ -780,7 +945,8 @@ export default {
 	transition: opacity 0.15s ease;
 }
 
-.cn-notes-card__note:hover .cn-notes-card__delete-btn {
+.cn-notes-card__note:hover > .cn-notes-card__delete-btn,
+.cn-notes-card__note:focus-within > .cn-notes-card__delete-btn {
 	opacity: 1;
 }
 

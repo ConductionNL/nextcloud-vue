@@ -1,0 +1,629 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  - SPDX-License-Identifier: EUPL-1.2
+-->
+
+<template>
+	<div class="cn-record-notes" data-testid="cn-record-list-notes">
+		<p class="cn-record-notes__ready" data-testid="cn-record-list-notes-ready">
+			<span class="cn-record-notes__ready-figure">{{ readyCount }}</span>
+			<span class="cn-record-notes__ready-label">{{ readyLabel }}</span>
+		</p>
+		<div
+			v-for="item in items"
+			:key="item.key"
+			class="cn-record-notes__row"
+			data-testid="cn-record-list-item">
+			<div class="cn-record-notes__head">
+				<CnStatusBadge
+					v-if="item.pill"
+					:label="item.pill.label"
+					:variant="item.pill.variant"
+					size="small" />
+				<component
+					:is="item.tag"
+					v-if="item.title"
+					class="cn-record-notes__title"
+					:class="{ 'cn-record-notes__title--link': item.tag !== 'div' }"
+					v-bind="item.attrs">
+					{{ item.title }}
+				</component>
+				<span v-if="item.meta" class="cn-record-notes__meta">{{ item.meta }}</span>
+				<span class="cn-record-notes__spacer" />
+				<span
+					v-if="item.due"
+					class="cn-record-notes__due"
+					:class="`cn-record-notes__due--${dueToneOf(item.due)}`"
+					data-testid="cn-record-list-due">{{ item.due.text }}</span>
+			</div>
+			<div class="cn-record-notes__fields">
+				<!-- The label stands above the field, as the leaf's own beside it
+				     (humaniq "Uren"), so both fields share one line. -->
+				<div class="cn-record-notes__field">
+					<label :for="fieldId(item.key)" class="cn-record-notes__field-label">{{ fieldLabel }}</label>
+					<NcTextField
+						:id="fieldId(item.key)"
+						:modelValue="drafts[item.key] || ''"
+						:label="fieldLabel"
+						labelOutside
+						:placeholder="placeholder"
+						:disabled="busy"
+						:data-testid="`cn-record-list-note-${item.key}`"
+						@update:modelValue="setDraft(item.key, $event)" />
+				</div>
+				<div v-if="leaf && leafProvider" class="cn-record-notes__leaf" :data-testid="`cn-record-list-leaf-${item.key}`">
+					<CnLeafMountHost
+						v-if="leafIsMount"
+						:provider="leafProvider"
+						:mountProps="leafProps(item.row)" />
+					<component :is="leafComponent" v-else-if="leafComponent" v-bind="leafProps(item.row)" />
+				</div>
+				<NcButton
+					variant="secondary"
+					:disabled="busy || !hasDraft(item.key)"
+					:data-testid="`cn-record-list-record-${item.key}`"
+					@click="record(item)">
+					{{ recordLabel }}
+				</NcButton>
+			</div>
+			<p
+				v-if="leafUnavailable"
+				class="cn-record-notes__leaf-missing"
+				:data-testid="`cn-record-list-leaf-missing-${item.key}`">
+				{{ leafUnavailableText }}
+			</p>
+		</div>
+		<p v-if="error"
+			class="cn-record-notes__error"
+			role="alert"
+			data-testid="cn-record-list-notes-error">
+			{{ error }}
+		</p>
+		<!-- `recordAll.placement.widget`: the pair goes to the foot of that
+		     dashboard card, which carries the title and sentence itself. -->
+		<Teleport v-if="recordAll" :to="placedTarget || 'body'" :disabled="!placedTarget">
+			<p
+				v-if="placedTarget && recordAll.placement && recordAll.placement.sentence && allSentence"
+				class="cn-record-notes__all-sentence cn-record-notes__all-sentence--placed"
+				data-testid="cn-record-list-record-all-sentence">
+				{{ allSentence }}
+			</p>
+			<div
+				class="cn-record-notes__all"
+				:class="{ 'cn-record-notes__all--placed': !!placedTarget }"
+				data-testid="cn-record-list-record-all">
+				<div v-if="!placedTarget" class="cn-record-notes__all-text">
+					<h3 v-if="recordAll.title" class="cn-record-notes__all-title">
+						{{ recordAll.title }}
+					</h3>
+					<p v-if="allSentence" class="cn-record-notes__all-sentence">
+						{{ allSentence }}
+					</p>
+				</div>
+				<div class="cn-record-notes__all-actions">
+					<NcButton v-if="recordAll.cancel" variant="secondary" :to="recordAll.cancel.to">
+						{{ recordAll.cancel.label }}
+					</NcButton>
+					<NcButton
+						variant="primary"
+						:disabled="busy || readyCount === 0"
+						data-testid="cn-record-list-record-all-button"
+						@click="recordEvery">
+						<template v-if="recordAll.icon" #icon>
+							<CnIcon :name="recordAll.icon" :size="20" />
+						</template>
+						{{ recordAll.label }}
+					</NcButton>
+				</div>
+			</div>
+		</Teleport>
+	</div>
+</template>
+
+<script>
+import { emit } from '@nextcloud/event-bus'
+import { translate as t } from '@nextcloud/l10n'
+import { NcButton, NcTextField } from '@nextcloud/vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { prefixUrl } from '../../utils/headers.js'
+import { readPath } from '../../utils/readPath.js'
+
+/** The bus channel every endpoint-bound widget on the page refetches on. */
+const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/**
+ * The document event a recorded note sends, so a row's leaf (humaniq's
+ * hours) can record what it holds for the same object at the same moment.
+ * `detail` is the row's leaf props plus `note`.
+ */
+const NOTE_RECORDED_EVENT = 'cn-record-notes:recorded'
+
+/**
+ * The rows of a record list drawn as notes to record (`presentation:
+ * "notes"`, DqDagAfsluiten "Nog open van vandaag"): per row its pill, title,
+ * meta and due text, a field for what happened, an optional integration leaf
+ * (humaniq's hours) and a button that records the note on the row's own
+ * notes endpoint. What is typed and not yet recorded stays in this browser
+ * (session storage) and is counted as the "ready to record" figure; one
+ * button records every filled row. After a note is recorded the page's
+ * endpoint widgets refetch, so the row moves to whatever lists the server
+ * keeps of recorded work.
+ *
+ * @spec openspec/changes/record-list-notes/specs/record-list-notes/spec.md#requirement-a-record-list-can-collect-and-record-a-note-per-row
+ */
+export default {
+	name: 'CnRecordNoteRows',
+
+	components: { CnIcon, CnLeafMountHost, CnStatusBadge, NcButton, NcTextField },
+
+	props: {
+		/** The list's rows as the record list builds them (`key`, `row`, `tag`, `attrs`, `title`, `meta`, `pill`, `due`). */
+		items: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * `noteAction`, already translated: `{ urlField?, url?, bodyField?,
+		 * label, fieldLabel, placeholder?, readyLabel, draftsKey?, errorText? }`.
+		 */
+		action: {
+			type: Object,
+			required: true,
+		},
+
+		/** `recordAll`, already translated: `{ label, title?, text?: (string|{ zero?, one?, other }), icon?, cancel?: { label, to }, placement?: { widget, sentence? } }`, or null. */
+		recordAll: {
+			type: Object,
+			default: null,
+		},
+
+		/** `rowLeaf`: `{ id, app?, register?, objectIdField, schemaField?, schema?, unavailableText? }`, or null. */
+		leaf: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	setup() {
+		const { getById } = useIntegrationRegistry()
+		return { getProvider: getById }
+	},
+
+	data() {
+		return { drafts: this.readDrafts(), busy: false, error: '', placedTarget: null }
+	},
+
+	computed: {
+		/** @return {string} The session storage key of this list's drafts. */
+		draftsKey() {
+			return `cn-record-list-notes:${this.action.draftsKey || 'default'}`
+		},
+
+		/** @return {number} The rows with a note typed and not yet recorded. */
+		readyCount() {
+			return this.items.filter((item) => this.hasDraft(item.key)).length
+		},
+
+		/**
+		 * The record-all sentence for the notes filled in now: a plain
+		 * sentence as it is, else the `zero`, `one` or `other` form with
+		 * `{count}` filled in.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/record-all-counted-sentence/specs/record-list-notes/spec.md
+		 */
+		allSentence() {
+			const text = this.recordAll?.text
+			if (typeof text === 'string') {
+				return text
+			}
+			if (!text || typeof text !== 'object') {
+				return ''
+			}
+			const count = this.readyCount
+			const form = (count === 0 && text.zero) || (count === 1 && text.one) || text.other || text.one || ''
+			return form.replace(/\{count\}/g, String(count))
+		},
+
+		/** @return {string} The label of the ready figure. */
+		readyLabel() {
+			return this.action.readyLabel || t('nextcloud-vue', 'filled in, not recorded yet')
+		},
+
+		/** @return {string} */
+		recordLabel() {
+			return this.action.label || t('nextcloud-vue', 'Record')
+		},
+
+		/** @return {string} */
+		fieldLabel() {
+			return this.action.fieldLabel || t('nextcloud-vue', 'Note')
+		},
+
+		/** @return {string} */
+		placeholder() {
+			return this.action.placeholder || ''
+		},
+
+		/** @return {object|null} The leaf's integration provider, when one is registered. */
+		leafProvider() {
+			return this.leaf && this.leaf.id ? (this.getProvider(this.leaf.id) || null) : null
+		},
+
+		/** @return {boolean} Whether the leaf mounts itself (`renderMode: "mount"`). */
+		leafIsMount() {
+			const provider = this.leafProvider
+			return Boolean(provider) && provider.renderMode === 'mount' && typeof provider.mount === 'function'
+		},
+
+		/** @return {object|null} The leaf's component, in component mode. */
+		leafComponent() {
+			const provider = this.leafProvider
+			return provider ? (provider.tab || provider.widget || null) : null
+		},
+
+		/**
+		 * Whether the leaf's app is installed but the leaf is not available, so
+		 * the row says so instead of silently showing no field.
+		 *
+		 * @return {boolean}
+		 */
+		leafUnavailable() {
+			return Boolean(this.leaf && this.leaf.app && !this.leafProvider && isAppInstalled(this.leaf.app))
+		},
+
+		/** @return {string} */
+		leafUnavailableText() {
+			return this.leaf?.unavailableText || t('nextcloud-vue', 'This field is not available here.')
+		},
+	},
+
+	watch: {
+		drafts: {
+			deep: true,
+			handler() {
+				this.saveDrafts()
+			},
+		},
+	},
+
+	mounted() {
+		this.findPlacedTarget()
+		this.$nextTick(() => this.findPlacedTarget())
+		this.watchPlacedTarget()
+	},
+
+	beforeUnmount() {
+		if (this.placedObserver) {
+			this.placedObserver.disconnect()
+			this.placedObserver = null
+		}
+	},
+
+	methods: {
+		/**
+		 * The content of the dashboard card `recordAll.placement.widget` names,
+		 * once it is on the page; until then (or without one) the pair stays
+		 * under the rows.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/record-all-in-its-own-card/specs/record-list-notes/spec.md
+		 */
+		findPlacedTarget() {
+			const widget = this.recordAll?.placement?.widget
+			if ((this.placedTarget && this.placedTarget.isConnected) || typeof widget !== 'string' || widget === '' || typeof document === 'undefined') {
+				return
+			}
+			const card = [...document.querySelectorAll('[data-cn-widget-id]')].find((el) => el.getAttribute('data-cn-widget-id') === widget)
+			this.placedTarget = card ? (card.querySelector('.cn-widget-wrapper__content') || null) : null
+		},
+
+		/**
+		 * Look for the placed card again whenever the page changes: the grid
+		 * can draw that card after this list, or draw it again, and a pair
+		 * left in a card no longer on the page is not seen at all.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/record-all-follows-its-card/specs/record-list-notes/spec.md#requirement-the-placed-pair-follows-its-card
+		 */
+		watchPlacedTarget() {
+			const widget = this.recordAll?.placement?.widget
+			if (typeof widget !== 'string' || widget === '' || typeof MutationObserver === 'undefined' || typeof document === 'undefined') {
+				return
+			}
+			this.placedObserver = new MutationObserver(() => this.findPlacedTarget())
+			this.placedObserver.observe(document.body, { childList: true, subtree: true })
+		},
+
+		/**
+		 * The drafts this browser session kept, by row key.
+		 *
+		 * @return {Object<string, string>}
+		 */
+		readDrafts() {
+			try {
+				const raw = window.sessionStorage.getItem(`cn-record-list-notes:${this.action?.draftsKey || 'default'}`)
+				const parsed = raw ? JSON.parse(raw) : {}
+				return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+			} catch {
+				return {}
+			}
+		},
+
+		/** @return {void} */
+		saveDrafts() {
+			try {
+				window.sessionStorage.setItem(this.draftsKey, JSON.stringify(this.drafts))
+			} catch {
+				// Without session storage the drafts live as long as the page.
+			}
+		},
+
+		/**
+		 * The colour of a due text: a term that ended or ends today in the
+		 * error colour, one still to come in the warning colour.
+		 *
+		 * @param {{tone: string}} due The due text.
+		 * @return {string} `error`, `warning` or `muted`.
+		 */
+		dueToneOf(due) {
+			if (due.tone === 'danger' || due.tone === 'today') {
+				return 'error'
+			}
+			return due.tone === 'upcoming' ? 'warning' : 'muted'
+		},
+
+		/**
+		 * @param {string} key The row key.
+		 * @param {string} value The typed note.
+		 * @return {void}
+		 */
+		setDraft(key, value) {
+			this.drafts = { ...this.drafts, [key]: String(value ?? '') }
+		},
+
+		/**
+		 * The id of a row's note field, for its label.
+		 *
+		 * @param {string} key The row key.
+		 * @return {string} The id.
+		 */
+		fieldId(key) {
+			return `cn-record-notes-${this.$.uid}-${String(key).replace(/[^A-Za-z0-9_-]/g, '-')}`
+		},
+
+		/**
+		 * @param {string} key The row key.
+		 * @return {boolean} Whether the row has a note typed.
+		 */
+		hasDraft(key) {
+			return String(this.drafts[key] ?? '').trim() !== ''
+		},
+
+		/**
+		 * The props the row's leaf gets: the row's object, register and schema.
+		 *
+		 * @param {object} row The row.
+		 * @return {object}
+		 */
+		leafProps(row) {
+			const leaf = this.leaf || {}
+			return {
+				objectId: String(readPath(row, leaf.objectIdField || 'id') ?? ''),
+				register: leaf.register || '',
+				schema: leaf.schemaField ? String(readPath(row, leaf.schemaField) ?? '') : (leaf.schema || ''),
+				surface: 'row',
+			}
+		},
+
+		/**
+		 * The row's notes endpoint: the row's `urlField`, else `url` with
+		 * `{field}` filled from the row.
+		 *
+		 * @param {object} row The row.
+		 * @return {string} The URL, or ''.
+		 */
+		urlOf(row) {
+			if (this.action.urlField) {
+				return String(readPath(row, this.action.urlField) ?? '')
+			}
+			const template = String(this.action.url || '')
+			return template.replace(/\{([A-Za-z0-9_.]+)\}/g, (_, path) => encodeURIComponent(String(readPath(row, path) ?? '')))
+		},
+
+		/**
+		 * Record one row's note, then let the page refetch.
+		 *
+		 * @param {object} item The row item.
+		 * @param {boolean} [refresh] Whether to refresh the page after it.
+		 * @return {Promise<boolean>} Whether it was recorded.
+		 */
+		async record(item, refresh = true) {
+			const text = String(this.drafts[item.key] ?? '').trim()
+			const url = this.urlOf(item.row)
+			if (text === '' || url === '') {
+				return false
+			}
+			this.busy = true
+			this.error = ''
+			try {
+				const { default: axios } = await import('@nextcloud/axios')
+				await axios.post(prefixUrl(url), { [this.action.bodyField || 'message']: text })
+				if (this.leaf) {
+					document.dispatchEvent(new CustomEvent(NOTE_RECORDED_EVENT, { detail: { ...this.leafProps(item.row), note: text } }))
+				}
+				const { [item.key]: done, ...rest } = this.drafts
+				this.drafts = rest
+				if (refresh) {
+					emit(PAGE_REFRESH_CHANNEL, {})
+				}
+				return true
+			} catch {
+				this.error = this.action.errorText || t('nextcloud-vue', 'The note could not be recorded. It is kept here; try again.')
+				return false
+			} finally {
+				this.busy = false
+			}
+		},
+
+		/**
+		 * Record every row with a note, one after another, then refresh once.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async recordEvery() {
+			const filled = this.items.filter((item) => this.hasDraft(item.key))
+			let any = false
+			for (const item of filled) {
+				any = (await this.record(item, false)) || any
+			}
+			if (any) {
+				emit(PAGE_REFRESH_CHANNEL, {})
+			}
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-record-notes {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.cn-record-notes__ready {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	margin: 0 0 8px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-notes__ready-figure {
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-record-notes__row {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-notes__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-record-notes__title {
+	font-weight: 600;
+	color: var(--color-main-text);
+}
+
+.cn-record-notes__title--link {
+	text-decoration: underline;
+}
+
+.cn-record-notes__meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-notes__spacer {
+	flex: 1 1 auto;
+}
+
+.cn-record-notes__due {
+	font-weight: 600;
+}
+
+.cn-record-notes__due--error {
+	color: var(--color-error-text);
+}
+
+.cn-record-notes__due--warning {
+	color: var(--color-warning-text);
+}
+
+.cn-record-notes__due--muted {
+	color: var(--color-text-maxcontrast);
+	font-weight: 400;
+}
+
+.cn-record-notes__fields {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 10px;
+}
+
+.cn-record-notes__field {
+	display: flex;
+	flex: 1 1 260px;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cn-record-notes__field-label {
+	color: var(--color-main-text);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.cn-record-notes__leaf {
+	flex: 0 0 auto;
+}
+
+.cn-record-notes__leaf-missing,
+.cn-record-notes__error {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-record-notes__error {
+	color: var(--color-error-text);
+}
+
+.cn-record-notes__all {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-top: 8px;
+	padding-top: 14px;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-record-notes__all-title {
+	margin: 0;
+	font-size: 16px;
+}
+
+.cn-record-notes__all-sentence {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-record-notes__all-sentence--placed {
+	margin: 0;
+	padding: 0 0 12px;
+	color: var(--color-main-text);
+}
+
+.cn-record-notes__all-actions {
+	display: flex;
+	gap: 8px;
+}
+</style>

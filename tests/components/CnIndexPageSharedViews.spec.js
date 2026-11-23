@@ -96,6 +96,15 @@ describe('CnIndexPage shared saved views', () => {
 		expect(w.vm.savedViews.find((v) => v.id === 20)).toBeTruthy()
 	})
 
+	it('names the copy of an own view "{name} (copy)" so the two do not read alike', async () => {
+		axios.post.mockResolvedValue({ data: { view: { ...own, id: 21, name: 'Mine (copy)' } } })
+		const w = mountPage()
+		await flushPromises()
+		await w.vm.onCopyViewRequest(own)
+		expect(axios.post.mock.calls[0][1]).toMatchObject({ name: 'Mine (copy)', isPublic: false, query: own.query })
+		expect(w.vm.savedViews.find((v) => v.id === 1)).toBeTruthy()
+	})
+
 	it('saves a changed audience with a PATCH of sharedWith only', async () => {
 		axios.patch.mockResolvedValue({ data: { view: { ...own, sharedWith: [{ group: 'desk', mode: 'write' }] } } })
 		const w = mountPage()

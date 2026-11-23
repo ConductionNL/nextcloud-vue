@@ -38,7 +38,8 @@ describe('CnReportsPage: header buttons', () => {
 			const w = mountPage({ look })
 			expect(w.find('[data-testid="cn-reports-header-buttons"]').exists()).toBe(false)
 			expect(w.find('.buildiq-stub').exists()).toBe(false)
-			expect(w.find('.cn-reports-page__header > h2').exists()).toBe(true)
+			// The board look draws the title as the page's h1, as every board page does.
+			expect(w.find(`.cn-reports-page__header > ${look === 'board' ? 'h1' : 'h2'}`).exists()).toBe(true)
 		}
 	})
 

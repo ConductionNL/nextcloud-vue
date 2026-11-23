@@ -30,6 +30,12 @@ export const QUERY_PRESET_KEYS = Object.freeze([
 	'footerNote',
 	'defaultSort',
 	'viewSwitch',
+	'addLabel',
+	'showAdd',
+	'headerButtons',
+	'breadcrumb',
+	'headerMeta',
+	'afterList',
 ])
 
 /**
@@ -71,8 +77,9 @@ export function matchQueryPreset(presets, query) {
 }
 
 /**
- * The page config with the preset's allowed keys laid over it, and without
- * `queryPresets` itself (the page component has no such prop).
+ * The page config with the preset's allowed keys laid over it, its `match`
+ * as `fixedFilters`, and without `queryPresets` itself (the page component
+ * has no such prop).
  *
  * @param {object} config The page config.
  * @param {object|null} preset The matched preset, or null.
@@ -88,6 +95,19 @@ export function applyQueryPreset(config, preset) {
 		if (key !== 'title' && preset[key] !== undefined) {
 			out[key] = preset[key]
 		}
+	}
+	// A preset's own count line stands in every view, over the page's per-view lines.
+	if (preset.countText !== undefined) {
+		out.countTextByView = null
+	}
+	// Likewise its own footer note, over the page's per-view notes.
+	if (preset.footerNote !== undefined) {
+		out.footerNoteByView = null
+	}
+	// The query pairs that chose the preset scope the list: the page shows
+	// them as no removable filter chip.
+	if (preset.match && typeof preset.match === 'object') {
+		out.fixedFilters = { ...preset.match }
 	}
 	return out
 }

@@ -84,13 +84,21 @@ export function isTrue(value) {
  * and showing it first would misdescribe the process. Without `orderField`
  * the rows keep the order they arrived in.
  *
+ * A row whose `offPathField` holds true is a side status (a withdrawal, an
+ * extension request): it is left out unless it is `currentId`, the stage the
+ * record is in, so the strip draws the main path and still shows where a
+ * record that took a side turn stands.
+ *
  * @param {Array<object>} rows The stage rows.
  * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-stages-widget-draws-bars
- * @param {{idField?: string, labelField?: string, descriptionField?: string, dateField?: string, orderField?: string, finalField?: string}} [cfg] The field mapping.
+ * @spec openspec/changes/stages-off-path/specs/stages-widget/spec.md#requirement-a-side-status-stays-off-the-strip-unless-it-is-current
+ * @param {{idField?: string, labelField?: string, descriptionField?: string, dateField?: string, orderField?: string, finalField?: string, offPathField?: string, currentId?: string|null}} [cfg] The field mapping.
  * @return {Array<{id: string, label: string, subtitle: string, date: string, final: boolean}>} The stages.
  */
 export function normalizeStages(rows, cfg = {}) {
-	const list = Array.isArray(rows) ? rows.filter((r) => r && typeof r === 'object') : []
+	const list = Array.isArray(rows)
+		? rows.filter((r) => r && typeof r === 'object' && !(cfg.offPathField && isTrue(getByPath(r, cfg.offPathField)) && rowId(r, cfg.idField) !== cfg.currentId))
+		: []
 	const orderField = cfg.orderField
 	const orderOf = (row) => {
 		const raw = getByPath(row, orderField)

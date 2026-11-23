@@ -7,7 +7,7 @@
  * card, and the grid's own wrapper drew a second frame, an "Items" title and a
  * second Actions menu inside it. On its own the grid keeps its frame.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnWidgetCardGrid from '../../src/components/CnWidgetCardGrid/CnWidgetCardGrid.vue'
 
@@ -27,8 +27,9 @@ function mountPage(type) {
 }
 
 describe('CnWidgetCardGrid on a dashboard', () => {
-	it('is chromeless in a dashboard cell: one frame, one title', () => {
+	it('is chromeless in a dashboard cell: one frame, one title', async () => {
 		const w = mountPage('card-grid')
+		await flushPromises()
 		const grid = w.findComponent(CnWidgetCardGrid)
 		expect(grid.exists()).toBe(true)
 		expect(grid.props('chromeless')).toBe(true)

@@ -95,12 +95,13 @@ export default {
 
 | Prop | Default | Description |
 |---|---|---|
+| `templateSource` | `null` | `{ register, schema }`: a create form offers the record templates of that register and schema in a "Start from a template" picker. |
 | `dialogTitle` | `''` | Dialog title. Defaults to `'Create {schema.title}'` or `'Edit {schema.title}'` when empty. |
 | `initialData` | `{}` | Seed values for CREATE mode, keyed by field. Merged over the schema defaults when opening a new-item form. Use it to pre-link a child to its parent when adding from a detail page (e.g. `{ lead: '<uuid>' }`). |
 | `lockedFields` | `[]` | Field keys rendered read-only (disabled) and immutable — typically the parent reference seeded via `initialData` so the user can't repoint a child away from the record it was created under. |
 | `excludeFields` | `[]` | Array of field keys to exclude from the auto-generated form. |
 | `includeFields` | `null` | Array of field keys to include (whitelist mode). Null means all fields. |
-| `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. |
+| `fieldOverrides` | `{}` | Per-field override objects passed to `fieldsFromSchema`. A `widget` that names a registered component (v2 registry, then `customComponents`) mounts it as the field's control, with `value`/`modelValue`, `field`, `error` and `disabled`, writing back on `input` or `update:modelValue`. |
 | `nameField` | `'title'` | Which field is the "name" of the item (used in result messages). |
 | `size` | `'normal'` | NcDialog size — `'small'`, `'normal'`, or `'large'`. |
 | `dynamicLoadingLabel` | `'Loading the fields this choice adds.'` | Text shown while the fields a chosen value brings with it are being fetched. See *Fields the data decides* below. |
@@ -169,9 +170,12 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `cancelLabel` | `'Cancel'` | Label for the dismiss button before the action is confirmed. |
 | `closeLabel` | `'Close'` | Label for the dismiss button after the result is shown. |
 | `confirmLabel` | `''` | Confirm button label. Defaults to `'Create'` or `'Save'` depending on mode. |
+| `footnote` | `''` | A note the form closes on, under its fields, with an information icon. The host translates it. Empty shows none. |
 | `confirmIcon` | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. |
 | `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
 | `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
+| `noClose` (`no-close`) | `false` | Leave the dialog only through its buttons: no header close button, and Escape or a backdrop click does nothing. For a host moving off an `NcDialog` that had `no-close`. Off, the dialog blocks closing only while it saves. |
+| `cancelIcon` (`cancel-icon`) | `''` | MDI icon name on the Cancel / Close button (`Cancel`). Empty draws no icon. |
 
 ## Fields the data decides
 
@@ -241,8 +245,18 @@ two columns are merely two narrow ones.
 ```
 
 Textareas, JSON editors and code editors still span the full width, and the
-layout collapses back to one column below 700px. A manifest `open-form` action
-declares the same two keys directly:
+layout collapses back to one column below 700px. A field override can ask for
+the full width on any other field with `width: 'full'`, and a textarea is as
+many lines high as its override's `rows` (default 4):
+
+```json static
+{ "fieldOverrides": { "title": { "width": "full" }, "description": { "widget": "textarea", "rows": 3 } } }
+```
+
+In the board look a textarea is three lines tall on the normal leading; a field
+with its own `rows` is that many lines tall instead.
+
+A manifest `open-form` action declares `size` and `columns` directly:
 
 ```json static
 { "id": "new-case", "type": "open-form", "size": "large", "columns": 2 }

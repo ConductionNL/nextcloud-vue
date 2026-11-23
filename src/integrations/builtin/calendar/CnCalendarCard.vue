@@ -29,6 +29,26 @@
 -->
 <template>
 	<CnDetailCard :title="resolvedTitle" :icon="Calendar" :collapsible="collapsible">
+		<!-- `headerActions`: the calendar tab's create and link-existing flows in the title row (detail page). -->
+		<template v-if="shownHeaderActions.length > 0" #actions>
+			<NcButton
+				v-for="action in shownHeaderActions"
+				:key="action"
+				:variant="action === 'create' && createVariant !== 'secondary' ? 'primary' : 'secondary'"
+				:data-testid="`cn-calendar-card-${action}`"
+				@click="action === 'create' ? (showCreate = true) : (showPicker = true)">
+				<template #icon>
+					<CnIcon v-if="action === 'create' && createIcon"
+						:name="createIcon"
+						:size="20"
+						data-testid="cn-calendar-card-create-icon" />
+					<Plus v-else-if="action === 'create'" :size="20" />
+					<LinkVariant v-else :size="20" />
+				</template>
+				{{ action === 'create' ? createLabel : linkLabel }}
+			</NcButton>
+		</template>
+
 		<!-- Loading -->
 		<NcLoadingIcon v-if="loading" />
 
@@ -63,22 +83,42 @@
 				v-for="ev in displayedEvents"
 				:key="rowKey(ev)"
 				class="cn-calendar-card__row">
-				<div class="cn-calendar-card__row-icon">
-					<CalendarClock v-if="isUpcoming(ev)" :size="20" class="cn-calendar-card__icon--upcoming" />
-					<CalendarCheck v-else :size="20" class="cn-calendar-card__icon--past" />
-				</div>
-				<div class="cn-calendar-card__row-main">
-					<span class="cn-calendar-card__title">{{ ev.summary || untitledLabel }}</span>
-					<div class="cn-calendar-card__meta">
-						<span v-if="ev.dtstart" class="cn-calendar-card__when">{{ formatShort(ev.dtstart) }}</span>
-						<span v-if="ev.location" class="cn-calendar-card__location">· {{ ev.location }}</span>
+				<!-- The board look draws a meeting as a ruled row: its title, one
+				     meta line (when, where, who) and its status at the end. -->
+				<template v-if="boardRows">
+					<div class="cn-calendar-card__row-main">
+						<span class="cn-calendar-card__title">{{ ev.summary || untitledLabel }}</span>
+						<span class="cn-calendar-card__meta" data-testid="cn-calendar-card-meta">{{ boardMetaOf(ev) }}</span>
 					</div>
-				</div>
+					<span v-if="statusOf(ev)"
+						class="cn-status-badge"
+						:class="`cn-status-badge--${statusVariantOf(ev)}`"
+						data-testid="cn-calendar-card-status">{{ statusOf(ev) }}</span>
+				</template>
+				<template v-else>
+					<div class="cn-calendar-card__row-icon">
+						<CalendarClock v-if="isUpcoming(ev)" :size="20" class="cn-calendar-card__icon--upcoming" />
+						<CalendarCheck v-else :size="20" class="cn-calendar-card__icon--past" />
+					</div>
+					<div class="cn-calendar-card__row-main">
+						<span class="cn-calendar-card__title">{{ ev.summary || untitledLabel }}</span>
+						<div class="cn-calendar-card__meta">
+							<span v-if="ev.dtstart" class="cn-calendar-card__when">{{ formatShort(ev.dtstart) }}</span>
+							<span v-if="ev.location" class="cn-calendar-card__location">· {{ ev.location }}</span>
+						</div>
+					</div>
+				</template>
 			</div>
+			<a v-if="boardRows"
+				class="cn-calendar-card__open"
+				:href="calendarAppUrl"
+				target="_blank"
+				rel="noopener"
+				data-testid="cn-calendar-card-open">{{ openInCalendarLabel }}</a>
 		</div>
 
 		<!-- Footer: detail surface gets "Open in NC Calendar" CTA -->
-		<template v-if="surface === 'detail-page'" #footer>
+		<template v-if="surface === 'detail-page' && !isBoard" #footer>
 			<a
 				class="cn-calendar-card__cta"
 				:href="calendarAppUrl"
@@ -94,20 +134,42 @@
 				{{ showAllLabel }} ({{ allEvents.length }})
 			</button>
 		</template>
+		<CnCalendarEventPicker
+			v-if="showPicker"
+			:apiBase="apiBase"
+			@link="onPickerLink"
+			@close="showPicker = false" />
+		<CnCalendarEventCreate
+			v-if="showCreate"
+			:register="register"
+			:schema="schema"
+			:objectId="objectId"
+			:apiBase="apiBase"
+			@created="onEventCreated"
+			@close="showCreate = false" />
 	</CnDetailCard>
 </template>
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { markRaw } from 'vue'
 import Calendar from 'vue-material-design-icons/Calendar.vue'
 import CalendarCheck from 'vue-material-design-icons/CalendarCheck.vue'
 import CalendarClock from 'vue-material-design-icons/CalendarClock.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import Plus from 'vue-material-design-icons/Plus.vue'
+import CnCalendarEventCreate from '../../../components/CnCalendarEventCreate/CnCalendarEventCreate.vue'
+import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnCalendarEventPicker.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import CnIcon from '../../../components/CnIcon/CnIcon.vue'
+import { normalizeLook } from '../../../composables/useLook.js'
+import { formatBoardDate, formatTimeOfDay } from '../../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
+import { linkCalendarEvent } from './calendarEventLink.js'
+import { eventAttendeeNames, eventStatusLabel, eventStatusVariant } from './eventStatus.js'
 
 /**
  * CnCalendarCard — surface-aware compact widget for the calendar
@@ -117,7 +179,11 @@ import { userLocale } from '../../../utils/userLocale.js'
 export default {
 	name: 'CnCalendarCard',
 
-	components: { CnDetailCard, NcLoadingIcon, CalendarClock, CalendarCheck },
+	components: { CnCalendarEventCreate, CnCalendarEventPicker, CnDetailCard, CnIcon, LinkVariant, NcButton, NcLoadingIcon, Plus, CalendarClock, CalendarCheck },
+
+	inject: {
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/** OpenRegister register id (slug or uuid). Optional for user-dashboard. */
@@ -158,6 +224,20 @@ export default {
 		openInCalendarLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Calendar') },
 		/** dashboard "show all" footer label. */
 		showAllLabel: { type: String, default: () => t('nextcloud-vue', 'Show all') },
+		/**
+		 * Buttons in the card's title row on a detail page: `create` makes a
+		 * meeting linked to the object, `link` links an existing one from the
+		 * user's calendar. In the order given; none by default.
+		 */
+		headerActions: { type: Array, default: () => [] },
+		/** Label of the `create` button. */
+		createLabel: { type: String, default: () => t('nextcloud-vue', 'Make an appointment') },
+		/** `secondary` draws the `create` button outlined instead of primary. */
+		createVariant: { type: String, default: 'primary' },
+		/** Icon name of the `create` button; a plus without it. */
+		createIcon: { type: String, default: '' },
+		/** Label of the `link` button. */
+		linkLabel: { type: String, default: () => t('nextcloud-vue', 'Link an existing one') },
 	},
 
 	emits: ['show-all'],
@@ -168,10 +248,35 @@ export default {
 			allEvents: [],
 			loading: false,
 			error: '',
+			showCreate: false,
+			showPicker: false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The title-row buttons to draw: only on a detail page with an
+		 * object, only the known ones, in the order given.
+		 *
+		 * @return {Array<string>}
+		 */
+		/** @return {boolean} The board look draws ruled rows. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/** @return {boolean} The meetings are ruled rows: the board look on a detail page. */
+		boardRows() {
+			return this.isBoard && this.surface === 'detail-page'
+		},
+
+		shownHeaderActions() {
+			if (this.surface !== 'detail-page' || !this.objectId || !Array.isArray(this.headerActions)) {
+				return []
+			}
+			return this.headerActions.filter((action, index, all) => ['create', 'link'].includes(action) && all.indexOf(action) === index)
+		},
+
 		resolvedTitle() {
 			return this.title || t('nextcloud-vue', 'Meetings')
 		},
@@ -224,6 +329,61 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A meeting's meta line in the board look: "14 okt, 10:00 tot 10:30",
+		 * its place and its attendees, separated by middots.
+		 *
+		 * @param {object} ev The event.
+		 * @return {string}
+		 */
+		boardMetaOf(ev) {
+			const start = ev.dtstart ? new Date(ev.dtstart) : null
+			const end = ev.dtend ? new Date(ev.dtend) : null
+			let when = ''
+			if (start && !Number.isNaN(start.getTime())) {
+				when = `${formatBoardDate(start)}, ${formatTimeOfDay(start)}`
+				if (end && !Number.isNaN(end.getTime())) {
+					when = t('nextcloud-vue', '{start} until {end}', { start: when, end: formatTimeOfDay(end) })
+				}
+			}
+			return [when, ev.location, ...eventAttendeeNames(ev)].filter(Boolean).join(' · ')
+		},
+
+		statusOf(ev) {
+			return eventStatusLabel(ev)
+		},
+
+		statusVariantOf(ev) {
+			return eventStatusVariant(ev)
+		},
+
+		/**
+		 * A meeting was made on this object: close the form, read the list again.
+		 *
+		 * @return {void}
+		 */
+		onEventCreated() {
+			this.showCreate = false
+			this.refresh()
+		},
+
+		/**
+		 * Link the picked meeting, then read the list again, or say why not.
+		 *
+		 * @param {{calendarUri: string, eventUid: string}} payload The picked event.
+		 * @return {Promise<void>}
+		 */
+		async onPickerLink(payload) {
+			this.showPicker = false
+			const result = await linkCalendarEvent(prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`), payload)
+			if (result.ok) {
+				this.error = ''
+				this.refresh()
+			} else {
+				this.error = result.error
+			}
+		},
+
 		baseUrl() {
 			return `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/integrations/${this.integrationId}`
 		},

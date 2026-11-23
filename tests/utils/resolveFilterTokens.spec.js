@@ -29,6 +29,15 @@ describe('resolveFilterTokens', () => {
 		expect(resolveFilterValue('@today-7d')).toBe(expected)
 	})
 
+	it('fills a config value inside a token before resolving it (pl4-cell-rules)', () => {
+		const ctx = { config: { lead_stale_threshold_days: 21 } }
+		expect(resolveFilterValue('@today-{@config.lead_stale_threshold_days}d', ctx)).toBe(resolveFilterValue('@today-21d'))
+		expect(resolveFilterValue('@today+{@config.days}d', { config: { days: '3' } })).toBe(resolveFilterValue('@today+3d'))
+		// A key the config does not hold leaves the token as written.
+		expect(resolveFilterValue('@today-{@config.missing}d', ctx)).toBe('@today-{@config.missing}d')
+		expect(resolveFilterValue('@today-{@config.missing}d')).toBe('@today-{@config.missing}d')
+	})
+
 	it('resolves tokens inside both equality and operator filter shapes', () => {
 		global.window.OC = { currentUser: 'admin' }
 		const out = resolveFilterTokens({ assignee: '@me', expectedCloseDate: { lt: '@today' } })

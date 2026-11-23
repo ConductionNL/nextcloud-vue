@@ -1,0 +1,3 @@
+- [x] normalizeStages offPathField with currentId
+- [x] CnStagesWidget passes the current stage
+- [x] Jest

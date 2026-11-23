@@ -15,7 +15,9 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnVersionHistory from '../../components/CnVersionHistory/CnVersionHistory.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnVersionHistory = lazyComponent(() => import('../../components/CnVersionHistory/CnVersionHistory.vue'), 'CnVersionHistory')
 
 /**
  * `version-history` integration descriptor.

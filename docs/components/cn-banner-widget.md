@@ -26,11 +26,55 @@ For the manifest keys and the attention card see the [dashboard widget catalog](
 | `kicker` | `string` | Attention card: the label above the title. |
 | `title` | `string` | Attention card: the title. Falls back to `text`. |
 | `reason` | `string` | Attention card: the line that says why it needs attention. |
-| `actions` | `Array` | Attention card: the actions. |
+| `actions` | `Array` | Attention card: the actions. Each is a link (`route`, `href`), a manifest action with a `type` (`open-modal`, `handler`, ...) dispatched through the page with `@subject.<path>` filled from the card's subject (`{ "type": "open-modal", "target": "CaseLifecycleMenuDialog", "props": { "caseId": "@subject.id", "act": "suspend" } }`), or a button that emits `action`. |
 | `maxActions` | `number \| null` | Attention card: the most actions shown. |
 | `stacked` | `boolean` | Attention card: the actions under the text, with a 16px title. |
 | `content` | `object` | The stored content blob; flat props win on collision. |
+| `objectData` | `object \| null` | The record of the page the banner sits on, as a detail host binds it. A local `visibleWhen` reads it when no `cnObjectContext` is provided. |
 | `conditionOutcome` | `object \| null` | A verdict a host already evaluated, so the banner does not fetch again. Its `row` is the first row of an ordered `visibleWhen.source`, the card's subject (`{subject.title}` in the texts, `@subject.id` in an action route). |
+
+## The record as the subject
+
+A `visibleWhen` with only a `field` (no `endpoint`, no `source`) is decided on the page's own record, and that record is
+the card's subject. An `endpoint` may name the record (`@objectId`, `@object.<field>`); its whole answer is then the
+subject. When a subject token has no value, the whole line is empty, so `fallbackText`, `fallbackLead` and
+`fallbackReason` say the shorter sentence instead:
+
+```json
+{
+  "type": "banner",
+  "content": {
+    "icon": "ArchiveOutline",
+    "lead": "This item is archived. {subject.@self.archived.by} filed it on {subject.@self.archived.at|date}. You can read it, and changes are refused.",
+    "fallbackLead": "This item is archived. You can read it, and changes are refused.",
+    "text": "{subject.@self.archived.reason}",
+    "visibleWhen": { "field": "@self.archived", "op": "notEmpty" }
+  }
+}
+```
+
+A `visibleWhen.source` may carry `extend` (OpenRegister `_extend[]` names), so a card that names the first row of a query
+can also name what that row points at (`{subject.caseType.title}`).
+
+## A declared action on the record
+
+An action with `declaredAction` runs that OpenRegister declared action on the page's record
+(`POST /apps/openregister/api/objects/{register}/{schema}/{id}/actions/{name}`) and refreshes the page. Its
+`successMessage` and `errorMessage` go to the toasts. The button shows only while the record's `@self.can` grants the
+action, and a banner whose every action is a declared action the record does not grant stays hidden. On a detail page
+with `permissions: true`:
+
+```json
+{
+  "type": "banner",
+  "content": {
+    "layout": "attention",
+    "title": "Add yourself as handler to be able to edit.",
+    "visibleWhen": { "field": "@self.can.update", "op": "eq", "value": false },
+    "actions": [{ "label": "Add me as handler", "declaredAction": "claim-as-handler" }]
+  }
+}
+```
 
 ## Events
 

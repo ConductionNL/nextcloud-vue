@@ -41,6 +41,31 @@ describe('CnRecordListWidget valueLabels', () => {
 			.toEqual(['Sanne · Telefoon', 'Joris · Telefoon', 'Fatma · balie'])
 	})
 
+	it('labels a boolean value by its "true" or "false" key', async () => {
+		const rows = [
+			{ id: 'p-1', title: 'A', client: 'Pieter', isAvailable: true },
+			{ id: 'p-2', title: 'B', client: 'Fatma', isAvailable: false },
+		]
+		axios.get.mockResolvedValue({ data: { results: rows, total: 2 } })
+		const translate = (key) => ({ Available: 'Beschikbaar', 'Not available': 'Niet beschikbaar' }[key] || key)
+		const wrapper = mount(CnRecordListWidget, {
+			props: {
+				content: {
+					register: 'r',
+					schema: 'agent',
+					title: '{title}',
+					meta: '{isAvailable}',
+					valueLabels: { isAvailable: { true: 'Available', false: 'Not available' } },
+				},
+			},
+			global: { provide: { cnTranslate: translate }, stubs: { NcLoadingIcon: true } },
+		})
+		await flushPromises()
+		await flushPromises()
+		expect(wrapper.findAll('[data-testid="cn-record-list-item"]').map((item) => item.find('.cn-record-list__meta').text()))
+			.toEqual(['Beschikbaar', 'Niet beschikbaar'])
+	})
+
 	it('prints the stored value without a map', async () => {
 		expect(await metas({})).toEqual(['Sanne · phone', 'Joris · telefoon', 'Fatma · balie'])
 	})

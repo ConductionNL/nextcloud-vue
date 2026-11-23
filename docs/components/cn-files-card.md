@@ -41,6 +41,14 @@ Pass pre-translated labels when your app handles i18n:
 | `maxDisplay` (`max-display`) | Number | `5` | Maximum rows to render. |
 | `collapsible` | Boolean | `false` | Whether the card collapses. |
 | `apiBase` (`api-base`) | String | `'/apps/openregister/api'` | Base API URL. |
+| `addable` | Boolean | `false` | Show an add button in the card header that attaches picked files to the object. |
+| `addLabel` (`add-label`) | String | "Add file" | Pre-translated label of the add button. |
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `actions` | Header actions of the card, e.g. an Add button. Scope: `{ refresh }`, which reads the files again after the host added one. |
 
 ## Reference
 

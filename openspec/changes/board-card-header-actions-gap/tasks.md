@@ -1,0 +1,3 @@
+- [x] look-board.css card header actions gap 8px
+- [x] Spec tests/css/lookBoardCardHeaderActionsGap.spec.js
+- [x] 1.2 the same 8px in an integration card's CnDetailCard header (DqZaakTaken Afspraken / Kaarten, r29)

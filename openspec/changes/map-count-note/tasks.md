@@ -1,0 +1,1 @@
+- [x] 1.1 headerNote (tests/components/CnMapWidgetHeaderCount.spec.js)

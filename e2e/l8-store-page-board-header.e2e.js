@@ -22,9 +22,9 @@ test('the store title, description and search start at the same left edge, 28px 
 	await host.locator('[data-testid="store-results"]').waitFor({ state: 'visible', timeout: 60_000 })
 
 	const left = (await host.boundingBox()).x
-	const title = await host.locator('.cn-store-page__title').boundingBox()
-	const intro = await host.locator('.cn-store-page__intro').boundingBox()
-	const controls = await host.locator('.cn-store-page__controls').boundingBox()
+	const title = await host.locator('.cn-page-header__title').boundingBox()
+	const intro = await host.locator('.cn-page-header__description').boundingBox()
+	const controls = await host.locator('.cn-store-page__lens-row').boundingBox()
 	expect(Math.round(title.x - left)).toBe(28)
 	expect(Math.round(intro.x)).toBe(Math.round(title.x))
 	expect(Math.round(controls.x)).toBe(Math.round(title.x))

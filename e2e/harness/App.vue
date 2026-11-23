@@ -81,7 +81,11 @@
 			<h2>Flow editor</h2>
 			<div class="flow-editor">
 				<div class="canvas-box" data-testid="flow-box">
-					<CnFlowDetail id="new" app="openregister" />
+					<CnFlowDetail id="new" app="openregister" :view="flowView">
+						<template v-if="flowList" #toolbar-start>
+							<CnFlowViewSwitch v-model="flowView" />
+						</template>
+					</CnFlowDetail>
 				</div>
 				<!-- The palette half, in its `embedded` form: there is no
 				     Nextcloud app layout here to hold an NcAppSidebar. It is
@@ -204,6 +208,10 @@
 			<PageLensesHarness />
 		</template>
 
+		<!-- The device-frames widget (?deviceframes=1). See DeviceFramesHarness.vue. -->
+		<template v-else-if="showDeviceFrames">
+			<DeviceFramesHarness />
+		</template>
 		<!-- The workspace-filter start card (?startcard=1). See StartCardHarness.vue. -->
 		<template v-else-if="showStartCard">
 			<h2>Start card</h2>
@@ -724,6 +732,7 @@ import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPag
 import CnDataTable from '../../src/components/CnDataTable/CnDataTable.vue'
 import CnFlowDetail from '../../src/components/CnFlowDetail/CnFlowDetail.vue'
 import CnFlowSidebar from '../../src/components/CnFlowDetail/CnFlowSidebar.vue'
+import CnFlowViewSwitch from '../../src/components/CnFlowDetail/CnFlowViewSwitch.vue'
 import CnFlowRunsWidget from '../../src/components/CnFlowRunsWidget/CnFlowRunsWidget.vue'
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnFormPage from '../../src/components/CnFormPage/CnFormPage.vue'
@@ -742,6 +751,7 @@ import CnTasksWidget from '../../src/components/CnTasksWidget/CnTasksWidget.vue'
 import CnWalkthrough from '../../src/components/CnWalkthrough/CnWalkthrough.vue'
 import CnEditDataModal from '../../src/dialogs/CnEditDataModal.vue'
 import CellLabelsHarness from './CellLabelsHarness.vue'
+import DeviceFramesHarness from './DeviceFramesHarness.vue'
 import FactsHarness from './FactsHarness.vue'
 import FieldHintHarness from './FieldHintHarness.vue'
 import FieldListHarness from './FieldListHarness.vue'
@@ -794,7 +804,7 @@ const ogSample = fromOpenGemeenten([
 
 export default {
 	name: 'App',
-	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness, L6Harness, L7Harness, L8Harness },
+	components: { CnCronField, CnFlowDetail, CnFlowSidebar, CnFlowViewSwitch, CnGraphCanvas, CnIconPicker, CnIconBrowser, CnMarkdownEditor, CnWalkthrough, CnFormDialog, CnFormPage, CnEditDataModal, CnSchemaFormDialog, CnDataTable, CnTabsWidget, CnActionButtons, CnDashboardPage, CnNavCardGrid, CnLinkCardsPage, CnInteractionFormWidget, CnTasksWidget, CnFlowRunsWidget, CnIndexPage, CnNcWidgetWidget, CellLabelsHarness, FactsHarness, FieldHintHarness, FilesTabOrHarness, NarrowTableHarness, PixelGaps3Harness, PixelGapsHarness, PtAccountsHarness, PtDashboardHarness, RelationPagesHarness, ScreensChromeHarness, ScreensDetailHarness, ScreensFormHarness, ScreensIndexHarness, ScreensNavHarness, PageControlsHarness, PageLensesHarness, ScreensParityHarness, SectionsHarness, StagesHarness, StartCardHarness, DeviceFramesHarness, StartHereHarness, TabsBoardHarness, NcDialog, NcSelect, ProgressCellHarness, FieldListHarness, SettingsWidgetsHarness, L4Harness, L6Harness, L7Harness, L8Harness },
 	data() {
 		return {
 			// Dashboard layout harness (?dash=1) — see the template comment.
@@ -827,6 +837,8 @@ export default {
 			canvasConnections: [],
 			// CnDataTable horizontal-scroll harness (?dtscroll=1).
 			showFlow: (typeof window !== 'undefined' && window.location.search.includes('flow=1')),
+			flowList: (typeof window !== 'undefined' && window.location.search.includes('view=list')),
+			flowView: (typeof window !== 'undefined' && window.location.search.includes('view=list')) ? 'list' : 'canvas',
 			showRunSidebar: (typeof window !== 'undefined' && window.location.search.includes('runsidebar')),
 			showCron: (typeof window !== 'undefined' && window.location.search.includes('cron=1')),
 			cronValue: '0 9 * * 1',
@@ -864,6 +876,7 @@ export default {
 			showPageControls: (typeof window !== 'undefined' && /[?&]pagecontrols=/.test(window.location.search)),
 			showPageLenses: (typeof window !== 'undefined' && /[?&]lenses=/.test(window.location.search)),
 			showStartCard: (typeof window !== 'undefined' && /[?&]startcard=/.test(window.location.search)),
+			showDeviceFrames: (typeof window !== 'undefined' && /[?&]deviceframes=/.test(window.location.search)),
 			showSettingsWidgets: (typeof window !== 'undefined' && /[?&]settingswidgets=/.test(window.location.search)),
 			showFieldList: (typeof window !== 'undefined' && /[?&]fieldlist=/.test(window.location.search)),
 			showStages: (typeof window !== 'undefined' && /[?&](stageswidget|statbadge)=/.test(window.location.search)),

@@ -2,23 +2,26 @@
 
 ### OpenRegister reliance
 
-**none**: this component does not touch OpenRegister, directly or through anything it imports. 0 direct references, 0 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 11 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type     | Required | Default                                     | Description                                                |
-| ------------- | -------- | -------- | ------------------------------------------- | ---------------------------------------------------------- |
-| `view`        | `object` |          | `\{\}`                                      | The view being shared (its `sharedWith` seeds the fields). |
-| `dialogTitle` | `string` |          | `() =&gt; t('nextcloud-vue', 'Share view')` | Dialog title.                                              |
+| Name          | Type                | Required | Default | Description                                                                                                                                   |
+| ------------- | ------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `view`        | `object`            |          | `\{\}`  | The view being shared (its `sharedWith` seeds the fields).                                                                                    |
+| `dialogTitle` | `string`            |          | `''`    | Dialog title; empty reads "Share view: \{name\}".                                                                                             |
+| `shareGroups` | `string&#124;array` |          | `'all'` | Which groups the share picker offers: `all`, `mine` (the groups the current user is in) or an array of group ids. See CnSavedViewShareFields. |
 
 ### Events
 
-| Name      | Payload | Description                                                                      |
-| --------- | ------- | -------------------------------------------------------------------------------- |
-| `close`   | —       | Dialog dismissed.                                                                |
-| `confirm` | —       | Save clicked. Payload: the audience, `[{ group, mode }]` (`[]` to stop sharing). |
+| Name      | Payload | Description                                                                                             |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `close`   | —       | Dialog dismissed.                                                                                       |
+| `confirm` | —       | Save clicked. Payload: the audience, `[{ group, mode }]` and `[{ user, mode }]` (`[]` to stop sharing). |
 
 ### Methods
 

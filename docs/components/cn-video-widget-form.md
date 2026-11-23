@@ -14,6 +14,7 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | --------------- | -------- | -------- | ------------------------------ | ------------------------------------------------------------ |
 | `editingWidget` | `object` |          | `null`                         | The placement being edited, or `null` in create mode.        |
 | `value`         | `object` |          | `\{     ...DEFAULT_CONTENT \}` | Initial content values (registry defaults when not editing). |
+| `urlError`      | `string` |          | `''`                           | An error the host found for the current URL (its server-side parse, say). Shown under the URL field in place of the form's own message, and returned by `validate()`, so the dialog cannot save. Empty when the host has no objection. |
 
 ### Events
 

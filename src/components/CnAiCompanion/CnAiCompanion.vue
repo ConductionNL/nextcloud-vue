@@ -17,9 +17,10 @@
 -->
 <template>
 	<div
-		v-if="probeSucceeded && !isChatPage && isPrimaryCompanion"
+		v-if="probeSucceeded && !isChatPage && (embedded || isPrimaryCompanion)"
 		class="cn-ai-companion"
-		data-testid="cn-ai-companion">
+		:class="{ 'cn-ai-companion--embedded': embedded }"
+		:data-testid="embedded ? 'cn-ai-companion-embedded' : 'cn-ai-companion'">
 		<!--
 		  The hex is rendered UNCONDITIONALLY and toggles the window.
 
@@ -42,12 +43,19 @@
 		  worth nothing.
 		-->
 		<CnAiFloatingButton
+			v-if="!embedded"
 			:visible="true"
 			:position="position"
 			@click="togglePanel" />
 		<CnAiChatPanel
 			ref="panel"
-			:visible="isPanelOpen"
+			:visible="embedded || isPanelOpen"
+			:embedded="embedded"
+			:titled="titled"
+			:note="note"
+			:inputPlaceholder="inputPlaceholder"
+			:sendLabel="sendLabel"
+			:approvalWording="approvalWording"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
 			:context="effectiveContext"
@@ -56,16 +64,19 @@
 			@close="closePanel"
 			@send="onSend"
 			@newThread="onNewThread"
-			@loadConversation="onLoadConversation" />
+			@loadConversation="onLoadConversation"
+			@menu="onMenu" />
 	</div>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import CnAiChatPanel from './CnAiChatPanel.vue'
 import CnAiFloatingButton from './CnAiFloatingButton.vue'
 import { chatHealthUrl, DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAiChatStream } from '../../composables/useAiChatStream.js'
+import { ensureTranslations } from '../../l10n/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 
 const HEALTH_TIMEOUT = 5000
@@ -104,6 +115,27 @@ export default {
 
 	inject: {
 		cnAiContext: { default: null },
+		hostTranslate: { from: 'cnTranslate', default: null },
+	},
+
+	/**
+	 * The companion's buttons and panel ask `cnTranslate` for their labels.
+	 * Mounted on another app's page (Hermiq's companion on every page) no
+	 * host provides one, so a label the host leaves untranslated is read from
+	 * the library's own catalogue.
+	 *
+	 * @return {object} The provided values.
+	 * @spec openspec/changes/ai-companion-library-labels/specs/ai-chat-companion/spec.md#requirement-the-companion-reads-in-the-users-language-on-any-page
+	 */
+	provide() {
+		ensureTranslations()
+		const host = typeof this.hostTranslate === 'function' ? this.hostTranslate : null
+		return {
+			cnTranslate: (text, vars) => {
+				const hosted = host ? host(text, vars) : text
+				return hosted !== text ? hosted : t('nextcloud-vue', text, vars)
+			},
+		}
 	},
 
 	props: {
@@ -152,7 +184,62 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Render the chat as a panel of the page (a tab, a card) instead of the
+		 * launcher hex and its floating window. An embedded chat is always
+		 * open, has no launcher, and does not take the page's single companion
+		 * slot, so the floating companion keeps working beside it.
+		 *
+		 * @type {boolean}
+		 */
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** An embedded chat in a card that draws its title; see CnAiChatPanel `titled`. */
+		titled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** A line above the input, already translated. */
+		note: {
+			type: String,
+			default: '',
+		},
+
+		/** The input's placeholder, already translated. */
+		inputPlaceholder: {
+			type: String,
+			default: '',
+		},
+
+		/** A label on the send button, already translated. */
+		sendLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** The approval cards' wording, already translated: `titlePrefix`, `allow`, `deny`. */
+		approvalWording: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
+		 * Open the user's latest session about the page's record (the context's
+		 * `objectUuid`) instead of an empty thread, with its pending approvals.
+		 * No such session, or one about another record, leaves the thread empty.
+		 */
+		openSubjectSession: {
+			type: Boolean,
+			default: false,
+		},
 	},
+
+	emits: ['menu'],
 
 	data() {
 		return {
@@ -162,6 +249,8 @@ export default {
 			// Cleared on unmount so a torn-down companion cannot stand itself
 			// down after the fact.
 			legacySiblingTimer: null,
+			// The record whose session was last asked for, so it is asked once.
+			openedSubjectUuid: '',
 			stream: useAiChatStream(this, { chatAppId: this.chatAppId, context: this.context }),
 		}
 	},
@@ -201,6 +290,33 @@ export default {
 		 */
 		effectiveContext() {
 			return this.context || this.cnAiContext || null
+		},
+
+		/**
+		 * The record whose session to open: the context's `objectUuid` once the
+		 * backend answered, when the companion opts in; '' otherwise.
+		 *
+		 * @return {string} The record's uuid or ''.
+		 * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+		 */
+		subjectUuid() {
+			const uuid = this.effectiveContext && this.effectiveContext.objectUuid
+			return (this.openSubjectSession && this.probeSucceeded && typeof uuid === 'string') ? uuid : ''
+		},
+	},
+
+	watch: {
+		/**
+		 * Open the session about the record once it is known, once per record.
+		 *
+		 * @param {string} uuid The record's uuid or ''.
+		 * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+		 */
+		subjectUuid(uuid) {
+			if (uuid !== '' && uuid !== this.openedSubjectUuid) {
+				this.openedSubjectUuid = uuid
+				this.stream.loadSubjectSession(uuid)
+			}
 		},
 	},
 
@@ -242,7 +358,7 @@ export default {
 		 * versions, and it costs one timeout.
 		 */
 		yieldToACompanionThatCannotYield() {
-			if (typeof document === 'undefined' || this.isPrimaryCompanion !== true) {
+			if (typeof document === 'undefined' || this.isPrimaryCompanion !== true || this.embedded) {
 				return
 			}
 
@@ -286,9 +402,10 @@ export default {
 		 * boots after it, so whichever check runs first sees nothing and both
 		 * render.
 		 *
-		 * First to claim wins and the rest render nothing. That order is stable
-		 * in practice — the standalone mount runs first — but the rule does not
-		 * depend on it: what matters is that exactly one renders, not which.
+		 * First to claim wins and the rest render nothing, except that the
+		 * app's own companion (with an injected `cnAiContext`) always takes the
+		 * slot from a standalone one: the health probes race, so "first" is
+		 * not stable, and the app's own carries the page context.
 		 *
 		 * @return {void}
 		 */
@@ -304,7 +421,7 @@ export default {
 			// Claiming late is also why the claim is not in a `watch` on the
 			// window key: the slot is contended exactly once per page, at the
 			// moment each candidate learns it can render.
-			if (this.probeSucceeded !== true || this.isChatPage === true) {
+			if (this.probeSucceeded !== true || this.isChatPage === true || this.embedded) {
 				return
 			}
 
@@ -322,7 +439,19 @@ export default {
 				return
 			}
 
-			this.isPrimaryCompanion = scope[COMPANION_SINGLETON_KEY] === this
+			const holder = scope[COMPANION_SINGLETON_KEY]
+			if (holder !== this && this.cnAiContext && !holder.cnAiContext) {
+				// The app's own companion (inside a CnAppRoot, with the page's
+				// context) outranks a standalone mount, whichever probe answered
+				// first; the holder's flag is set directly so a standalone built
+				// on an older copy of this library stands down too.
+				holder.isPrimaryCompanion = false
+				scope[COMPANION_SINGLETON_KEY] = this
+				this.isPrimaryCompanion = true
+				return
+			}
+
+			this.isPrimaryCompanion = holder === this
 		},
 
 		/**
@@ -447,6 +576,18 @@ export default {
 
 		onLoadConversation(uuid) {
 			this.stream.loadConversation(uuid)
+		},
+
+		/**
+		 * Passes a titled panel's session controls on to the host card.
+		 *
+		 * @param {Array} actions The panel's controls as menu actions
+		 */
+		onMenu(actions) {
+			/**
+			 * @event menu The session controls of a titled panel, for its card's menu.
+			 */
+			this.$emit('menu', actions)
 		},
 	},
 }

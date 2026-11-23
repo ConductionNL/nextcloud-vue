@@ -9,14 +9,20 @@
  * Theme hooks (all optional, defaults below):
  *   --cn-dialog-danger               fill of a destructive primary
  *   --cn-dialog-eyebrow-color        eyebrow colour
- *   --cn-dialog-eyebrow-transform    uppercase (default) or none
+ *   --cn-dialog-eyebrow-transform    none (default, sentence case) or uppercase
+ *   --cn-dialog-eyebrow-tracking     letter spacing; 0 by default, 0.06em suits capitals
  */
 
+/* The nldesign theme sets a dialog's radius with `!important` through its
+   dialog radius token, so the board's 12px goes to that token.
+   @spec openspec/changes/board-dialog-theme/specs/board-dialog-theme/spec.md#requirement-a-board-dialog-keeps-its-frame-and-inset-under-a-theme */
 .cn-dialog-board {
+	--nldesign-component-dialog-border-radius: var(--cn-board-card-radius, 12px);
 	--cn-dialog-width: 640px;
-	--cn-dialog-danger: var(--color-error);
-	--cn-dialog-eyebrow-color: var(--color-primary-element-text, var(--color-main-text));
-	--cn-dialog-eyebrow-transform: uppercase;
+	--cn-dialog-danger: color-mix(in srgb, var(--color-error) 80%, #000);
+	--cn-dialog-eyebrow-color: var(--color-primary-element-light-text, var(--color-main-text));
+	--cn-dialog-eyebrow-transform: none;
+	--cn-dialog-eyebrow-tracking: 0;
 }
 
 /* Dimmed page behind the dialog: text colour at 45%. */
@@ -24,14 +30,32 @@
 	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
 }
 
-/* Width by role, capped at the viewport minus a 16px gutter each side. */
+/* Any modal of a board-look app (an app's own NcDialog or NcModal, not
+   opened through CnDialog) dims the page the same way. A page that takes the
+   Nextcloud look keeps Nextcloud's backdrop.
+   @spec openspec/changes/board-modal-backdrop/specs/board-modal-backdrop/spec.md#requirement-every-modal-in-a-board-app-dims-the-page-as-the-boards-do */
+body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .modal-mask {
+	background-color: color-mix(in srgb, var(--color-main-text) 45%, transparent);
+}
+
+/* Width by role, capped at the viewport minus a 16px gutter each side. The
+   shadow carries `!important`: the nldesign theme removes every
+   `.modal-container`'s shadow with `!important` and offers no token for it. */
 .modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container,
 .modal-mask.cn-dialog-board .modal-wrapper .modal-container {
 	width: var(--cn-dialog-width);
 	max-width: min(var(--cn-dialog-width), calc(100% - 32px));
 	border-radius: var(--cn-board-card-radius, 12px);
-	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent);
+	box-shadow: 0 12px 40px color-mix(in srgb, var(--color-main-text) 28%, transparent) !important;
 	overflow: hidden;
+}
+
+/* The board's header and body carry their own 24px inset. NcDialog pads its
+   container 4px at the top and 12px at the start, which put the title and
+   the fields 36px in; its rule outranked the one above through the scoped
+   `.dialog__modal[data-v-…]`, so this one names the class too. */
+.modal-mask.cn-dialog-board.dialog__modal .modal-wrapper .modal-container {
+	padding: 0;
 }
 
 /* The header is ours: NcModal's own close button and NcDialog's heading give
@@ -54,6 +78,69 @@
 	border: 0;
 }
 
+/* The user settings dialog (CnUserSettingsDialog, DqPersoonlijkeInstellingen
+   board): the frame takes the navigation's tint and the body fills it edge
+   to edge; the white pane and the navigation are drawn by the component.
+   @spec openspec/changes/user-settings-dialog-dq-board/specs/user-settings-dialog-dq-board/spec.md#requirement-the-user-settings-dialog-follows-the-dq-board */
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .modal-wrapper .modal-container {
+	overflow: hidden;
+	background: var(--color-primary-element-light);
+}
+
+/* Its close button is a 44px round button in the corner
+   (DqPersoonlijkeInstellingen "Sluiten"); NcButton draws 34px with radius 8.
+   The radius is a length, not 50%: an icon-only NcButton pads itself with
+   --button-radius. The mask's classes raise the rule above NcButton's own.
+   @spec openspec/changes/board-user-settings-close-round/specs/board-user-settings-close-round/spec.md */
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .cn-user-settings-dialog__close.button-vue {
+	--button-size: 44px;
+	--button-radius: 22px;
+	--button-padding: 0;
+	border-radius: 22px;
+}
+
+.modal-mask.cn-dialog-board.cn-user-settings-dialog .dialog__content {
+	gap: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+/* A section's labelled buttons are text-only at the 40px control height, 16px
+   in (DqPersoonlijkeInstellingen "Waarneming registreren", "Opnieuw
+   beginnen"); NcButton drew 34px with an icon.
+   @spec openspec/changes/board-user-settings-section-buttons/specs/board-user-settings-section-buttons/spec.md#requirement-a-user-settings-section-button-is-a-40px-text-button */
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-size: var(--cn-board-control-height);
+	--button-padding: 16px;
+}
+
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__icon {
+	display: none;
+}
+
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content .button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__text.button-vue__text {
+	padding-inline: 0;
+}
+
+/* A labelled link keeps its 16px icon before the text (DqPersoonlijkeInstellingen
+   "Verwerkingsactiviteiten (AVG)", open-in-new).
+   @spec openspec/changes/board-user-settings-section-buttons/specs/board-user-settings-section-buttons/spec.md#requirement-a-user-settings-section-link-keeps-its-icon */
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .app-settings-section__content a.button-vue:has(> .button-vue__wrapper > .button-vue__text:not(:empty)) .button-vue__icon {
+	display: flex;
+	width: 16px;
+	min-width: 16px;
+	height: 16px;
+}
+
+/* The close button is the board's 44px round button, no edge
+   (DqPersoonlijkeInstellingen "Sluiten").
+   @spec openspec/changes/user-settings-close-button/specs/user-settings-close-button/spec.md#requirement-the-user-settings-close-button-sits-in-the-corner */
+.cn-look-board.cn-dialog-board.cn-user-settings-dialog .cn-user-settings-dialog__close {
+	--button-size: 44px;
+	border: 0;
+	border-radius: 22px;
+}
+
 /* Header: padding 22px 24px 0. */
 .cn-dialog-header {
 	display: flex;
@@ -70,10 +157,11 @@
 }
 
 .cn-dialog-header__eyebrow {
+	--nldesign-color-on-surface: var(--cn-dialog-eyebrow-color, var(--color-main-text));
 	margin-bottom: 4px;
 	font-size: 13px;
 	font-weight: 700;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--cn-dialog-eyebrow-tracking, 0.06em);
 	text-transform: var(--cn-dialog-eyebrow-transform, uppercase);
 	color: var(--cn-dialog-eyebrow-color, var(--color-main-text));
 }
@@ -81,17 +169,41 @@
 .cn-dialog-header__title {
 	font-size: 20px;
 	font-weight: 700;
-	line-height: 1.3;
+	line-height: normal;
 	color: var(--color-main-text);
 }
 
+/* The subtitle is a <p>, which the nldesign theme sizes and inks with
+   `!important` through its paragraph tokens: the board's 14px muted line
+   goes to those tokens too (DqOverdragen, DqDocumentGenereren). */
 .cn-dialog-header__subtitle {
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-line-height: 1.5;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
 	margin: 4px 0 0;
 	font-size: 14px;
+	line-height: 1.5;
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-dialog-header__close {
+/* A body starts 22px under the subtitle, as the Dq dialog boards draw a
+   first field: the header's foot and the body gap alone, so the saved-view
+   edit and share forms and the confirm sentence pad nothing on top
+   (r29 on :8080: 28, 28 and 26px with their own padding). */
+.cn-dialog-board .dialog__content .cn-edit-view,
+.cn-dialog-board .dialog__content .cn-share-view,
+.cn-dialog-board .dialog__content .cn-confirm__confirm {
+	padding-top: 0;
+}
+
+/* The close button is a 36px circle with its cross in the soft ink, as every
+   dialog board draws it (#3d4047). NcButton sizes an icon-only button by
+   --button-size with `!important`, so the size goes through that; the radius
+   also goes to the nldesign theme's button radius token. */
+.cn-dialog-header .cn-dialog-header__close.button-vue {
+	--button-size: 36px;
+	--nldesign-component-button-border-radius: 50%;
 	flex: 0 0 auto;
 	width: 36px;
 	min-width: 36px;
@@ -99,6 +211,100 @@
 	min-height: 36px;
 	border-radius: 50%;
 	background: transparent;
+	color: var(--cn-board-text-soft, var(--color-text-maxcontrast));
+	--nldesign-color-on-surface: var(--cn-board-text-soft, var(--color-text-maxcontrast));
+}
+
+/* A checkbox in a board dialog sits flush with the fields, its label 10px
+   after the box: NcCheckboxRadioSwitch pads its row by half the clickable
+   area, which set the box 9px in (DqBerichtVersturen "Dit is een besluit").
+   A note under the checkbox lines up with its label through
+   --cn-dialog-check-label-inset (the 20px box and the gap). A radio sits the
+   same way (PqAanvraagOmzetten "Klant", 7px in on live).
+   @spec openspec/changes/board-dialog-radio-flush/specs/board-dialog-radio-flush/spec.md */
+.cn-dialog-board {
+	--cn-dialog-check-label-inset: 30px;
+}
+
+.cn-dialog-board .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-content {
+	padding-inline: 0;
+	gap: 10px;
+}
+
+/* In a board dialog a checkbox row is the 24px minimum target the boards draw
+   it at (an 18px label), not NcCheckboxRadioSwitch's 34px, and a note adds no
+   margin of its own: the dialog's gap spaces it. DqZaakSamenwerken "Alleen een
+   deel van de zaakvelden delen" and its note sat 25px lower than drawn (r32;
+   probed with these rules: field to note 50, as drawn).
+   @spec openspec/changes/board-dialog-checkbox-24-note-flush/specs/board-dialog-checkbox-24-note-flush/spec.md#requirement-a-board-dialogs-checkbox-is-24px-and-its-notes-add-no-margin */
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-content,
+.cn-dialog-board .dialog__content .checkbox-radio-switch-radio:not(.checkbox-radio-switch--button-variant) .checkbox-radio-switch__input {
+	min-height: 24px;
+	padding-block: 0;
+}
+
+.cn-dialog-board .dialog__content .notecard.notecard {
+	margin-block: 0;
+}
+
+/* A board dialog's choice rows stand 10px apart, as every dialog board draws
+   its options (DqDocumentGenereren, DqVolgendeStap, DqInstellen,
+   DqZaakSamenwerken); CnChoiceCards sets 8 (r32 Genereren rows 3 and 4 4-5px
+   high).
+   @spec openspec/changes/board-dialog-choice-rows-10/specs/board-dialog-choice-rows-10/spec.md#requirement-a-board-dialogs-choice-rows-stand-10px-apart */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__rows {
+	gap: 10px;
+}
+
+/* A choice card with a checkbox (CnAssignDialog's toggles) is as tight as
+   the board draws it (DqOverdragen, 76px for a label and a two-line note):
+   10px 14px padding, the checkbox row at the 24px minimum target instead of
+   NcCheckboxRadioSwitch's 34px, the note at 1.2 line height; the card's
+   corners 8px and the label on an 18px line, as the board draws them. */
+/* `.dialog` outranks the component's scoped rule (class + attribute), which
+   loads after this sheet and kept 12px 14px and 12px corners on :8080 (r29). */
+.cn-dialog-board .dialog .cn-assign-dialog__toggle {
+	padding: 10px 14px;
+	border-radius: 8px;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-content__text {
+	line-height: 18px;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch-checkbox .checkbox-content,
+.cn-dialog-board .cn-assign-dialog__toggle .checkbox-radio-switch__input {
+	min-height: 24px;
+	padding-block: 0;
+}
+
+.cn-dialog-board .cn-assign-dialog__toggle-note {
+	line-height: 1.2;
+}
+
+/* A help line sits 6px under its field on the normal line height (DqOverdragen
+   "Nu bij Woo en informatie...", 15px): it took the body's 1.5, and under the
+   team search NcSelect's 4px margin past its 2px ring put it 12px down. */
+.cn-dialog-board .cn-assign-dialog__hint:not(.cn-assign-dialog__toggle-note) {
+	line-height: normal;
+}
+
+.cn-dialog-board .dialog__content .cn-assign-dialog__field > .cn-search-select .v-select.select {
+	margin-block-end: -2px;
+}
+
+/* The note's help line sits 6px under the text area too (DqOverdragen
+   "Verplicht. ..."): the inline text area left a descender gap in its
+   wrapper, and the wrapper's 2px ring room came on top. */
+.cn-dialog-board .dialog__content .cn-assign-dialog__field .textarea__input {
+	vertical-align: top;
+}
+
+.cn-dialog-board .dialog__content .cn-assign-dialog__field > .textarea {
+	margin-block-end: -2px;
 }
 
 /* Body: padding 20px 24px, 18px between blocks. */
@@ -109,12 +315,26 @@
 	padding: 22px 24px 20px;
 }
 
-.cn-dialog-board .dialog__content > .cn-dialog-header {
-	margin-bottom: -2px;
+/* NcDialog's scoped `.dialog__content[data-v-…]` sets padding-inline-end
+   12px with the same specificity as the rule above, so wherever its chunk
+   loads later (an admin page's setup wizard) the body ran 12px wider than
+   the board (DqInstellen 684 for 672). This one outranks it. */
+.cn-dialog-board .dialog .dialog__content {
+	padding-inline-end: 24px;
 }
 
-/* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap. */
-.cn-dialog-board .dialog__actions {
+/* The body starts 22px under the header, as most dialog boards draw it
+   (header padding-bottom 4px + form padding-top 18px; DqBerichtVersturen,
+   DqOverdragen, DqNieuweZaak, DqBesluit): the 18px gap plus 4px. */
+.cn-dialog-board .dialog__content > .cn-dialog-header {
+	margin-bottom: 4px;
+}
+
+/* Footer: 16px 24px, hairline on top, right aligned, 40px buttons, 10px gap,
+   flush with the dialog's bottom. NcDialog's own footer rule (6px 0 12px
+   margin, 12px end padding) ties a two-class selector and wins when its
+   stylesheet loads later, so `.dialog` is added to outrank it. */
+.cn-dialog-board .dialog .dialog__actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -125,10 +345,39 @@
 	border-top: 1px solid var(--color-border);
 }
 
+/* NcDialog's scoped `.dialog__actions[data-v-…]` margin (6px 0 12px) has the
+   rule above's specificity and, loaded later, put the footer 6px low under the
+   body (DqVolgendeStap). This one outranks it. */
+.cn-dialog-board .dialog .dialog__actions {
+	margin: 0;
+}
+
 .cn-dialog-board .dialog__actions .button-vue,
 .cn-dialog-board .dialog__actions button {
 	min-height: var(--cn-board-control-height, 40px);
 	border-radius: var(--cn-board-control-radius, 8px);
+}
+
+/* The footer buttons set 14px text, 16px in at both sides, and 18px when
+   they carry an icon (DqOverdragen "Annuleren" and "Overdragen"). The padding
+   goes through NcButton's --button-padding. The mask class and the doubled
+   class outrank NcButton's text-only rule, `.button-vue[data-v-…]:has(…:empty)`
+   (four classes, in a stylesheet a spawned dialog loads later), and the board
+   look's general icon-and-label rule.
+   @spec openspec/changes/board-dialog-controls/specs/board-dialog-controls/spec.md#requirement-a-board-dialog-draws-its-controls-as-the-boards-do */
+.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue {
+	--button-padding: 16px;
+	font-size: 14px;
+}
+
+.modal-mask.cn-dialog-board .dialog__actions .button-vue.button-vue:has(> .button-vue__wrapper > .button-vue__icon:not(:empty)):has(> .button-vue__wrapper > .button-vue__text:not(:empty)) {
+	--button-padding: 18px;
+}
+
+/* NcButton pads a text-only label 4px a side inside the button's own padding;
+   the board's 16px is the whole inset. */
+.modal-mask.cn-dialog-board .dialog__actions .button-vue .button-vue__text.button-vue__text {
+	padding-inline: 0;
 }
 
 /* Cancel is an outlined secondary, never a text link. */
@@ -146,11 +395,14 @@
 	margin-inline-end: auto;
 }
 
-/* A destructive primary is filled with the danger colour and white text. */
+/* A destructive primary is filled with the danger colour, the error colour
+   a fifth darker (#a30000 on #cc0000, DqFilterVerwijderen), with white text
+   and no line round it.
+   @spec openspec/changes/board-side-panel-rhythm/specs/board-side-panel-rhythm/spec.md */
 .cn-dialog-board .dialog__actions .button-vue--vue-error,
 .cn-dialog-board .dialog__actions .button-vue--error {
+	border-width: 0;
 	background-color: var(--cn-dialog-danger);
-	border-color: var(--cn-dialog-danger);
 	color: #fff;
 }
 
@@ -171,6 +423,171 @@
 	font-size: 14px;
 	background: var(--color-warning-hover, color-mix(in srgb, var(--color-warning) 14%, transparent));
 	color: var(--color-main-text);
+}
+
+/* A Nextcloud text field or text area in a board dialog is the board's field:
+   its label above the control at 14px/600, the control 40px with a 1px grey
+   border and radius 8 (PlanItemDialog, DqWerkvoorraad). NcInputField draws
+   its border as a 65%-transparent shadow, which on the white dialog read as
+   an empty band, and floats its label inside the border. A field with
+   `labelOutside` keeps the app's own label and takes the same control. The
+   label's box starts where the field starts and the control 23px under it,
+   as on every dialog board (72 fields on 11 boards): the label at the font's
+   normal line, 21px of room plus the control's 2px focus inset, the label
+   4px above that room's end. */
+.cn-dialog-board .dialog__content .input-field:has(.input-field__label),
+.cn-dialog-board .dialog__content .textarea:has(.textarea__label) {
+	margin-block-start: 21px;
+}
+
+/* NcSelect's search is an NcInputField inside the select, and the select's
+   own margin rules win over the field's, so the raised label rose over what
+   stood above (DqZaakLocatie "Locatie toevoegen", DqZaakSamenwerken). The
+   select makes the label's room instead.
+   @spec openspec/changes/board-dialog-select-label-room/specs/board-dialog-select-label-room/spec.md#requirement-a-board-dialog-select-makes-room-for-its-raised-label */
+.cn-dialog-board .dialog__content .v-select:has(.input-field__label) {
+	margin-block-start: 21px;
+}
+
+/* A select in a form dialog sits under its label and over its help line
+   as a text field does (DqNieuweZaak "Zaaktype", "Intakekanaal"): the
+   form's label stands outside the select, so NcSelect's own 6px/4px margins
+   only pushed the control 6px below the text fields beside it and its help
+   line 4px further down. */
+.cn-dialog-board .dialog__content .cn-form-dialog__select-wrapper > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
+}
+
+/* So does a search select (DqNieuweZaak "Aanvrager"): its 6px top margin set
+   it 6px below "Intakekanaal" beside it, and its suggestions with it.
+   @spec openspec/changes/board-dialog-field-rhythm/specs/board-dialog-field-rhythm/spec.md#requirement-a-board-dialog-field-row-follows-the-board-rhythm */
+.cn-dialog-board .dialog__content .cn-form-dialog__party-wrapper .cn-search-select > .v-select.select:not(:has(.input-field__label)) {
+	margin-block: 0;
+}
+
+/* A field's label and its help line stand on the font's own leading, as the
+   boards set them: the body's 1.5 leading added 4px over each label and 4px
+   under each help line, so every row of DqNieuweZaak sat 4 to 8px lower.
+   @spec openspec/changes/board-dialog-field-rhythm/specs/board-dialog-field-rhythm/spec.md#requirement-a-board-dialog-field-row-follows-the-board-rhythm */
+.cn-dialog-board .dialog__content .cn-form-field__label,
+.cn-dialog-board .dialog__content .cn-form-field__optional,
+.cn-dialog-board .dialog__content .cn-form-dialog__helper {
+	line-height: normal;
+}
+
+/* A multiple select is the board's 40px field too (DqFilterDelen "Delen
+   met"). The edge goes on the toggle, which holds the chips and the search,
+   so the chosen people and groups sit inside the field; the search inside it
+   draws no edge of its own. NcSelect drew the toggle with a ring. Focus darkens
+   the edge to the text colour, as NcSelect's own focus does, and keeps the
+   ring patches.css puts on the toggle (WCAG 2.4.7).
+   @spec openspec/changes/board-dialog-multiselect-field/specs/board-dialog-multiselect-field/spec.md */
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .vs__dropdown-toggle {
+	box-sizing: border-box;
+	min-height: var(--cn-field-height, 40px);
+	max-height: none;
+	padding: 3px 4px;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+	box-shadow: none;
+}
+
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple:not(.vs--disabled) .vs__dropdown-toggle:focus-within {
+	border-color: var(--color-main-text);
+}
+
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .input-field__main-wrapper {
+	height: auto;
+}
+
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .input-field__input,
+.cn-dialog-board .dialog__content .v-select.select.vs--multiple .input-field__input:hover:not([disabled]) {
+	border: 0;
+	box-shadow: none;
+}
+
+/* The doubled class outranks NcInputField's raised-label rule (focused or
+   filled), which would pin the label's top as well and squash it. A select
+   that holds a value has a heavier rule of NcSelect's own, so it gets the
+   heavier selector (DqPersoonlijkeInstellingen "Meldingsdomein").
+   @spec openspec/changes/board-filled-select-label/specs/board-filled-select-label/spec.md */
+.cn-dialog-board .dialog__content .input-field__input + .input-field__label.input-field__label,
+.cn-dialog-board .dialog__content .nc-select.v-select.select .vs__selected-options:has(.vs__selected) .vs__search .input-field__input + .input-field__label.input-field__label,
+.cn-dialog-board .dialog__content .textarea__input + .textarea__label.textarea__label {
+	inset-block-start: auto;
+	inset-block-end: calc(100% + 4px);
+	inset-inline: 0 auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	background: none;
+	color: var(--color-main-text);
+	font-size: var(--cn-field-label-size, 14px);
+	font-weight: 600;
+	line-height: normal;
+	pointer-events: auto;
+	transition: none;
+}
+
+.cn-dialog-board .dialog__content .input-field__main-wrapper {
+	height: calc(var(--cn-field-height, 40px) + 2 * var(--border-width-input-focused, 2px));
+}
+
+/* The board draws the control's edge as a 1px border (DqOverdragen "Waarom de
+   zaak verhuist", DqBesluit); NcInputField and NcTextArea draw it as a shadow.
+   The colour is the one that meets WCAG's 3:1 for a control's edge, as the
+   footer's secondary button. Focus keeps NcInputField's own ring, which
+   carries `!important`. */
+.cn-dialog-board .dialog__content .input-field__input,
+.cn-dialog-board .dialog__content .input-field__input:hover:not([disabled]),
+.cn-dialog-board .dialog__content .textarea__input,
+.cn-dialog-board .dialog__content .textarea__input:hover:not([disabled]) {
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+	box-shadow: none;
+	font-size: var(--cn-field-text-size, 15px);
+}
+
+/* A board textarea's lines sit on the normal line height, as the boards'
+   `font` shorthand sets it, 10px 12px in, and its rows set its height
+   (NcTextArea holds a 68px minimum): two rows are 58px, not 68 (DqArchiveren
+   Reden). The Calendar app injects `textarea { padding: 5px 12px !important }`
+   on every page, which made three rows 68px against the board's 76
+   (DqOverdragen "Waarom de zaak verhuist"), so the padding is important too. */
+.cn-dialog-board .dialog__content .textarea__input {
+	min-height: 0;
+	padding: 10px 12px !important;
+	line-height: normal;
+}
+
+/* A plain input an app puts in a board dialog (a date, a number) is the same
+   40px control; Nextcloud's core stylesheet makes it 34px. */
+.cn-dialog-board .dialog__content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]):not(.input-field__input) {
+	box-sizing: border-box;
+	height: var(--cn-field-height, 40px);
+	min-height: var(--cn-field-height, 40px);
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 8px;
+}
+
+/* A field's help line sits right under the control in 13px muted ink, flush
+   with the label, on the font's own leading, as the boards draw it
+   (PtUitnodigen "De uitnodiging met een eenmalige code gaat naar dit adres.",
+   PtAccountUitgeven, DqZaakLocatie). The ink carries `!important` against a
+   theme that colours every span and p (thematiq).
+   @spec openspec/changes/board-dialog-field-help/specs/board-dialog-field-help/spec.md#requirement-a-board-dialog-fields-help-line-is-13px-muted-under-the-control
+   @spec openspec/changes/board-dialog-help-normal-leading/specs/board-dialog-help-normal-leading/spec.md#requirement-a-board-dialog-fields-help-line-stands-on-the-fonts-own-leading */
+.cn-dialog-board .dialog__content .input-field__helper-text-message,
+.cn-dialog-board .dialog__content .textarea__helper-text-message {
+	padding: 4px 0 0;
+	color: var(--color-text-maxcontrast) !important;
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-dialog-board .dialog__content .input-field:has(.input-field__label) .input-field__input:not(:focus)::placeholder,
+.cn-dialog-board .dialog__content .textarea__input:not(:focus)::placeholder {
+	opacity: 1 !important;
 }
 
 /* Type-to-confirm: a labelled 40px field with a monospace value and a hint. */
@@ -202,4 +619,254 @@
 /* A destructive button held back by type-to-confirm. */
 .cn-dialog__confirm-pending {
 	opacity: 0.45;
+}
+
+/* On a phone the board dialog is a bottom sheet (board PqMobiel): full width,
+   anchored to the bottom, as tall as its content up to the screen less the
+   header, a 16px top radius and a grab bar. The footer buttons share the row. */
+@media (max-width: 600px) {
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container,
+	.modal-mask.cn-dialog-board .modal-wrapper--normal > .modal-container {
+		position: absolute;
+		inset: auto 0 0;
+		width: 100%;
+		max-width: 100%;
+		height: auto;
+		max-height: calc(100% - var(--header-height, 50px));
+		border-radius: 16px 16px 0 0;
+	}
+
+	.cn-dialog-board {
+		--nldesign-component-dialog-border-radius: 16px 16px 0 0;
+	}
+
+	.modal-mask.cn-dialog-board .modal-container::before {
+		content: '';
+		display: block;
+		flex: none;
+		width: 40px;
+		height: 4px;
+		margin: 8px auto 0;
+		border-radius: 2px;
+		background: var(--color-border-dark);
+	}
+
+	.modal-mask.cn-dialog-board .modal-container {
+		flex-direction: column;
+	}
+
+	.cn-dialog-board .dialog {
+		height: auto;
+		min-height: 0;
+	}
+
+	.cn-dialog-board .dialog__content {
+		flex: 0 1 auto;
+		overflow-y: auto;
+	}
+
+	.cn-dialog-board .dialog__actions > .button-vue,
+	.cn-dialog-board .dialog__actions > * {
+		flex: 1 1 0;
+		min-height: 44px;
+	}
+}
+
+/* A choice legend in a board dialog is 14px/600 on the normal line height, as
+   the dialog boards draw it (DqDocumentGenereren "Sjabloon").
+   @spec openspec/changes/board-choice-legend-type/specs/board-choice-legend-type/spec.md#requirement-a-board-dialogs-choice-legend-is-14px-600-on-the-normal-line-height */
+.cn-dialog-board .cn-choice-cards__legend {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+/* Above a phone the boards top-align a dialog (DqNieuweZaak, DqUwWachtrij,
+   DqVolgendeStap: the top edge sits about 90px down at 1440 wide) instead of
+   centring it. `--cn-dialog-top` moves it. */
+@media (min-width: 601px) {
+	.modal-mask.cn-dialog-board .modal-wrapper {
+		align-items: flex-start;
+	}
+
+	.modal-mask.cn-dialog-board .modal-wrapper .modal-container {
+		margin-top: var(--cn-dialog-top, 88px);
+		max-height: calc(100% - var(--cn-dialog-top, 88px) - 24px);
+	}
+}
+
+/* The chosen option's fields start 12px under its description, the label on
+   the normal line, as DqVolgendeStap draws "Opschorten": the row's 12px
+   bottom padding plus the cell's 8px gap and a 21px label line put them
+   11.6px lower (r31).
+   @spec openspec/changes/board-choice-card-fields-under-the-text/specs/dialog/spec.md */
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__cell--with-details {
+	gap: 12px;
+}
+
+.cn-dialog-board .cn-choice-cards .cn-choice-cards__cell--with-details .cn-choice-cards__row {
+	padding-bottom: 0;
+}
+
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__label {
+	line-height: normal;
+}
+
+/* A transition field stacks its label, control and lines 6px apart on the
+   normal line, as DqVolgendeStap's Opschorten draws them: NcInputField pads
+   its wrapper 2px above and below, the help line sat at 1.3, and a field set
+   as a block ran its label and note inline (r33 Opschorten 280.5 against 274,
+   every option under it 8 to 11px low; probed with all but the note rule:
+   277.1, the note on the normal line takes 3.9 more off). The wrapper is
+   the board's 40px, since the input's `height: 100%` takes the wrapper's
+   height (r34 "Reden" 44 against 40). The `:not()`s outrank look-board.css's
+   board text field rule, which makes every wrapper 44px for its focus ring. */
+.cn-dialog-board .cn-transition-input-fields .input-field:not(.v-select *):not(.cn-look-nextcloud *) .input-field__main-wrapper {
+	height: var(--cn-field-height, 40px);
+	padding-block: 0;
+}
+
+.cn-dialog-board .cn-transition-input-fields .input-field__helper-text-message,
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__muted {
+	line-height: normal;
+}
+
+.cn-dialog-board .cn-transition-input-fields .cn-transition-input-fields__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* A setup step's parts are 16px apart, as the boards draw them (DqInstellen:
+   intro, choices and note sat 11 to 26px apart), and a note inside it adds no
+   margin of its own.
+   @spec openspec/changes/board-wizard-step/specs/setup-wizard/spec.md */
+.cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step {
+	gap: 16px;
+}
+
+.cn-dialog-board .cn-wizard-dialog__step-body .cn-setup-step .notecard.notecard {
+	margin: 0;
+}
+
+/* A board dialog's checkbox is the boards' native one: an 18px square with a
+   2px corner and a grey 1px edge while open, filled in the primary colour with
+   a white tick once checked (DqZaakSamenwerken "Alleen een deel van de
+   zaakvelden delen" drew NcCheckboxRadioSwitch's primary outline glyph, r32).
+   The glyph keeps its place but is hidden.
+   @spec openspec/changes/board-dialog-checkbox-native-box/specs/dialog/spec.md */
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon {
+	position: relative;
+	flex: none;
+	width: 18px;
+	height: 18px;
+}
+
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon svg {
+	visibility: hidden;
+}
+
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon::before {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: 2px;
+	background: var(--color-main-background);
+	content: '';
+}
+
+.cn-dialog-board .dialog__content .checkbox-radio-switch-checkbox.checkbox-radio-switch--checked:not(.checkbox-radio-switch--button-variant) .checkbox-content__icon::before {
+	border-color: var(--color-primary-element);
+	background: var(--color-primary-element) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+
+/* The access purpose's chosen row is filled, as DqZaakDoel draws "Behandeling
+   van de zaak": the ground Nextcloud gives a checked option only on hover or
+   focus. */
+.cn-dialog-board .cn-access-purpose__choices .checkbox-radio-switch--checked:not(.checkbox-radio-switch--disabled) .checkbox-content {
+	background-color: var(--color-primary-element-light-hover);
+}
+
+/* A warning note in a board dialog, as PqGesprekNieuwContact draws "Geen
+   contact gevonden": the status warning ground and ink at radius 8, 10px 14px
+   in, the icon 10px before 14px text on a 1.45 line. The 4px ink edge stays,
+   as DqNieuweZaakDubbel draws its warning. NcNoteCard paints its ground, ink
+   and text with `!important`. The duplicate warning below is bolder.
+   @spec openspec/changes/board-dialog-warning-note/specs/board-dialog-warning-note/spec.md#requirement-a-board-dialogs-warning-note-takes-the-status-warning-look */
+.cn-dialog-board .dialog__content .notecard.notecard--warning {
+	--note-theme: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text));
+	gap: 10px;
+	padding: 10px 14px;
+	border-inline-start-color: var(--note-theme);
+	border-radius: 8px;
+	background-color: var(--nldesign-component-status-badge-warning-background-color, var(--color-warning-light, #fff4de)) !important;
+	color: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text)) !important;
+}
+
+.cn-dialog-board .dialog__content .notecard.notecard--warning .notecard__text {
+	margin: 0;
+	color: inherit !important;
+	font-size: 14px !important;
+	line-height: 1.45 !important;
+}
+
+/* The duplicate warning as DqNieuweZaakDubbel draws it. The note is a warning
+   line, 12px 14px in at radius 8 on the status warning ground, 15px bold in
+   the warning ink with a 20px icon 10px before it; NcNoteCard paints its
+   ground and ink with `!important`. A match card stacks its title and facts
+   3px apart, 12px 14px in, the facts at 13px; the small print is 13px. The
+   note, the matches and the reason field stand 14px apart.
+   @spec openspec/changes/board-duplicate-warning-text/specs/board-duplicate-warning-text/spec.md#requirement-a-board-duplicate-warning-is-drawn-as-the-board */
+.cn-dialog-board .dialog__content .cn-duplicate-warning {
+	gap: 14px;
+}
+
+.cn-dialog-board .dialog__content .cn-duplicate-warning > .notecard.notecard--warning {
+	--note-card-icon-size: 20px;
+	--note-theme: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text));
+	gap: 10px;
+	padding: 12px 14px;
+	border-inline-start-color: var(--note-theme);
+	border-radius: 8px;
+	background-color: var(--nldesign-component-status-badge-warning-background-color, var(--color-warning-light, #fff4de)) !important;
+	color: var(--nldesign-component-status-badge-warning-color, var(--color-warning-text)) !important;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.cn-dialog-board .dialog__content .cn-duplicate-warning > .notecard.notecard--warning p {
+	margin: 0;
+	color: inherit !important;
+	font: inherit !important;
+}
+
+.cn-dialog-board .dialog__content .cn-duplicate-warning__match {
+	flex-direction: column;
+	gap: 3px;
+	padding: 12px 14px;
+}
+
+.cn-dialog-board .dialog__content .cn-duplicate-warning__title {
+	line-height: normal;
+}
+
+.cn-dialog-board .dialog__content .cn-duplicate-warning__meta {
+	font-size: 13px;
+	line-height: normal;
+}
+
+.cn-dialog-board .dialog__content .cn-duplicate-warning__hint {
+	font-size: 13px;
+	line-height: normal;
+}
+
+/* CnDialog state banners (R1): under the header, or above the footer. */
+.cn-dialog__notices--top {
+	margin-bottom: 12px;
+}
+
+.cn-dialog__notices--bottom {
+	margin-top: 12px;
 }

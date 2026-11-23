@@ -57,6 +57,21 @@ describe('Wave 3 — chart aggregate + drilldown + views', () => {
 		expect(result.valid).toBe(true)
 	})
 
+	it('accepts mergeByLabel on an aggregate and refuses a non-boolean (2.141.0)', () => {
+		const chart = (mergeByLabel) => manifestWith([{
+			widgetKey: 'chart',
+			...grid,
+			props: { chartKind: 'bar' },
+			dataSource: {
+				register: 'crm',
+				schema: 'case',
+				aggregate: { groupBy: 'status', topN: 5, mergeByLabel, labelResolve: { schema: 'statusType' } },
+			},
+		}])
+		expect(validateManifest(chart(true)).errors).toEqual([])
+		expect(validateManifest(chart('yes')).valid).toBe(false)
+	})
+
 	it('still accepts the STRING aggregate: count shorthand (back-compat)', () => {
 		const result = validateManifest(manifestWith([{
 			widgetKey: 'chart',
@@ -149,6 +164,15 @@ describe('Wave 3 — headerActions action types', () => {
 		expect(result.valid).toBe(true)
 	})
 
+	// @spec openspec/changes/api-call-get-download/specs/api-call-get-download/spec.md#requirement-an-api-call-can-get-a-download
+	it('accepts an api-call that GETs a download', () => {
+		const result = validateManifest(withHeaderActions([
+			{ id: 'download', label: 'Download', type: 'api-call', method: 'GET', url: '/apps/dossiq/api/doorlooptijd/metrics', params: { format: 'csv' }, download: true },
+		]))
+		expect(result.errors).toEqual([])
+		expect(result.valid).toBe(true)
+	})
+
 	it('rejects an open-form without a schema', () => {
 		const result = validateManifest(withHeaderActions([{ id: 'x', label: 'X', type: 'open-form' }]))
 		expect(result.valid).toBe(false)
@@ -161,7 +185,7 @@ describe('Wave 3 — headerActions action types', () => {
 
 	it('rejects a visibleWhen with an unknown operator', () => {
 		const result = validateManifest(withHeaderActions([
-			{ id: 'x', label: 'X', type: 'refresh', visibleWhen: { field: 'a', op: 'contains', value: 1 } },
+			{ id: 'x', label: 'X', type: 'refresh', visibleWhen: { field: 'a', op: 'startsWith', value: 1 } },
 		]))
 		expect(result.valid).toBe(false)
 	})

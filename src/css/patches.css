@@ -34,6 +34,18 @@
 	border-radius: var(--border-radius-element, var(--border-radius-large, 8px));
 }
 
+/* In the board look the square is the brand orange darkened to WCAG AA
+   (Ruben, 26 Oct): #c64e0b, the Conduction accent, keeps the brand hue and
+   puts the white icon at 4.67:1 and the square's edge at 4.32:1 on the
+   page ground; the brand orange #f36c21 gives 3.01:1 and 2.78:1.
+   @spec openspec/changes/board-buildiq-orange/specs/board-buildiq-orange/spec.md#requirement-the-board-buildiq-square-is-the-boards-orange */
+/* The doubled class outranks the same rule in an older copy of this library
+   that another app's bundle injects later on the page (decidiq's integration
+   on the case Besluiten tab drew the square in the old #e2611a). */
+.cn-look-board .cn-buildiq-edit .cn-buildiq-edit__actions .button-vue.button-vue {
+	--cn-buildiq-color: #c64e0b;
+}
+
 .cn-buildiq-edit__actions .button-vue__wrapper {
 	justify-content: center;
 }
@@ -236,4 +248,19 @@
 
 .v-select .vs__search:focus-visible {
 	outline: none;
+}
+
+/*
+ * NcAppSidebar's open toggle is an icon-only button at Nextcloud's square
+ * clickable area, the footprint --app-sidebar-offset reserves. A theme's
+ * button padding (thematiq: 8px 16px, min-width max-content) grew it to
+ * 64x49 over the page header's last button.
+ * @spec openspec/changes/sidebar-toggle-clears-page-header/specs/sidebar-toggle-clears-page-header/spec.md#requirement-the-page-header-leaves-room-for-the-closed-sidebars-toggle
+ */
+.app-sidebar__toggle.button-vue.button-vue {
+	min-width: var(--default-clickable-area);
+	width: var(--default-clickable-area);
+	min-height: var(--default-clickable-area);
+	height: var(--default-clickable-area);
+	padding: 0;
 }

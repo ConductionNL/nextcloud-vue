@@ -84,6 +84,7 @@ With footer slot:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `icon` | Object\|Function | `null` | Optional MDI icon component rendered in the card header |
+| `subtitle` | String | `''` | A muted line under the title, as given (translate before passing). No line when empty. |
 
 | Slot | Description |
 |------|-------------|
@@ -107,3 +108,18 @@ The card component stays the root either way. That is deliberate: swapping it
 for a dynamic `<component :is>` root stops Vue applying the scope id to the
 subtree, which silently disables every scoped rule in the consuming component.
 
+With `chevron-start`, the collapse chevron sits before the title instead of after the header actions:
+
+```vue
+<CnDetailCard title="Prospects" :collapsible="true" :chevron-start="true">
+  <p>Card content</p>
+</CnDetailCard>
+```
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn at the top of the card body: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](../../../docs/components/cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

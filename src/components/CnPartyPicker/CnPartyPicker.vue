@@ -1,0 +1,497 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  - SPDX-License-Identifier: EUPL-1.2
+-->
+<template>
+	<div class="cn-party-picker">
+		<!-- The kind switch (`kindSwitch`): DqNieuweZaak "Soort aanvrager"
+		     Persoon / Organisatie / Contact; only the chosen source is searched.
+		     A chosen party needs no switch (DqNieuweZaakDubbel draws the field alone). -->
+		<CnSegmentedControl
+			v-if="showKinds"
+			class="cn-party-picker__kinds"
+			mode="toggle"
+			size="compact"
+			:modelValue="activeSourceId"
+			:options="kindOptions"
+			:ariaLabel="kindSwitchLabel"
+			data-testid="cn-party-picker-kinds"
+			@update:modelValue="onKind" />
+		<CnSearchSelect
+			:inputId="inputId"
+			:modelValue="selectedOption"
+			:options="options"
+			:inputLabel="inputLabel"
+			:labelOutside="labelOutside"
+			:placeholder="placeholder ? cnTranslate(placeholder) : ''"
+			:loading="searching"
+			:filterable="false"
+			:clearable="clearable"
+			:disabled="disabled"
+			data-testid="cn-party-picker"
+			@search="onSearch"
+			@update:modelValue="onPick" />
+		<p v-if="refusal"
+			class="cn-party-picker__refusal"
+			role="alert"
+			data-testid="cn-party-picker-refusal">
+			{{ t('nextcloud-vue', 'This search could not be read.') }} {{ refusal }}
+		</p>
+		<p v-for="name in unavailable"
+			:key="name"
+			class="cn-party-picker__unavailable"
+			role="status"
+			data-testid="cn-party-picker-unavailable">
+			{{ t('nextcloud-vue', '{source} could not be searched, so this list may be incomplete.', { source: name }) }}
+		</p>
+	</div>
+</template>
+
+<script>
+import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { CnSearchSelect } from '../CnSearchSelect/index.js'
+import { CnSegmentedControl } from '../CnSegmentedControl/index.js'
+
+/** How long typing rests before a search runs, in ms. */
+const SEARCH_DELAY = 250
+
+/**
+ * CnPartyPicker — one search field over several kinds of party: people and
+ * organisations from OpenRegister register sets (BRP persons, KvK companies,
+ * an app's own clients) and the reader's Nextcloud contacts, as rows with
+ * initials, the name and a second line, in one list (board DqNieuweZaak
+ * "Aanvrager": "Henk Visser · Inwoner · Beukenlaan 3", "Visser Bouw B.V. ·
+ * Organisatie · KvK …"). Built on CnSearchSelect.
+ *
+ * `sources`: each `{ id, register, schema, label?, title?, secondary?,
+ * limit?, icon?, lookup? }` searches OpenRegister with `_search`; `lookup`
+ * (`{ url, when }`) sends a term matching `when` to the app's exact lookup
+ * instead (a POST of `{ term }` answering `{ results }`); `title` and
+ * `secondary` are templates filled from the row (default `{name}` / none),
+ * `label` names the kind ("Resident") and starts the second line; `label`
+ * and `secondary` go through the host translate, so a manifest can write
+ * `"CoC {kvkNumber}"` and a Dutch reader sees "KvK 24157431". A source
+ * `{ id, type: "contacts", label? }` searches the reader's Nextcloud contacts.
+ *
+ * `update:modelValue` emits the chosen row's id (a contact has none and
+ * emits its contact id); `select` emits the whole choice: `{ source, id,
+ * label, secondary, row }`, so a host can store more than the id (a case's
+ * initiator type, source id and display name). A `modelValue` the list does
+ * not hold is shown by its `selectedLabel`, else looked up by id in the
+ * OpenRegister sources.
+ *
+ * ```vue
+ * <CnPartyPicker
+ *   v-model="case.requester"
+ *   input-label="Requester"
+ *   :sources="[
+ *     { id: 'person', register: 'dossiq', schema: 'brpPerson', label: 'Resident', title: '{firstName} {lastName}', secondary: '{residence.street} {residence.houseNumber}' },
+ *     { id: 'company', register: 'dossiq', schema: 'kvkCompany', label: 'Organisation', title: '{tradeName}', secondary: 'KvK {sourceId}' },
+ *     { id: 'contact', type: 'contacts', label: 'Contact' },
+ *   ]"
+ *   @select="onRequester" />
+ * ```
+ */
+export default {
+	name: 'CnPartyPicker',
+
+	components: { CnSearchSelect, CnSegmentedControl },
+
+	inject: {
+		/** The host app's translate (CnAppRoot `cnTranslate`). */
+		cnTranslate: { default: () => (key) => key },
+	},
+
+	props: {
+		/** The search input's id, so the form's own label names it. */
+		inputId: {
+			type: String,
+			default: undefined,
+		},
+
+		/** The chosen party's id. */
+		modelValue: {
+			type: [String, Number],
+			default: null,
+		},
+
+		/**
+		 * Where to search: OpenRegister sets `{ id, register, schema, label?,
+		 * title?, secondary?, limit?, icon? }`, or `{ id, type: "contacts",
+		 * label? }` for the reader's Nextcloud contacts.
+		 *
+		 * @type {Array<object>}
+		 */
+		sources: {
+			type: Array,
+			default: () => [],
+		},
+
+		/** The field's label. */
+		inputLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Draw the label above the field. */
+		labelOutside: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Placeholder ("Name, BSN, trade name or KvK number"), through the host translate. */
+		placeholder: {
+			type: String,
+			default: '',
+		},
+
+		/** The chosen party's name, shown before the list holds it. */
+		selectedLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Offer a clear button. */
+		clearable: {
+			type: Boolean,
+			default: true,
+		},
+
+		/** Disable the field. */
+		disabled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The fewest characters a search needs. */
+		minLength: {
+			type: Number,
+			default: 2,
+		},
+
+		/**
+		 * A switch above the field between the sources (`{ label }`, the
+		 * group's name): one segment per source, named by its `kind` (else its
+		 * `label`), the first chosen; only the chosen source is searched. It
+		 * shows until a party is chosen and comes back when the field is cleared.
+		 *
+		 * @type {{label?: string}|null}
+		 */
+		kindSwitch: {
+			type: Object,
+			default: null,
+		},
+	},
+
+	emits: ['update:modelValue', 'select'],
+
+	data() {
+		return {
+			options: [],
+			searching: false,
+			known: null,
+			timer: null,
+			searchSeq: 0,
+			refusal: '',
+			unavailable: [],
+			chosenSource: null,
+			lastTerm: '',
+		}
+	},
+
+	computed: {
+		/**
+		 * @return {Array<{value: string, label: string}>} One segment per source.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		kindOptions() {
+			return (this.sources || [])
+				.filter((source) => source && source.id)
+				.map((source) => ({ value: String(source.id), label: this.cnTranslate(source.kind || source.label || String(source.id)) }))
+		},
+
+		/**
+		 * @return {boolean} Whether the switch shows: it has sources to switch and no party is chosen.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		showKinds() {
+			const value = this.modelValue
+			return Boolean(this.kindSwitch) && this.kindOptions.length > 1 && (value === null || value === undefined || value === '')
+		},
+
+		/**
+		 * @return {string} The chosen source id: the picked one, else the first.
+		 *
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		activeSourceId() {
+			const ids = this.kindOptions.map((option) => option.value)
+			return ids.includes(this.chosenSource) ? this.chosenSource : (ids[0] || '')
+		},
+
+		/**
+		 * @return {string} The switch's accessible name.
+		 *
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		kindSwitchLabel() {
+			const label = this.kindSwitch && this.kindSwitch.label
+			return typeof label === 'string' && label !== '' ? this.cnTranslate(label) : t('nextcloud-vue', 'Kind')
+		},
+
+		/**
+		 * @return {Array<object>} The sources a search asks: the chosen one with a kind switch, else all.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		searchedSources() {
+			const sources = this.sources || []
+			return this.kindSwitch && this.kindOptions.length > 1
+				? sources.filter((source) => source && String(source.id) === this.activeSourceId)
+				: sources
+		},
+
+		/**
+		 * The option for `modelValue`: in the list, else the known choice,
+		 * else one named by `selectedLabel`.
+		 *
+		 * @spec openspec/changes/party-picker/specs/party-picker/spec.md#requirement-one-search-field-over-several-kinds-of-party
+		 * @return {object|null}
+		 */
+		selectedOption() {
+			const value = this.modelValue
+			if (value === null || value === undefined || value === '') {
+				return null
+			}
+			const found = this.options.find((o) => String(o.id) === String(value))
+			if (found) {
+				return found
+			}
+			if (this.known && String(this.known.id) === String(value)) {
+				return this.known
+			}
+			return { id: value, label: this.selectedLabel || String(value), avatar: true }
+		},
+	},
+
+	watch: {
+		modelValue: {
+			immediate: true,
+			handler(value) {
+				if (value && !this.selectedLabel && !this.options.some((o) => String(o.id) === String(value))) {
+					this.lookUp(value)
+				}
+			},
+		},
+	},
+
+	beforeUnmount() {
+		clearTimeout(this.timer)
+	},
+
+	methods: {
+		t,
+
+		/**
+		 * Switch the kind: clear the list and search the new source for the
+		 * last term.
+		 *
+		 * @param {string} id The chosen source id.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-party-picker-can-switch-between-kinds
+		 */
+		onKind(id) {
+			this.chosenSource = String(id)
+			this.options = []
+			if (this.lastTerm) {
+				this.search(this.lastTerm)
+			}
+		},
+
+		/**
+		 * A source's row as a picker option.
+		 *
+		 * @param {object} source The source.
+		 * @param {object} row The row.
+		 * @return {object|null} The option, or null without an id.
+		 */
+		optionOf(source, row) {
+			const id = row && (row.id ?? row['@self']?.id ?? row.uuid)
+			if (id === undefined || id === null || id === '') {
+				return null
+			}
+			const title = (source.title ? fillTemplate(source.title, row) : (row.name || row.title || row.displayName || '')).trim() || String(id)
+			const detail = source.secondary ? fillTemplate(this.cnTranslate(source.secondary), row).trim() : ''
+			const kind = source.label ? this.cnTranslate(source.label) : ''
+			return {
+				id,
+				label: title,
+				secondary: [kind, detail].filter(Boolean).join(' · '),
+				avatar: !source.icon,
+				icon: source.icon || '',
+				source: source.id,
+				row,
+			}
+		},
+
+		/**
+		 * A Nextcloud contact as a picker option.
+		 *
+		 * @param {object} source The contacts source.
+		 * @param {object} contact The contactsmenu entry.
+		 * @return {object|null}
+		 */
+		contactOptionOf(source, contact) {
+			const id = contact && (contact.id || contact.uid)
+			if (!id) {
+				return null
+			}
+			const mail = Array.isArray(contact.emailAddresses) ? contact.emailAddresses[0] : ''
+			const kind = source.label ? this.cnTranslate(source.label) : ''
+			return { id, label: contact.fullName || String(id), secondary: [kind, mail].filter(Boolean).join(' · '), avatar: true, source: source.id, row: contact }
+		},
+
+		/**
+		 * Search after typing rests.
+		 *
+		 * @param {string} query The typed text.
+		 */
+		onSearch(query) {
+			clearTimeout(this.timer)
+			const term = String(query || '').trim()
+			if (term.length < this.minLength) {
+				this.options = this.selectedOption ? [this.selectedOption] : []
+				return
+			}
+			this.timer = setTimeout(() => this.search(term), SEARCH_DELAY)
+		},
+
+		/**
+		 * Search every source at once. A term a source refused (400) is said
+		 * under the field in its words; a source that could not be searched at
+		 * all is named, so an empty list never hides a missing source.
+		 *
+		 * @spec openspec/changes/party-picker/specs/party-picker/spec.md#requirement-one-search-field-over-several-kinds-of-party
+		 * @param {string} term The search term.
+		 * @return {Promise<void>}
+		 */
+		async search(term) {
+			const seq = ++this.searchSeq
+			this.lastTerm = term
+			this.searching = true
+			let refusal = ''
+			const unavailable = []
+			const sets = await Promise.all(this.searchedSources.map(async (source) => {
+				try {
+					if (source.type === 'contacts') {
+						const { data } = await axios.post(generateUrl('/contactsmenu/contacts'), { filter: term })
+						return (data && Array.isArray(data.contacts) ? data.contacts : []).map((c) => this.contactOptionOf(source, c))
+					}
+					if (this.isExactLookup(source, term) === true) {
+						const { data } = await axios.post(generateUrl(source.lookup.url), { term })
+						return (data && Array.isArray(data.results) ? data.results : []).map((row) => this.optionOf(source, row))
+					}
+					if (!source.register || !source.schema) {
+						return []
+					}
+					const { data } = await axios.get(generateUrl(`/apps/openregister/api/objects/${source.register}/${source.schema}`), { params: { _search: term, _limit: source.limit || 8 } })
+					return (data && Array.isArray(data.results) ? data.results : []).map((row) => this.optionOf(source, row))
+				} catch (failure) {
+					// OpenRegister refuses a term it cannot parse with a 400 rather
+					// than answering nothing, so that refusal is said, not hidden.
+					const response = failure && failure.response
+					if (response && response.status === 400) {
+						const body = response.data
+						refusal = String((body && (body.message || body.error)) || (typeof body === 'string' ? body : '') || refusal)
+					} else {
+						unavailable.push(source.label ? this.cnTranslate(source.label) : String(source.id || ''))
+					}
+					return []
+				}
+			}))
+			if (seq !== this.searchSeq) {
+				return
+			}
+			this.options = sets.flat().filter(Boolean)
+			this.refusal = refusal
+			this.unavailable = unavailable.filter(Boolean)
+			this.searching = false
+		},
+
+		/**
+		 * Whether a typed term goes to the source's exact lookup instead of the
+		 * free-text search: `source.lookup` is `{ url, when }`, `when` a regular
+		 * expression the whole term must match ("^[0-9]{9}$" for a BSN). The
+		 * lookup is a POST, so the term never sits in a URL or a server log line,
+		 * and the app behind it may check and record who looked whom up.
+		 *
+		 * @param {object} source The source.
+		 * @param {string} term The typed term.
+		 * @return {boolean}
+		 * @spec openspec/changes/party-picker-exact-lookup/specs/party-picker/spec.md#requirement-a-party-source-can-look-a-term-up-exactly
+		 */
+		isExactLookup(source, term) {
+			const lookup = source && source.lookup
+			if (!lookup || typeof lookup.url !== 'string' || lookup.url === '' || typeof lookup.when !== 'string') {
+				return false
+			}
+			try {
+				return new RegExp(lookup.when).test(term)
+			} catch {
+				return false
+			}
+		},
+
+		/**
+		 * Name a value the list does not hold: the first OpenRegister source
+		 * that has an object with that id.
+		 *
+		 * @param {string|number} id The id.
+		 * @return {Promise<void>}
+		 */
+		async lookUp(id) {
+			for (const source of (this.sources || []).filter((s) => s.register && s.schema && s.type !== 'contacts')) {
+				try {
+					const { data } = await axios.get(generateUrl(`/apps/openregister/api/objects/${source.register}/${source.schema}/${encodeURIComponent(id)}`))
+					const option = data ? this.optionOf(source, data) : null
+					if (option && String(this.modelValue) === String(id)) {
+						this.known = option
+						return
+					}
+				} catch {
+					// Not in this source; try the next.
+				}
+			}
+		},
+
+		/**
+		 * Take the picked option: emit its id and the whole choice.
+		 *
+		 * @param {string|number|null} id The picked id.
+		 */
+		onPick(id) {
+			const option = id === null ? null : this.options.find((o) => String(o.id) === String(id)) || null
+			if (option) {
+				this.known = option
+			}
+			/** @event update:modelValue The chosen party's id, or null when cleared. */
+			this.$emit('update:modelValue', id)
+			/** @event select The whole choice: `{ source, id, label, secondary, row }`, or null when cleared. */
+			this.$emit('select', option ? { source: option.source, id: option.id, label: option.label, secondary: option.secondary, row: option.row } : null)
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-party-picker__refusal {
+	margin: 4px 0 0;
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-party-picker__unavailable {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+</style>

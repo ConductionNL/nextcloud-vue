@@ -10,6 +10,9 @@ import { expect, test } from '@playwright/test'
 test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
 test('a progress cell draws a 56 x 8 bar filled to its percentage, the number 8px beside it', async ({ page }) => {
+	// The harness dates its rows from Date.now(), and the badge counts calendar
+	// days, so a run near midnight read one day more. Midday keeps it at 24.
+	await page.clock.setFixedTime(new Date('2026-06-15T12:00:00Z'))
 	await page.goto('/?progresscell=1', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	const good = page.locator('[data-testid="progress-row-good"]')
 	await good.locator('.cn-cell-renderer__progress').waitFor({ state: 'visible', timeout: 60_000 })

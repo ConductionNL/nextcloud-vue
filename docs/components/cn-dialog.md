@@ -43,6 +43,7 @@ Attributes it does not declare (`open`, `data-testid`, listeners such as `update
 | `defaultWidth` | `string` | `'form'` | The width role used when `width` is not set. |
 | `eyebrow` | `string` | `''` | Context line above the title (board look). |
 | `subtitle` | `string` | `''` | Sentence under the title (board look). |
+| `headless` | `boolean` | `false` | Leave out the board header, for a body that draws its own title and close button (CnUserSettingsDialog). `name` stays the accessible name. |
 
 ## Events
 
@@ -56,3 +57,12 @@ Attributes it does not declare (`open`, `data-testid`, listeners such as `update
 |------|-------------|
 | `default` | The dialog body, below the board header. |
 | `actions` | The dialog footer buttons. |
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn under the dialog header: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](./cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+| `noticesPlacement` | String | `'top'` | Where the notices go: `top` (under the header) or `bottom` (above the footer buttons). |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

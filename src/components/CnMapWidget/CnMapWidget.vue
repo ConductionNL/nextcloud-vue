@@ -18,6 +18,11 @@
       OpenRegister register/schema, reading each one's `@self.geo`
       (falling back to `latField` / `lngField` on the object itself).
       Objects with no usable location are skipped, not plotted at (0, 0).
+      `dataSource.spatialFilter` narrows them to a bbox, a radius around a
+      point, or a polygon, through OpenRegister's geo filters.
+    - `markers.detailLink` — a clicked object opens this address (with
+      `{id}`, `{register}`, `{schema}`, `{<property>}` tokens) in a new
+      tab; without it, a `url` the object carries is opened.
 
   `leaflet.markercluster`'s JS lazy-loads only when `clustering: true`
   (or `markers.clustering: true`), so a consumer without clustering does
@@ -36,13 +41,15 @@
 	<div
 		class="cn-map-widget"
 		:class="{ 'cn-map-widget--fullscreen': isFullscreen }"
-		:style="{ height: isFullscreen ? null : resolvedHeight }">
+		:style="{ height: isFullscreen || markerCaption ? null : resolvedHeight }">
 		<div
 			v-if="leafletAvailable"
 			ref="mapEl"
 			class="cn-map-widget__leaflet"
+			:class="{ 'cn-map-widget__leaflet--captioned': markerCaption && !isFullscreen }"
+			:style="markerCaption && !isFullscreen ? { height: resolvedHeight } : null"
 			role="application"
-			:aria-label="ariaLabel"
+			:aria-label="resolvedAriaLabel"
 			tabindex="0" />
 		<div v-else class="cn-map-widget__fallback">
 			<!--
@@ -56,9 +63,34 @@
 				</p>
 			</slot>
 		</div>
+		<p
+			v-if="markerStatusText"
+			class="cn-map-widget__note cn-map-widget__note--status"
+			:class="{ 'cn-map-widget__note--error': markersFailed }"
+			:role="markersFailed ? 'alert' : null"
+			:data-testid="markersFailed ? 'cn-map-markers-failed' : 'cn-map-markers-empty'">
+			{{ markerStatusText }}
+		</p>
+		<p v-if="markerCaption && !isFullscreen" class="cn-map-widget__caption" data-testid="cn-map-caption">
+			{{ markerCaption }}
+		</p>
 		<p v-if="unplottedCount > 0" class="cn-map-widget__note" data-testid="cn-map-unplotted">
 			{{ unplottedLabel }}
 		</p>
+		<!-- The layer switches (`layerToggles`): DqZaakLocatie "Kaartlagen"
+		     with "Luchtfoto (PDOK)" and "Omgevingsplan (WMS)". -->
+		<fieldset v-if="layerToggleEntries.length > 0" class="cn-map-widget__toggles" data-testid="cn-map-layer-toggles">
+			<legend class="cn-map-widget__toggles-title">
+				{{ layerTogglesTitle }}
+			</legend>
+			<label v-for="entry in layerToggleEntries" :key="entry.id" class="cn-map-widget__toggle">
+				<input type="checkbox"
+					:checked="entry.on"
+					:data-testid="`cn-map-layer-toggle-${entry.id}`"
+					@change="setLayerToggle(entry.id, $event.target.checked)">
+				{{ entry.label }}
+			</label>
+		</fieldset>
 		<div v-if="$slots.legend || $slots.legend" class="cn-map-widget__legend">
 			<!--
 				@slot legend
@@ -72,14 +104,18 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
+import { normalizeLook } from '../../composables/useLook.js'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
+import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { fromImagePoint, hasImagePosition, imageBounds, paddedImageBounds, toImagePoint } from './imageCoordinates.js'
+import { featureDetailUrl, spatialFilterRequest } from './spatialFilter.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded
@@ -157,8 +193,12 @@ const DEFAULT_BASEMAP = {
 // icon-font dependency and renders identically inside a Leaflet control bar.
 const ICON_FIT = 'M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.91,9.5L9.5,10.91L5,6.41V10H3V3H10V5H6.41L10.91,9.5M14.5,13.09L19,17.59V14H21V21H14V19H17.59L13.09,14.5L14.5,13.09M13.09,9.5L17.59,5H14V3H21V10H19V6.41L14.5,10.91L13.09,9.5Z'
 const ICON_LOCATE = 'M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
+const ICON_LAYERS = 'M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z'
 const ICON_FULLSCREEN = 'M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z'
 const ICON_FULLSCREEN_EXIT = 'M14,14H19V16H16V19H14V14M5,14H10V19H8V16H5V14M8,5H10V10H5V8H8V5M19,8V10H14V5H16V8H19Z'
+const ICON_ZOOM_IN = 'M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z'
+const ICON_ZOOM_OUT = 'M19,13H5V11H19V13Z'
+const ICON_CROSSHAIRS = 'M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z'
 
 /**
  * Wrap an MDI path in a 24x24 SVG sized for a Leaflet control button.
@@ -212,8 +252,32 @@ function controlIcon(path) {
  * @slot popup Per-marker popup body override. Scoped props: `{ feature, properties }`. When omitted, the widget renders the value of `markers.popupField` (or no popup at all when unset).
  * @slot fallback Replaces the default "map unavailable" message when Leaflet fails to load (test environments, CSP-blocked builds, offline dev). No scoped props.
  */
+/**
+ * The count line a header spec gives (`{ one, other }` or one string, with
+ * `{total}`), once the marker source answered with markers.
+ *
+ * @param {object|string|undefined} spec The declared line.
+ * @param {object} vm The map: `markersLoaded`, `markersFailed`, `markerCount`, `cnTranslate`.
+ * @return {string} The line, or ''.
+ */
+function countLine(spec, vm) {
+	if (!spec || !vm.markersLoaded || vm.markersFailed || vm.markerCount === 0) {
+		return ''
+	}
+	const text = typeof spec === 'string' ? spec : (vm.markerCount === 1 ? spec.one : spec.other)
+	if (typeof text !== 'string' || text === '') {
+		return ''
+	}
+	return vm.cnTranslate(text).replace(/\{total\}/g, String(vm.markerCount))
+}
+
 export default {
 	name: 'CnMapWidget',
+
+	inject: {
+		cnTranslate: { default: () => (key) => key },
+		cnLook: { default: 'nextcloud' },
+	},
 
 	props: {
 		/**
@@ -255,14 +319,17 @@ export default {
 		},
 
 		/**
-		 * Marker config. `{ features?, dataSource?, latField?, lngField?, xField?, yField?,
-		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker? }`. On an image map
+		 * Marker config. `{ features?, dataSource?, geoProperty?, latField?, lngField?, xField?, yField?,
+		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker?, detailLink? }`. On an image map
 		 * (a layer of type `image`) markers read `xField` / `yField` (default `x` / `y`,
 		 * pixels from the picture's top left) instead of `latField` / `lngField`. `features[]` is inline;
 		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
-		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
+		 * plots the objects of an OpenRegister register/schema via `geoProperty` (a property
+		 * holding a GeoJSON geometry of any type, or a point) when set, else `@self.geo`.
 		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
-		 * source markers.
+		 * source markers. `dataSource.spatialFilter` (`{ bbox }`, `{ near, radius }` or
+		 * `{ within }`) narrows a register source to an area; `detailLink` is the address
+		 * a clicked object opens in a new tab (see spatialFilter.js).
 		 *
 		 * @type {object|null}
 		 */
@@ -311,6 +378,17 @@ export default {
 		 * @type {boolean}
 		 */
 		fitControl: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * Show Leaflet's zoom in and zoom out buttons. Off for a small preview
+		 * map that only shows where something is.
+		 *
+		 * @type {boolean}
+		 */
+		zoomControl: {
 			type: Boolean,
 			default: true,
 		},
@@ -377,6 +455,8 @@ export default {
 		 * `clustering`, `height`, `autoFit`, `layers`, `basemaps`) overrides the
 		 * matching flat prop. Direct (non-dashboard) consumers omit this and pass
 		 * the flat props instead. See the `cfg` computed for the merge rules.
+		 * `labelsBelow: true` writes the markers' `popupField` values on a line
+		 * under the map ("Fietspad Lindelaan, tussen nummer 2 en 40").
 		 *
 		 * @type {object|null}
 		 */
@@ -386,12 +466,47 @@ export default {
 		},
 
 		/**
+		 * Layers a person can switch on and off under the map:
+		 * `[{ id, label, layer, on? }]`, `layer` in the `layers` shape (`tile`,
+		 * `wms`, `wfs`, `geojson`), `on` the starting state (default true).
+		 * `content.layerToggles` wins. The labels go through the host translate.
+		 *
+		 * @type {Array<{id: string, label: string, layer: object, on?: boolean}>}
+		 */
+		layerToggles: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Dashboard placement record. Declared so the grid's `:placement` binding is
 		 * consumed as a prop instead of leaking onto the root element; unused here.
 		 *
 		 * @type {object|null}
 		 */
 		placement: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * The record of the page the map sits on: `@objectId` and
+		 * `@object.<field>` in `markers.dataSource.filter` resolve against it, so
+		 * a record's page can plot only the objects that point at it.
+		 *
+		 * @type {string|number}
+		 */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+
+		/**
+		 * The loaded record, for `@object.<field>` filter tokens.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
 			type: Object,
 			default: null,
 		},
@@ -412,19 +527,28 @@ export default {
 	 * @event click
 	 * @description Fired when the user clicks the map background (no marker hit). Payload: `{ latlng, originalEvent }`.
 	 */
-	emits: ['map-ready', 'marker-click', 'bounds-change', 'click'],
+	emits: ['map-ready', 'marker-click', 'bounds-change', 'click', 'header'],
 
 	data() {
 		return {
 			L: null,
 			map: null,
 			layerInstances: [],
+			// Layer toggle id to whether the person switched it on (unset: its `on`).
+			toggleState: {},
 			markerLayer: null,
 			clusterGroup: null,
 			leafletAvailable: true,
 			boundsTimer: null,
 			// Rows of an image map with no usable x and y, counted in a note.
 			unplottedCount: 0,
+			// Whether the marker source has answered, and with how many markers.
+			markersLoaded: false,
+			markerCount: 0,
+			// The markers' `popupField` values, for `content.labelsBelow`.
+			markerLabels: [],
+			// Whether the marker source could not be read (not: read and empty).
+			markersFailed: false,
 			// Set once the user has framed the view themselves; stops autoFit.
 			userFramedView: false,
 			// A raw gesture has been seen; the next real view change is theirs.
@@ -441,6 +565,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the widget is drawn in the board look, which puts the zoom
+		 * buttons in the control bar and the bar in the top right.
+		 *
+		 * @return {boolean}
+		 */
+		isBoardLook() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
 		 * Effective configuration. On a dashboard the placement `content` blob
 		 * carries the widget's config, so each key falls back to `content.<key>`
 		 * when present and otherwise uses the matching flat prop. This lets
@@ -449,6 +583,7 @@ export default {
 		 *
 		 * @return {object} the resolved `{ center, zoom, layers, markers,
 		 *   clustering, height, autoFit, basemaps }`.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		cfg() {
 			const c = this.content || {}
@@ -464,7 +599,47 @@ export default {
 				height: (c.height !== undefined && c.height !== null && c.height !== '') ? c.height : p.height,
 				autoFit: typeof c.autoFit === 'boolean' ? c.autoFit : p.autoFit,
 				basemaps: Array.isArray(c.basemaps) ? c.basemaps : p.basemaps,
+				layerToggles: Array.isArray(c.layerToggles) ? c.layerToggles : p.layerToggles,
 			}
+		},
+
+		/**
+		 * The layer switches as drawn: an entry needs an id, a label and a layer.
+		 *
+		 * @return {Array<{id: string, label: string, layer: object, on: boolean}>} The switches.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		layerToggleEntries() {
+			const list = Array.isArray(this.cfg.layerToggles) ? this.cfg.layerToggles : []
+			return list
+				.filter((entry) => entry && entry.id && typeof entry.label === 'string' && entry.layer && typeof entry.layer === 'object')
+				.map((entry) => ({
+					id: String(entry.id),
+					label: this.cnTranslate(entry.label),
+					layer: entry.layer,
+					on: Object.hasOwn(this.toggleState, String(entry.id)) ? this.toggleState[String(entry.id)] : entry.on !== false,
+				}))
+		},
+
+		/**
+		 * The declared layers plus the switched-on toggles.
+		 *
+		 * @return {Array<object>} The layers to mount.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		mountedLayers() {
+			const toggled = this.layerToggleEntries.filter((entry) => entry.on).map((entry) => entry.layer)
+			return [...(this.cfg.layers || []), ...toggled]
+		},
+
+		/**
+		 * @return {string} The switches' legend: `content.layerTogglesTitle`, else "Map layers".
+		 *
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		layerTogglesTitle() {
+			const title = this.content && this.content.layerTogglesTitle
+			return typeof title === 'string' && title !== '' ? this.cnTranslate(title) : t('nextcloud-vue', 'Map layers')
 		},
 
 		/**
@@ -479,6 +654,101 @@ export default {
 				return null
 			}
 			return { url: safeHref(def.url), width: Number(def.width), height: Number(def.height) }
+		},
+
+		/**
+		 * The map's accessible name: `content.ariaLabel` through the app's
+		 * translate, else the prop.
+		 *
+		 * @return {string}
+		 */
+		resolvedAriaLabel() {
+			const own = this.content && typeof this.content.ariaLabel === 'string' ? this.content.ariaLabel : ''
+			return own !== '' ? this.cnTranslate(own) : this.ariaLabel
+		},
+
+		/**
+		 * The line under the map that says why it shows no markers: the source
+		 * failed (`content.errorText`, else a default) or answered nothing
+		 * (`content.emptyText`; without one an empty map says nothing). Only
+		 * for a map that reads its markers from a source.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
+		 */
+		/**
+		 * The line under the card title that says how many places the map
+		 * shows (`content.headerSubtitle`: `{ one, other }` or one string, with
+		 * `{total}`), once the marker source answered with markers ("1 locatie").
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/map-widget-header-count/specs/map-widget-header-count/spec.md#requirement-a-map-card-can-say-how-many-places-it-shows
+		 */
+		headerSubtitleText() {
+			return countLine(this.content?.headerSubtitle, this)
+		},
+
+		/**
+		 * The same count as a note at the right of the card's title row
+		 * (`content.headerNote`, the same shape as `headerSubtitle`), as the
+		 * case boards draw "Locaties ... 1 locatie".
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/map-count-note/specs/map-widget/spec.md
+		 */
+		headerNoteText() {
+			return countLine(this.content?.headerNote, this)
+		},
+
+		/**
+		 * The line under the map naming its places (`content.labelsBelow: true`):
+		 * each marker's `markers.popupField` value, joined by ", ", as the case
+		 * boards draw "Fietspad Lindelaan, tussen nummer 2 en 40" under the
+		 * Locaties map. Empty until the source answered with labelled markers.
+		 *
+		 * @return {string}
+		 */
+		markerCaption() {
+			if (this.content?.labelsBelow !== true || !this.markersLoaded || this.markersFailed) {
+				return ''
+			}
+			return (this.markerLabels || []).join(', ')
+		},
+
+		markerStatusText() {
+			const markers = this.cfg.markers
+			if (!markers || !markers.dataSource || !this.markersLoaded) {
+				return ''
+			}
+			const own = (key) => (this.content && typeof this.content[key] === 'string' && this.content[key] !== '' ? this.cnTranslate(this.content[key]) : '')
+			if (this.markersFailed) {
+				return own('errorText') || t('nextcloud-vue', 'The places could not be loaded.')
+			}
+			return this.markerCount === 0 ? own('emptyText') : ''
+		},
+
+		/**
+		 * The token context a `markers.dataSource.filter` resolves against.
+		 *
+		 * @return {{objectId: string, object: object}}
+		 */
+		filterContext() {
+			return { objectId: this.objectId ? String(this.objectId) : '', object: this.objectData || {} }
+		},
+
+		/**
+		 * The data-source filter with its tokens resolved, and the spatial
+		 * filter, serialised so a new record or a new area re-reads the markers.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-map-can-narrow-its-objects-to-an-area
+		 */
+		filterKey() {
+			const ds = this.cfg.markers && this.cfg.markers.dataSource
+			if (!ds || (!ds.filter && !ds.spatialFilter)) {
+				return ''
+			}
+			return JSON.stringify([ds.filter ? this.sourceFilter(ds) : null, ds.spatialFilter || null])
 		},
 
 		unplottedLabel() {
@@ -518,6 +788,36 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Report the count line to the card around the map.
+		 *
+		 * @param {string} subtitle The line, or ''.
+		 */
+		headerSubtitleText(subtitle) {
+			if (this.content?.headerSubtitle) {
+				/**
+				 * @event header The card header's line under the title.
+				 * @type {{subtitle: string}}
+				 */
+				this.$emit('header', { subtitle })
+			}
+		},
+
+		/**
+		 * Report the count note to the card around the map.
+		 *
+		 * @param {string} note The note, or ''.
+		 */
+		headerNoteText(note) {
+			if (this.content?.headerNote) {
+				/**
+				 * @event header The card header's note at the right of the title.
+				 * @type {{note: string}}
+				 */
+				this.$emit('header', { note })
+			}
+		},
+
 		// Keyed, never `deep: true` — see `layersKey`.
 		layersKey() {
 			if (this.map) {
@@ -525,7 +825,23 @@ export default {
 			}
 		},
 
+		/**
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		toggleState() {
+			if (this.map) {
+				this.renderLayers()
+			}
+		},
+
 		markersKey() {
+			if (this.map) {
+				this.renderMarkers()
+			}
+		},
+
+		// A filter on the record's id or fields: another record, other markers.
+		filterKey() {
 			if (this.map) {
 				this.renderMarkers()
 			}
@@ -543,6 +859,10 @@ export default {
 	},
 
 	async mounted() {
+		this.refreshEvent = typeof this.content?.refreshOn === 'string' ? this.content.refreshOn : ''
+		if (this.refreshEvent !== '') {
+			subscribe(this.refreshEvent, this.onRefreshEvent)
+		}
 		try {
 			// Leaflet is loaded as a runtime dep. Default-export the namespace.
 			const mod = await import('leaflet')
@@ -559,6 +879,9 @@ export default {
 	},
 
 	beforeUnmount() {
+		if (this.refreshEvent) {
+			unsubscribe(this.refreshEvent, this.onRefreshEvent)
+		}
 		clearTimeout(this.boundsTimer)
 		clearTimeout(this.resizeTimer)
 		if (this.$refs.mapEl) {
@@ -578,6 +901,17 @@ export default {
 
 	methods: {
 		/**
+		 * Switch a toggled layer on or off.
+		 *
+		 * @param {string} id The toggle id.
+		 * @param {boolean} on Whether it is now on.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		setLayerToggle(id, on) {
+			this.toggleState = { ...this.toggleState, [id]: on === true }
+		},
+
+		/**
 		 * Mount the Leaflet map instance, attach event handlers, and
 		 * render the initial layer + marker set.
 		 */
@@ -596,13 +930,13 @@ export default {
 						zoomSnap: 0.25,
 						maxBounds: paddedImageBounds(image.width, image.height),
 						maxBoundsViscosity: 1,
-						zoomControl: true,
+						zoomControl: !this.isBoardLook,
 						attributionControl: true,
 					}
 				: {
 						center: this.cfg.center,
 						zoom: this.cfg.zoom,
-						zoomControl: true,
+						zoomControl: this.zoomControl && !this.isBoardLook,
 						attributionControl: true,
 					}
 			this.map = L.map(this.$refs.mapEl, mapOptions)
@@ -693,6 +1027,8 @@ export default {
 		 * Mount the configured `layers[]` onto the Leaflet map. Each entry
 		 * dispatches by `type` to a Leaflet factory; unknown types warn and
 		 * skip. `geojson` may supply inline `data` to skip the fetch.
+		 *
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		renderLayers() {
 			const L = this.L
@@ -718,7 +1054,7 @@ export default {
 
 			this.renderBasemaps()
 
-			for (const def of this.cfg.layers) {
+			for (const def of this.mountedLayers) {
 				if (!def || typeof def !== 'object') {
 					continue
 				}
@@ -831,6 +1167,23 @@ export default {
 		},
 
 		/**
+		 * The non-empty `markers.popupField` values of the features, in order.
+		 *
+		 * @param {Array|null} features The features.
+		 * @return {string[]}
+		 */
+		labelsOf(features) {
+			const field = this.cfg.markers && this.cfg.markers.popupField
+			if (!field || !Array.isArray(features)) {
+				return []
+			}
+			return features
+				.map((feature) => (feature && feature.properties ? feature.properties[field] : null))
+				.filter((label) => typeof label === 'string' && label.trim() !== '')
+				.map((label) => label.trim())
+		},
+
+		/**
 		 * Mount the configured `markers` onto the Leaflet map. Reads from
 		 * `features[]` (inline) OR `dataSource.url` (HTTP fetch). When
 		 * `clusteringEnabled`, lazy-loads `leaflet.markercluster` and
@@ -855,7 +1208,11 @@ export default {
 			if (!this.imageLayer) {
 				this.unplottedCount = 0
 			}
+			this.markersFailed = false
 			const features = await this.collectFeatures()
+			this.markerCount = Array.isArray(features) ? features.length : 0
+			this.markerLabels = this.labelsOf(features)
+			this.markersLoaded = true
 			if (!features || features.length === 0) {
 				return
 			}
@@ -865,6 +1222,27 @@ export default {
 					const color = (feature.properties && feature.properties.markerColor)
 						|| (this.cfg.markers && this.cfg.markers.iconColor)
 						|| 'var(--color-primary-element, #2196F3)'
+					// A numbered pin, the number the list beside the map shows for the
+					// same row (an index map with `mapConfig.list`); the active row's
+					// pin draws darker.
+					const number = feature.properties && Number(feature.properties.markerNumber)
+					if (Number.isInteger(number) && number > 0) {
+						const active = feature.properties.markerActive === true
+						// A colour of the row's own (`markerColor`) fills the pin, except
+						// the active one, which keeps the active colour.
+						const fill = feature.properties.markerColor
+						const style = !active && typeof fill === 'string' && /^[#a-zA-Z0-9(),.%\s_-]+$/.test(fill)
+							? ` class="cn-map-widget__pin-fill" style="background:${fill}"`
+							: ''
+						return L.marker(latlng, {
+							icon: L.divIcon({
+								className: active ? 'cn-map-widget__pin cn-map-widget__pin--active' : 'cn-map-widget__pin',
+								html: `<span${style}>${number}</span>`,
+								iconSize: [26, 26],
+								iconAnchor: [13, 13],
+							}),
+						})
+					}
 					if (this.cfg.markers && this.cfg.markers.iconUrl) {
 						return L.marker(latlng, {
 							icon: L.icon({ iconUrl: this.cfg.markers.iconUrl, iconSize: [25, 41], iconAnchor: [12, 41] }),
@@ -913,6 +1291,7 @@ export default {
 						 * @type {{feature: object, latlng: object}}
 						 */
 						this.$emit('marker-click', { feature, latlng: e.latlng })
+						this.openFeatureDetail(feature)
 					})
 				},
 			})
@@ -1036,14 +1415,43 @@ export default {
 			})
 
 			if (Object.keys(baseLayers).length > 1 && L.control && typeof L.control.layers === 'function') {
-				this.layersControl = L.control.layers(baseLayers, {}, { position: 'topright' })
+				// The board look keeps the top right for its control column.
+				this.layersControl = L.control.layers(baseLayers, {}, { position: this.isBoardLook ? 'topleft' : 'topright' })
 				this.layersControl.addTo(this.map)
+				this.labelLayersToggle()
+			}
+		},
+
+		/**
+		 * Name the base-map switch in the user's language: Leaflet titles its
+		 * toggle "Layers" and gives it no accessible name of its own. In the
+		 * board look the toggle also carries the layers icon as an svg.
+		 *
+		 * @spec openspec/changes/board-map-layers-button/specs/board-map-layers-button/spec.md#requirement-the-base-map-switch-is-a-named-board-button
+		 */
+		labelLayersToggle() {
+			const container = this.layersControl && typeof this.layersControl.getContainer === 'function'
+				? this.layersControl.getContainer()
+				: null
+			const toggle = container ? container.querySelector('.leaflet-control-layers-toggle') : null
+			if (!toggle) {
+				return
+			}
+			const label = t('nextcloud-vue', 'Map layers')
+			toggle.setAttribute('title', label)
+			toggle.setAttribute('aria-label', label)
+			// The board look draws the toggle as its edged map button around the
+			// layers icon, in place of Leaflet's bitmap.
+			if (this.isBoardLook) {
+				toggle.style.backgroundImage = 'none'
+				toggle.innerHTML = controlIcon(ICON_LAYERS)
 			}
 		},
 
 		/**
 		 * Mount the custom control bar (fit-all / locate / fullscreen). Leaflet's own
-		 * zoom + attribution controls are enabled separately in `initMap`.
+		 * zoom + attribution controls are enabled separately in `initMap`; in the
+		 * board look the zoom buttons lead this bar instead, in the top right.
 		 */
 		addControls() {
 			const L = this.L
@@ -1054,8 +1462,13 @@ export default {
 			}
 
 			const buttons = []
+			const board = this.isBoardLook
+			if (board && (this.imageLayer || this.zoomControl)) {
+				buttons.push({ key: 'zoom-in', title: t('nextcloud-vue', 'Zoom in'), icon: ICON_ZOOM_IN, onClick: () => this.map.zoomIn() })
+				buttons.push({ key: 'zoom-out', title: t('nextcloud-vue', 'Zoom out'), icon: ICON_ZOOM_OUT, onClick: () => this.map.zoomOut() })
+			}
 			if (this.fitControl) {
-				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: ICON_FIT, onClick: () => this.fitToMarkers() })
+				buttons.push({ key: 'fit', title: t('nextcloud-vue', 'Fit all markers'), icon: board ? ICON_CROSSHAIRS : ICON_FIT, onClick: () => this.fitToMarkers() })
 			}
 			if (this.locateControl) {
 				buttons.push({ key: 'locate', title: t('nextcloud-vue', 'Show my location'), icon: ICON_LOCATE, onClick: () => this.locateMe() })
@@ -1094,7 +1507,7 @@ export default {
 				},
 			})
 
-			this.controlBar = new ControlBar({ position: 'topleft' })
+			this.controlBar = new ControlBar({ position: board ? 'topright' : 'topleft' })
 			this.controlBar.addTo(this.map)
 		},
 
@@ -1184,6 +1597,39 @@ export default {
 		},
 
 		/**
+		 * A data source's `filter` with its `@objectId` / `@object.<field>`
+		 * tokens resolved against the page's record.
+		 *
+		 * @param {{filter?: object}} ds The data source.
+		 * @return {object} The query parameters.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
+		 */
+		sourceFilter(ds) {
+			if (!ds || !ds.filter || typeof ds.filter !== 'object') {
+				return {}
+			}
+			return resolveFilterTokens(ds.filter, this.filterContext)
+		},
+
+		/**
+		 * The `content.refreshOn` event fired: read the markers again. With
+		 * `content.refreshMatch` only when the payload's field names this record.
+		 *
+		 * @param {object} payload The event payload.
+		 * @return {void}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-map-can-plot-the-objects-that-point-at-a-record
+		 */
+		onRefreshEvent(payload) {
+			const match = this.content && typeof this.content.refreshMatch === 'string' ? this.content.refreshMatch : ''
+			if (match !== '' && String(payload?.[match] ?? '') !== String(this.objectId ?? '')) {
+				return
+			}
+			if (this.map) {
+				this.renderMarkers()
+			}
+		},
+
+		/**
 		 * Resolve the features set for the current `markers` config.
 		 *
 		 * Returns the inline `features[]` when set; otherwise fetches
@@ -1242,10 +1688,11 @@ export default {
 				if (ds.register && ds.schema) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
 					const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: ds.register, schema: ds.schema })
-					const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+					const res = await axios.get(url, { params: { ...this.sourceFilter(ds), _limit: ds.limit || 500 } })
 					return (res && res.data && res.data.results) || []
 				}
 			} catch (err) {
+				this.markersFailed = true
 				// eslint-disable-next-line no-console
 				console.warn('[CnMapWidget] Failed to load markers', ds, err)
 			}
@@ -1302,6 +1749,7 @@ export default {
 					const json = await response.json()
 					return this.normaliseFeatures(json)
 				} catch (err) {
+					this.markersFailed = true
 					// eslint-disable-next-line no-console
 					console.warn('[CnMapWidget] Failed to fetch markers', ds.url, err)
 					return []
@@ -1341,8 +1789,11 @@ export default {
 		 * skipped rather than dropped at (0, 0) — an invisible wrong marker is worse
 		 * than an absent one.
 		 *
-		 * @param {{register: string, schema: string, limit?: number}} ds The data source.
+		 * A `spatialFilter` narrows the objects to an area (see spatialFilter.js).
+		 *
+		 * @param {{register: string, schema: string, limit?: number, spatialFilter?: object}} ds The data source.
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-map-can-narrow-its-objects-to-an-area
 		 */
 		async fetchRegisterFeatures(ds) {
 			try {
@@ -1354,19 +1805,41 @@ export default {
 					'/apps/openregister/api/objects/{register}/{schema}',
 					{ register: ds.register, schema: ds.schema },
 				)
-				const res = await axios.get(url, { params: { _limit: ds.limit || 500 } })
+				const params = { ...this.sourceFilter(ds), _limit: ds.limit || 500 }
+				const spatial = spatialFilterRequest(ds.spatialFilter, this.cfg.markers && this.cfg.markers.geoProperty)
+				const res = spatial && spatial.body
+					? await axios.post(url + '/geo-search', spatial.body, { params })
+					: await axios.get(url, { params: { ...params, ...(spatial ? spatial.params : {}) } })
 				const rows = (res && res.data && res.data.results) || []
 
 				const latField = this.cfg.markers && this.cfg.markers.latField
 				const lngField = this.cfg.markers && this.cfg.markers.lngField
+				const geoProperty = this.cfg.markers && this.cfg.markers.geoProperty
 
+				// (0, 0) is where an unset pair of numbers lands, not a place.
 				return rows
-					.map((row) => objectToGeoFeature(row, { latField, lngField }))
-					.filter(Boolean)
+					.map((row) => objectToGeoFeature(row, { geoProperty, latField, lngField }))
+					.filter((feature) => feature && !(feature.geometry.type === 'Point'
+						&& feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
 			} catch (err) {
+				this.markersFailed = true
 				// eslint-disable-next-line no-console
 				console.warn('[CnMapWidget] Failed to load objects for the map', ds, err)
 				return []
+			}
+		},
+
+		/**
+		 * Open a clicked object's detail address in a new tab, when it has one.
+		 *
+		 * @param {object} feature The clicked GeoJSON feature.
+		 * @return {void}
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-clicked-object-opens-its-detail-page
+		 */
+		openFeatureDetail(feature) {
+			const href = featureDetailUrl(feature, this.cfg.markers && this.cfg.markers.detailLink)
+			if (href !== null) {
+				window.open(href, '_blank', 'noopener,noreferrer')
 			}
 		},
 
@@ -1418,10 +1891,54 @@ export default {
 	background: var(--color-background-dark);
 }
 
+/* With a caption the map keeps its own height and the caption sits under it. */
+.cn-map-widget__leaflet--captioned {
+	min-height: 200px;
+}
+
+.cn-map-widget__caption {
+	margin: 12px 0 0;
+	font-size: 15px;
+	line-height: 1.2;
+	color: var(--color-main-text);
+}
+
+.cn-map-widget__toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin: 12px 0 0;
+	padding: 0;
+	border: 0;
+	font-size: 14px;
+}
+
+.cn-map-widget__toggles-title {
+	width: 100%;
+	margin-bottom: 2px;
+	padding: 0;
+	font-weight: 600;
+}
+
+.cn-map-widget__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
 .cn-map-widget__note {
 	margin: 4px 0 0;
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+/* Why the map shows no markers: the card's own text size, on its inset. */
+.cn-map-widget__note--status {
+	font-size: 14px;
+}
+
+.cn-map-widget__note--error {
+	color: var(--color-error-text, var(--color-error));
 }
 
 .cn-map-widget__fallback {
@@ -1477,5 +1994,36 @@ export default {
 .cn-map-widget ::v-deep .cn-map-widget__control:hover,
 .cn-map-widget ::v-deep .cn-map-widget__control:focus-visible {
 	background: var(--color-background-hover);
+}
+</style>
+
+<style>
+/* A numbered pin (`properties.markerNumber`): a 26px primary circle with its
+   number in white, the active one darker. Unscoped, because Leaflet creates
+   the marker element outside the template. */
+.cn-map-widget__pin {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid var(--color-main-background);
+	border-radius: 50%;
+	background: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+	font-size: 13px;
+	font-weight: 700;
+	box-sizing: border-box;
+}
+
+.cn-map-widget__pin-fill {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+}
+
+.cn-map-widget__pin--active {
+	background: var(--color-primary-element-light-text);
 }
 </style>

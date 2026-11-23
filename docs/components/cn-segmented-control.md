@@ -35,6 +35,7 @@ export default {
 | `ariaLabelledby` | `string` | `''` | Id of an element that names the group, as an alternative to `ariaLabel`. |
 | `controls` | `string` | `''` | Id of the element the options switch, such as a page view region. Set as `aria-controls` on every option. |
 | `stretch` | `boolean` | `false` | Stretch to the full width, with options of equal width. |
+| `phonePills` | `boolean` | `false` | Under 640px, draw the options as separate pills in one row that scrolls sideways, the chosen one filled (PqMobiel's lens chips). |
 | `size` | `'normal' \| 'compact'` | `'normal'` | `compact` is the board's period group (34px segments in a 40px track). |
 | `mode` | `'radio' \| 'toggle'` | `'radio'` | `toggle` renders buttons with `aria-pressed` in a `group`. |
 

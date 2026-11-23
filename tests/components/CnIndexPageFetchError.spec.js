@@ -305,3 +305,63 @@ describe('CnIndexPage — failed self-fetch', () => {
 		expect(wrapper.findComponent({ name: 'CnActionsBar' }).props('pagination').total).toBe(2)
 	})
 })
+
+describe('CnIndexPage — a refused search', () => {
+	/**
+	 * Fail the next fetch the way OpenRegister refuses a term it cannot parse.
+	 *
+	 * @param {object} extra Extra error fields.
+	 */
+	function refuseNext(extra = {}) {
+		mockServer.mockImplementationOnce(async (outcome) => {
+			const failure = { status: 400, message: 'Unclosed bracket at position 9.', isValidation: true, ...extra }
+			mockStore.errors = { ...mockStore.errors, [TYPE]: failure }
+			outcome.error = failure
+			return []
+		})
+	}
+
+	it('says where the search stopped, marks the character, and gives the server\'s reason', async () => {
+		const wrapper = mountPage()
+		await flush()
+		wrapper.vm.list.searchTerm.value = 'verzoek (2026'
+		refuseNext({ position: 9 })
+		await wrapper.vm.list.refresh(1)
+		await flush()
+		const refusal = wrapper.find('[data-testid="cn-index-page-search-refusal"]')
+		expect(refusal.exists()).toBe(true)
+		expect(hasErrorState(wrapper)).toBe(false)
+		expect(refusal.text()).toContain('This search could not be read from character 9.')
+		expect(refusal.find('mark').text()).toBe('(')
+		expect(wrapper.find('[data-testid="cn-index-page-search-refusal-term"]').text()).toBe('verzoek (2026')
+		expect(refusal.text()).toContain('Unclosed bracket at position 9.')
+		expect(refusal.text()).toContain('AND, OR and NOT work in capitals')
+	})
+
+	it('reads the position from the message, and takes the app\'s own hint', async () => {
+		const wrapper = mountPage({ searchRefusalHint: 'Search for a case number or plain words.' })
+		await flush()
+		wrapper.vm.list.searchTerm.value = 'verzoek (2026'
+		refuseNext()
+		await wrapper.vm.list.refresh(1)
+		await flush()
+		const refusal = wrapper.find('[data-testid="cn-index-page-search-refusal"]')
+		expect(refusal.find('mark').text()).toBe('(')
+		expect(refusal.text()).toContain('Search for a case number or plain words.')
+	})
+
+	it('stays the plain error state without a position or without a term', async () => {
+		mockServer.mockImplementationOnce(async (outcome) => fail(outcome))
+		const wrapper = mountPage()
+		await flush()
+		expect(wrapper.find('[data-testid="cn-index-page-search-refusal"]').exists()).toBe(false)
+		expect(hasErrorState(wrapper)).toBe(true)
+
+		wrapper.vm.list.searchTerm.value = 'verzoek'
+		mockServer.mockImplementationOnce(async (outcome) => fail(outcome))
+		await wrapper.vm.list.refresh(1)
+		await flush()
+		expect(wrapper.find('[data-testid="cn-index-page-search-refusal"]').exists()).toBe(false)
+		expect(hasErrorState(wrapper)).toBe(true)
+	})
+})

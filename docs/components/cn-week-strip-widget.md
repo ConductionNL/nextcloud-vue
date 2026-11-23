@@ -52,10 +52,10 @@ With static items:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `days` | `5 \| 7` | `5` | Working days, or the whole week. The week starts on Monday. |
-| `source` | `{ register, schema, filter?, limit? }` | none | The OpenRegister source. `filter` takes the shared @-token grammar (`@me`, `@today`). `limit` caps the request (default 100). |
+| `source` | `{ register, schema, filter?, limit?, extend? }` | none | The OpenRegister source. `filter` takes the shared @-token grammar (`@me`, `@today`). `limit` caps the request (default 100). `extend` lists relations to inline (`["caseType"]`), so a meta field can read `caseType.title`. |
 | `dateField` | `string` | none | The field the items are bucketed by. Required with a source. |
 | `titleField` | `string` | the object's display name | The field shown as the item title. |
-| `metaFields` | `string[]` | `[]` | Fields shown under the title, joined with a middle dot. |
+| `metaFields` | `Array<string \| string[]>` | `[]` | Fields shown under the title, joined with a middle dot. An entry that is a list shows the first of its fields that is filled: `["identifier", ["caseType.shortName", "caseType.title"]]` reads "2026-4837 · Woo". |
 | `itemRoute` | `string` | none | Route name an item links to. The record id goes in `params.id`. |
 | `lateWhen` | `{ op, value }` | `{ "op": "lt", "value": 0 }` | Rule on the number of days until the date. The default marks dates before today. `{ "op": "lte", "value": 0 }` also marks today. |
 | `lateField` | `string` | none | A boolean field that marks a record late, whatever its date. |
@@ -65,6 +65,7 @@ With static items:
 | `maxPerDay` | `number` | none | The most items a day shows. The rest sit behind "+N more". Without it a day shows all its items and grows with them. |
 | `moreRoute` | `string \| object` | none | Where "+N more" leads: a route name or a route object (the full list). Without it "+N more" is a button that opens the day in place, and "Show less" closes it. |
 | `moreLabel` | `string` | "+N more" | Text of the control, with `{count}` for the number hidden. Goes through the host's translate. |
+| `lang` | `string` | the page's language | The language of the item texts, a tag such as `nl`. Long words hyphenate by its rules: "Parkeer-vergunningen" instead of a break mid-syllable. |
 
 ## Props
 

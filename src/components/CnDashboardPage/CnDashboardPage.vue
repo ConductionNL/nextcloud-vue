@@ -13,6 +13,7 @@
 	<div
 		class="cn-dashboard-page"
 		:class="{ 'cn-dashboard-page--board': isBoardLook }"
+		:style="{ '--cn-dashboard-grid-margin': `${gridMargin}px` }"
 		data-testid="cn-dashboard-page">
 		<!-- Header. `showHeader: false` drops the whole row (title, description,
 		     header actions, edit toggle) for a page that opens with its own
@@ -33,8 +34,86 @@
 					<!-- @slot title-meta Content on the title's row, right of the title (e.g. a page-wide picker). Fill it from a manifest with `page.slots: { "title-meta": "<RegistryName>" }`. -->
 					<slot name="title-meta" />
 				</div>
-				<p v-if="subtitleText" class="cn-dashboard-page__description" data-testid="cn-dashboard-page-subtitle">
-					{{ subtitleText }}
+				<CnHeaderTrail
+					:breadcrumb="breadcrumb"
+					:current="title ? resolvedTitle : ''"
+					:meta="resolvedHeaderMeta" />
+				<!-- `dateRange.placement: "description"`: the segmented period
+				     group ends the description line, after its page filters
+				     ("Week 41 · alle teams · [Deze week | Dit kwartaal | Dit jaar]"). -->
+				<div
+					v-if="datePeriodInDescription || descriptionFilters.length > 0"
+					class="cn-dashboard-page__description cn-dashboard-page__description--with-period"
+					data-testid="cn-dashboard-page-subtitle">
+					<CnStatusBadge
+						v-for="(pill, pillIndex) in shownHeaderPills"
+						:key="'pill-' + pillIndex"
+						class="cn-dashboard-page__header-pill"
+						:label="pill.label"
+						:variant="pill.variant"
+						size="small"
+						data-testid="cn-dashboard-page-header-pill" />
+					<span v-if="subtitleText">{{ subtitleText }}</span>
+					<span v-if="subtitleText" aria-hidden="true">&middot;</span>
+					<!-- The page filters with `placement: "description"`, in the
+					     order the page declares them: a select as a compact
+					     select (DqDoorlooptijd "alle zaaktypen"), a
+					     `control: "segmented"` one as a segmented group that
+					     writes the workspace context (DqProcesanalyse
+					     "Gemiddeld | Mediaan"). -->
+					<template v-for="(pf, pfIndex) in descriptionFilters" :key="pf.key">
+						<CnSegmentedControl
+							v-if="pf.control === 'segmented'"
+							size="compact"
+							mode="toggle"
+							:options="pageFilterSegments(pf)"
+							:modelValue="workspaceContext[pf.key]"
+							:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+							:data-testid="'cn-page-filter-' + pf.key"
+							@update:modelValue="onPageFilterChange(pf, $event)" />
+						<template v-else>
+							<NcSelect
+								class="cn-dashboard-page__description-select"
+								:modelValue="selectedPageFilterOption(pf)"
+								:options="pageFilterSegments(pf)"
+								:clearable="pf.clearable === true"
+								:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+								:loading="pageFilterLoading[pf.key] === true"
+								:ariaLabelCombobox="pf.label ? effectiveTranslate(pf.label) : pf.key"
+								label="label"
+								:data-testid="'cn-page-filter-' + pf.key"
+								@update:modelValue="onPageFilterChange(pf, $event)" />
+							<span v-if="segmentedFollows(pfIndex)" aria-hidden="true">&middot;</span>
+						</template>
+					</template>
+					<CnSegmentedControl
+						v-if="datePeriodInDescription"
+						size="compact"
+						mode="toggle"
+						:options="segmentedOptions"
+						:modelValue="segmentedValue"
+						:ariaLabel="datePeriodLabel"
+						data-testid="cn-dashboard-page-date-segmented"
+						@update:modelValue="onSegmentPick" />
+				</div>
+				<!-- `headerPills` open the line under the title (PqWerkplekKlant: "Telefoon, inkomend", "Geïdentificeerd"). -->
+				<p
+					v-else-if="subtitleText || shownHeaderPills.length > 0"
+					class="cn-dashboard-page__description"
+					:class="{ 'cn-dashboard-page__description--pills': shownHeaderPills.length > 0 }"
+					data-testid="cn-dashboard-page-subtitle">
+					<CnStatusBadge
+						v-for="(pill, pillIndex) in shownHeaderPills"
+						:key="'pill-' + pillIndex"
+						class="cn-dashboard-page__header-pill"
+						:label="pill.label"
+						:variant="pill.variant"
+						size="small"
+						data-testid="cn-dashboard-page-header-pill" />
+					<span v-if="shownHeaderPills.length > 0 && subtitleText">{{ subtitleText }}</span>
+					<template v-else>
+						{{ subtitleText }}
+					</template>
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
@@ -50,6 +129,9 @@
 					:controls="viewRegionId"
 					data-testid="cn-dashboard-page-view-switch"
 					@update:modelValue="selectView" />
+				<!-- Board look with `actionsPlacement: "start"`: the page's own
+				     actions component (an availability toggle) leads the row. -->
+				<slot v-if="isBoardLook && actionsFirst" name="actions" />
 				<!-- Declarative header actions (#91 Wave 3): a manifest
 				     `headerActions[]` renders as buttons (open-form / api-call /
 				     toggle / navigate / refresh) with visibleWhen gating,
@@ -57,14 +139,18 @@
 				     right-most next to the edit toggle. -->
 				<template v-if="!isBoardLook">
 					<CnActionButtons
-						v-if="headerActions && headerActions.length"
-						:actions="headerActions"
+						v-if="linkedHeaderActions.length"
+						:actions="linkedHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<!-- @slot header-actions Inline buttons rendered in the dashboard header next to the edit toggle. Used by every existing consumer (decidesk, launchpad, opencatalogi, pipelinq, procest). -->
 					<slot name="header-actions" />
 					<!-- @slot actions Back-compat alias for `#header-actions`. Prefer `#header-actions` in new code. -->
 					<slot name="actions" />
 				</template>
+				<CnActionButtons
+					v-else-if="boardSecondaryHeaderActions.length"
+					:actions="boardSecondaryHeaderActions"
+					data-testid="cn-dashboard-page-header-actions-secondary" />
 				<!-- `layoutPanel`: opens the side panel where the user shows,
 				     hides and reorders the page's sections. -->
 				<NcButton
@@ -88,7 +174,7 @@
 						<Pencil v-if="!isEditing" :size="20" />
 						<Check v-else :size="20" />
 					</template>
-					{{ isEditing ? doneLabel : editLabel }}
+					{{ isEditing ? shownDoneLabel : shownEditLabel }}
 				</NcButton>
 				<!-- With `userLayout`, edit mode offers a way back to the
 				     manifest: the page's own grid and the chosen view return
@@ -106,7 +192,7 @@
 				<!-- In-app edit button (ADR-041). Renders only when Buildiq is
 				     reachable; self-wires from the cnManifestEditor / cnOpenBuildAvailable
 				     provided by CnAppRoot. Sits inline with the page's action buttons. -->
-				<CnBuildiqEditButton v-if="!isBoardLook" />
+				<CnBuildiqEditButton v-if="!isBoardLook && !headerActionsOffViewport" />
 				<!-- Page-level overflow Actions menu (Refresh + the mandatory
 				     trio Request a feature / Report a bug / Documentation).
 				     Separate from the per-widget menus. `docs-anchor` deep-links
@@ -139,17 +225,17 @@
 						<slot name="action-items" />
 					</template>
 				</CnActionsMenu>
-				<!-- Board look: the row reads Edit layout, Actions, the buildiq
-				     square, then the manifest's header actions with the primary
-				     rightmost (screens-dashboard-parity). -->
+				<!-- Board look: the row reads the secondary header actions, Edit
+				     layout, Actions, the buildiq square, then the primary header
+				     actions rightmost (screens-dashboard-parity). -->
 				<template v-if="isBoardLook">
-					<CnBuildiqEditButton />
+					<CnBuildiqEditButton v-if="!headerActionsOffViewport" />
 					<CnActionButtons
-						v-if="headerActions && headerActions.length"
-						:actions="headerActions"
+						v-if="boardPrimaryHeaderActions.length"
+						:actions="boardPrimaryHeaderActions"
 						data-testid="cn-dashboard-page-header-actions" />
 					<slot name="header-actions" />
-					<slot name="actions" />
+					<slot v-if="!actionsFirst" name="actions" />
 				</template>
 			</div>
 		</div>
@@ -209,7 +295,7 @@
 		     handling, persistence, and event emission lives in
 		     `onDateRangeChange`. -->
 		<div
-			v-if="showHeaderDateRange"
+			v-if="showHeaderDateRange && !datePeriodInDescription"
 			class="cn-dashboard-page__date-range"
 			:class="{
 				'cn-dashboard-page__date-range--pills': dateRangeControl === 'pills',
@@ -318,23 +404,35 @@
 		     `@page.<key>` / `@workspace.<key>` token (e.g. an endpoint KPI's URL
 		     interpolating a chosen period). -->
 		<div
-			v-if="pageFilters && pageFilters.length"
+			v-if="rowPageFilters.length > 0"
 			class="cn-dashboard-page__page-filters"
 			data-testid="cn-dashboard-page-page-filters">
-			<label
-				v-for="pf in pageFilters"
-				:key="pf.key"
-				class="cn-dashboard-page__page-filter">
-				<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ pf.label }}</span>
-				<NcSelect
-					:modelValue="selectedPageFilterOption(pf)"
-					:options="pf.options || []"
-					:clearable="false"
-					:inputLabel="pf.label || pf.key"
-					label="label"
+			<template v-for="pf in rowPageFilters" :key="pf.key">
+				<CnSegmentedControl
+					v-if="pf.control === 'segmented'"
+					size="compact"
+					mode="toggle"
+					:options="pageFilterSegments(pf)"
+					:modelValue="workspaceContext[pf.key]"
+					:ariaLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
 					:data-testid="'cn-page-filter-' + pf.key"
 					@update:modelValue="onPageFilterChange(pf, $event)" />
-			</label>
+				<label
+					v-else
+					class="cn-dashboard-page__page-filter">
+					<span v-if="pf.label" class="cn-dashboard-page__page-filter-label">{{ effectiveTranslate(pf.label) }}</span>
+					<NcSelect
+						:modelValue="selectedPageFilterOption(pf)"
+						:options="pageFilterSegments(pf)"
+						:clearable="pf.clearable === true"
+						:placeholder="pf.placeholder ? effectiveTranslate(pf.placeholder) : undefined"
+						:loading="pageFilterLoading[pf.key] === true"
+						:inputLabel="pf.label ? effectiveTranslate(pf.label) : pf.key"
+						label="label"
+						:data-testid="'cn-page-filter-' + pf.key"
+						@update:modelValue="onPageFilterChange(pf, $event)" />
+				</label>
+			</template>
 		</div>
 
 		<!-- Declarative in-body sections, `placement: "before-grid"` — host-app
@@ -404,7 +502,7 @@
 		     in the emitted layout. -->
 		<CnKpiGrid
 			v-if="gridSectionsShown && kpiRowItems.length > 0"
-			columns="auto"
+			:columns="kpiColumns"
 			class="cn-dashboard-page__kpi-row"
 			data-testid="cn-dashboard-page-kpi-row">
 			<div
@@ -460,6 +558,8 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
+					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="false"
 					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
@@ -498,6 +598,8 @@
 			:cellHeight="cellHeight"
 			:margin="gridMargin"
 			:float="gridFloat"
+			:sideColumn="section.sideColumn"
+			:columnWeights="section.columnWeights"
 			@layoutChange="section.view ? onViewLayoutChange($event) : onLayoutChange($event)">
 			<template #widget="{ item }">
 				<!-- In-app edit overlay (ADR-041): a single launchpad-style
@@ -522,6 +624,8 @@
 					v-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
+					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)">
 					<!-- Compact on purpose: a two-row tile is about 150px, less
 					     a title row. NcEmptyContent's 64px icon, 20px name,
@@ -561,6 +665,8 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -568,6 +674,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -643,6 +750,8 @@
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -651,6 +760,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -722,6 +832,8 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -731,6 +843,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -750,6 +863,8 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
@@ -758,6 +873,7 @@
 						:flush="item.flush !== false"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:titleIconPosition="getWidgetTitleIconPosition(item)"
 						:titleIconColor="getWidgetTitleIconColor(item)"
@@ -790,12 +906,15 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:iconUrl="getWidgetIconUrl(item)"
 						:iconClass="getWidgetIconClass(item)"
 						:showTitle="widgetShowTitle(item)"
 						:showActions="widgetShowActions(item)"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
@@ -816,6 +935,8 @@
 						:widgetId="item.widgetId"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
+						:titleTone="getWidgetTitleTone(item)"
+						:subtitle="getWidgetSubtitle(item)"
 						:showTitle="widgetShowTitle(item)"
 						:showActions="widgetShowActions(item)"
 						:showRefresh="getWidgetShowRefresh(item)"
@@ -827,6 +948,7 @@
 						:class="{ 'cn-dashboard-page__card-fit': isCardWidget(item) }"
 						:buttons="getWidgetButtons(item)"
 						:headerLink="getWidgetHeaderLink(item)"
+						:headerActions="getWidgetHeaderActions(item)"
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
@@ -917,6 +1039,8 @@
 					v-else
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
+					:subtitle="getWidgetSubtitle(item)"
 					:showTitle="widgetShowTitle(item)"
 					:showRefresh="false">
 					<div class="cn-dashboard-page__unknown">
@@ -978,9 +1102,10 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import { provide, ref, watch } from 'vue'
+import { defineAsyncComponent, inject, provide, ref, watch } from 'vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -994,26 +1119,36 @@ import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnChartWidget from '../CnChartWidget/CnChartWidget.vue'
 import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
-import CnDashboardLayoutPanel from '../CnDashboardLayoutPanel/CnDashboardLayoutPanel.vue'
 import CnDateRangePicker, { DEFAULT_DATE_RANGE_PRESETS, resolvePresetWindow, translatePresetLabel } from '../CnDateRangePicker/CnDateRangePicker.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
+import CnHeaderTrail from '../CnPageHeader/CnHeaderTrail.vue'
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnStatsBlockWidget from '../CnStatsBlockWidget/CnStatsBlockWidget.vue'
+import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnTileWidget from '../CnTileWidget/CnTileWidget.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import CnWidgetRefItem from '../CnWidgetRefItem/CnWidgetRefItem.vue'
 import CnWidgetRenderer from '../CnWidgetRenderer/CnWidgetRenderer.vue'
 import CnWidgetWrapper from '../CnWidgetWrapper/CnWidgetWrapper.vue'
+import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { pageFilters } from '../../mixins/pageFilters.js'
 import { pageViews } from '../../mixins/pageViews.js'
 import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashboardLayouts.js'
+import { headerActionAsLink } from '../../utils/actionLink.js'
+import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
-import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
+import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { HEADING_LEVEL } from '../../utils/headingLevel.js'
+import { generatedPageFilterOptions, periodText, rangePeriodText } from '../../utils/periodOptions.js'
+import { isOptionalUnresolved, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
-import { compareVisibleWhen, evaluateWorkspaceCondition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { compareVisibleWhen, evaluateVisibleWhen, evaluateWorkspaceCondition, isComposition, isWorkspaceCondition, readVisibleWhenValue } from '../../utils/visibleWhen.js'
+import { resolveWidgetHeaderActions } from '../../utils/widgetHeaderActions.js'
 import { canonicalWidgetType } from '../../utils/widgetTypeAliases.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -1026,6 +1161,9 @@ import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
+// The layout panel loads when the user first opens it (`layoutPanel`).
+const CnDashboardLayoutPanel = defineAsyncComponent(() => import('../CnDashboardLayoutPanel/CnDashboardLayoutPanel.vue').then((m) => m.default))
+
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
 /**
@@ -1053,6 +1191,7 @@ const CHART_PROP_KEYS = [
 	// keys forwarded verbatim to CnChartWidget.
 	'horizontal',
 	'legendPosition',
+	'legendValues',
 	'valueFormat',
 	// Value-axis baseline guard: lets a manifest opt a chart out of the
 	// zero-baseline default (`'fit'`) when its series lives far from zero.
@@ -1069,6 +1208,18 @@ const CHART_PROP_KEYS = [
 	// separately via the template's :data-source binding (getWidgetDataSource),
 	// so the Wave-3 aggregate/drilldown inside it already flow through.
 	'endpointSource',
+	// `bar-list` / `matrix` presentation keys.
+	'barMax',
+	'barValueAtEnd',
+	'barListWide',
+	'matrixLabelWidth',
+	'footnote',
+	'highlight',
+	'cellSource',
+	'emptyCellLabel',
+	// A norm line and month categories on a line chart (DqDoorlooptijd).
+	'referenceLines',
+	'categoryFormat',
 ]
 
 /**
@@ -1137,10 +1288,74 @@ const CHART_PROP_KEYS = [
  * }]
  * ```
  */
+
+/**
+ * A widget's content with each `@config.<key>` string (at any depth) filled
+ * from the app config; an unset optional token (`@config.<key>?`) becomes ''
+ * and an unset required one stays as written. Content without a token comes
+ * back as the same object, so the widget is not handed a new one each render.
+ *
+ * @param {unknown} value The content, or a part of it.
+ * @param {object} config The app config.
+ * @return {unknown} The content with the config values in.
+ * @spec openspec/changes/pl4-dashboard-config/specs/pl4-dashboard-config/spec.md#requirement-a-dashboard-widget-can-name-an-app-setting
+ */
+function fillConfigTokens(value, config) {
+	if (typeof value === 'string') {
+		if (!value.startsWith('@config.')) {
+			return value
+		}
+		const resolved = resolveFilterValue(value, { config })
+		return isOptionalUnresolved(resolved) ? '' : resolved
+	}
+	if (Array.isArray(value)) {
+		const filled = value.map((entry) => fillConfigTokens(entry, config))
+		return filled.some((entry, index) => entry !== value[index]) ? filled : value
+	}
+	if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+		const entries = Object.entries(value).map(([key, entry]) => [key, fillConfigTokens(entry, config)])
+		return entries.some(([key, entry]) => entry !== value[key]) ? Object.fromEntries(entries) : value
+	}
+	return value
+}
+
+const filledByContent = new WeakMap()
+
+/**
+ * `fillConfigTokens` once per content object and config, so a widget whose
+ * content names a setting keeps one content object between renders.
+ *
+ * @param {object} content The widget content.
+ * @param {object} config The app config.
+ * @return {object} The filled content.
+ */
+function filledContent(content, config) {
+	if (!content || typeof content !== 'object') {
+		return content
+	}
+	const key = JSON.stringify(config)
+	const cached = filledByContent.get(content)
+	if (cached && cached.key === key) {
+		return cached.value
+	}
+	const value = fillConfigTokens(content, config)
+	filledByContent.set(content, { key, value })
+	return value
+}
+
+/**
+ * The event-bus event that makes a dashboard read its `descriptionSource`
+ * again, for a header line that follows something the reader changes on the
+ * page (an availability toggle).
+ */
+const DESCRIPTION_REFRESH_EVENT = 'cn:dashboard:description-refresh'
+
 export default {
 	name: 'CnDashboardPage',
 
 	components: {
+		CnHeaderTrail,
+		CnStatusBadge,
 		NcActions,
 		NcActionButton,
 		NcActionInput,
@@ -1177,7 +1392,7 @@ export default {
 		CnWidgetIcon,
 	},
 
-	mixins: [pageViews],
+	mixins: [pageFilters, pageViews],
 
 	inject: {
 		/**
@@ -1198,6 +1413,15 @@ export default {
 		 * widget overrides a built-in of the same name).
 		 */
 		cnRegistry: { default: () => ({}) },
+		/**
+		 * The page's action dispatcher, provided by CnPageRenderer: a card's
+		 * header action runs through it, so `open-modal` reaches the app's
+		 * registry dialogs, as on a detail page. Null outside the renderer.
+		 *
+		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
+		 * @spec openspec/changes/widget-header-action-tonal/specs/widget-header-action-tonal/spec.md#requirement-a-dashboard-card-header-action-reads-the-page-filters
+		 */
+		cnDispatchAction: { default: null },
 		/**
 		 * Host translate function provided by CnAppRoot as
 		 * `cnTranslate: this.translate` (bound to the host app's id). The
@@ -1232,6 +1456,9 @@ export default {
 			cnWidgetTitleSource: (widgetId) => this.getWidgetTitleSource(widgetId),
 			// The page id, for widgets that key per-person state by dashboard (notepad).
 			cnDashboardPageId: () => this.resolvedPageId,
+			// Widget titles sit one level under the page title: h1 in the board
+			// look, h2 in the Nextcloud look and as the hidden title.
+			[HEADING_LEVEL]: () => (this.showHeader && this.title && this.isBoardLook ? 2 : 3),
 		}
 	},
 
@@ -1242,10 +1469,96 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * A breadcrumb under the title (manifest `config.breadcrumb`): one
+		 * crumb `{ label, route?, params?, href?, icon?, separator? }` or a
+		 * list; the title follows as the current crumb. Drawn as the detail
+		 * header's breadcrumb row. Null (the default) draws none.
+		 *
+		 * @type {object|Array<object>|null}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		breadcrumb: {
+			type: [Object, Array],
+			default: null,
+		},
+
+		/**
+		 * A note after the breadcrumb and a middle dot (manifest `config.headerMeta`).
+		 *
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-list-dashboard-or-settings-page-can-show-a-breadcrumb-and-a-meta-note
+		 */
+		headerMeta: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Pills at the start of the line under the title (manifest
+		 * `config.headerPills`): `[{ label, variant?, when? }]`, `when` a
+		 * workspace condition; a pill without one always shows.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @type {Array<{label: string, variant?: string, when?: object}>}
+		 */
+		headerPills: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Titles that replace `title` while a page control's value holds
+		 * (manifest `config.titleWhen`): `[{ when, title }]`, `when` a workspace
+		 * condition (`{ workspace, op?, value? }`) and `title` a template whose
+		 * `{workspace.<key>}` reads the page's workspace ("Gesprek met
+		 * {workspace.selectedClientName}" while a call is on, PqWerkplekKlant).
+		 * The first entry whose condition holds and whose tokens all fill wins.
+		 *
+		 * @spec openspec/changes/dashboard-title-from-workspace/specs/dashboard-title-from-workspace/spec.md#requirement-a-dashboard-title-can-follow-the-pages-workspace
+		 * @type {Array<{when: object, title: string}>}
+		 */
+		titleWhen: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Layouts that replace `layout` while a page control's value holds
+		 * (manifest `config.layoutWhen`): `[{ when, layout }]`, `when` a
+		 * workspace condition (`{ workspace, op?, value? }`) as in `titleWhen`.
+		 * The first entry whose condition holds draws its own arrangement of
+		 * the page's widgets (PqWerkplekKlant: three columns while a call is
+		 * on). Editing the page shows the page's own layout.
+		 *
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 * An entry can carry `gridColumnWeights` for its own layout.
+		 *
+		 * @type {Array<{when: object, layout: Array<object>, gridColumnWeights?: Array<object>}>}
+		 */
+		layoutWhen: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Page description (shown below title) */
 		description: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * The description read from an app endpoint (manifest
+		 * `config.descriptionSource`): `{ url, path? }`, the text at `path`
+		 * (default `text`) of the answer replaces `description` once it
+		 * arrives (PqMijnWerk "negen items liggen bij jou: ..."). An unreadable
+		 * answer keeps `description`.
+		 *
+		 * @spec openspec/changes/dashboard-description-source/specs/dashboard-description-source/spec.md#requirement-a-dashboards-description-can-come-from-an-endpoint
+		 * @type {{url: string, path?: string}|null}
+		 */
+		descriptionSource: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -1273,6 +1586,20 @@ export default {
 		kpiRow: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * The columns of the KPI row (manifest `config.kpiColumns`): 2, 3 or 4
+		 * at full width (PqLoyaliteit draws eight tiles in two rows of four),
+		 * or `"auto"` for as many 200px columns as fit.
+		 *
+		 * @spec openspec/changes/widget-header-action-tonal/specs/dashboard-page/spec.md#requirement-a-kpi-row-can-have-a-fixed-number-of-columns
+		 * @type {number|string}
+		 */
+		kpiColumns: {
+			type: [Number, String],
+			default: 'auto',
+			validator: (v) => [2, 3, 4, 'auto'].includes(v),
 		},
 
 		/**
@@ -1349,6 +1676,34 @@ export default {
 		gridFloat: {
 			type: Boolean,
 			default: true,
+		},
+
+		/**
+		 * A side column of a fixed width for the page's own grid (manifest
+		 * `config.gridSideColumn`): `{ width, from? }`, see CnDashboardGrid's
+		 * `sideColumn`. A view declares its own `gridSideColumn`, because two
+		 * views of one page can split differently (DqMijnWerk 320px beside
+		 * the main column, DqMijnTeam two halves).
+		 *
+		 * @spec openspec/changes/dashboard-side-column-width/specs/dashboard-side-column-width/spec.md#requirement-a-dashboard-can-draw-its-side-column-at-a-fixed-width
+		 */
+		gridSideColumn: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Weights for groups of the grid's twelve columns (manifest
+		 * `config.gridColumnWeights`): `[{ span, weight }]`, see
+		 * CnDashboardGrid's `columnWeights`. A `layoutWhen` entry can carry
+		 * its own `gridColumnWeights` for the layout it draws
+		 * (PqWerkplekKlant in a call: 332 / 415 / 332).
+		 *
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 */
+		gridColumnWeights: {
+			type: Array,
+			default: null,
 		},
 
 		/**
@@ -1622,13 +1977,30 @@ export default {
 		},
 
 		/**
+		 * Where the page's own actions component (`actionsComponent`, the
+		 * `#actions` slot) sits in the board-look header row: `end` (default,
+		 * rightmost) or `start` (first, before the secondary actions and the
+		 * buildiq square), as PqDashboard draws its availability toggle.
+		 *
+		 * @type {'end'|'start'}
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md
+		 */
+		actionsPlacement: {
+			type: String,
+			default: 'end',
+		},
+
+		/**
 		 * Optional declarative header actions (#91 Wave 3) rendered as buttons
 		 * in the dashboard header via CnActionButtons — `open-form` (schema
 		 * create dialog), `api-call` (POST/PUT + toast + refresh), `toggle`
 		 * (two-way state button), `navigate` / `open-modal` / `refresh`, each
-		 * with an optional `visibleWhen` predicate. Empty (the default) renders
-		 * nothing; the `#header-actions` slot still works alongside it for
-		 * bespoke buttons.
+		 * with an optional `visibleWhen` predicate. An entry with `href` is a
+		 * link button, never dispatched: an absolute `http(s)`, `mailto:`,
+		 * `tel:` or `//host/...` URL as written, an instance path (leading `/`) through
+		 * `generateUrl()`, in a new tab with `target: '_blank'`. Empty (the
+		 * default) renders nothing; the `#header-actions` slot still works
+		 * alongside it for bespoke buttons.
 		 *
 		 * @type {Array<object>}
 		 */
@@ -1638,19 +2010,50 @@ export default {
 		},
 
 		/**
+		 * Where the header actions and the buildiq square draw: `"wide"` keeps
+		 * them off a phone (under 640px, PqMobiel's My work header holds only
+		 * the title), `"narrow"` off a wider window. Empty draws them always.
+		 *
+		 * @spec openspec/changes/dashboard-header-actions-viewport/specs/dashboard-header-actions-viewport/spec.md
+		 */
+		headerActionsViewport: {
+			type: String,
+			default: '',
+			validator: (value) => ['', 'wide', 'narrow'].includes(value),
+		},
+
+		/**
 		 * Optional page-level filter controls rendered in the dashboard header.
 		 * Each selection is written into the reactive page-level workspace
 		 * context (the same bag `cnWorkspaceContext` provides), so any widget can
 		 * read it via a `@page.<key>` / `@workspace.<key>` token — e.g. a period
 		 * selector that every endpoint-bound KPI's URL interpolates.
 		 *
-		 * Each entry: `{ key, label?, type?: 'select', options: [{ value, label }],
-		 * default? }`. `key` is the workspace-context key written on change;
-		 * `default` (or the first option) seeds it on mount. Only `'select'` is
-		 * supported today. Empty (the default) renders no controls and leaves the
-		 * context untouched.
+		 * Each entry: `{ key, label?, type?: 'select', control?, placement?,
+		 * options: [{ value, label }], default? }`. `key` is the workspace-context
+		 * key written on change; `default` (or the first option) seeds it on
+		 * mount. The control is a select, or with `control: 'segmented'` a
+		 * compact segmented group; `placement: 'description'` puts a segmented
+		 * group on the header's description line, after the period group
+		 * (DqProcesanalyse "Gemiddeld | Mediaan"), and a select before it
+		 * (DqDoorlooptijd "alle zaaktypen"). An endpoint widget can read
+		 * the value in its `responsePath` too (`phaseDays.@workspace.measure`).
+		 * `optionsFrom` reads the options instead of listing them: `{ url,
+		 * params?, responsePath?, valueField?, labelField? }` from an app
+		 * endpoint, or `{ register, schema, filter?, valueField?, labelField? }`
+		 * from OpenRegister objects (value `id`, label `title` or `name` by
+		 * default; tokens resolve). `clearable: true` lets the reader clear the
+		 * select back to "all" (`placeholder`, e.g. "All case types"), which
+		 * writes null and seeds nothing. `type: 'quarter'` generates its
+		 * options: the current quarter first, then `count - 1` (default 7)
+		 * before it, valued `YYYY-Qn` and seeded with the current one;
+		 * `type: 'year'` does the same for years (default 5, valued `YYYY`). Empty
+		 * (the default) renders no controls and leaves the context untouched.
+		 * `control: 'none'` seeds its value like any page filter but draws no
+		 * control: a fixed period the widgets read and the description names
+		 * (`{filter.<key>}`).
 		 *
-		 * @type {Array<{key: string, label?: string, type?: string, options: Array<{value: (string|number), label: string}>, default?: (string|number)}>}
+		 * @type {Array<{key: string, label?: string, type?: string, control?: ('select'|'segmented'), placement?: ('row'|'description'), options?: Array<{value: (string|number), label: string}>, optionsFrom?: object, clearable?: boolean, placeholder?: string, default?: (string|number)}>}
 		 */
 		pageFilters: {
 			type: Array,
@@ -1774,6 +2177,9 @@ export default {
 		 * and renders exactly as it did before this existed, which is the
 		 * property that makes shipping it safe on every dashboard at once.
 		 *
+		 * Deprecated: layout belongs to Buildiq. Kept working for one release.
+		 *
+		 * @deprecated
 		 * @type {boolean}
 		 */
 		userLayout: {
@@ -1902,12 +2308,20 @@ export default {
 		// wizard captures). Provided ALWAYS (like cnWorkspaceContext) and kept in
 		// sync with the `appConfig` prop so a late-loaded config re-resolves
 		// downstream tokens. Descendants `inject('cnAppConfig', ref({}))`.
-		const appConfigRef = ref({ ...(props.appConfig || {}) })
+		// The config an ancestor provides (the app root) is the base; the
+		// page's own `appConfig` wins key by key.
+		const inheritedConfig = inject('cnAppConfig', null)
+		const unwrapConfig = (value) => {
+			const raw = value && typeof value === 'object' && 'value' in value ? value.value : value
+			return raw && typeof raw === 'object' ? raw : {}
+		}
+		const mergedConfig = () => ({ ...unwrapConfig(inheritedConfig), ...(props.appConfig || {}) })
+		const appConfigRef = ref(mergedConfig())
 		provide('cnAppConfig', appConfigRef)
 		watch(
-			() => props.appConfig,
-			(next) => {
-				appConfigRef.value = { ...(next || {}) }
+			[() => props.appConfig, () => unwrapConfig(inheritedConfig)],
+			() => {
+				appConfigRef.value = mergedConfig()
 			},
 			{ deep: true },
 		)
@@ -1925,6 +2339,11 @@ export default {
 	data() {
 		return {
 			isEditing: false,
+			/** Whether the window is phone-wide (under 640px), for a widget's `viewport`. */
+			narrowViewport: false,
+			viewportQuery: null,
+			/** The description `descriptionSource` answered; '' until then. */
+			fetchedDescription: '',
 			/**
 			 * This user's arranged layout, when `userLayout` is on.
 			 *
@@ -2024,6 +2443,16 @@ export default {
 
 	computed: {
 		/**
+		 * Whether the `#actions` slot leads the board header row.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/screens-dashboard-parity/specs/dashboard-page/spec.md
+		 */
+		actionsFirst() {
+			return this.actionsPlacement === 'start'
+		},
+
+		/**
 		 * Effective translate function: the injected `cnTranslate` (the host
 		 * app's bound `t()`), identity by default.
 		 *
@@ -2031,6 +2460,58 @@ export default {
 		 */
 		effectiveTranslate() {
 			return typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+		},
+
+		/**
+		 * The header actions handed to CnActionButtons, an entry with `href`
+		 * in its link form (resolved URL, anchor target, no handler). An
+		 * `href` may carry `@workspace.<key>` / `@page.<key>` tokens, filled
+		 * (URL-encoded) from the page filters, so a download link asks for
+		 * what the page shows.
+		 *
+		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @return {Array<object>}
+		 */
+		linkedHeaderActions() {
+			if (this.headerActionsOffViewport) {
+				return []
+			}
+			const workspace = Object.fromEntries(Object.entries(this.workspaceContext || {})
+				.map(([key, value]) => [key, (value === undefined || value === null) ? value : encodeURIComponent(String(value))]))
+			return (this.headerActions || [])
+				.map((entry) => ((entry && typeof entry.href === 'string' && entry.href.includes('@'))
+					? { ...entry, href: interpolateUrlTokens(entry.href, { workspace }) }
+					: entry))
+				.map(headerActionAsLink)
+		},
+
+		/**
+		 * Whether `headerActionsViewport` keeps the header actions and the
+		 * buildiq square off the current window.
+		 *
+		 * @spec openspec/changes/dashboard-header-actions-viewport/specs/dashboard-header-actions-viewport/spec.md
+		 * @return {boolean}
+		 */
+		headerActionsOffViewport() {
+			return this.isOffViewport({ viewport: this.headerActionsViewport })
+		},
+
+		/**
+		 * Under the board look the header reads the secondary actions, the
+		 * edit toggle and Actions menu, the buildiq square, then the primary
+		 * actions, as on an index page (PtDashboard, DqDashboard).
+		 *
+		 * @return {Array<object>} The header actions that are not `variant: "primary"`.
+		 */
+		boardSecondaryHeaderActions() {
+			return this.linkedHeaderActions.filter((entry) => entry?.variant !== 'primary')
+		},
+
+		/**
+		 * @return {Array<object>} The `variant: "primary"` header actions, drawn after the buildiq square.
+		 */
+		boardPrimaryHeaderActions() {
+			return this.linkedHeaderActions.filter((entry) => entry?.variant === 'primary')
 		},
 
 		/**
@@ -2076,8 +2557,50 @@ export default {
 		 * @spec openspec/changes/dashboard-greeting-label/specs/dashboard-page/spec.md#requirement-the-header-subtitle-can-lead-with-a-label-or-the-date
 		 * @return {string}
 		 */
+		/**
+		 * `headerMeta` through the host translate, with `{today}` written out as
+		 * today's date (DqDagAfsluiten "Dag afsluiten, woensdag 7 oktober").
+		 *
+		 * @spec openspec/changes/record-list-notes/specs/record-list-notes/spec.md#requirement-a-dashboard-header-meta-can-name-today
+		 * @return {string}
+		 */
+		resolvedHeaderMeta() {
+			if (!this.headerMeta) {
+				return ''
+			}
+			const meta = this.effectiveTranslate(this.headerMeta)
+			if (!meta.includes('{today}')) {
+				return meta
+			}
+			const options = { weekday: 'long', day: 'numeric', month: 'long' }
+			let today
+			try {
+				today = new Intl.DateTimeFormat(getCanonicalLocale() || undefined, options).format(new Date())
+			} catch {
+				today = new Intl.DateTimeFormat(undefined, options).format(new Date())
+			}
+			return meta.split('{today}').join(today)
+		},
+
+		/**
+		 * The header pills whose condition holds, labels translated.
+		 *
+		 * @spec openspec/changes/dashboard-header-pills/specs/dashboard-header-pills/spec.md#requirement-a-dashboard-can-open-its-description-line-with-pills
+		 * @return {Array<{label: string, variant: string}>}
+		 */
+		shownHeaderPills() {
+			const workspace = this.workspaceContext || {}
+			return (Array.isArray(this.headerPills) ? this.headerPills : [])
+				.filter((pill) => pill && typeof pill.label === 'string' && pill.label !== '')
+				.filter((pill) => !pill.when || (isWorkspaceCondition(pill.when) && evaluateWorkspaceCondition(pill.when, workspace)))
+				.map((pill) => ({
+					label: this.effectiveTranslate(pill.label),
+					variant: typeof pill.variant === 'string' && pill.variant !== '' ? pill.variant : 'primary',
+				}))
+		},
+
 		subtitleText() {
-			const description = this.description ? this.resolvedDescription : ''
+			const description = this.description || this.fetchedDescription !== '' ? this.resolvedDescription : ''
 			const dateOnly = this.greeting === 'date'
 			const greeting = this.greetingLine
 			if (greeting === '' && !dateOnly) {
@@ -2136,11 +2659,21 @@ export default {
 
 		/**
 		 * The page title run through the host translate function so a
-		 * manifest-authored source string localises.
+		 * manifest-authored source string localises. The open view's
+		 * `title`, when it has one, takes its place ("My team").
 		 *
+		 * @spec openspec/changes/view-title/specs/view-switch-containers/spec.md#requirement-the-page-title-follows-the-open-view
 		 * @return {string}
 		 */
 		resolvedTitle() {
+			const fromWorkspace = this.titleFromWorkspace()
+			if (fromWorkspace !== '') {
+				return fromWorkspace
+			}
+			const view = this.hasViews ? this.activeView : null
+			if (view && view.title) {
+				return view.title
+			}
 			return this.title ? this.effectiveTranslate(this.title) : this.title
 		},
 
@@ -2150,7 +2683,21 @@ export default {
 		 * @return {string}
 		 */
 		resolvedDescription() {
-			return this.description ? this.effectiveTranslate(this.description) : this.description
+			if (this.fetchedDescription !== '') {
+				return this.fetchedDescription
+			}
+			if (!this.description) {
+				return this.description
+			}
+			// `{filter.<key>}`: the page filter's active choice, read as a period
+			// (DqProcesanalyse "Afgehandelde zaken januari tot en met september 2026").
+			// `{dateRange}`: the dashboard's active date range, read as a period
+			// (DqDashboard "Hoe het team ervoor staat · oktober 2026"); `{today|<format>}`:
+			// today through a row template format (DqTermijnen "Week 41 · alle teams").
+			return this.effectiveTranslate(this.description)
+				.replace(/\{filter\.([\w-]+)\}/g, (token, key) => this.pageFilterPeriodText(key))
+				.replace(/\{dateRange\}/g, () => this.dateRangePeriodText())
+				.replace(/\{today\|([\w:]+)\}/g, (token, format) => fillTemplate(`{today|${format}}`, { today: new Date().toISOString() }))
 		},
 
 		/**
@@ -2161,9 +2708,25 @@ export default {
 		 * @return {boolean}
 		 */
 		gridEditable() {
+			return this.isEditing || this.editingBody
+		},
+
+		/**
+		 * Whether Buildiq is editing the page (the injected `cnEditingBody`
+		 * ref, or a plain boolean). Buildiq is the layout editor: while it
+		 * edits, the grid shows and changes the manifest layout, also on a
+		 * page with `userLayout`.
+		 *
+		 * @return {boolean}
+		 */
+		editingBody() {
 			const e = this.cnEditingBody
-			const buildiqEditing = Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
-			return this.isEditing || buildiqEditing
+			return Boolean(e && typeof e === 'object' && 'value' in e ? e.value : e)
+		},
+
+		/** @return {boolean} Whether the grid shows this user's arrangement. */
+		showsUserLayout() {
+			return this.keepsUserLayout && !this.editingBody && Array.isArray(this.userLayoutItems)
 		},
 
 		/**
@@ -2224,9 +2787,8 @@ export default {
 		 * @return {Array<object>} The layout.
 		 */
 		renderedLayout() {
-			const base = (this.keepsUserLayout && Array.isArray(this.userLayoutItems))
-				? this.userLayoutItems
-				: this.layout
+			const fromWorkspace = this.editingBody ? null : this.layoutFromWorkspace()
+			const base = fromWorkspace || (this.showsUserLayout ? this.userLayoutItems : this.layout)
 			if (!Array.isArray(base)) {
 				return base
 			}
@@ -2333,6 +2895,96 @@ export default {
 		 */
 		showHeaderDateRange() {
 			return this.dateRangeEnabled && this.dateRange.showHeaderPicker !== false
+		},
+
+		/**
+		 * Whether the segmented period group sits at the end of the
+		 * description line (`dateRange.placement: "description"`) instead of
+		 * in a row of its own. Only for the segmented control without a
+		 * custom range, whose from/to popover keeps the row of its own.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-dashboard-can-show-its-period-on-the-description-line
+		 */
+		datePeriodInDescription() {
+			return this.showHeaderDateRange && this.dateRangeControl === 'segmented'
+				&& this.dateRange.placement === 'description' && !this.hasCustomPreset
+		},
+
+		/**
+		 * The page filters drawn as a segmented group on the description
+		 * line (`control: "segmented"`, `placement: "description"`).
+		 * Without a header row they fall back to the filter row.
+		 *
+		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
+		 * @return {Array<object>}
+		 */
+		descriptionPageFilters() {
+			if (!this.showHeader) {
+				return []
+			}
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control === 'segmented' && pf.placement === 'description')
+		},
+
+		/**
+		 * The page filters drawn in the filter row under the header: every
+		 * filter the description line does not draw.
+		 *
+		 * @spec openspec/changes/dashboard-board-termijnen/specs/dashboard-page/spec.md#requirement-a-page-filter-as-a-segmented-group-on-the-description-line
+		 * @return {Array<object>}
+		 */
+		rowPageFilters() {
+			const inDescription = [...this.descriptionPageFilters, ...this.descriptionSelectFilters]
+			// `control: "none"` holds a value for the widgets and the
+			// description and draws no control (DqDoorlooptijd's fixed period).
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'none' && !inDescription.includes(pf))
+		},
+
+		/**
+		 * The select page filters drawn on the description line
+		 * (`placement: "description"`, any control but `segmented`), before
+		 * the period group: DqDoorlooptijd's "alle zaaktypen". Without a
+		 * header row they fall back to the filter row.
+		 *
+		 * @spec openspec/changes/dashboard-select-filter-in-description/specs/dashboard-select-filter-in-description/spec.md#requirement-a-select-page-filter-can-sit-on-the-description-line
+		 * @return {Array<object>}
+		 */
+		descriptionSelectFilters() {
+			if (!this.showHeader) {
+				return []
+			}
+			return (this.pageFilters || []).filter((pf) => pf && pf.key && pf.control !== 'segmented' && pf.control !== 'none' && pf.placement === 'description')
+		},
+
+		/**
+		 * Every page filter the description line draws, in the order the
+		 * page declares them, selects and segmented groups alike.
+		 *
+		 * @spec openspec/changes/dashboard-description-filters-in-order/specs/dashboard-description-filters-in-order/spec.md#requirement-the-description-line-draws-its-page-filters-in-declared-order
+		 * @return {Array<object>}
+		 */
+		descriptionFilters() {
+			const drawn = [...this.descriptionPageFilters, ...this.descriptionSelectFilters]
+			return (this.pageFilters || []).filter((pf) => drawn.includes(pf))
+		},
+
+		/**
+		 * The edit button's label through the app's translate: a manifest's
+		 * `editLabel` ("Edit layout", DqDashboard) reads in the user's language.
+		 *
+		 * @return {string}
+		 */
+		shownEditLabel() {
+			return this.effectiveTranslate(this.editLabel)
+		},
+
+		/**
+		 * The done button's label through the app's translate.
+		 *
+		 * @return {string}
+		 */
+		shownDoneLabel() {
+			return this.effectiveTranslate(this.doneLabel)
 		},
 
 		/**
@@ -2566,7 +3218,7 @@ export default {
 			if (!this.gridSectionsShown) {
 				return []
 			}
-			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, attrs: {} }
+			const page = { key: 'page', view: false, layout: this.displayLayout, editable: this.gridEditable, sideColumn: this.gridSideColumn, columnWeights: this.pageColumnWeights(), attrs: {} }
 			if (!this.hasViews) {
 				return [page]
 			}
@@ -2579,6 +3231,7 @@ export default {
 					// With `userLayout` the user arranges the view too; the
 					// arrangement is kept per view (pageViews mixin).
 					editable: this.gridEditable,
+					sideColumn: this.activeView.gridSideColumn || null,
 					attrs: {
 						id: this.viewRegionId,
 						role: 'region',
@@ -2735,11 +3388,19 @@ export default {
 		this.pushAiContext()
 		this.initDateRange()
 		this.initPageFilters()
+		this.loadPageFilterOptions()
 		this.evaluateWidgetConditions()
 		this.loadUserLayout()
+		this.watchViewport()
+		this.loadDescription()
+		subscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 	},
 
 	beforeUnmount() {
+		unsubscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
+		if (this.viewportQuery && typeof this.viewportQuery.removeEventListener === 'function') {
+			this.viewportQuery.removeEventListener('change', this.onViewportChange)
+		}
 		if (this.cnAiContext) {
 			this.cnAiContext.pageKind = 'custom'
 			this.cnAiContext.registerSlug = undefined
@@ -2749,63 +3410,151 @@ export default {
 
 	methods: {
 		/**
-		 * Seed the reactive workspace context with each page filter's default
-		 * (its `default`, else the first option's value) so endpoint-bound
-		 * widgets have a value to interpolate on first render. Only writes keys
-		 * that aren't already present, so a value another widget set survives.
+		 * Follow the phone breakpoint (640px, where the board grid stacks to
+		 * one column), so a widget declared for one `viewport` shows only
+		 * there.
 		 *
+		 * @spec openspec/changes/dashboard-widget-viewport/specs/dashboard-widget-viewport/spec.md#requirement-a-widget-can-be-drawn-on-a-phone-only-or-a-wide-screen-only
 		 * @return {void}
 		 */
-		initPageFilters() {
-			for (const pf of this.pageFilters || []) {
-				if (!pf || !pf.key) {
-					continue
-				}
-				if (this.workspaceContext[pf.key] !== undefined) {
-					continue
-				}
-				const fallback = (pf.options && pf.options.length) ? pf.options[0].value : undefined
-				const value = pf.default !== undefined ? pf.default : fallback
-				if (value !== undefined) {
-					this.workspaceContext[pf.key] = value
-				}
-			}
-		},
-
-		/**
-		 * The currently-selected option object for a page filter's NcSelect
-		 * (matched by `value` against the workspace context), or null.
-		 *
-		 * @param {object} pf The page-filter descriptor.
-		 * @return {object|null}
-		 */
-		selectedPageFilterOption(pf) {
-			if (!pf || !pf.key) {
-				return null
-			}
-			const current = this.workspaceContext[pf.key]
-			return (pf.options || []).find((o) => o.value === current) || null
-		},
-
-		/**
-		 * Write a page filter's new selection into the reactive workspace
-		 * context so every `@page.<key>` / `@workspace.<key>` token re-resolves.
-		 *
-		 * @param {object} pf The page-filter descriptor.
-		 * @param {object|null} option The chosen NcSelect option (`{ value, label }`).
-		 * @return {void}
-		 */
-		onPageFilterChange(pf, option) {
-			if (!pf || !pf.key) {
+		watchViewport() {
+			if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
 				return
 			}
-			const value = option && typeof option === 'object' ? option.value : option
-			this.workspaceContext[pf.key] = value
-			/**
-			 * @event page-filter-change Emitted when a page-level filter selection changes.
-			 * @type {{ key: string, value: (string|number|null) }}
-			 */
-			this.$emit('page-filter-change', { key: pf.key, value })
+			this.viewportQuery = window.matchMedia('(max-width: 639px)')
+			this.narrowViewport = this.viewportQuery.matches === true
+			if (typeof this.viewportQuery.addEventListener === 'function') {
+				this.viewportQuery.addEventListener('change', this.onViewportChange)
+			}
+		},
+
+		/**
+		 * Read the description from `descriptionSource`, once.
+		 *
+		 * @spec openspec/changes/dashboard-description-source/specs/dashboard-description-source/spec.md#requirement-a-dashboards-description-can-come-from-an-endpoint
+		 * @return {Promise<void>}
+		 */
+		async loadDescription() {
+			const source = this.descriptionSource
+			if (!source || typeof source.url !== 'string' || source.url === '') {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([
+					import('@nextcloud/axios'),
+					import('@nextcloud/router'),
+				])
+				const url = /^https?:/.test(source.url) ? source.url : generateUrl(source.url.replace(/^\/index\.php/, ''))
+				const { data } = await axios.get(url)
+				const text = String(source.path || 'text').split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), data)
+				if (typeof text === 'string') {
+					this.fetchedDescription = text
+				}
+			} catch {
+				// An unreadable answer keeps the manifest description.
+			}
+		},
+
+		/**
+		 * The window crossed the phone breakpoint.
+		 *
+		 * @param {{matches: boolean}} event The media query change.
+		 * @return {void}
+		 */
+		onViewportChange(event) {
+			this.narrowViewport = event && event.matches === true
+		},
+
+		/**
+		 * Whether a widget's `viewport` (`"narrow"`: a phone only, `"wide"`:
+		 * a wider window only) keeps it off the current window.
+		 *
+		 * @param {object|null} def The widget definition.
+		 * @return {boolean} True when the widget must not draw here.
+		 * @spec openspec/changes/dashboard-widget-viewport/specs/dashboard-widget-viewport/spec.md#requirement-a-widget-can-be-drawn-on-a-phone-only-or-a-wide-screen-only
+		 */
+		isOffViewport(def) {
+			const viewport = def && def.viewport
+			if (viewport === 'narrow') {
+				return !this.narrowViewport
+			}
+			if (viewport === 'wide') {
+				return this.narrowViewport
+			}
+			return false
+		},
+
+		/**
+		 * The layout of the first `layoutWhen` entry whose condition holds on
+		 * the workspace, or null when none applies.
+		 *
+		 * @return {Array<object>|null}
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 */
+		layoutFromWorkspace() {
+			const entry = this.layoutEntryFromWorkspace()
+			return entry ? entry.layout : null
+		},
+
+		/**
+		 * The first `layoutWhen` entry whose condition holds on the workspace,
+		 * or null when none applies.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/dashboard-layout-when/specs/dashboard-layout-when/spec.md#requirement-a-dashboard-can-arrange-its-cards-by-the-pages-workspace
+		 */
+		layoutEntryFromWorkspace() {
+			const workspace = this.workspaceContext || {}
+			for (const entry of Array.isArray(this.layoutWhen) ? this.layoutWhen : []) {
+				if (entry && Array.isArray(entry.layout) && isWorkspaceCondition(entry.when) && evaluateWorkspaceCondition(entry.when, workspace)) {
+					return entry
+				}
+			}
+			return null
+		},
+
+		/**
+		 * The column weights of the page's grid: the applying `layoutWhen`
+		 * entry's own, else the page's.
+		 *
+		 * @return {Array<object>|null}
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 */
+		pageColumnWeights() {
+			const entry = this.layoutEntryFromWorkspace()
+			if (entry && Array.isArray(entry.gridColumnWeights)) {
+				return entry.gridColumnWeights
+			}
+			return Array.isArray(this.gridColumnWeights) ? this.gridColumnWeights : null
+		},
+
+		/**
+		 * The first `titleWhen` title whose condition holds on the workspace,
+		 * its `{workspace.<key>}` tokens filled; '' when none applies.
+		 *
+		 * @spec openspec/changes/dashboard-title-from-workspace/specs/dashboard-title-from-workspace/spec.md#requirement-a-dashboard-title-can-follow-the-pages-workspace
+		 * @return {string}
+		 */
+		titleFromWorkspace() {
+			const workspace = this.workspaceContext || {}
+			for (const entry of Array.isArray(this.titleWhen) ? this.titleWhen : []) {
+				if (!entry || typeof entry.title !== 'string' || !isWorkspaceCondition(entry.when) || !evaluateWorkspaceCondition(entry.when, workspace)) {
+					continue
+				}
+				let complete = true
+				const title = this.effectiveTranslate(entry.title).replace(/\{workspace\.([\w.-]+)\}/g, (token, key) => {
+					const value = workspace[key]
+					if (value === undefined || value === null || value === '') {
+						complete = false
+						return ''
+					}
+					return String(value)
+				})
+				if (complete) {
+					return title
+				}
+			}
+			return ''
 		},
 
 		/**
@@ -2945,6 +3694,51 @@ export default {
 		 * @param {string|null} to ISO-8601 upper bound (or null).
 		 * @return {string|null} Formatted label, or null when both bounds are empty.
 		 */
+		/**
+		 * A page filter's active choice read as a period, for `{filter.<key>}`
+		 * in the description: the declared (or generated) option the workspace
+		 * holds, its label through the host translate.
+		 *
+		 * @param {string} key The page filter's key.
+		 * @return {string} The period, '' when the filter or its choice is missing.
+		 * @spec openspec/changes/description-period-from-filter/specs/description-period-from-filter/spec.md#requirement-a-dashboard-description-reads-the-active-period-of-a-page-filter
+		 */
+		pageFilterPeriodText(key) {
+			const pf = (this.pageFilters || []).find((filter) => filter && filter.key === key)
+			if (!pf) {
+				return ''
+			}
+			const options = Array.isArray(pf.options) ? pf.options : (generatedPageFilterOptions(pf) || this.pageFilterFetched[pf.key] || [])
+			const option = options.find((o) => o && o.value === this.workspaceContext[pf.key])
+			if (!option) {
+				return ''
+			}
+			return periodText({ ...option, label: option.label ? this.effectiveTranslate(option.label) : String(option.value) }, new Date(), userLocale())
+		},
+
+		/**
+		 * The dashboard's active date range read as a period, for
+		 * `{dateRange}` in the description: a calendar preset as its month,
+		 * quarter or year, another preset as its translated label, a custom
+		 * range as its dates.
+		 *
+		 * @return {string} The period, '' without an active range.
+		 * @spec openspec/changes/description-period-from-date-range/specs/description-period-from-date-range/spec.md#requirement-a-dashboard-description-reads-the-active-date-range-as-a-period
+		 */
+		dateRangePeriodText() {
+			const rng = this.currentRange || this.dashboardDateRange
+			if (!this.dateRangeEnabled || !rng) {
+				return ''
+			}
+			const preset = rng.preset && rng.preset !== 'custom'
+				? this.effectivePresets.find((p) => p && p.id === rng.preset)
+				: null
+			const label = preset ? translatePresetLabel(preset.label, this.effectiveTranslate) : ''
+			return rangePeriodText(rng, preset ? { ...preset, label } : null, userLocale())
+				|| this.formatRangeLabel(rng.from || null, rng.to || null)
+				|| ''
+		},
+
 		formatRangeLabel(from, to) {
 			if (!from && !to) {
 				return null
@@ -3046,6 +3840,8 @@ export default {
 				widgetId: item.widgetId,
 				title: this.getWidgetTitle(item),
 				eyebrow: this.getWidgetEyebrow(item),
+				titleTone: this.getWidgetTitleTone(item),
+				subtitle: this.getWidgetSubtitle(item),
 				showTitle: this.widgetShowTitle(item),
 				showActions: this.widgetShowActions(item),
 				showRefresh: this.getWidgetShowRefresh(item),
@@ -3546,7 +4342,8 @@ export default {
 			// write below is for the admin editor, which edits the page for
 			// everybody; doing it for a user rearranging their own dashboard
 			// would rewrite the page for everyone who opens it after them.
-			if (this.keepsUserLayout && Array.isArray(this.userLayoutItems)) {
+			// While Buildiq edits, the drag is the admin's and goes below.
+			if (this.showsUserLayout) {
 				this.userLayoutDirty = true
 				this.userLayoutItems = this.userLayoutItems.map((item) => {
 					const u = (Array.isArray(updated) ? updated : []).find((candidate) => String(candidate.id) === String(item.id)
@@ -3555,6 +4352,11 @@ export default {
 					return (u ? { ...item, ...this.geometryFrom(u) } : item)
 				})
 				this.$emit('layout-change', this.userLayoutItems)
+				// Outside an in-page edit session no Done will come to save
+				// the arrangement, so it is saved now.
+				if (!this.isEditing) {
+					this.saveUserLayout()
+				}
 
 				return
 			}
@@ -3661,6 +4463,9 @@ export default {
 			if (!def || !def.type) {
 				return false
 			}
+			if (this.isOffViewport(def)) {
+				return true
+			}
 			const { text, visibleWhen, layout } = this.widgetDisplayConfig(def)
 			if (this.isBannerDef(def) && text === '') {
 				return true
@@ -3692,6 +4497,9 @@ export default {
 			const def = this.getWidgetDef(widgetId)
 			if (!def || !def.type) {
 				return false
+			}
+			if (this.isOffViewport(def)) {
+				return true
 			}
 			const { visibleWhen } = this.widgetDisplayConfig(def)
 			return isWorkspaceCondition(visibleWhen) && !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
@@ -3741,11 +4549,15 @@ export default {
 				let outcome
 				try {
 					// `sink` keeps the first row of a source query, for a banner that names it.
-					const sink = {}
-					const value = await readVisibleWhenValue(cond, undefined, sink)
-					outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
-					if (sink.row) {
-						outcome.row = sink.row
+					if (isComposition(cond)) {
+						outcome = { met: await evaluateVisibleWhen(cond), value: null }
+					} else {
+						const sink = {}
+						const value = await readVisibleWhenValue(cond, undefined, sink)
+						outcome = { met: compareVisibleWhen(value, cond.op || 'eq', cond.value), value }
+						if (sink.row) {
+							outcome.row = sink.row
+						}
 					}
 				} catch (error) {
 					// Fail-safe: not met. But the failure is kept, and said
@@ -3790,7 +4602,7 @@ export default {
 		 * @return {object}
 		 */
 		registryWidgetBindings(item) {
-			const content = this.collectionContent(this.getWidgetContent(item))
+			const content = filledContent(this.collectionContent(this.getWidgetContent(item)), this.appConfigRef || {})
 			const def = this.getWidgetDef(item.widgetId)
 			if (!this.isBannerDef(def)) {
 				return content
@@ -4232,6 +5044,46 @@ export default {
 		},
 
 		/**
+		 * Whether a segmented group follows the description filter at
+		 * `index`: a select is set off from one by a dot ("alle zaaktypen ·
+		 * Maand | Kwartaal | Jaar"), not from another select or the line's end.
+		 *
+		 * @param {number} index Index in `descriptionFilters`.
+		 * @return {boolean}
+		 */
+		segmentedFollows(index) {
+			const next = this.descriptionFilters[index + 1]
+			return next ? next.control === 'segmented' : this.datePeriodInDescription
+		},
+
+		/**
+		 * The line under a widget's title (`subtitle` on the widget
+		 * definition), translated; empty when it carries none.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {string}
+		 * @spec openspec/changes/page-header-breadcrumb/specs/page-header/spec.md#requirement-a-dashboard-widget-card-can-carry-a-line-under-its-title
+		 */
+		getWidgetSubtitle(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const subtitle = def && typeof def.subtitle === 'string' ? def.subtitle : ''
+			return subtitle ? this.effectiveTranslate(subtitle) : ''
+		},
+
+		/**
+		 * The widget's title tone (`titleTone` on its definition): `side`
+		 * titles the card as a side card in the board look.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {string} `side`, or ''.
+		 * @spec openspec/changes/widget-side-title-tone/specs/widget-side-title-tone/spec.md#requirement-a-widget-can-be-titled-as-a-side-card
+		 */
+		getWidgetTitleTone(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			return def && def.titleTone === 'side' ? 'side' : ''
+		},
+
+		/**
 		 * The line above a widget's title (`eyebrow` on the widget
 		 * definition: "Saldo per week" above "Prognose 13 weken"), through the
 		 * host translate, or '' for none.
@@ -4276,6 +5128,14 @@ export default {
 			return this.getWidgetDef(widgetId)?.title || ''
 		},
 
+		/**
+		 * The title a card shows: a person's custom title, else the placement's
+		 * title, else the widget's title, the last two translated.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {string}
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
+		 */
 		getWidgetTitle(item) {
 			const def = this.getWidgetDef(item.widgetId)
 			// Prefer a per-placement override, then the widget def's customTitle
@@ -4295,10 +5155,47 @@ export default {
 			// `configWidget()` deliberately stays raw: it pre-fills the config
 			// modal, and translating there would persist a translated string
 			// back into the widget definition on save.
-			return item.customTitle
+			// A placement's own `title` (manifest-authored, so translated) titles
+			// the card in that layout only, e.g. an in-call layout.
+			const title = item.customTitle
 				|| def?.customTitle
+				|| (typeof item.title === 'string' && item.title !== '' ? this.effectiveTranslate(item.title) : '')
 				|| (def?.title ? this.effectiveTranslate(def.title) : '')
 				|| item.widgetId
+			return this.titleHoldsCount(item) ? this.fillTitleCount(item, title) : title
+		},
+
+		/**
+		 * Whether the widget's title carries `{count}`, the total its widget
+		 * reports; such a card shows the total in its title, not as a chip.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @return {boolean}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 * @spec openspec/changes/dashboard-placement-title/specs/dashboard-placement-title/spec.md#requirement-a-layout-placement-can-title-its-card
+		 */
+		titleHoldsCount(item) {
+			const def = this.getWidgetDef(item.widgetId)
+			const raw = item.customTitle || def?.customTitle || item.title || def?.title || ''
+			return typeof raw === 'string' && raw.includes('{count}')
+		},
+
+		/**
+		 * The title with `{count}` filled from the reported total, or the token
+		 * dropped (with the space before it) while no total has arrived.
+		 *
+		 * @param {object} item Layout placement entry.
+		 * @param {string} title The title, translated.
+		 * @return {string}
+		 * @spec openspec/changes/widget-title-count/specs/widget-title-count/spec.md#requirement-a-widget-title-can-carry-the-total-its-widget-reports
+		 */
+		fillTitleCount(item, title) {
+			const reported = this.widgetHeaders[item.widgetId]
+			if (reported && Number.isFinite(reported.count)) {
+				return title.replace(/\{count\}/g, String(reported.count))
+			}
+			const parts = title.split('{count}')
+			return parts.map((part, i) => (i < parts.length - 1 ? part.trimEnd() : part)).join('').trim()
 		},
 
 		/**
@@ -4351,6 +5248,11 @@ export default {
 		 * exactly that reason; there is now one rule for every family, so a
 		 * custom slot and a registered widget cannot disagree about it.
 		 *
+		 * A widget definition's own `borderless` is read when the placement
+		 * says nothing: `true`, or `"narrow"` / `"wide"` to drop the card on a
+		 * phone / a wider window only (PqMobiel's filter bar, a kpiRow widget
+		 * that has no placement).
+		 *
 		 * A greeting header that declares `content.ground: true` sits on the
 		 * page ground, so it asks for no card either: one key on the widget
 		 * instead of a second one on its placement.
@@ -4364,6 +5266,9 @@ export default {
 				return true
 			}
 			const def = this.getWidgetDef(item.widgetId)
+			if (item.borderless === undefined && def && def.borderless !== undefined) {
+				return def.borderless === true || ((def.borderless === 'narrow' || def.borderless === 'wide') && this.isOffViewport({ viewport: def.borderless === 'narrow' ? 'wide' : 'narrow' }))
+			}
 			return Boolean(def && def.type === 'header' && this.getWidgetContent(item).ground === true)
 		},
 
@@ -4422,6 +5327,27 @@ export default {
 		},
 
 		/**
+		 * The widget's manifest `headerActions`, resolved for its card's title
+		 * row; a click goes through the page's dispatcher when the renderer
+		 * provides one (so `open-modal` opens a registry dialog), else through
+		 * the action dispatcher with the page's router.
+		 *
+		 * @spec openspec/changes/dashboard-widget-header-actions/specs/dashboard-widget-header-actions/spec.md#requirement-a-dashboard-card-draws-its-widgets-header-actions
+		 * @spec openspec/changes/dashboard-card-action-dialog/specs/dashboard-page/spec.md#requirement-a-dashboard-card-header-action-dispatches-through-the-page
+		 * @param {object} item Layout placement entry.
+		 * @return {Array<object>} The buttons, or none.
+		 */
+		getWidgetHeaderActions(item) {
+			return resolveWidgetHeaderActions(this.getWidgetDef(item.widgetId), {
+				workspace: this.workspaceContext,
+				translate: (key) => this.effectiveTranslate(key),
+				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
+					? this.cnDispatchAction(action, extra)
+					: dispatchAction(action, { router: this.$router || null, ...extra })),
+			})
+		},
+
+		/**
 		 * The widget's header text link (`headerLink` on the layout entry,
 		 * else on the widget definition), forwarded to CnWidgetWrapper.
 		 *
@@ -4446,8 +5372,9 @@ export default {
 				return reported.link
 			}
 			// Last, what the widget's own content asks for (`headerLink`, or the
-			// `viewAllRoute` / `viewAllLabel` of the tasks widget).
-			return contentHeaderLink(item?.content) || contentHeaderLink(def?.content)
+			// `viewAllRoute` / `viewAllLabel` of the tasks widget), unless it draws
+			// that view-all under its own rows (`viewAllPlacement: "footer"`).
+			return widgetHeaderLink({ content: item?.content }) || widgetHeaderLink({ content: def?.content })
 		},
 
 		/**
@@ -4499,6 +5426,9 @@ export default {
 		 * @spec openspec/changes/screens-record-list-row-action/specs/record-list/spec.md
 		 */
 		widgetHeaderCount(item) {
+			if (this.titleHoldsCount(item)) {
+				return null
+			}
 			const reported = this.widgetHeaders[item.widgetId]
 			return reported && Number.isFinite(reported.count) ? reported.count : null
 		},
@@ -4618,6 +5548,7 @@ export default {
 				// by the modal) must still fall through to content.title, which the
 				// form validates as required and so is always populated.
 				title: def.title || c.title,
+				subtitle: c.subtitle ?? def.subtitle,
 				icon: c.icon ?? def.icon,
 				iconType: c.iconType ?? def.iconType,
 				backgroundColor: c.backgroundColor ?? def.backgroundColor,
@@ -4974,6 +5905,14 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
+/* Header pills open the description line (PqWerkplekKlant). */
+.cn-dashboard-page__description--pills {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
 /* The layout panel: a side panel at the right edge, under the Nextcloud
    header, over the page; full width on a phone. */
 .cn-dashboard-page__layout-panel {
@@ -5057,6 +5996,22 @@ export default {
 	margin-bottom: 16px;
 }
 
+/* The period group at the end of the description line. */
+.cn-dashboard-page__description--with-period {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* A select on the description line takes the width of its choice, not a
+   form field's, and no margin of its own. */
+.cn-dashboard-page__description-select {
+	min-width: 180px;
+	max-width: 280px;
+	margin: 0;
+}
+
 .cn-dashboard-page__date-segmented {
 	display: flex;
 	align-items: center;
@@ -5066,6 +6021,44 @@ export default {
 /* The KPI row above the grid: tiles are cells of the auto-fit grid. */
 .cn-dashboard-page__kpi-row {
 	margin-bottom: var(--cn-board-section-gap, 16px);
+}
+
+/* Board look: GridStack insets every card by the grid margin on each side, so
+   the cards started a margin to the right of the KPI row and the header. The
+   grid reaches out by that margin, so the card edges line up with the page's
+   (dashboard-grid-flush). */
+.cn-dashboard-page--board :deep(.cn-dashboard-grid) {
+	width: auto;
+	margin-inline: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
+}
+
+/* Board look, a grid right under the header (DqCatalogus): GridStack's top
+   margin set the first card 12px below the header's 20px; the grid reaches
+   up by that margin too, so the card stands 20px under the header. */
+.cn-dashboard-page--board .cn-dashboard-page__header + :deep(.cn-dashboard-grid) {
+	margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
+}
+
+/* The same under the KPI row: the cards stand the row's 20px under the tiles,
+   not that plus the grid margin (DqDashboard: 32, the board 20).
+   @spec openspec/changes/board-kpi-row-to-grid-gap/specs/board-kpi-row-to-grid-gap/spec.md#requirement-the-board-grid-stands-the-section-gap-under-the-kpi-row */
+/* And under the view switch: the cards stand the switch row's 20px under it
+   (DqMijnWerk, DqMijnTeam: 32, the board 20). */
+.cn-dashboard-page--board .cn-dashboard-page__kpi-row + :deep(.cn-dashboard-grid),
+.cn-dashboard-page--board .cn-dashboard-page__switch-row + :deep(.cn-dashboard-grid) {
+	margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px));
+}
+
+/* A header with a breadcrumb trail ends 8px under it, as the boards pad
+   their header (DqCatalogus: 167), and the trail row sits at normal leading
+   (DqDagAfsluiten: 75, live 79 at 1.5). */
+.cn-dashboard-page--board .cn-dashboard-page__header:has(.cn-header-trail) {
+	padding-bottom: 8px;
+}
+
+.cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail) {
+	margin-bottom: 0;
+	line-height: normal;
 }
 
 .cn-dashboard-page__kpi-cell {
@@ -5297,6 +6290,21 @@ export default {
 
 	.cn-dashboard-page--board .cn-dashboard-page__kpi-cell {
 		min-height: 44px;
+	}
+
+	/* The widget Actions menu shows its icon only, so the card title keeps
+	   the room; the name stays for assistive tech. */
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle) {
+		min-width: 44px;
+	}
+
+	.cn-dashboard-page--board :deep(.cn-widget-wrapper__actions .action-item__menutoggle .button-vue__text) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 }
 

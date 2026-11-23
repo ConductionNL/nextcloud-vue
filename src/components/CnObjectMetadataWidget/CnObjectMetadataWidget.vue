@@ -26,9 +26,9 @@
 				v-for="group in groupedItems"
 				:key="group.key"
 				class="cn-object-metadata__group">
-				<h4 class="cn-object-metadata__group-title">
+				<component :is="innerHeadingTag" class="cn-object-metadata__group-title cn-inner-heading">
 					{{ group.label }}
-				</h4>
+				</component>
 				<CnDetailGrid
 					:items="group.items"
 					:layout="layout"
@@ -55,6 +55,7 @@
 <script>
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import innerHeading from '../../mixins/innerHeading.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnDetailCard } from '../CnDetailCard/index.js'
 import { CnDetailGrid } from '../CnDetailGrid/index.js'
@@ -171,6 +172,8 @@ export default {
 		CnDetailCard,
 		CnDetailGrid,
 	},
+
+	mixins: [innerHeading],
 
 	props: {
 		/** Widget title shown in the card header */

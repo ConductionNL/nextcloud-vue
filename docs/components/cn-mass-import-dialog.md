@@ -24,6 +24,16 @@ File upload dialog with options and results summary. Supports importing data fro
 | `dialogTitle` | String | `'Import data'` | |
 | `acceptedTypes` | String | `'.json,.xlsx,.xls,.csv'` | Accepted file types (input `accept` attribute) |
 | `options` | Array | `[]` | Additional import option definitions |
+| `templateUrl` | String | `''` | Address of an empty file with the right columns; shows a download button when set. |
+| `templateLabel` | String | `'Download template'` | Label of the template download button. |
+| `mappingTitle` | String | `'How the columns are read'` | Heading of the column mapping table. |
+| `columnLabel` | String | `'Column in the file'` | Header of the file column. |
+| `fieldLabel` | String | `'Field'` | Header of the field column. |
+| `notUsedLabel` | String | `'Not used'` | The choice that leaves a column out. |
+| `checkFirst` | Boolean | `false` | Offer a switch that checks the file first and imports nothing (`dryRun` in the confirm options). |
+| `checkFirstLabel` | String | `'Check first, import nothing yet'` | Label of the check-first switch. |
+| `checkFirstDescription` | String | `'Shows which rows would fail and why.'` | Helper line of the check-first switch. |
+| `checkedText` | String | `'Checked. Nothing is imported yet.'` | Note shown after a check. |
 | `fileTypeHelp` | Array | `[{ label, description }]` | Help entries shown in the "Supported file types" list; defaults to JSON, Excel, and CSV entries |
 | `canSubmit` | Boolean | `true` | Whether the form is ready to submit. The parent can set this to `false` (via a slot) while required options are incomplete. |
 | `successText` | String | `'Import completed successfully!'` | Message shown in the result phase when all rows imported without errors |

@@ -31,6 +31,10 @@ describe('manifest schema: filter tokens', () => {
 		expect(validateManifestV2(manifest({ assignedGroup: '@myGroups' })).valid).toBe(true)
 	})
 
+	it('accepts @myTeam on a group field', () => {
+		expect(validateManifestV2(manifest({ assignedGroup: '@myTeam' })).valid).toBe(true)
+	})
+
 	it('accepts @monthEnd and @nextMonthStart in operator form', () => {
 		expect(validateManifestV2(manifest({ expectedCloseDate: { gte: '@monthStart', lte: '@monthEnd' } })).valid).toBe(true)
 		expect(validateManifestV2(manifest({ expectedCloseDate: { gte: '@monthStart', lt: '@nextMonthStart' } })).valid).toBe(true)
