@@ -647,7 +647,10 @@
 						<dl v-if="card.fields.length > 0" class="cn-files-browser__side-facts">
 							<template v-for="field in card.fields" :key="field.key">
 								<dt>{{ field.label }}</dt>
-								<dd :class="field.tone ? `cn-files-browser__tone cn-files-browser__tone--${field.tone}` : ''">
+								<dd v-if="field.fallback !== null">
+									{{ field.fallback }}
+								</dd>
+								<dd v-else :class="field.tone ? `cn-files-browser__tone cn-files-browser__tone--${field.tone}` : ''">
 									<CnCellRenderer
 										:value="field.value"
 										:formatter="field.formatter || null"
@@ -656,6 +659,11 @@
 								</dd>
 							</template>
 						</dl>
+						<p v-else-if="card.emptyText !== ''"
+							class="cn-files-browser__side-empty"
+							:data-testid="`cn-files-browser-side-empty-${card.id}`">
+							{{ card.emptyText }}
+						</p>
 						<div v-if="card.actions.length > 0" class="cn-files-browser__side-actions">
 							<NcButton v-for="action in card.actions"
 								:key="action.id"
@@ -1353,10 +1361,11 @@ export default {
 		 * `[{ id, title, fields: [{ key, label, source?, formatter?, formatterOptions?, colorMap?, colorKey? }], actions? }]`.
 		 * `title` may hold `{name}`, the file's name. A field reads `rowData`
 		 * (`source: 'row'`, the default) or the node (`source: 'node'`); a field
-		 * with no value is left out. `actions` are declared like `rowActions`
+		 * with no value is left out, unless it names a `fallback` text to show
+		 * instead. A card whose fields are all left out shows its `emptyText`. `actions` are declared like `rowActions`
 		 * and run on that file. No side column while nothing is selected.
 		 *
-		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
+		 * @type {Array<{id: string, title: string, emptyText?: string, fields?: Array<object>, actions?: Array<object>}>}
 		 * @spec openspec/changes/files-browser-side-cards/specs/files-browser/spec.md#requirement-cards-beside-the-list-describe-the-selected-file
 		 */
 		sideCards: {
@@ -2969,16 +2978,20 @@ export default {
 						.filter((field) => field && field.key)
 						.map((field) => {
 							const column = { ...field, source: field.source || 'row' }
+							const value = this.cellValue(column, node)
+							const empty = value === null || value === undefined || value === ''
 							return {
 								key: String(field.key),
 								label: this.cnTranslate(String(field.label || field.key)),
-								value: this.cellValue(column, node),
+								value,
+								fallback: empty && field.fallback ? this.cnTranslate(String(field.fallback)) : null,
 								formatter: field.formatter,
 								formatterOptions: field.formatterOptions,
 								tone: this.toneOf(column, node),
 							}
 						})
-						.filter((field) => field.value !== null && field.value !== undefined && field.value !== ''),
+						.filter((field) => field.fallback !== null || (field.value !== null && field.value !== undefined && field.value !== '')),
+					emptyText: card.emptyText ? this.cnTranslate(String(card.emptyText)) : '',
 					actions: (Array.isArray(card.actions) ? card.actions : [])
 						.filter((action) => action && action.id && hostActionApplies(action, node, this.rowValueOf(node))),
 				}))
@@ -3609,6 +3622,12 @@ export default {
 .cn-files-browser__side-facts dd {
 	margin: 0;
 	overflow-wrap: anywhere;
+}
+
+.cn-files-browser__side-empty {
+	margin: 0;
+	font-size: 14px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-files-browser__side-actions {

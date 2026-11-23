@@ -2948,7 +2948,13 @@
     "Use the arrow keys to move this part up or down.": "Use the arrow keys to move this part up or down.",
     "{name} moved to position {position} of {total}": "{name} moved to position {position} of {total}",
     "Import configuration again": "Import configuration again",
-    "The sorting is saved with a view.": "The sorting is saved with a view."
+    "The sorting is saved with a view.": "The sorting is saved with a view.",
+    "Recalculating needs the archivist role": "Recalculating needs the archivist role",
+    "Recalculate nomination": "Recalculate nomination",
+    "Destruction date": "Destruction date",
+    "Selection list rule": "Selection list rule",
+    "Recorded on": "Recorded on",
+    "Set when it closes": "Set when it closes"
   },
   "plurals": {
     "{count} member": [

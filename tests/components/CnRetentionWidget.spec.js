@@ -126,7 +126,7 @@ describe('CnRetentionWidget', () => {
 		const other = await mountWidget()
 		const denied = other.find('[data-testid="cn-retention-recompute-denied"]')
 		expect(denied.attributes('disabled')).toBeDefined()
-		expect(denied.attributes('title')).toBe('Recomputing needs the archivist role')
+		expect(denied.attributes('title')).toBe('Recalculating needs the archivist role')
 	})
 })
 
@@ -177,10 +177,10 @@ describe('CnRetentionWidget before the record closes', () => {
 		expect(pending(w)).toEqual({
 			Appraisal: 'Destroy',
 			'Retention period': '5 years after the decision',
-			'Selection list row': '11.1.2, Woo-verzoeken',
-			'Disposal date': 'Decided when it closes',
+			'Selection list rule': '11.1.2, Woo-verzoeken',
+			'Destruction date': 'Set when it closes',
 			'Decided by': 'The case type, when it closes',
-			'Written on': 'Not yet',
+			'Recorded on': 'Not yet',
 		})
 	})
 
