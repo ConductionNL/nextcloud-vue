@@ -7,7 +7,7 @@
  * instead of untitled strips with no card. A grid cell (its own card), a tab
  * panel (bare) and `content.cards` (a card per section) keep their look.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
@@ -27,8 +27,9 @@ function mountHost(widget, props = {}) {
 const card = '[data-testid="cn-detail-widget-sections-card"]'
 
 describe('CnDetailWidgetHost: a titled sections widget', () => {
-	it('draws one titled card around the sections on a card surface', () => {
+	it('draws one titled card around the sections on a card surface', async () => {
 		const w = mountHost({})
+		await flushPromises()
 		expect(w.find(card).exists()).toBe(true)
 		expect(w.find(card).text()).toContain('Status')
 		expect(w.find(`${card} [data-testid="cn-sections-widget"]`).exists()).toBe(true)

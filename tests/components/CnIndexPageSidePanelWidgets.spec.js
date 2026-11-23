@@ -22,6 +22,7 @@ const CnSavedViewAlertWidget = require('../../src/components/CnSavedViewAlertWid
 const CnExportsWidget = require('../../src/components/CnExportsWidget/CnExportsWidget.vue').default
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
 const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 
 const VIEW = { id: 7, uuid: 'v-7', name: 'Meldingen verlichting', owner: 'pieter', alert: null }
 
@@ -51,9 +52,9 @@ beforeEach(() => {
 })
 
 describe('saved-view-alert widget', () => {
-	it('is a built-in widget type, as is exports', () => {
-		expect(BUILT_IN_WIDGETS['saved-view-alert']).toBe(CnSavedViewAlertWidget)
-		expect(BUILT_IN_WIDGETS.exports).toBe(CnExportsWidget)
+	it('is a built-in widget type, as is exports', async () => {
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['saved-view-alert'])).toBe(CnSavedViewAlertWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.exports)).toBe(CnExportsWidget)
 	})
 
 	it('says what to do while no saved view is applied', () => {

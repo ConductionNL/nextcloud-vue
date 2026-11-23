@@ -8,11 +8,13 @@
  * load. Renderer only: the band is declared in the manifest.
  */
 
-import CnPartyActionsWidget from './CnPartyActionsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnPartyActionsWidget = lazyComponent(() => import('./CnPartyActionsWidget.vue'), 'CnPartyActionsWidget')
+
 registerDashboardWidget('party-actions', {
-	renderer: CnPartyActionsWidget,
+	renderer: LazyCnPartyActionsWidget,
 	form: null,
 	defaultContent: {
 		indicators: [],
@@ -25,5 +27,5 @@ registerDashboardWidget('party-actions', {
 	surfaces: ['detail-page'],
 })
 
-export { CnPartyActionsWidget }
-export default CnPartyActionsWidget
+export { default as CnPartyActionsWidget } from './CnPartyActionsWidget.vue'
+export { default } from './CnPartyActionsWidget.vue'

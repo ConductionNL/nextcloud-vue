@@ -9,11 +9,13 @@
  * CnDashboardPage's registryRenderer. #91 Wave 3.
  */
 
-import CnWorkspaceFilterWidget from './CnWorkspaceFilterWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnWorkspaceFilterWidget = lazyComponent(() => import('./CnWorkspaceFilterWidget.vue'), 'CnWorkspaceFilterWidget')
+
 registerDashboardWidget('workspace-filter', {
-	renderer: CnWorkspaceFilterWidget,
+	renderer: LazyCnWorkspaceFilterWidget,
 	defaultContent: {
 		label: '',
 		writes: '@workspace.filter',
@@ -25,5 +27,5 @@ registerDashboardWidget('workspace-filter', {
 	icon: 'FilterVariant',
 })
 
-export { CnWorkspaceFilterWidget }
-export default CnWorkspaceFilterWidget
+export { default as CnWorkspaceFilterWidget } from './CnWorkspaceFilterWidget.vue'
+export { default } from './CnWorkspaceFilterWidget.vue'

@@ -9,11 +9,13 @@
  * CnDashboardPage's registryRenderer.
  */
 
-import CnInteractionFormWidget from './CnInteractionFormWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnInteractionFormWidget = lazyComponent(() => import('./CnInteractionFormWidget.vue'), 'CnInteractionFormWidget')
+
 registerDashboardWidget('interaction-form', {
-	renderer: CnInteractionFormWidget,
+	renderer: LazyCnInteractionFormWidget,
 	defaultContent: {
 		register: 'pipelinq',
 		schema: 'contactmoment',
@@ -25,5 +27,5 @@ registerDashboardWidget('interaction-form', {
 	icon: 'AccountVoice',
 })
 
-export { CnInteractionFormWidget }
-export default CnInteractionFormWidget
+export { default as CnInteractionFormWidget } from './CnInteractionFormWidget.vue'
+export { default } from './CnInteractionFormWidget.vue'

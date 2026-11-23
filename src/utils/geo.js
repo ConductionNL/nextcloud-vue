@@ -93,16 +93,44 @@ export function parseGeoPoint(geo) {
 	)
 }
 
+const GEOMETRY_TYPES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']
+
 /**
- * Turn an OpenRegister object into a GeoJSON Point Feature, or null when it has no
+ * The GeoJSON geometry a property value holds: a geometry, or a Feature's
+ * geometry. Returns null for anything else, so a point-shaped value falls
+ * through to parseGeoPoint().
+ *
+ * @param {unknown} value The property value.
+ * @return {?object} The geometry, or null.
+ */
+export function parseGeoGeometry(value) {
+	if (!value || typeof value !== 'object') {
+		return null
+	}
+	const geometry = value.type === 'Feature' ? value.geometry : value
+	if (!geometry || !GEOMETRY_TYPES.includes(geometry.type) || !Array.isArray(geometry.coordinates)) {
+		return null
+	}
+	if (geometry.type === 'Point') {
+		const point = parseGeoPoint(geometry)
+		return point ? { type: 'Point', coordinates: [point.lng, point.lat] } : null
+	}
+	return geometry.coordinates.length > 0 ? geometry : null
+}
+
+/**
+ * Turn an OpenRegister object into a GeoJSON Feature, or null when it has no
  * usable location.
  *
- * Looks at `@self.geo` first (where the geo widget writes it). Falls back to plain
- * lat/lng fields on the object itself, so a schema that models coordinates as its own
- * properties still plots without having to migrate to `@self.geo`.
+ * With `geoProperty` set, that property is read first: a GeoJSON geometry of any
+ * type (point, line, polygon or a multi-geometry), a Feature, or a lat/lng value.
+ * Otherwise, or when it is empty, `@self.geo` is read (where the geo widget writes
+ * it), and then plain lat/lng fields on the object itself, so a schema that models
+ * coordinates as its own properties still plots.
  *
  * @param {object} obj The OpenRegister object.
  * @param {object} [options] Options.
+ * @param {string} [options.geoProperty] Property holding the object's geometry.
  * @param {string} [options.latField] Property holding latitude, for the fallback.
  * @param {string} [options.lngField] Property holding longitude, for the fallback.
  * @return {?object} A GeoJSON Feature whose `properties` is the object, or null.
@@ -112,14 +140,25 @@ export function objectToGeoFeature(obj, options = {}) {
 		return null
 	}
 
+	const { geoProperty, latField, lngField } = options
+	if (geoProperty) {
+		const value = obj[geoProperty]
+		const geometry = parseGeoGeometry(value)
+		const point = geometry ? null : parseGeoPoint(value)
+		if (geometry || point) {
+			return {
+				type: 'Feature',
+				geometry: geometry || { type: 'Point', coordinates: [point.lng, point.lat] },
+				properties: { ...obj },
+			}
+		}
+	}
+
 	const self = obj['@self'] || {}
 	let point = parseGeoPoint(self.geo)
 
-	if (!point) {
-		const { latField, lngField } = options
-		if (latField && lngField) {
-			point = finitePoint(obj[latField], obj[lngField])
-		}
+	if (!point && latField && lngField) {
+		point = finitePoint(obj[latField], obj[lngField])
 	}
 	if (!point) {
 		return null

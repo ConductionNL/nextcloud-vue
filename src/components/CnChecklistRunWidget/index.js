@@ -8,11 +8,13 @@
  * questions and where the answers go are declared in the manifest.
  */
 
-import CnChecklistRunWidget from './CnChecklistRunWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnChecklistRunWidget = lazyComponent(() => import('./CnChecklistRunWidget.vue'), 'CnChecklistRunWidget')
+
 registerDashboardWidget('checklist-run', {
-	renderer: CnChecklistRunWidget,
+	renderer: LazyCnChecklistRunWidget,
 	form: null,
 	defaultContent: {
 		questions: { register: '', schema: '', filter: {} },
@@ -23,5 +25,5 @@ registerDashboardWidget('checklist-run', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnChecklistRunWidget }
-export default CnChecklistRunWidget
+export { default as CnChecklistRunWidget } from './CnChecklistRunWidget.vue'
+export { default } from './CnChecklistRunWidget.vue'

@@ -23,8 +23,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnPollsCard from './polls/CnPollsCard.vue'
-import CnPollsTab from './polls/CnPollsTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnPollsCard = lazyComponent(() => import('./polls/CnPollsCard.vue'), 'CnPollsCard')
+const CnPollsTab = lazyComponent(() => import('./polls/CnPollsTab.vue'), 'CnPollsTab')
 
 /**
  * `polls` integration descriptor.

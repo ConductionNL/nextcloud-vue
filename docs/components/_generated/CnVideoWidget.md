@@ -8,7 +8,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name        | Type     | Required | Default | Description                                                                                                                                                                                                                          |
-| ----------- | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `content`   | `object` |          | `\{\}`  | Persisted content blob `{sourceType, videoUrl, fileId, fileStreamingUrl, autoplay, muted, loop, controls, aspectRatio, posterUrl, error}`. `videoUrl` is the canonical embed URL; `error` (when set) triggers the error placeholder. |
-| `placement` | `object` |          | `null`  | The placement record (reserved — kept to match the renderer contract).                                                                                                                                                               |
+| Name        | Type      | Required | Default | Description                                                                                                                                                                                                                          |
+| ----------- | --------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `content`   | `object`  |          | `\{\}`  | Persisted content blob `{sourceType, videoUrl, fileId, fileStreamingUrl, autoplay, muted, loop, controls, aspectRatio, posterUrl, error}`. `videoUrl` is the canonical embed URL; `error` (when set) triggers the error placeholder. |
+| `canEdit`   | `boolean` |          | `false` | Whether the viewer may edit this placement (the host's edit mode). The empty state then offers "Configure now", which emits `edit`.                                                                                                  |
+| `placement` | `object`  |          | `null`  | The placement record (reserved — kept to match the renderer contract).                                                                                                                                                               |
+
+### Events
+
+| Name   | Payload | Description                                                                              |
+| ------ | ------- | ---------------------------------------------------------------------------------------- |
+| `edit` | —       | "Configure now" was chosen in the empty state, so the host can open the widget settings. |

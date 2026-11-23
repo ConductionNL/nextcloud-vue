@@ -10,7 +10,7 @@
  *
  * @spec openspec/changes/retention-card-in-tab-stack/specs/detail-page/spec.md
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
@@ -37,8 +37,9 @@ describe('CnDetailWidgetHost: a self-titled library widget on a card surface', (
 		expect(getWidgetTypeEntry('timeline')).toMatchObject({ ownsTitle: true, chrome: 'card' })
 	})
 
-	it('stands in an untitled card, its own title row inside', () => {
+	it('stands in an untitled card, its own title row inside', async () => {
 		const w = mountHost()
+		await flushPromises()
 		const card = w.find('[data-testid="cn-detail-widget-self-titled-card"]')
 		expect(card.exists()).toBe(true)
 		expect(card.find('.cn-widget-wrapper__title').exists()).toBe(false)

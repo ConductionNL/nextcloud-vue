@@ -21,6 +21,7 @@ const CnTimelineWidget = require('../../src/components/CnTimelineWidget/CnTimeli
 require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
 const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 
 const booking = {
 	'@self': { created: '2026-09-01T09:00:00Z' },
@@ -50,10 +51,10 @@ describe('CnTimelineWidget', () => {
 		axios.get.mockReset()
 	})
 
-	it('is registered as the `timeline` detail-page widget type and as a v2 built-in', () => {
-		expect(getWidgetTypeEntry('timeline').renderer).toBe(CnTimelineWidget)
+	it('is registered as the `timeline` detail-page widget type and as a v2 built-in', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('timeline').renderer)).toBe(CnTimelineWidget)
 		expect(getWidgetTypeEntry('timeline').surfaces).toEqual(['detail-page'])
-		expect(BUILT_IN_WIDGETS.timeline).toBe(CnTimelineWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.timeline)).toBe(CnTimelineWidget)
 	})
 
 	it('lists the object\'s date fields in time order and marks the future upcoming', async () => {

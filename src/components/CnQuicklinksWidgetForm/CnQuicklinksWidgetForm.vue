@@ -563,8 +563,12 @@ export default {
 	box-sizing: border-box;
 }
 
-.cn-quicklinks-widget-form__input--invalid {
-	border-color: var(--color-error, #d32f2f);
+/* Nextcloud's input :hover / :focus border outranks a single class, so the
+   error colour has to win explicitly while the user is typing. */
+.cn-quicklinks-widget-form__input--invalid,
+.cn-quicklinks-widget-form__input--invalid:hover,
+.cn-quicklinks-widget-form__input--invalid:focus {
+	border-color: var(--color-error, #d32f2f) !important;
 }
 
 .cn-quicklinks-widget-form__inline-error {

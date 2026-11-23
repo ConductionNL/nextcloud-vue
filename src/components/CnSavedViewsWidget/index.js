@@ -7,11 +7,13 @@
  * it) into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnSavedViewsWidget from './CnSavedViewsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnSavedViewsWidget = lazyComponent(() => import('./CnSavedViewsWidget.vue'), 'CnSavedViewsWidget')
+
 registerDashboardWidget('saved-views', {
-	renderer: CnSavedViewsWidget,
+	renderer: LazyCnSavedViewsWidget,
 	form: null,
 	defaultContent: {
 		register: '',
@@ -25,5 +27,5 @@ registerDashboardWidget('saved-views', {
 	surfaces: ['app-dashboard'],
 })
 
-export { CnSavedViewsWidget }
-export default CnSavedViewsWidget
+export { default as CnSavedViewsWidget } from './CnSavedViewsWidget.vue'
+export { default } from './CnSavedViewsWidget.vue'
