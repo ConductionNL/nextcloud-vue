@@ -720,10 +720,13 @@ export default {
 	font-style: italic;
 }
 
+/* A row is a link, but it reads as a list row: a theme that underlines and
+   colours every link with !important (NL Design) otherwise underlines the
+   title and the time and paints them link blue. */
 .cn-nc-widget-widget__item {
 	display: flex;
-	text-decoration: none;
-	color: var(--color-main-text);
+	text-decoration: none !important;
+	color: var(--color-main-text) !important;
 	border-radius: var(--border-radius);
 	padding: 4px;
 }
@@ -775,6 +778,7 @@ export default {
 }
 
 .cn-nc-widget-widget__item-title {
+	color: var(--color-main-text);
 	font-weight: 600;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -787,5 +791,26 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* Board look: the rows of a vertical list are ruled apart and the title is
+   15px, as the Launchpad boards draw recent work and mail (LpVandaag
+   "Verder waar u was", LpWerkplek "Mail"). */
+.cn-look-board .cn-nc-widget-widget__item--vertical:not(.cn-look-nextcloud *) {
+	padding: 8px 0;
+	border-radius: 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.cn-look-board .cn-nc-widget-widget__item--vertical:first-child:not(.cn-look-nextcloud *) {
+	border-top: none;
+}
+
+.cn-look-board .cn-nc-widget-widget__item--vertical:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item-title {
+	font-size: 15px;
+}
+
+.cn-look-board .cn-nc-widget-widget__item--vertical:not(.cn-look-nextcloud *) .cn-nc-widget-widget__item-subtitle {
+	font-size: 13px;
 }
 </style>
