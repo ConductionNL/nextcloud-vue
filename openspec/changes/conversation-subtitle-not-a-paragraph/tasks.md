@@ -1,0 +1,2 @@
+- [x] CnConversationThread subtitle div + line-height normal
+- [x] jest CnConversationBoardBubble tag check (red first)

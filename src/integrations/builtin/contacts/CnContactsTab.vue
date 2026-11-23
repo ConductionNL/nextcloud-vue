@@ -37,26 +37,23 @@
   -->
 <template>
 	<div class="cn-contacts-tab">
-		<!-- Header actions: link existing / create new -->
+		<!-- Header actions: link existing / create new. The board look draws
+		     Link contact first and both outlined (DqZaakBetrokkenen); the
+		     Nextcloud look keeps Add new contact first and Link as the primary. -->
 		<div class="cn-contacts-tab__header">
 			<NcButton
-				variant="secondary"
-				:aria-label="addNewLabel"
-				@click="showCreateDialog = true">
+				v-for="button in headerButtons"
+				:key="button.key"
+				:variant="button.variant"
+				:aria-label="button.label"
+				@click="button.key === 'link' ? (showLinkDialog = true) : (showCreateDialog = true)">
 				<template #icon>
-					<AccountPlus :size="20" />
+					<LinkVariant v-if="button.key === 'link'" :size="20" />
+					<AccountPlus v-else :size="20" />
 				</template>
-				{{ addNewLabel }}
+				{{ button.label }}
 			</NcButton>
-			<NcButton
-				variant="primary"
-				:aria-label="linkExistingLabel"
-				@click="showLinkDialog = true">
-				<template #icon>
-					<LinkVariant :size="20" />
-				</template>
-				{{ linkExistingLabel }}
-			</NcButton>
+			<CnWidgetHeaderActionButtons v-if="bodyActions.length > 0" :actions="bodyActions" />
 		</div>
 
 		<!-- Loading -->
@@ -90,7 +87,7 @@
 				class="cn-contacts-tab__group">
 				<h3 class="cn-contacts-tab__group-title">
 					{{ group.label }}
-					<span class="cn-contacts-tab__group-count">{{ group.items.length }}</span>
+					<span v-if="!isBoard" class="cn-contacts-tab__group-count">{{ group.items.length }}</span>
 				</h3>
 				<ul class="cn-contacts-tab__list">
 					<li
@@ -100,7 +97,7 @@
 						@click="openReverseLookup(contact)">
 						<div class="cn-contacts-tab__avatar">
 							<NcAvatar
-								:size="40"
+								:size="isBoard ? 32 : 40"
 								:displayName="contact.displayName || unknownLabel"
 								:user="avatarSeed(contact)"
 								:url="contact.avatarUrl || undefined"
@@ -115,7 +112,7 @@
 									{{ contact.displayName || unknownLabel }}
 								</span>
 								<CnStatusBadge
-									v-if="contact.role"
+									v-if="contact.role && !isBoard"
 									:label="roleLabel(contact)"
 									:variant="roleVariant(contact)"
 									size="small" />
@@ -126,30 +123,55 @@
 									size="small"
 									data-testid="cn-contacts-tab-inactive" />
 							</div>
-							<div v-if="contact.email" class="cn-contacts-tab__sub">
-								<Email :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ contact.email }}</span>
-							</div>
-							<div v-if="contact.phone" class="cn-contacts-tab__sub">
-								<Phone :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ contact.phone }}</span>
-							</div>
-							<div v-if="contact.org" class="cn-contacts-tab__sub">
-								<OfficeBuildingOutline :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ contact.org }}</span>
-							</div>
-							<div
-								v-if="periodOf(contact)"
-								class="cn-contacts-tab__sub"
-								data-testid="cn-contacts-tab-period">
-								<CalendarRange :size="14" class="cn-contacts-tab__sub-icon" />
-								<span class="cn-contacts-tab__sub-text">{{ periodOf(contact) }}</span>
-							</div>
-							<div v-if="contact.note" class="cn-contacts-tab__sub">
-								<span class="cn-contacts-tab__sub-text">{{ contact.note }}</span>
-							</div>
+							<!-- The board look sets the details on one line (DqZaakBetrokkenen). -->
+							<span v-if="isBoard && boardMetaOf(contact)"
+								class="cn-contacts-tab__meta"
+								data-testid="cn-contacts-tab-meta">{{ boardMetaOf(contact) }}</span>
+							<template v-if="!isBoard">
+								<div v-if="contact.email" class="cn-contacts-tab__sub">
+									<Email :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ contact.email }}</span>
+								</div>
+								<div v-if="contact.phone" class="cn-contacts-tab__sub">
+									<Phone :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ contact.phone }}</span>
+								</div>
+								<div v-if="contact.org" class="cn-contacts-tab__sub">
+									<OfficeBuildingOutline :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ contact.org }}</span>
+								</div>
+								<div
+									v-if="periodOf(contact)"
+									class="cn-contacts-tab__sub"
+									data-testid="cn-contacts-tab-period">
+									<CalendarRange :size="14" class="cn-contacts-tab__sub-icon" />
+									<span class="cn-contacts-tab__sub-text">{{ periodOf(contact) }}</span>
+								</div>
+								<div v-if="contact.note" class="cn-contacts-tab__sub">
+									<span class="cn-contacts-tab__sub-text">{{ contact.note }}</span>
+								</div>
+							</template>
 						</div>
+						<template v-if="isBoard">
+							<span v-if="boardPeriodOf(contact)"
+								class="cn-contacts-tab__period"
+								data-testid="cn-contacts-tab-board-period">{{ boardPeriodOf(contact) }}</span>
+							<NcActions class="cn-contacts-tab__menu"
+								:forceMenu="true"
+								variant="secondary"
+								:aria-label="moreActionsLabel(contact)"
+								data-testid="cn-contacts-tab-menu"
+								@click.stop>
+								<NcActionButton :closeAfterClick="true" @click="unlink(contact)">
+									<template #icon>
+										<Close :size="20" />
+									</template>
+									{{ unlinkLabel }}
+								</NcActionButton>
+							</NcActions>
+						</template>
 						<button
+							v-else
 							type="button"
 							class="cn-contacts-tab__unlink"
 							:aria-label="unlinkLabel"
@@ -181,7 +203,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcAvatar, NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AccountMultipleOutline from 'vue-material-design-icons/AccountMultipleOutline.vue'
 import AccountPlus from 'vue-material-design-icons/AccountPlus.vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -194,7 +216,11 @@ import Phone from 'vue-material-design-icons/Phone.vue'
 import CnContactCreate from '../../../components/CnContactCreate/CnContactCreate.vue'
 import CnContactPicker from '../../../components/CnContactPicker/CnContactPicker.vue'
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
+import CnWidgetHeaderActionButtons from '../../../components/CnWidgetWrapper/CnWidgetHeaderActionButtons.vue'
+import { normalizeLook } from '../../../composables/useLook.js'
+import { formatBoardDate } from '../../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { WIDGET_BODY_ACTIONS } from '../../../utils/widgetHeaderActions.js'
 
 /**
  * Normalised role keys for grouping. Free-text vCard roles are
@@ -223,6 +249,8 @@ export default {
 	name: 'CnContactsTab',
 
 	components: {
+		NcActionButton,
+		NcActions,
 		NcAvatar,
 		NcButton,
 		NcEmptyContent,
@@ -239,6 +267,14 @@ export default {
 		CnStatusBadge,
 		CnContactPicker,
 		CnContactCreate,
+		CnWidgetHeaderActionButtons,
+	},
+
+	inject: {
+		/** The look the app is drawn in (`board` or `nextcloud`), from CnAppRoot or the page. */
+		cnLook: { default: 'nextcloud' },
+		/** The widget's manifest `bodyActions`, drawn after this tab's own buttons. */
+		cnWidgetBodyActions: { from: WIDGET_BODY_ACTIONS, default: null },
 	},
 
 	props: {
@@ -254,8 +290,8 @@ export default {
 		// --- Pre-translated labels (consumer-overridable for i18n flexibility) ---
 		/** Label for the button that links an existing contact. */
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link contact') },
-		/** Label for the button that creates a contact. */
-		addNewLabel: { type: String, default: () => t('nextcloud-vue', 'Add new contact') },
+		/** Label for the button that creates a contact; empty takes the look's own (New contact, or Add new contact). */
+		addNewLabel: { type: String, default: '' },
 		/** Title of the empty state shown when no contact is linked. */
 		emptyTitleLabel: { type: String, default: () => t('nextcloud-vue', 'No contacts linked') },
 		/** Body of the empty state shown when no contact is linked. */
@@ -286,6 +322,13 @@ export default {
 		handlerRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Handler') },
 		/** Role badge shown on an advisor. */
 		advisorRoleLabel: { type: String, default: () => t('nextcloud-vue', 'Advisor') },
+		/**
+		 * The word that leads a board row's details per kind of person: keyed
+		 * by the link's `partyKind` (`person`, `organisation`, `colleague`)
+		 * or else its `kind` (`user`, `contact`). A kind without a word leads
+		 * with nothing.
+		 */
+		kindLabels: { type: Object, default: () => ({}) },
 	},
 
 	emits: ['open-reverse-lookup'],
@@ -305,6 +348,39 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} The board look draws the rows as DqZaakBetrokkenen does. */
+		isBoard() {
+			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * The two header buttons in the order and weight of the look: the
+		 * board look draws Link contact then New contact, both outlined; the
+		 * Nextcloud look keeps Add new contact first and Link as the primary.
+		 *
+		 * @return {Array<{key: string, label: string, variant: string}>} The buttons.
+		 */
+		headerButtons() {
+			const board = normalizeLook(this.cnLook) === 'board'
+			const newLabel = this.addNewLabel !== ''
+				? this.addNewLabel
+				: (board ? t('nextcloud-vue', 'New contact') : t('nextcloud-vue', 'Add new contact'))
+			const link = { key: 'link', label: this.linkExistingLabel, variant: board ? 'secondary' : 'primary' }
+			const create = { key: 'new', label: newLabel, variant: 'secondary' }
+			return board ? [link, create] : [create, link]
+		},
+
+		/**
+		 * The widget's body actions, unwrapped.
+		 *
+		 * @return {Array<object>} The resolved buttons, or none.
+		 */
+		bodyActions() {
+			const provided = this.cnWidgetBodyActions
+			const list = provided && typeof provided === 'object' && 'value' in provided ? provided.value : provided
+			return Array.isArray(list) ? list : []
+		},
+
 		/**
 		 * Defensive view onto `this.contacts` — always an array.
 		 *
@@ -569,6 +645,53 @@ export default {
 		 *
 		 * @return {string} The window.
 		 */
+		/**
+		 * A person's details on one line for the board look: the word for
+		 * their kind (`kindLabels`), e-mail, phone, organisation and note,
+		 * separated by middots.
+		 *
+		 * @param {object} contact The contact link.
+		 * @return {string}
+		 * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-contact-row-can-lead-with-the-word-for-its-kind
+		 */
+		boardMetaOf(contact) {
+			const words = this.kindLabels || {}
+			const kind = words[contact?.partyKind] || words[contact?.kind] || ''
+			return [kind, contact?.email, contact?.phone, contact?.org, contact?.note].filter((part) => typeof part === 'string' && part !== '').join(' · ')
+		},
+
+		/**
+		 * The validity window in the board's short dates: "Vanaf 3 okt",
+		 * "Tot 31 okt" or "3 okt – 31 okt".
+		 *
+		 * @param {object} contact The contact link.
+		 * @return {string}
+		 */
+		boardPeriodOf(contact) {
+			const from = formatBoardDate(contact?.validFrom || '')
+			const until = formatBoardDate(contact?.validUntil || '')
+			if (from === '' && until === '') {
+				return ''
+			}
+			if (until === '') {
+				return t('nextcloud-vue', 'From {date}', { date: from })
+			}
+			if (from === '') {
+				return t('nextcloud-vue', 'Until {date}', { date: until })
+			}
+			return `${from} – ${until}`
+		},
+
+		/**
+		 * The label of a person's actions menu.
+		 *
+		 * @param {object} contact The contact link.
+		 * @return {string}
+		 */
+		moreActionsLabel(contact) {
+			return t('nextcloud-vue', 'More actions for {name}', { name: contact?.displayName || this.unknownLabel })
+		},
+
 		periodOf(contact) {
 			const from = contact?.validFrom || ''
 			const until = contact?.validUntil || ''

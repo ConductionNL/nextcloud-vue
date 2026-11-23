@@ -3,7 +3,8 @@
 //
 // stats-box-card-inset: a dashboard card of boxed stat tiles keeps board
 // DcRapportages' inset: tiles 22px from the card's side, no rule under the
-// header. A card of plain tiles keeps its own.
+// header. A card of plain tiles keeps its own inset and, like every board
+// dashboard card, draws no header rule either.
 //
 // WHY PLAYWRIGHT: the inset is the sum of the cell, wrapper and grid boxes in
 // the real dashboard grid.
@@ -32,7 +33,7 @@ function measure(page, title) {
 	}, title)
 }
 
-test('a card of boxed tiles sits 22px in with no header rule; plain tiles keep theirs', async ({ page }) => {
+test('a card of boxed tiles sits 22px in; plain tiles keep their inset; neither draws a header rule', async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 1000 })
 	await page.goto('/?l8=stats-box-card', { waitUntil: 'domcontentloaded', timeout: 90_000 })
 	await expect(page.locator('[data-testid="stats-box-card"] .cn-stats-block-widget--tiles-box')).toBeVisible({ timeout: 90_000 })
@@ -43,5 +44,5 @@ test('a card of boxed tiles sits 22px in with no header rule; plain tiles keep t
 
 	const plain = await measure(page, 'Je week tot nu toe')
 	expect(plain.inset).toBeGreaterThan(30)
-	expect(plain.divider).toBe('solid')
+	expect(plain.divider).toBe('none')
 })

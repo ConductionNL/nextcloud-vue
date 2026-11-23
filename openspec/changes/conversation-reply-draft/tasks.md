@@ -1,0 +1,3 @@
+- [x] CnConversationWidget content.draft (load, save, clear on sent)
+- [x] nl keys
+- [x] Spec tests/components/CnConversationReplyDraft.spec.js

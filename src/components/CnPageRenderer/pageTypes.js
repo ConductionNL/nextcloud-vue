@@ -61,6 +61,10 @@ export const defaultPageTypes = {
 	store: defineAsyncComponent(() => import('../CnStorePage/CnStorePage.vue').then((m) => m.default)),
 	search: defineAsyncComponent(() => import('../CnSearchPage/CnSearchPage.vue').then((m) => m.default)),
 	wiki: defineAsyncComponent(() => import('../CnWikiPage/CnWikiPage.vue').then((m) => m.default)),
+	// A record's documents redacted one by one, with a breadcrumb back to the
+	// record: `config` carries `recordId` (`@route.id`), the editor `config`,
+	// `breadcrumbs` and `recordSource`.
+	redaction: defineAsyncComponent(() => import('../CnRedactionEditor/CnRedactionEditor.vue').then((m) => m.default)),
 	// A flow list USED TO need its own page type. A flow lives in
 	// OpenRegister's native flow store, not a register/schema pair, so the
 	// object-backed index had nothing to bind to — and every app adopting flows
@@ -82,4 +86,19 @@ export const defaultPageTypes = {
 	// `flow`. Both still resolve; remove them once no manifest names them.
 	flows: defineAsyncComponent(() => import('../CnFlowsPage/CnFlowsPage.vue').then((m) => m.default)),
 	'flow-detail': defineAsyncComponent(() => import('../CnFlowsPage/CnFlowEditorPage.vue').then((m) => m.default)),
+}
+
+const flowSidebar = defineAsyncComponent(() => import('../CnFlowDetail/CnFlowSidebar.vue').then((m) => m.default))
+
+/**
+ * The app-sidebar component a page type mounts when its page names no
+ * `sidebarComponent`. A flow page's controls (name, description, trigger,
+ * steps) live in CnFlowSidebar, so every flow page gets it.
+ *
+ * @type {Record<string, object>}
+ * @spec openspec/changes/pl4-roadmap-flow/specs/pl4-roadmap-flow/spec.md#requirement-a-flow-page-mounts-the-flow-sidebar-by-default
+ */
+export const defaultPageSidebars = {
+	flow: flowSidebar,
+	'flow-detail': flowSidebar,
 }

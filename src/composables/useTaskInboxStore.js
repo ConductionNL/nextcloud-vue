@@ -41,7 +41,8 @@ export const FLOW_TASKS_URL = '/apps/openregister/api/flow-tasks'
 // creating app named it, so it is the one filter that lets a Tasks page say
 // "the reminders" without the engine learning what a reminder is. It widens
 // nothing: it narrows within the inbox the session already decides.
-const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'limit', 'offset']
+// `openFirst` asks open tasks before finished ones, a sort the engine applies.
+const ALLOWED_PARAMS = ['scope', 'state', 'isTerminal', 'priority', 'kind', 'overdue', 'dueAfter', 'dueBefore', 'objectUuid', 'sort', 'openFirst', 'limit', 'offset']
 
 /**
  * The flat body `POST /api/flow-tasks` takes for a task on a record.
@@ -118,9 +119,50 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		loading: false,
 		/** @type {string|null} The last load failure, for the console trail. */
 		error: null,
+		/** @type {Object<string, object>} Single tasks read for a detail page, keyed on their uuid. */
+		records: {},
+		/** @type {Object<string, number|null>} The HTTP status of a failed single read, keyed on the uuid. */
+		recordErrors: {},
 	}),
 
 	actions: {
+		/**
+		 * Read one task into `records`, for a `type: "detail"` page on the
+		 * `tasks` source. A refusal (403) or a missing task (404) leaves no
+		 * record and keeps the status in `recordErrors`, so the page can tell
+		 * "not found" from "still loading". The engine decides what the caller
+		 * may read; nothing here widens that.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @return {Promise<object|null>} The task, or null when it could not be read.
+		 * @spec openspec/changes/tasks-record-source/specs/tasks-record-source/spec.md#requirement-the-tasks-source-reads-one-task
+		 */
+		async fetchRecord(uuid) {
+			const key = String(uuid || '').trim()
+			if (key === '') {
+				return null
+			}
+			try {
+				const response = await axios.get(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}`))
+				const data = response.data
+				const task = data && typeof data === 'object' && data.results && !Array.isArray(data.results) ? data.results : data
+				const { [key]: dropped, ...errors } = this.recordErrors
+				this.recordErrors = errors
+				if (!task || typeof task !== 'object' || Array.isArray(task)) {
+					return null
+				}
+				this.records = { ...this.records, [key]: task }
+				return task
+			} catch (error) {
+				const { [key]: dropped, ...records } = this.records
+				this.records = records
+				this.recordErrors = { ...this.recordErrors, [key]: error?.response?.status ?? null }
+				// eslint-disable-next-line no-console
+				console.error(`[useTaskInboxStore] Loading task "${key}" failed`, error)
+				return null
+			}
+		},
+
 		/**
 		 * Read one inbox page WITHOUT touching the store's state, so a surface
 		 * that lists a different slice (the Tasks tab of one record) cannot
@@ -137,7 +179,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				if (value === undefined || value === null || value === '') {
 					continue
 				}
-				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
+				params[key] = (key === 'overdue' || key === 'isTerminal' || key === 'openFirst') ? String(value) : value
 			}
 			const response = await axios.get(generateUrl(FLOW_TASKS_URL), { params })
 			const results = response.data?.results || []
@@ -183,6 +225,115 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 		},
 
 		/**
+		 * Run one lifecycle verb on a task read for a detail page, and keep
+		 * that record in step with the engine's answer.
+		 *
+		 * `url` replaces the engine's own verb route for an app that puts a
+		 * step of its own in front of the engine (dossiq completes a task
+		 * through its own endpoint, which checks the case type's form first).
+		 * `{id}` in it is the task uuid. A refusal is returned with the
+		 * server's message as-is and leaves the record as it was.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} verb The verb.
+		 * @param {{url?: string}} [options] An app route to post the verb to instead.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-source-verbs/specs/record-source-verbs/spec.md#requirement-a-record-source-offers-header-verbs
+		 */
+		async runRecordVerb(uuid, verb, options = {}) {
+			const key = String(uuid || '').trim()
+			const name = String(verb || '').trim()
+			if (key === '' || name === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			const route = typeof options.url === 'string' && options.url !== ''
+				? options.url.replace('{id}', encodeURIComponent(key))
+				: `${FLOW_TASKS_URL}/${encodeURIComponent(key)}/${encodeURIComponent(name)}`
+			try {
+				const response = await axios.post(generateUrl(route), {})
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Tick or untick one checklist item on a task read for a detail page
+		 * (`PATCH /flow-tasks/{uuid}/checklist/{itemId}?checked=`). The engine
+		 * answers with the whole task, which replaces the record, so a refused
+		 * tick leaves the item as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {string} itemId The checklist item id.
+		 * @param {boolean} checked The new state.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/record-checklist-widget/specs/record-checklist-widget/spec.md#requirement-a-checklist-widget-ticks-items-through-the-record-source
+		 */
+		async checkRecordItem(uuid, itemId, checked) {
+			const key = String(uuid || '').trim()
+			const item = String(itemId || '').trim()
+			if (key === '' || item === '') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(
+					generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}/checklist/${encodeURIComponent(item)}`),
+					null,
+					{ params: { checked: checked === true ? 'true' : 'false' } },
+				)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Edit a task's own fields (`PATCH /flow-tasks/{uuid}` with the
+		 * changed `title`, `description`, `dueAt`, `priority`). The engine
+		 * decides who may; its answer replaces the record, so a refused edit
+		 * leaves the task as it was on screen.
+		 *
+		 * @param {string} uuid The task uuid.
+		 * @param {object} changes The new values by field.
+		 * @return {Promise<{ok: boolean, status: (number|null), record: (object|null), message: string}>} The outcome.
+		 * @spec openspec/changes/task-edit-action/specs/record-source-verbs/spec.md#requirement-a-record-source-verb-can-ask-for-values-first
+		 */
+		async editRecord(uuid, changes) {
+			const key = String(uuid || '').trim()
+			if (key === '' || !changes || typeof changes !== 'object') {
+				return { ok: false, status: null, record: null, message: '' }
+			}
+			try {
+				const response = await axios.patch(generateUrl(`${FLOW_TASKS_URL}/${encodeURIComponent(key)}`), changes)
+				return { ok: true, status: response.status || 200, record: await this.keepRecord(key, response.data), message: '' }
+			} catch (error) {
+				return { ok: false, status: error?.response?.status ?? null, record: null, message: serverMessage(error) }
+			}
+		},
+
+		/**
+		 * Store the task a write answered with as the detail record. An answer
+		 * that carries no task (an app route that returns only a status) is
+		 * followed by a fresh read, so the page never shows the state from
+		 * before the write.
+		 *
+		 * @param {string} key The task uuid.
+		 * @param {unknown} data The response body.
+		 * @return {Promise<object|null>} The task now held.
+		 */
+		async keepRecord(key, data) {
+			const body = data && typeof data === 'object' ? data : null
+			const task = body && (body.results || body.task) && typeof (body.results || body.task) === 'object' && !Array.isArray(body.results || body.task)
+				? (body.results || body.task)
+				: body
+			if (task && typeof task === 'object' && !Array.isArray(task) && String(task.uuid || '') === key) {
+				this.records = { ...this.records, [key]: task }
+				return task
+			}
+			return this.fetchRecord(key)
+		},
+
+		/**
 		 * Load one inbox page.
 		 *
 		 * Defaults are the inbox's resting shape: the viewer's ASSIGNED tasks,
@@ -208,7 +359,7 @@ export const useTaskInboxStore = defineStore('cnTaskInbox', {
 				}
 				// The endpoint reads `overdue` as a boolean-ish string; a quick
 				// filter authors it as `true` for legibility.
-				params[key] = (key === 'overdue' || key === 'isTerminal') ? String(value) : value
+				params[key] = (key === 'overdue' || key === 'isTerminal' || key === 'openFirst') ? String(value) : value
 			}
 
 			this.loading = true

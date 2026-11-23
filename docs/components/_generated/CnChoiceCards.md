@@ -8,26 +8,30 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name               | Type      | Required | Default                                                       | Description                                                                                                                              |
-| ------------------ | --------- | -------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `options`          | `array`   |          | `[]`                                                          | The options to offer. Each: `{ value, label, description?, stats?, tags?, icon? }` — `icon` is a PascalCase MDI name resolved by CnIcon. |
-| `modelValue`       | `union`   |          | `null`                                                        | The selected value: a scalar, or an array when `multiple`.                                                                               |
-| `multiple`         | `boolean` |          | `false`                                                       | Allow selecting several cards; the model becomes an array.                                                                               |
-| `label`            | `string`  |          | `''`                                                          | Group label, rendered as the fieldset's legend.                                                                                          |
-| `disabled`         | `boolean` |          | `false`                                                       | Disable every card (e.g. a dependent choice with no parent value yet).                                                                   |
-| `loading`          | `boolean` |          | `false`                                                       | Show a spinner instead of the grid while options are being fetched.                                                                      |
-| `emptyText`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Nothing to choose from here.')` | Message shown when there is nothing to choose from.                                                                                      |
-| `descriptionLines` | `number`  |          | `4`                                                           | Lines of description shown before clamping.                                                                                              |
+| Name               | Type      | Required | Default                                                       | Description                                                                                                                                                                                                                                                        |
+| ------------------ | --------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `options`          | `array`   |          | `[]`                                                          | The options to offer. Each: `{ value, label, description?, stats?, tags?, icon?, disabled?, disabledReason? }` — `icon` is a PascalCase MDI name resolved by CnIcon; a `disabled` option is greyed out and cannot be picked, with `disabledReason` shown under it. |
+| `modelValue`       | `union`   |          | `null`                                                        | The selected value: a scalar, or an array when `multiple`.                                                                                                                                                                                                         |
+| `multiple`         | `boolean` |          | `false`                                                       | Allow selecting several cards; the model becomes an array.                                                                                                                                                                                                         |
+| `label`            | `string`  |          | `''`                                                          | Group label, rendered as the fieldset's legend.                                                                                                                                                                                                                    |
+| `hideLabel`        | `boolean` |          | `false`                                                       | Keep the legend for assistive tech only, where the dialog's title already says what is chosen (DqZaakSamenwerken).                                                                                                                                                 |
+| `disabled`         | `boolean` |          | `false`                                                       | Disable every card (e.g. a dependent choice with no parent value yet).                                                                                                                                                                                             |
+| `readonly`         | `boolean` |          | `false`                                                       | Show the choice without letting it change: every option at full contrast, the selected one marked, nothing pickable (DqBesluit's recorded outcome). `disabled` greys the options out instead.                                                                      |
+| `loading`          | `boolean` |          | `false`                                                       | Show a spinner instead of the grid while options are being fetched.                                                                                                                                                                                                |
+| `emptyText`        | `string`  |          | `() =&gt; t('nextcloud-vue', 'Nothing to choose from here.')` | Message shown when there is nothing to choose from.                                                                                                                                                                                                                |
+| `layout`           | `string`  |          | `'cards'`                                                     | `cards`: a grid of cards with stats and tags. `rows`: one option per row, full width, the input on the left and the title over a muted description; with `multiple` and one option it is a checkbox card.                                                          |
+| `columns`          | `number`  |          | `0`                                                           | Columns of the card grid; 0 lets the grid fit as many as the width allows. In `rows`, more than 1 sets the rows side by side (DqZaakSamenwerken: Share \| Hand over); 0 or 1 stacks them.                                                                          |
+| `descriptionLines` | `number`  |          | `4`                                                           | Lines of description shown before clamping.                                                                                                                                                                                                                        |
 
 ### Events
 
-| Name                                                                            | Payload | Description |
-| ------------------------------------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                                             | —       |             |
-| `update:modelValue The selected value, or the array of values when `multiple`.` | —       |             |
+| Name                | Payload | Description                                                 |
+| ------------------- | ------- | ----------------------------------------------------------- |
+| `update:modelValue` | —       | The selected value, or the array of values when `multiple`. |
 
 ### Slots
 
 | Name             | Bindings             | Description                                              |
 | ---------------- | -------------------- | -------------------------------------------------------- |
+| `option-details` | `option`             | option-details The chosen option's own fields, drawn     |
 | `option-actions` | `option`, `selected` | option-actions Content below one card, outside its label |

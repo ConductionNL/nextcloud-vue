@@ -33,7 +33,7 @@ messages: [
   @sent="reload" />
 ```
 
-The reply is posted as `{ message, ...payload }`. The box clears when the request succeeds. When it fails, the text stays and an error is announced, so nothing typed is lost.
+The reply is posted as `{ message, ...payload }`; `message-key` names another field for the text (`body`). The box clears when the request succeeds. When it fails, the text stays and an error is announced, so nothing typed is lost.
 
 Press Ctrl+Enter, or Cmd+Enter on a Mac, to send from the keyboard.
 
@@ -65,8 +65,12 @@ The `conversation` widget type reads the messages from a field on the record and
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side? }`. |
+| `messages` | Array | `[]` | The messages, oldest first: `{ id?, author?, time?, text, side?, channel?, status?, actions?, note? }`. `channel` is shown after the author, then `status` ("Failed"); `note` is a muted line under the text, and `actions` (`{ id, label, disabled? }`) are buttons under it that emit `message-action`. Each message also says "Sent message" or "Received message" to a screen reader. |
 | `title` | String | `''` | Heading of the thread. |
+| `subtitle` | String | `''` | A line under the title. |
+| `showDirection` | Boolean | `false` | Say each message's direction in words before its time ("Incoming · 3 Oct"), not only to a screen reader. |
+| `replyHint` | String | `''` | A line beside the reply label saying where the answer goes. |
+| `replyOption` | Object \| null | `null` | A switch under the reply box, `{ label, key, value? }`; `send` carries `{ [key]: state }` after the text, and an endpoint post carries it in its body. |
 | `titleTag` | String | `'h3'` | Element the heading renders as. |
 | `allowReply` | Boolean | `true` | Whether the reply box renders. |
 | `replyLabel` | String | `'Reply'` | Label of the reply box. |
@@ -75,6 +79,10 @@ The `conversation` widget type reads the messages from a field on the record and
 | `usLabel` | String | `'You'` | Author shown on an `us` message that names none. |
 | `endpoint` | String | `''` | URL the reply is posted to. Empty means you handle `send` yourself. |
 | `payload` | Object | `{}` | Extra fields sent along with `message`. |
+| `messageKey` | String | `'message'` | The field the reply text is posted under when `endpoint` is set, for an endpoint that takes it by another name (`body`). |
+| `loading` | Boolean | `false` | While true and there are no messages yet, the thread says "Loading messages…" in a status region. |
+| `channelFilter` | Boolean | `false` | Draw channel chips above the messages: All, then one per channel with its count. Choosing one shows only that channel's messages. |
+| `channels` | Array | `[]` | Channel labels that always get a chip, in this order, also when no message uses them yet. |
 | `emptyText` | String | `'No messages yet.'` | Shown when there are no messages. |
 
 ### Events
@@ -84,12 +92,15 @@ The `conversation` widget type reads the messages from a field on the record and
 | `send` | the text | A reply is submitted. |
 | `sent` | the response body | The endpoint accepted the reply. |
 | `error` | the error | The endpoint refused the reply. |
+| `message-action` | `{ action, message }` | A message's action button was pressed: the action id and the message key. |
 
 ### Slots
 
 | Slot | Scope | Description |
 |------|-------|-------------|
+| `header-actions` | none | Buttons beside the title, for example "Log contact". |
 | `reply-actions` | `{ draft }` | Extra buttons before Send, for example "Save draft". |
+| `reply-tools` | `{ setDraft }` | Tools above the reply box, for example a template picker that fills it with `setDraft(text)`. |
 
 ## Accessibility
 

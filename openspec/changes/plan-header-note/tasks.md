@@ -1,0 +1,2 @@
+- [x] 1.1 headerNote reported through the header event (tests/components/CnPlanWidgetHeaderNote.spec.js)
+- [x] 1.2 docs/components/cn-plan-widget.md

@@ -1,0 +1,435 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Conduction B.V.
+  - SPDX-License-Identifier: EUPL-1.2
+-->
+
+<template>
+	<div class="cn-linked-widget" data-testid="cn-linked-widget">
+		<ul v-if="linkedRows.length > 0" class="cn-linked-widget__rows">
+			<li
+				v-for="row in linkedRows"
+				:key="row.key"
+				class="cn-linked-widget__row"
+				data-testid="cn-linked-row">
+				<a v-if="row.href" :href="row.href" class="cn-linked-widget__link">
+					<CnIcon
+						v-if="row.icon"
+						:name="row.icon"
+						:size="18"
+						aria-hidden="true" />
+					{{ row.label }}
+				</a>
+				<button
+					v-else-if="row.run"
+					type="button"
+					class="cn-linked-widget__link"
+					@click="row.run()">
+					<CnIcon
+						v-if="row.icon"
+						:name="row.icon"
+						:size="18"
+						aria-hidden="true" />
+					{{ row.label }}
+				</button>
+				<span v-else class="cn-linked-widget__link">
+					<CnIcon
+						v-if="row.icon"
+						:name="row.icon"
+						:size="18"
+						aria-hidden="true" />
+					{{ row.label }}
+				</span>
+			</li>
+		</ul>
+		<!-- A div, not a p: a theme's paragraph rule would draw the muted
+		     13px line at body size. -->
+		<div v-if="emptyLine" class="cn-linked-widget__empty" data-testid="cn-linked-empty">
+			{{ emptyLine }}
+		</div>
+		<span v-if="emptyActions.length > 0" class="cn-linked-widget__actions">
+			<button
+				v-for="action in emptyActions"
+				:key="action.key"
+				type="button"
+				class="cn-linked-widget__action"
+				data-testid="cn-linked-action"
+				@click="action.run()">
+				{{ action.label }}
+			</button>
+		</span>
+		<!-- The leaves run here, unseen: each reads its own data and reports
+		     a summary through `onSummary`; this card draws the rows. -->
+		<div hidden class="cn-linked-widget__leaves">
+			<CnLeafMountHost
+				v-for="provider in providers"
+				:key="provider.id"
+				:provider="provider"
+				:mountProps="mountPropsById[provider.id]" />
+		</div>
+	</div>
+</template>
+
+<script>
+import { getLanguage, translate as t } from '@nextcloud/l10n'
+import CnIcon from '../CnIcon/CnIcon.vue'
+import CnLeafMountHost from '../CnLeafMountHost/CnLeafMountHost.vue'
+import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
+import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
+import { prefixUrl } from '../../utils/headers.js'
+
+/**
+ * Join nouns as a sentence list in the user's language ("a, b en c").
+ *
+ * @param {string[]} items The nouns.
+ * @return {string} The list.
+ */
+function joinList(items) {
+	try {
+		return new Intl.ListFormat((getLanguage() || 'en').replace('_', '-'), { style: 'long', type: 'conjunction' }).format(items)
+	} catch {
+		return items.join(', ')
+	}
+}
+
+/**
+ * CnLinkedWidget — the `linked` widget: one card that lists what other apps
+ * hold for this record (DqZaak "Gekoppeld").
+ *
+ * `content.leaves` names the mount-mode integration leaves, in order. Each is
+ * mounted out of sight with an `onSummary(summary)` prop and reports
+ * `{ count, noun, rows?, actions? }`: a leaf with something linked draws its
+ * rows (`{ label, href?, run?, icon? }`); the leaves with nothing linked share
+ * one line ("Leges, contract en projecten: niets gekoppeld") followed by their
+ * actions. A leaf whose app is absent is not registered and is left out.
+ *
+ * A leaf may also be a record leaf, written in the manifest instead of
+ * registered by an app: `{ id, register, schema, filter?, requiredApp?, noun,
+ * label, href?, icon? }`. The card reads that register's records matching
+ * `filter` (`@objectId` is this record's id) and lists one row per record,
+ * `label` and `href` filled from it (DqZaak "Vraag in pipelinq": the
+ * requests whose case reference is this case). It is left out when
+ * `requiredApp` is not installed. Texts go through the host translate.
+ *
+ * An integration leaf may be written `{ id, noun }` to name it in the host's
+ * own words: the card uses that noun, through the host translate, instead of
+ * the one the leaf reports (DqZaak "Leges en betalingen" for the finance leaf).
+ *
+ * @spec openspec/changes/linked-integrations-card/specs/linked-integrations-card/spec.md#requirement-one-card-lists-the-linked-integrations-of-a-record
+ */
+export default {
+	name: 'CnLinkedWidget',
+
+	components: { CnIcon, CnLeafMountHost },
+
+	inject: {
+		/** The host app's translate (CnAppRoot `cnTranslate`). */
+		cnTranslate: { default: () => (key) => key },
+	},
+
+	props: {
+		/** `{ leaves: Array<string|object> }`: integration ids or record leaves, in the order to list them. */
+		content: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/** The record's id. */
+		objectId: {
+			type: [String, Number],
+			default: '',
+		},
+
+		/** The record's register. */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/** The record's schema. */
+		schema: {
+			type: String,
+			default: '',
+		},
+	},
+
+	setup() {
+		const { integrations, getById } = useIntegrationRegistry()
+		return { integrations, getById }
+	},
+
+	data() {
+		return {
+			/** The latest summary each leaf reported, by integration id. */
+			summaries: {},
+		}
+	},
+
+	computed: {
+		/** @return {Array<string|object>} The configured leaves. */
+		leaves() {
+			const leaves = this.content && this.content.leaves
+			return Array.isArray(leaves) ? leaves : []
+		},
+
+		/** @return {string[]} The configured integration ids, written bare or as `{ id, noun }`. */
+		leafIds() {
+			return this.leaves
+				.map((leaf) => (typeof leaf === 'string' ? leaf : (this.isNamedLeaf(leaf) ? leaf.id : '')))
+				.filter((id) => id !== '')
+		},
+
+		/** @return {{[id: string]: string}} The host's translated noun per integration leaf written `{ id, noun }`. */
+		hostNouns() {
+			const out = {}
+			for (const leaf of this.leaves) {
+				if (this.isNamedLeaf(leaf) && typeof leaf.noun === 'string' && leaf.noun !== '') {
+					out[leaf.id] = this.cnTranslate(leaf.noun)
+				}
+			}
+			return out
+		},
+
+		/** @return {object[]} The record leaves whose app is here. */
+		recordLeaves() {
+			return this.leaves.filter((leaf) => leaf && typeof leaf === 'object' && typeof leaf.id === 'string' && leaf.id !== ''
+				&& leaf.register && leaf.schema && (!leaf.requiredApp || isAppInstalled(leaf.requiredApp)))
+		},
+
+		/** @return {string[]} Every listed leaf's id, in the configured order. */
+		orderedIds() {
+			const providers = new Set(this.providers.map((p) => p.id))
+			const records = new Set(this.recordLeaves.map((leaf) => leaf.id))
+			return this.leaves
+				.map((leaf) => (typeof leaf === 'string' ? leaf : (leaf && leaf.id)))
+				.filter((id) => providers.has(id) || records.has(id))
+		},
+
+		/** @return {object[]} The registered mount-mode providers, in the configured order. */
+		providers() {
+			// Read so a leaf that registers after this card renders still joins it.
+			void this.integrations
+			return this.leafIds
+				.map((id) => this.getById(id))
+				.filter((p) => p && p.renderMode === 'mount' && typeof p.mount === 'function' && typeof p.unmount === 'function')
+		},
+
+		/** @return {object} The mount props per leaf. */
+		mountPropsById() {
+			const context = { register: this.register, schema: this.schema, objectId: String(this.objectId || '') }
+			const out = {}
+			for (const provider of this.providers) {
+				out[provider.id] = {
+					surface: 'detail-page',
+					...context,
+					integrationContext: { ...context },
+					onSummary: (summary) => this.onSummary(provider.id, summary),
+				}
+			}
+			return out
+		},
+
+		/** @return {Array<{id: string, summary: object}>} The reported summaries, in order. */
+		reported() {
+			return this.orderedIds
+				.filter((id) => this.summaries[id])
+				.map((id) => ({ id, summary: this.summaries[id] }))
+		},
+
+		/** @return {object[]} The rows of the leaves that have something linked. */
+		linkedRows() {
+			const rows = []
+			for (const { id, summary } of this.reported) {
+				if (summary.count <= 0) {
+					continue
+				}
+				const own = summary.rows.length > 0
+					? summary.rows
+					: [{ label: `${summary.noun} (${summary.count})` }]
+				own.forEach((row, index) => rows.push({ ...row, key: `${id}-${index}` }))
+			}
+			return rows
+		},
+
+		/** @return {object[]} The leaves with nothing linked. */
+		emptyLeaves() {
+			return this.reported.filter(({ summary }) => summary.count <= 0)
+		},
+
+		/** @return {string} "Leges, contract en projecten: niets gekoppeld", or ''. */
+		emptyLine() {
+			const nouns = this.emptyLeaves.map(({ summary }) => summary.noun).filter((noun) => noun !== '')
+			if (nouns.length === 0) {
+				return ''
+			}
+			const list = joinList(nouns)
+			return t('nextcloud-vue', '{things}: nothing linked', { things: list.charAt(0).toUpperCase() + list.slice(1) })
+		},
+
+		/** @return {object[]} The actions of the leaves with nothing linked. */
+		emptyActions() {
+			const actions = []
+			for (const { id, summary } of this.emptyLeaves) {
+				summary.actions.forEach((action, index) => actions.push({ ...action, key: `${id}-${index}` }))
+			}
+			return actions
+		},
+	},
+
+	watch: {
+		recordLeaves: {
+			handler() {
+				this.recordLeaves.forEach((leaf) => this.readRecordLeaf(leaf))
+			},
+
+			immediate: true,
+		},
+
+		objectId() {
+			this.recordLeaves.forEach((leaf) => this.readRecordLeaf(leaf))
+		},
+	},
+
+	methods: {
+		/**
+		 * Whether a configured leaf is an integration leaf written as an object
+		 * (an id, no register or schema of its own).
+		 *
+		 * @param {string|object} leaf The configured leaf.
+		 * @return {boolean}
+		 */
+		isNamedLeaf(leaf) {
+			return Boolean(leaf) && typeof leaf === 'object' && typeof leaf.id === 'string' && leaf.id !== '' && !leaf.register && !leaf.schema
+		},
+
+		/**
+		 * Read a record leaf's records and report them as its summary. A
+		 * failed read reports nothing, so the leaf is not listed as empty.
+		 *
+		 * @param {object} leaf The record leaf.
+		 * @return {Promise<void>}
+		 */
+		async readRecordLeaf(leaf) {
+			const objectId = String(this.objectId || '')
+			if (objectId === '') {
+				return
+			}
+			const filter = {}
+			for (const [key, value] of Object.entries(leaf.filter || {})) {
+				filter[key] = value === '@objectId' ? objectId : value
+			}
+			let rows
+			try {
+				rows = await fetchReferenceObjects({ register: leaf.register, schema: leaf.schema, filter, limit: leaf.limit || 20 })
+			} catch {
+				return
+			}
+			const label = leaf.label ? this.cnTranslate(leaf.label) : ''
+			this.onSummary(leaf.id, {
+				count: rows.length,
+				noun: leaf.noun ? this.cnTranslate(leaf.noun) : '',
+				rows: rows.map((row) => {
+					const href = leaf.href ? fillTemplate(leaf.href, row) : ''
+					return { label: fillTemplate(label, row), href: href ? prefixUrl(href) : undefined, icon: leaf.icon || undefined }
+				}),
+			})
+		},
+
+		/**
+		 * Keep a leaf's summary, normalised.
+		 *
+		 * @param {string} id The integration id.
+		 * @param {{count?: number, noun?: string, rows?: Array, actions?: Array}} summary What the leaf reported.
+		 */
+		onSummary(id, summary) {
+			const s = summary && typeof summary === 'object' ? summary : {}
+			const noun = this.hostNouns[id] ?? (typeof s.noun === 'string' ? s.noun : '')
+			const usableRow = (row) => row && typeof row.label === 'string' && row.label !== ''
+			const usableAction = (action) => action && typeof action.run === 'function' && typeof action.label === 'string' && action.label !== ''
+			this.summaries = {
+				...this.summaries,
+				[id]: {
+					count: Number.isFinite(s.count) ? s.count : 0,
+					noun,
+					rows: Array.isArray(s.rows) ? s.rows.filter(usableRow) : [],
+					actions: Array.isArray(s.actions) ? s.actions.filter(usableAction) : [],
+				},
+			}
+		},
+	},
+}
+</script>
+
+<style scoped>
+.cn-linked-widget {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.cn-linked-widget__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-linked-widget__link {
+	align-items: center;
+	background: none;
+	border: 0;
+	color: var(--color-main-text);
+	display: flex;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	gap: 10px;
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	text-align: start;
+}
+
+a.cn-linked-widget__link,
+button.cn-linked-widget__link {
+	color: var(--color-primary-element);
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+/* The class twice: Nextcloud's `button:not(.button-vue, ...)` rule (0,2,1)
+   gives every button a 3px margin that a single scoped class cannot take back. */
+button.cn-linked-widget__link.cn-linked-widget__link,
+.cn-linked-widget__action.cn-linked-widget__action {
+	margin: 0;
+}
+
+.cn-linked-widget__empty {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	margin: 0;
+}
+
+.cn-linked-widget__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.cn-linked-widget__action {
+	background: none;
+	border: 0;
+	color: var(--color-primary-element);
+	cursor: pointer;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0;
+	min-height: 0;
+	padding: 0;
+	text-decoration: underline;
+}
+</style>

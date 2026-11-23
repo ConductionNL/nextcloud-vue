@@ -129,6 +129,7 @@ import ImageIcon from 'vue-material-design-icons/Image.vue'
 import ImageMultiple from 'vue-material-design-icons/ImageMultiple.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
+import { stripMarker } from '../../utils/marker.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 const COMPACT_LIMIT = 4
@@ -261,7 +262,7 @@ export default {
 
 		albumName(album) {
 			const raw = (album && (album.title || album.name || album.data?.name)) || ''
-			return String(raw).replace(/\s*\[or:[^\]]+\]\s*/g, ' ').trim() || t('nextcloud-vue', 'Untitled album')
+			return stripMarker(raw) || t('nextcloud-vue', 'Untitled album')
 		},
 
 		albumUrl(album) {

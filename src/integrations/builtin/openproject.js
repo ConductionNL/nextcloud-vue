@@ -32,8 +32,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnOpenprojectCard from './openproject/CnOpenprojectCard.vue'
-import CnOpenprojectTab from './openproject/CnOpenprojectTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnOpenprojectCard = lazyComponent(() => import('./openproject/CnOpenprojectCard.vue'), 'CnOpenprojectCard')
+const CnOpenprojectTab = lazyComponent(() => import('./openproject/CnOpenprojectTab.vue'), 'CnOpenprojectTab')
 
 /**
  * `openproject` integration descriptor.

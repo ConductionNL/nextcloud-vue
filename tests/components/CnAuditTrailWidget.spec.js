@@ -14,6 +14,7 @@
  */
 
 import { shallowMount } from '@vue/test-utils'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 const CnAuditTrailWidget = require('../../src/components/CnAuditTrailWidget/CnAuditTrailWidget.vue').default
 
@@ -86,17 +87,17 @@ describe('CnAuditTrailWidget — context resolution', () => {
 })
 
 describe('CnAuditTrailWidget — registration', () => {
-	it('is the v2 BUILT_IN_WIDGETS audit-trail key', () => {
+	it('is the v2 BUILT_IN_WIDGETS audit-trail key', async () => {
 		const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
-		expect(BUILT_IN_WIDGETS['audit-trail']).toBe(CnAuditTrailWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['audit-trail'])).toBe(CnAuditTrailWidget)
 	})
 
-	it('is registered in dashboardWidgetRegistry as a detail-page surface (like data)', () => {
+	it('is registered in dashboardWidgetRegistry as a detail-page surface (like data)', async () => {
 		require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 		const { getWidgetTypeEntry, listWidgetTypes } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
 		const entry = getWidgetTypeEntry('audit-trail')
 		expect(entry).not.toBeNull()
-		expect(entry.renderer).toBe(CnAuditTrailWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnAuditTrailWidget)
 		expect(entry.form).toBeDefined()
 		expect(entry.surfaces).toEqual(['detail-page'])
 		expect(entry.ownsTitle).toBe(true)

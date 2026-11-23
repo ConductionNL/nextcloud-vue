@@ -1,0 +1,3 @@
+- [x] CnDataTable emptyLabel
+- [x] CnObjectListWidget passes it
+- [x] jest

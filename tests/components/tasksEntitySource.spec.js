@@ -368,13 +368,13 @@ describe('named-source quick filters', () => {
 		expect(lastParams().priority).toBe('urgent')
 	})
 
-	it('keeps the flows source on its old single-load path', async () => {
+	it('seeds the flows source on its own All tab', async () => {
 		const activeIndex = ref(null)
 		mountHost({ entitySource: 'flows', objects: [], quickFilters: null, sourceConfig: { app: 'dossiq' } }, activeIndex)
 		await nextTick()
 
-		// No tabs: the index is never seeded and no reload watcher exists.
-		expect(activeIndex.value).toBe(null)
+		// The flows source declares All, Active, Paused and With errors; All is the default.
+		expect(activeIndex.value).toBe(0)
 	})
 })
 

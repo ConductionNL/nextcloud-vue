@@ -92,6 +92,43 @@ export function columnFieldsOf(board) {
 			moveTargetsHandler: typeof entry.moveTargetsHandler === 'string' ? entry.moveTargetsHandler : '',
 			valueLabels: entry.valueLabels && typeof entry.valueLabels === 'object' ? entry.valueLabels : null,
 			emptyLabel: typeof entry.emptyLabel === 'string' ? entry.emptyLabel : '',
+			states: Array.isArray(entry.states) ? entry.states : null,
+		}))
+}
+
+/**
+ * The columns a page declares for a column field (`states`), normalised to
+ * the `{ key, label, hidden, closed, color? }` entries `stagesOf()` reads.
+ * The active column field's own `states` win; on the board's `statusField`
+ * `board.states` applies. A referenced or values column has no declared
+ * states: its columns are rows or values.
+ *
+ * @param {object} board The board configuration (manifest `config.board`).
+ * @param {object|null} active The active column field from `columnFieldsOf`, or null.
+ * @param {string} field The field the columns come from.
+ * @return {Array<{key: string, label: string, hidden: boolean, closed: boolean, color?: string}>|null} The states, or null when none are declared.
+ * @spec openspec/changes/board-declared-states/specs/board-view/spec.md#requirement-a-board-can-declare-the-states-its-columns-come-from
+ */
+export function declaredStatesOf(board, active, field) {
+	if (active && active.kind !== 'schema') {
+		return null
+	}
+	let declared = active && Array.isArray(active.states) ? active.states : null
+	if (declared === null && field !== '' && field === board?.statusField && Array.isArray(board?.states)) {
+		declared = board.states
+	}
+	if (declared === null || declared.length === 0) {
+		return null
+	}
+	return declared
+		.map((entry) => (typeof entry === 'string' ? { key: entry } : entry))
+		.filter((entry) => entry && typeof entry === 'object' && String(entry.key ?? '') !== '')
+		.map((entry) => ({
+			key: String(entry.key),
+			label: typeof entry.label === 'string' && entry.label !== '' ? entry.label : String(entry.key),
+			hidden: entry.hidden === true,
+			closed: entry.closed === true,
+			...(typeof entry.color === 'string' && entry.color !== '' ? { color: entry.color } : {}),
 		}))
 }
 
@@ -132,8 +169,11 @@ export function referenceTargetOf(source, { register = '', property = null } = {
  *   has another. Compared as written: "Grey" is not "grey", and a hex value is not a name.
  * @param {object} [options.colorMap] A stored colour to the CSS colour a column is drawn in,
  *   applied after the merge. A colour it does not map is kept as stored.
- * @return {{states: Array<{key: string, label: string, color: string, capacity?: (number|null)}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
+ * @param {string} [options.closedField] The row field that marks a stage closed (a won or
+ *   lost deal): its column starts collapsed. A merged column is closed when all its rows are.
+ * @return {{states: Array<{key: string, label: string, color: string, capacity?: (number|null), closed?: boolean}>, keyByValue: Map<string, string>, refsByKey: Map<string, Array<object>>}} The stages.
  * @spec openspec/changes/screens-board-reference-columns/specs/board-view/spec.md#requirement-columns-can-be-the-rows-a-field-references
+ * @spec openspec/changes/pl4-board-list-stages/specs/pl4-board-list-stages/spec.md#requirement-a-closed-stage-starts-collapsed
  */
 export function buildReferenceStages({
 	refs = [],
@@ -146,6 +186,7 @@ export function buildReferenceStages({
 	capacityField = '',
 	neutralColor = '',
 	colorMap = null,
+	closedField = '',
 } = {}) {
 	const list = (Array.isArray(refs) ? refs : []).filter((ref) => ref && typeof ref === 'object' && refIdOf(ref) !== '')
 	const narrowed = narrowBy && narrowBy.field && narrowValue !== ''
@@ -184,12 +225,49 @@ export function buildReferenceStages({
 		if (capacityField && rows.length > 1) {
 			state.capacity = null
 		}
+		if (rows.length > 1) {
+			state.merged = rows.length
+		}
 		if (neutralColor && rows.length > 1) {
 			state.color = mergedColumnColor(rows.map((ref) => colorOfRef(ref, colorField)), neutralColor, state.color)
 		}
 		state.color = mappedColor(state.color, colorMap)
+		if (closedField) {
+			state.closed = rows.every((ref) => Boolean(readPath(ref, closedField)))
+		}
 	}
 	return { states, keyByValue, refsByKey }
+}
+
+/**
+ * The items of a list on each parent row (a pipeline's `stages`) as rows a
+ * reference column can be built from: each keyed by its `keyField` value, the
+ * value a card stores, and linked to its parent under `_parent`, so
+ * `narrowBy: { field: "_parent", rowField }` narrows the columns to the parent
+ * the page filters on. An item without a key is dropped.
+ *
+ * @param {Array<object>} rows The parent rows.
+ * @param {object} options The call.
+ * @param {string} options.itemsPath Where each parent holds its list.
+ * @param {string} options.keyField The item field a card stores.
+ * @return {Array<object>} The items as rows.
+ * @spec openspec/changes/pl4-board-list-stages/specs/pl4-board-list-stages/spec.md#requirement-columns-can-be-a-list-on-a-parent-row
+ */
+export function flattenItemRefs(rows, { itemsPath, keyField } = {}) {
+	const out = []
+	for (const parent of Array.isArray(rows) ? rows : []) {
+		const items = readPath(parent, itemsPath)
+		if (!Array.isArray(items)) {
+			continue
+		}
+		for (const item of items) {
+			const key = item && typeof item === 'object' ? textOf(readPath(item, keyField)) : ''
+			if (key !== '') {
+				out.push({ ...item, id: key, _parent: refIdOf(parent) })
+			}
+		}
+	}
+	return out
 }
 
 /**

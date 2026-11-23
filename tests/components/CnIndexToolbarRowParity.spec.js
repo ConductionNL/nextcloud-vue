@@ -41,7 +41,7 @@ function rulesFor(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').some((s) => s.trim().includes(needle))) {
+		if (m[1].split(/,(?![^(]*\))/).some((s) => s.trim().includes(needle))) {
 			out.push(m[2])
 		}
 	}
@@ -84,7 +84,8 @@ describe('Save view is a ghost button in the user language', () => {
 		expect(body).toMatch(/border:\s*0/)
 		expect(body).toMatch(/height:\s*34px/)
 		expect(body).toMatch(/border-radius:\s*17px/)
-		expect(body).toMatch(/var\(--color-primary-element-light\)/)
+		expect(body).toMatch(/var\(--cn-save-view-ground\)/)
+		expect(rulesFor('.cn-look-board .cn-saved-views__save')).toMatch(/--cn-save-view-ground: var\(--color-primary-element-light\)/)
 	})
 
 	it('reads Dutch from the library catalogue, with the rest of the toolbar', () => {

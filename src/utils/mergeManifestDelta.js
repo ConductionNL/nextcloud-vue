@@ -45,6 +45,10 @@ export const KEYED_ARRAYS = Object.freeze({
 	// (or a backend `/api/manifest` override) can add/patch/remove individual
 	// children of a group without replacing the whole `children[]` array.
 	children: 'id',
+	// An index page's default views merge by `slug`, so the per-user delta
+	// (`/api/manifest`) can add a user's own defaults (dossiq's case type
+	// pins) without wiping the defaults the page ships.
+	defaultSavedViews: 'slug',
 })
 
 /** Reserved delta markers — never part of a base manifest. */

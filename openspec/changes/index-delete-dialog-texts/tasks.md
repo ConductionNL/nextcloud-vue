@@ -1,0 +1,1 @@
+- [x] 1 `description` on CnDeleteDialog; `deleteDialog` on CnIndexPage and in the manifest schema (tests/components/CnIndexPageDeleteDialogTexts.spec.js)

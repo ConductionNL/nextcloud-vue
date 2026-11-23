@@ -12,7 +12,19 @@ const { mount } = require('@vue/test-utils')
 const CnCellRenderer = require('../../src/components/CnCellRenderer/CnCellRenderer.vue').default
 
 const DAY = 24 * 3600000
-const ago = (days) => new Date(Date.now() - days * DAY - 3600000).toISOString()
+const NOW = Date.UTC(2026, 5, 15, 12)
+const ago = (days) => new Date(NOW - days * DAY - 3600000).toISOString()
+
+// The age counts local calendar days, so the clock stands still at midday:
+// near midnight "6 days and an hour ago" would fall on another day.
+beforeAll(() => {
+	jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'nextTick'] })
+	jest.setSystemTime(NOW)
+})
+
+afterAll(() => {
+	jest.useRealTimers()
+})
 
 /**
  * Mount a progress cell.

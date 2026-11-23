@@ -8,7 +8,7 @@
  */
 
 import { fetchAggregateValue, fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
-import { fetchFilterCounts, hasListValue, hasNullTest, hasOperatorKey, needsListEndpoint, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
+import { fetchFilterCounts, fetchListTotals, hasListValue, hasNullTest, hasOperatorKey, needsListEndpoint, parsePhpQuery, singleEqualityOf } from '../../src/utils/fetchFilterCounts.js'
 
 jest.mock('../../src/utils/fetchAggregate.js', () => ({
 	fetchAggregateValue: jest.fn(),
@@ -19,6 +19,43 @@ beforeEach(() => {
 	fetchAggregateValue.mockReset()
 	fetchGroupedCounts.mockReset()
 })
+
+/**
+ * A fake OpenRegister on `global.fetch`: a list request answers its total, a
+ * batch count request one total per filter. Every count it answers is recorded
+ * as the list request's query parameters, whichever way it came in.
+ *
+ * @param {function(URLSearchParams): number} totalFor The total for a query.
+ * @return {URLSearchParams[]} The counted queries, in order.
+ */
+function listServer(totalFor) {
+	const queries = []
+	const toParams = (value, prefix, out) => {
+		for (const [key, item] of Object.entries(value)) {
+			const name = prefix === '' ? key : (Array.isArray(value) ? `${prefix}[]` : `${prefix}[${key}]`)
+			if (item !== null && typeof item === 'object') {
+				toParams(item, name, out)
+			} else {
+				out.append(name, item)
+			}
+		}
+		return out
+	}
+	global.fetch = jest.fn(async (url, init) => {
+		if (init && init.method === 'POST') {
+			const results = JSON.parse(init.body).counts.map(({ filter }) => {
+				const params = toParams(filter, '', new URLSearchParams())
+				queries.push(params)
+				return { count: totalFor(params) }
+			})
+			return { ok: true, json: async () => ({ results }) }
+		}
+		const params = new URL(url, 'http://localhost').searchParams
+		queries.push(params)
+		return { ok: true, json: async () => ({ total: totalFor(params), results: [] }) }
+	})
+	return queries
+}
 
 describe('singleEqualityOf', () => {
 	it('names the field of a one-field equality', () => {
@@ -181,7 +218,7 @@ describe('fetchFilterCounts', () => {
 		})
 
 		it('counts every entry through the list endpoint when the base filter holds a list', async () => {
-			global.fetch = jest.fn().mockResolvedValue(okResponse(3))
+			const queries = listServer(() => 3)
 
 			const counts = await fetchFilterCounts({
 				register: 'dossiq',
@@ -192,9 +229,10 @@ describe('fetchFilterCounts', () => {
 
 			expect(fetchGroupedCounts).not.toHaveBeenCalled()
 			expect(fetchAggregateValue).not.toHaveBeenCalled()
-			expect(global.fetch).toHaveBeenCalledTimes(2)
-			const url = new URL(global.fetch.mock.calls[0][0], 'http://localhost')
-			expect(url.searchParams.getAll('caseType[]')).toEqual(['woo', 'objection'])
+			// Both lists in one batch count request.
+			expect(global.fetch).toHaveBeenCalledTimes(1)
+			expect(queries).toHaveLength(2)
+			expect(queries[0].getAll('caseType[]')).toEqual(['woo', 'objection'])
 			expect(counts).toEqual({ open: 3, closed: 3 })
 		})
 
@@ -230,14 +268,12 @@ describe('hasNullTest', () => {
 })
 
 describe('a lens whose filter tests a field for no value', () => {
-	const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
-
 	afterEach(() => {
 		delete global.fetch
 	})
 
 	it('is counted through the list endpoint, not the aggregation endpoint that has no null operator', async () => {
-		global.fetch = jest.fn().mockResolvedValue(okResponse(48))
+		const queries = listServer(() => 48)
 		const counts = await fetchFilterCounts({
 			register: 'dossiq',
 			schema: 'caseType',
@@ -248,15 +284,14 @@ describe('a lens whose filter tests a field for no value', () => {
 		})
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
 		expect(fetchAggregateValue).not.toHaveBeenCalled()
-		expect(global.fetch).toHaveBeenCalledTimes(2)
-		const urls = global.fetch.mock.calls.map(([url]) => new URL(url, 'http://localhost'))
-		expect(urls.map((u) => u.searchParams.get('supersededBy[isnull]')).filter(Boolean)).toEqual(['true'])
-		expect(urls.map((u) => u.searchParams.get('assignee[isnull]')).filter(Boolean)).toEqual(['true'])
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(queries.map((q) => q.get('supersededBy[isnull]')).filter(Boolean)).toEqual(['true'])
+		expect(queries.map((q) => q.get('assignee[isnull]')).filter(Boolean)).toEqual(['true'])
 		expect(counts).toEqual({ current: 48, unassigned: 48 })
 	})
 
 	it('sends a null-testing base filter through the list endpoint for every entry', async () => {
-		global.fetch = jest.fn().mockResolvedValue(okResponse(3))
+		const queries = listServer(() => 3)
 		await fetchFilterCounts({
 			register: 'r',
 			schema: 's',
@@ -265,13 +300,12 @@ describe('a lens whose filter tests a field for no value', () => {
 		})
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
 		expect(fetchAggregateValue).not.toHaveBeenCalled()
-		expect(global.fetch).toHaveBeenCalledTimes(2)
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(queries.every((q) => q.get('supersededBy[isnull]') === 'true')).toBe(true)
 	})
 })
 
 describe('a lens that spells its operator in the key (screens-operator-key-lens-counts)', () => {
-	const okResponse = (total) => ({ ok: true, json: async () => ({ total, results: [] }) })
-
 	afterEach(() => {
 		delete global.fetch
 	})
@@ -287,7 +321,7 @@ describe('a lens that spells its operator in the key (screens-operator-key-lens-
 	})
 
 	it('is counted through the list endpoint with the key as the list request sends it, never as an aggregate', async () => {
-		global.fetch = jest.fn().mockImplementation(async (url) => okResponse(String(url).includes('lt%5D') || String(url).includes('lt]') ? 2 : 5))
+		const queries = listServer((q) => (q.get('scheduledDate[lt]') ? 2 : 5))
 		fetchGroupedCounts.mockResolvedValue([{ key: 'closed', count: 9 }, { key: 'scheduled', count: 4 }])
 		const counts = await fetchFilterCounts({
 			register: 'decidiq',
@@ -302,16 +336,15 @@ describe('a lens that spells its operator in the key (screens-operator-key-lens-
 		expect(fetchAggregateValue).not.toHaveBeenCalled()
 		expect(fetchGroupedCounts).toHaveBeenCalledTimes(1)
 		expect(fetchGroupedCounts.mock.calls[0][0].groupBy).toBe('lifecycle')
-		expect(global.fetch).toHaveBeenCalledTimes(2)
-		const urls = global.fetch.mock.calls.map(([url]) => new URL(url, 'http://localhost'))
-		expect(urls[0].searchParams.get('scheduledDate[gte]')).toBe('2026-10-13T00:00:00Z')
-		expect(urls[1].searchParams.get('scheduledDate[lt]')).toBe('2026-11-01T00:00:00Z')
-		expect(urls.every((u) => u.searchParams.get('_limit') === '1')).toBe(true)
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(global.fetch.mock.calls[0][1].method).toBe('POST')
+		expect(queries[0].get('scheduledDate[gte]')).toBe('2026-10-13T00:00:00Z')
+		expect(queries[1].get('scheduledDate[lt]')).toBe('2026-11-01T00:00:00Z')
 		expect(counts).toEqual({ upcoming: 5, month: 2, closed: 9, scheduled: 4 })
 	})
 
 	it('sends every entry through the list endpoint when the base filter spells an operator in a key', async () => {
-		global.fetch = jest.fn().mockResolvedValue(okResponse(1))
+		const queries = listServer(() => 1)
 		await fetchFilterCounts({
 			register: 'r',
 			schema: 's',
@@ -320,6 +353,130 @@ describe('a lens that spells its operator in the key (screens-operator-key-lens-
 		})
 		expect(fetchGroupedCounts).not.toHaveBeenCalled()
 		expect(fetchAggregateValue).not.toHaveBeenCalled()
-		expect(global.fetch).toHaveBeenCalledTimes(2)
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(queries.map((q) => q.get('scheduledDate[gte]'))).toEqual(['2026-10-13', '2026-10-13'])
+	})
+})
+
+describe('counts read through the list endpoint (`via: list`)', () => {
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	// An index page's chip counts what its list shows: the same request the list
+	// sends, so the number and the list cannot disagree (BOARD-SYNC 25 Oct: the
+	// case list's "Alles" chip read 173 where the list's total was 111).
+	it('asks the list endpoint for every entry, grouped or single, never an aggregation', async () => {
+		const queries = listServer((q) => (q.get('status') === 'open' ? 5 : 11))
+
+		const counts = await fetchFilterCounts({
+			register: 'dossiq',
+			schema: 'case',
+			baseFilter: { isTemplate: false },
+			via: 'list',
+			entries: [
+				{ key: 'all', filter: { isDraft: false } },
+				{ key: 'open', filter: { status: 'open' } },
+				{ key: 'closed', filter: { status: 'closed' } },
+			],
+		})
+
+		expect(fetchGroupedCounts).not.toHaveBeenCalled()
+		expect(fetchAggregateValue).not.toHaveBeenCalled()
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(queries).toHaveLength(3)
+		expect(counts).toEqual({ all: 11, open: 5, closed: 11 })
+	})
+})
+
+describe('parsePhpQuery', () => {
+	it('reads a query string the way PHP does', () => {
+		expect(parsePhpQuery('?a=1&b[lt]=2026-11-23&c[]=x&c[]=y&d[e][]=z&f=IS+NULL')).toEqual({
+			a: '1',
+			b: { lt: '2026-11-23' },
+			c: ['x', 'y'],
+			d: { e: ['z'] },
+			f: 'IS NULL',
+		})
+		expect(parsePhpQuery('')).toEqual({})
+	})
+})
+
+describe('fetchListTotals', () => {
+	const batch = (counts) => ({ ok: true, json: async () => ({ results: counts.map((count) => ({ count })) }) })
+	const total = (value) => ({ ok: true, json: async () => ({ total: value, results: [] }) })
+
+	afterEach(() => {
+		delete global.fetch
+	})
+
+	it('counts several lists in one batch request, each filter as the list request sends it', async () => {
+		global.fetch = jest.fn().mockResolvedValue(batch([4, 0]))
+
+		const totals = await fetchListTotals([
+			{ register: 'dossiq', schema: 'case', filter: { status: ['open', 'hold'], deadline: { lt: '2026-11-23' }, isDraft: false } },
+			{ register: 'dossiq', schema: 'task', filter: { assignee: null } },
+		])
+
+		expect(totals).toEqual([4, 0])
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		const [url, init] = global.fetch.mock.calls[0]
+		expect(url).toMatch(/\/apps\/openregister\/api\/objects\/counts$/)
+		expect(init.method).toBe('POST')
+		expect(JSON.parse(init.body)).toEqual({
+			counts: [
+				{ register: 'dossiq', schema: 'case', filter: { status: ['open', 'hold'], deadline: { lt: '2026-11-23' }, isDraft: 'false' } },
+				{ register: 'dossiq', schema: 'task', filter: { assignee: { isnull: 'true' } } },
+			],
+		})
+	})
+
+	it('resolves filter tokens before sending', async () => {
+		global.fetch = jest.fn().mockResolvedValue(batch([1, 2]))
+
+		await fetchListTotals([
+			{ register: 'r', schema: 's', filter: { owner: '@objectId' } },
+			{ register: 'r', schema: 's', filter: {} },
+		], { objectId: 'abc' })
+
+		expect(JSON.parse(global.fetch.mock.calls[0][1].body).counts[0].filter).toEqual({ owner: 'abc' })
+	})
+
+	it('counts a single list with its own list request', async () => {
+		global.fetch = jest.fn().mockResolvedValue(total(7))
+
+		expect(await fetchListTotals([{ register: 'dossiq', schema: 'case', filter: { status: 'open' } }])).toEqual([7])
+		expect(global.fetch).toHaveBeenCalledTimes(1)
+		expect(new URL(global.fetch.mock.calls[0][0], 'http://localhost').pathname).toMatch(/\/api\/objects\/dossiq\/case$/)
+	})
+
+	it('falls back to one list request per list when the batch endpoint fails', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce({ ok: false, status: 404 })
+			.mockResolvedValueOnce(total(3))
+			.mockResolvedValueOnce({ ok: false, status: 500 })
+
+		const totals = await fetchListTotals([
+			{ register: 'r', schema: 's', filter: { a: '1' } },
+			{ register: 'r', schema: 's', filter: { b: '1' } },
+		])
+
+		expect(totals).toEqual([3, null])
+		expect(global.fetch).toHaveBeenCalledTimes(3)
+	})
+
+	it('falls back when the batch answers a different number of results', async () => {
+		global.fetch = jest.fn()
+			.mockResolvedValueOnce(batch([1]))
+			.mockResolvedValue(total(5))
+
+		expect(await fetchListTotals([{ register: 'r', schema: 's', filter: {} }, { register: 'r', schema: 's', filter: { a: 1 } }])).toEqual([5, 5])
+	})
+
+	it('gives null for a count the batch withheld, and nothing for no lists', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [{ count: 2 }, { count: null }] }) })
+
+		expect(await fetchListTotals([{ register: 'r', schema: 's', filter: {} }, { register: 'r', schema: 'hidden', filter: {} }])).toEqual([2, null])
+		expect(await fetchListTotals([])).toEqual([])
 	})
 })

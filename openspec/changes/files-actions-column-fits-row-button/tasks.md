@@ -1,0 +1,2 @@
+- [x] CnFilesBrowser actionsColumnStyle + measureActionsColumn (updated)
+- [x] jest CnFilesBrowserActionsColumn (red first)

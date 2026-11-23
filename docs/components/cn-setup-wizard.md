@@ -22,11 +22,76 @@ shell while a `required` step is unmet.
 | `type` | Renders | Persists via |
 |--------|---------|--------------|
 | `info` | a note card (`title` + `body`) | — |
-| `config-fields` | fields from a JSON Schema (`fieldsFromSchema`) | `POST /api/setup/config` |
-| `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`), or cards with `display: "cards"` | `POST /api/setup/config` |
+| `config-fields` | fields from a JSON Schema (`fieldsFromSchema`), a repeatable group for an array of objects with `repeatable: true` | `POST /api/setup/config`, or `POST /api/setup/action/{action}` with an `action` |
+| `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`), cards with `display: "cards"`, or radio rows with `display: "rows"` | `POST /api/setup/config` |
 | `run-action` | auto-starts `POST /api/setup/action/{action}` on entry (spinner), result + a "Run again" button | the action itself |
-| `summary` | a recap of step completion | — |
+| `summary` | a recap of step completion, with each step's `summaryHint` and, with `summaryEditable: true`, a Change button per row | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
+
+## A choice step's intro and footnote
+
+A `choice` step's `body` is its intro. In the board look it is a plain
+paragraph above the options, as the boards draw it; in the Nextcloud look it
+stays an info note card. A `note` (or `footnote`) is a muted line under the
+options, in either look. Both go through the app's own translations.
+
+`noteStyle: "card"` draws the note as an info note card instead of the muted line (board DqInstellen, step 4).
+
+On a `config-fields` step, `optionalLabels: true` puts "(optional)" after every field label the step's schema does not require, and `note` closes the step with a muted line ("Saved per field as you continue."). Any step with `skippable: true` gets a "Skip this step" button in the footer: it moves on without validating or saving the step (board PqInstellen, step 4).
+
+```json
+{
+  "id": "case-types",
+  "type": "choice",
+  "display": "cards",
+  "body": "Which case types do you start with?",
+  "note": "You can add case types later under Case types."
+}
+```
+
+On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
+the title reads "Set up \{appName\}", and hands it the app's catalog as
+`cnTranslate`.
+
+In the board look the heading is the current step's title, under the eyebrow
+"Set up \{appName\}, step N of M" ("Dossiq instellen, stap 4 van 5" in Dutch,
+board DqInstellen). The app name goes through the host's translate.
+
+## Radio rows
+
+`display: "rows"` draws a choice as [CnChoiceCards](./cn-choice-cards.md) in its `rows` layout: one option per row, full width, the radio on the left and the description under the label (board DqInstellen, step 4). Use it for a short list of options that each need a sentence; `cards` suits options with stats and tags.
+
+```json
+{
+  "id": "examples",
+  "type": "choice",
+  "display": "rows",
+  "configKey": "example_data",
+  "options": [
+    { "value": "none", "label": "None, I will start empty" },
+    { "value": "demo", "label": "Example data" }
+  ]
+}
+```
+
+## A preselected option
+
+A choice step's `default` is the option chosen when the step opens (board DqInstellen, step 4, opens on "Example data"); with `multiple` it is an array of values. Next saves it like a picked option. A step the server already completed keeps its stored value: the default is not applied there.
+
+```json
+{ "id": "examples", "type": "choice", "display": "cards", "configKey": "example_data", "default": "demo", "options": [ ... ] }
+```
+
+## A step that depends on the app's state
+
+`visibleWhen` offers a step only when the setup status says so: a dotted path
+into the document `GET /api/setup/status` returns, whose value must be truthy,
+or `{ "path": "...", "equals": <value> }` for an exact value. The step stays
+hidden while the status loads, and when the path is not there.
+
+```json
+{ "id": "dwangsom", "type": "config-fields", "visibleWhen": "flags.hasPayouts" }
+```
 
 ## Dataset cards that load themselves
 
@@ -109,6 +174,35 @@ An on-demand step:
 
 Steps without the flag behave as before: a server-done `run-action` step is
 ticked and never auto-runs.
+
+## A repeatable group
+
+A `config-fields` step can ask for a list, such as the administrations an app
+starts with. Mark an array-of-objects property `repeatable: true`: the step
+draws one row of sub-fields (the items' properties, in their declared order)
+with a Remove button per row and an Add row button (`addLabel` renames it).
+Rows left empty are not sent. Give the step an `action` and the values go to
+`POST /api/setup/action/{action}` as the request body instead of to the
+config; an answer with `success: false` keeps the step open with its `message`.
+
+```json
+{ "id": "administrations", "type": "config-fields", "action": "create-administrations",
+  "schema": { "type": "object", "properties": { "administrations": {
+    "type": "array", "title": "Administraties", "repeatable": true, "addLabel": "Administratie toevoegen",
+    "items": { "type": "object", "properties": {
+      "name": { "type": "string", "title": "Naam" },
+      "loonheffingennummer": { "type": "string", "title": "Loonheffingennummer" } } } } } } }
+```
+
+The step posts `{ "administrations": [{ "name": "...", "loonheffingennummer": "..." }, ...] }`.
+
+## The recap
+
+Every step can carry a `summaryHint`, a muted line under its row in the
+`summary` recap (through the app's translations). A `summary` step with
+`summaryEditable: true` gives each row a Change button that opens that step
+again, without validating the step the reader is on. In the board look the
+same button sits on a readiness row that names a `step` and has no `link`.
 
 ## Try it
 

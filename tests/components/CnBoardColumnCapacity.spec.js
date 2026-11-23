@@ -40,6 +40,15 @@ function mountBoard(props = {}, look = 'board') {
 }
 
 describe('CnBoardView: a column with a capacity', () => {
+	it('draws the full note under a full column and the merged note under a merged one', () => {
+		const statusFieldSchema = { states: [{ key: 'b', label: 'B', capacity: 1 }, { key: 'm', label: 'M', merged: 2 }, { key: 'a', label: 'A', merged: 1 }] }
+		const w = mountBoard({ statusFieldSchema, fullNote: 'Full: refused', mergedNote: 'Merged from {count}: no limit' })
+		const note = (key) => w.find(`[data-column="${key}"] [data-testid="cn-board-column-note"]`)
+		expect(note('b').text()).toBe('Full: refused')
+		expect(note('m').text()).toBe('Merged from 2: no limit')
+		expect(note('a').exists()).toBe(false)
+	})
+
 	it('reads "count / capacity" in the header and marks the full column, and a column without one reads its count', () => {
 		const w = mountBoard()
 		const count = (key) => w.find(`[data-column="${key}"] [data-testid="cn-board-count"]`)

@@ -1,0 +1,1 @@
+- [x] 1.1 CnDetailCard `chevronStart`, translated collapse name, `aria-expanded` (tests/components/CnDetailCardLeadingChevron.spec.js)

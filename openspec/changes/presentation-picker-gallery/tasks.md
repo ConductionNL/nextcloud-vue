@@ -1,0 +1,1 @@
+- [x] 1 Gallery in CnViewPresentationPicker, presentationCandidates and buildViewCreatePayload (tests/components/CnViewPresentationPickerGallery.spec.js); docs

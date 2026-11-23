@@ -3,8 +3,10 @@
 `mergeManifestDelta(base, delta)` applies a keyed structural delta to a base
 manifest. Unlike a plain deep-merge (which replaces arrays wholesale), it
 merges the manifest's identity-bearing arrays **by key**: `pages[]` by
-`page.id`, `widgets[]` by `widget.id`, `menu[]` by `menu.id`, and a menu
-entry's nested `children[]` by child `id`.
+`page.id`, `widgets[]` by `widget.id`, `menu[]` by `menu.id`, a menu
+entry's nested `children[]` by child `id`, and an index page's
+`defaultSavedViews[]` by `slug`, so a per-user delta can add a user's own
+default views beside the ones the page ships.
 
 This is the engine behind the opt-in `delta` merge mode of `useAppManifest` /
 `useRuntimeManifest`, and the basis for OpenBuilt storing a built app as

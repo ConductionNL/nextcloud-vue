@@ -21,7 +21,12 @@
 			:viewMode="scenario"
 			:showTitle="true"
 			:pagination="{ total: 42, page: 1, pages: 3, limit: 14 }"
-			:headerButtons="[{ action: 'add', label: 'New case', variant: 'primary' }, { action: 'export', label: 'Download', variant: 'secondary' }]" />
+			:headerButtons="[{ action: 'add', label: 'New case', variant: 'primary' }, { action: 'export', label: 'Download', variant: 'secondary' }]"
+			:quickFilters="queue ? queueFilters : null"
+			:sidePanel="queue ? queuePanel : []"
+			:filterMenu="queue"
+			:viewModes="queue ? ['table', 'cards'] : null"
+			:quickFilterPlacement="placement" />
 	</div>
 </template>
 
@@ -76,6 +81,19 @@ export default {
 				},
 			},
 
+			// DqTeamwachtrij (?wq=1): five chips with counts, a side panel, the
+			// Filter menu and the view switch; `qfp` sets quickFilterPlacement.
+			queue: params.get('wq') === '1',
+			placement: params.get('qfp') || '',
+			queueFilters: [
+				{ label: 'Alle', filter: {}, default: true },
+				{ label: 'Woo-verzoek', filter: { status: 'open' } },
+				{ label: 'Bezwaar', filter: { status: 'closed' } },
+				{ label: 'Klacht', filter: { status: 'open' } },
+				{ label: 'Subsidie', filter: { status: 'closed' } },
+			],
+
+			queuePanel: [{ id: 'note', type: 'text', title: 'Team vandaag', content: { text: 'Vijf mensen ingeroosterd.' } }],
 			scenario: params.get('screensindex') || 'table',
 			plain: params.get('plain') === '1',
 			width: Number(params.get('w') || 1200),

@@ -16,6 +16,8 @@
  * @module utils/detailActionModel
  */
 
+import { variantForColor } from './headerFieldChips.js'
+import { isObjectRowsSpec, objectRowsOf } from './objectRows.js'
 import { readPath } from './readPath.js'
 import { evaluateVisibleWhenLocal } from './visibleWhen.js'
 
@@ -68,12 +70,14 @@ export function stageEntry(map, stage) {
  *
  * An entry is the id of a declared header action, or an action object of its
  * own. An object without an id gets `fallbackId`, since every dispatched
- * action is addressed by id.
+ * action is addressed by id. `{ id, tabs?, notTabs? }` without a label names
+ * a declared action and says beside which body tabs it shows (see `onTab`).
  *
  * @param {string|object|null} entry The entry.
  * @param {string} fallbackId Id for an inline action that names none.
- * @return {{id: string, inline: object|null}|null} The id, plus the inline definition when the entry carried one.
+ * @return {{id: string, inline: object|null, tabs?: Array<string>, notTabs?: Array<string>}|null} The id, plus the inline definition when the entry carried one.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-quick-actions
+ * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
  */
 export function normalisePinnedAction(entry, fallbackId) {
 	if (typeof entry === 'string') {
@@ -82,11 +86,40 @@ export function normalisePinnedAction(entry, fallbackId) {
 	if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
 		return null
 	}
+	const scoped = Array.isArray(entry.tabs) || Array.isArray(entry.notTabs)
 	if (typeof entry.label !== 'string' || entry.label === '') {
-		return null
+		if (!scoped || typeof entry.id !== 'string' || entry.id === '') {
+			return null
+		}
+		return { id: entry.id, inline: null, tabs: entry.tabs, notTabs: entry.notTabs }
 	}
 	const id = typeof entry.id === 'string' && entry.id !== '' ? entry.id : fallbackId
-	return { id, inline: { ...entry, id } }
+	const { tabs, notTabs, ...action } = entry
+	const pinned = { id, inline: { ...action, id } }
+	return scoped ? { ...pinned, tabs, notTabs } : pinned
+}
+
+/**
+ * Whether an entry belongs beside the open body tab: one with `tabs` shows
+ * only while one of them is open, one with `notTabs` stands aside while one
+ * of those is open, one with neither shows beside every tab.
+ *
+ * @param {object|null} entry The entry, carrying `tabs` / `notTabs`.
+ * @param {string} activeTab The open body tab's id.
+ * @return {boolean}
+ * @spec openspec/changes/detail-actions-per-tab/specs/detail-page/spec.md#requirement-quick-actions-and-the-next-step-card-can-follow-the-open-tab
+ */
+export function onTab(entry, activeTab) {
+	if (!entry) {
+		return true
+	}
+	if (Array.isArray(entry.notTabs) && entry.notTabs.map((id) => String(id)).includes(activeTab)) {
+		return false
+	}
+	if (!Array.isArray(entry.tabs) || entry.tabs.length === 0) {
+		return true
+	}
+	return entry.tabs.map((id) => String(id)).includes(activeTab)
 }
 
 /**
@@ -163,12 +196,33 @@ export function isChecklistItemDone(item, object) {
 }
 
 /**
+ * A text or its candidates: a string, or a list of strings to fill in order.
+ *
+ * @param {unknown} value The configured value.
+ * @return {string|string[]|null} The text or the candidates, or null.
+ */
+function templateOf(value) {
+	if (typeof value === 'string' && value !== '') {
+		return value
+	}
+	if (Array.isArray(value)) {
+		const list = value.filter((item) => typeof item === 'string' && item !== '')
+		return list.length > 0 ? list : null
+	}
+	return null
+}
+
+/**
  * Resolve the "what now" card for the record's stage.
  *
- * @param {{stages?: object, title?: string}|null} config The `nextStep` config.
+ * The title and `after` may name record fields as `{path}` tokens, and may be
+ * a list of candidates: the page fills the first whose fields all have a value
+ * (`["What now? Step 2: {statusPublicLabel|lower}", "What now? Handle the case"]`).
+ *
+ * @param {{stages?: object, title?: (string|string[])}|null} config The `nextStep` config.
  * @param {object|null} object The record.
  * @param {string} [stageField] Dot-path to the stage.
- * @return {{stage: string, title: string, items: Array<{label: string, done: boolean, hint: string}>, after: string}|null} The card, or null when this stage declares no checklist.
+ * @return {{stage: string, title: (string|string[]), items: Array<{label: string, done: boolean, hint: string}>, after: (string|string[])}|null} The card, or null when this stage declares no checklist.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-next-step-card
  */
 export function resolveNextStep(config, object, stageField = 'status') {
@@ -192,9 +246,10 @@ export function resolveNextStep(config, object, stageField = 'status') {
 	}
 	return {
 		stage,
-		title: typeof declared.title === 'string' ? declared.title : (typeof config.title === 'string' ? config.title : ''),
+		title: templateOf(declared.title) || templateOf(config.title) || '',
 		items,
-		after: typeof declared.after === 'string' ? declared.after : '',
+		after: templateOf(declared.after) || '',
+		afterTitle: templateOf(declared.afterTitle) || '',
 	}
 }
 
@@ -203,9 +258,10 @@ export function resolveNextStep(config, object, stageField = 'status') {
  *
  * A pill with `field` reads it off the record; one without `field` and with
  * `text` is a constant. A count pill (`countFrom`) is resolved by
- * {@link resolveCountPill} once its count is known.
+ * {@link resolveCountPill} once its count is known. `values` limits a field
+ * pill to those raw values: a priority pill drawn only for high and urgent.
  *
- * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string}|null} config The pill config.
+ * @param {{field?: string, text?: string, colorMap?: object, labels?: object, variant?: string, values?: Array<string>}|null} config The pill config.
  * @param {object|null} object The record.
  * @return {{label: string, colorKey: string, colorMap: object|null, variant: string}|null} What CnStatusBadge needs, or null when the field is empty.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-header-pills
@@ -230,6 +286,9 @@ export function resolvePill(config, object) {
 	if (raw === '') {
 		return null
 	}
+	if (Array.isArray(config.values) && !config.values.map(String).includes(raw)) {
+		return null
+	}
 	const mapped = stageEntry(config.labels, raw)
 	return {
 		label: typeof mapped === 'string' && mapped !== '' ? mapped : raw,
@@ -237,6 +296,32 @@ export function resolvePill(config, object) {
 		colorMap: config.colorMap && typeof config.colorMap === 'object' ? config.colorMap : null,
 		variant: typeof config.variant === 'string' && config.variant !== '' ? config.variant : 'default',
 	}
+}
+
+/**
+ * What a pill takes from the record its `resolve` points at
+ * (`resolve.colorField`, `resolve.iconField`): the tone its colour name maps
+ * onto (an NL Design System hue or a badge role, see `variantForColor`), which
+ * replaces the pill's own `variant` and `colorMap`, and an icon name. An empty
+ * colour or icon leaves the pill as declared.
+ *
+ * @param {{color?: string|null, icon?: string|null}|null|undefined} look The names read off the record.
+ * @return {{variant?: string, colorMap?: null, icon?: string}} The keys to lay over the pill.
+ * @spec openspec/changes/pill-color-field/specs/pill-color-field/spec.md#requirement-a-pill-takes-its-tone-and-icon-from-the-referenced-record
+ */
+export function pillLook(look) {
+	const out = {}
+	if (!look || typeof look !== 'object') {
+		return out
+	}
+	if (typeof look.color === 'string' && look.color !== '') {
+		out.variant = variantForColor(look.color)
+		out.colorMap = null
+	}
+	if (typeof look.icon === 'string' && look.icon !== '') {
+		out.icon = look.icon
+	}
+	return out
 }
 
 /**
@@ -252,6 +337,7 @@ export function resolvePill(config, object) {
  * @param {object|null} object The record.
  * @return {number|null} The count, or null when the tab declares none.
  * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
+ * @spec openspec/changes/record-list-object-rows/specs/record-list/spec.md#requirement-a-tab-can-count-the-rows-its-record-holds
  */
 export function resolveTabCount(tab, object) {
 	if (!tab || typeof tab !== 'object') {
@@ -259,6 +345,10 @@ export function resolveTabCount(tab, object) {
 	}
 	if (typeof tab.count === 'number' && Number.isFinite(tab.count)) {
 		return tab.count
+	}
+	// `countObjectRows`: the rows the record holds where it points, as a record list's `objectRows`.
+	if (isObjectRowsSpec(tab.countObjectRows)) {
+		return objectRowsOf(object, tab.countObjectRows).length
 	}
 	if (typeof tab.countField !== 'string' || tab.countField === '') {
 		const counts = object && typeof object === 'object' && object['@self'] && object['@self'].unreadCounts

@@ -13,13 +13,15 @@
  * doesn't force the registration.
  */
 
-import CnObjectDataWidgetForm from '../CnObjectDataWidgetForm/CnObjectDataWidgetForm.vue'
-import CnObjectDataWidget from './CnObjectDataWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnObjectDataWidgetForm = lazyComponent(() => import('../CnObjectDataWidgetForm/CnObjectDataWidgetForm.vue'), 'CnObjectDataWidgetForm')
+const LazyCnObjectDataWidget = lazyComponent(() => import('./CnObjectDataWidget.vue'), 'CnObjectDataWidget')
+
 registerDashboardWidget('data', {
-	renderer: CnObjectDataWidget,
-	form: CnObjectDataWidgetForm,
+	renderer: LazyCnObjectDataWidget,
+	form: LazyCnObjectDataWidgetForm,
 	defaultContent: {
 		title: '',
 		register: '',

@@ -128,13 +128,19 @@ export default {
 
 	props: {
 		/** OpenRegister register id (slug or uuid). */
-		register: { type: String, required: true },
+		register: { type: String, default: '' },
 		/** OpenRegister schema id (slug or uuid). */
-		schema: { type: String, required: true },
+		schema: { type: String, default: '' },
 		/** Parent object id. */
 		objectId: { type: String, required: true },
 		/** Base API URL for OpenRegister. */
 		apiBase: { type: String, default: '/apps/openregister/api' },
+		/**
+		 * The record's events address, for a record that is not an object
+		 * (`…/flow-tasks/{id}/events`). Without it the form posts to the
+		 * object's (`register`, `schema`, `objectId`).
+		 */
+		eventsUrl: { type: String, default: '' },
 
 		// --- Pre-translated labels (ADR-007) ---
 		/** Pre-translated dialog title. */
@@ -237,7 +243,7 @@ export default {
 				}
 
 				const response = await fetch(
-					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`),
+					prefixUrl(this.eventsUrl || `${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/events`),
 					{
 						method: 'POST',
 						headers: buildHeaders(),

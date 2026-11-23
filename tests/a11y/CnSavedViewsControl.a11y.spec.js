@@ -2,8 +2,9 @@
  * SPDX-License-Identifier: EUPL-1.2
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  *
- * Accessibility coverage for `CnSavedViewsControl` — the saved-views
- * toolbar dropdown (real `NcActions` popover menu). Part of the
+ * Accessibility coverage for saved views: the toolbar's `CnSavedViewsControl`
+ * (Save view and the chips) and the sidebar's `CnSavedViewsPanel` (the
+ * list, and one view's own `NcActions` menu). Part of the
  * `wcag-a11y-anchor` sample.
  *
  * Menu content is scanned via `openNcActionsMenu()` — see that helper's
@@ -14,53 +15,47 @@
 const { expectAccessible } = require('../../src/testing/a11y.js')
 const { mountAttached } = require('./support/mountAttached.js')
 const { openNcActionsMenu } = require('./support/openNcActionsMenu.js')
+const CnSavedViewsPanel = require('../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue').default
 const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
 
-describe('CnSavedViewsControl — accessibility', () => {
+const views = [
+	{ id: '1', name: 'My pipeline view', owner: 'alice' },
+	{ id: '2', name: "Bob's view", owner: 'bob' },
+]
+
+describe('saved views — accessibility', () => {
 	let wrapper
 
 	afterEach(() => {
 		wrapper?.unmount()
 	})
 
-	it('has no WCAG 2.1 AA violations in the closed (default) state', async () => {
-		wrapper = mountAttached(CnSavedViewsControl, {
-			propsData: { views: [] },
-		})
-
+	it('the toolbar control has no WCAG 2.1 AA violations, with and without chips', async () => {
+		wrapper = mountAttached(CnSavedViewsControl, { propsData: { views, currentUserId: 'alice' } })
+		await expectAccessible(wrapper)
+		wrapper.unmount()
+		wrapper = mountAttached(CnSavedViewsControl, { propsData: { views, currentUserId: 'alice' }, global: { provide: { cnLook: 'board' } } })
 		await expectAccessible(wrapper)
 	})
 
-	it('has no WCAG 2.1 AA violations in the loading menu state', async () => {
-		wrapper = mountAttached(CnSavedViewsControl, {
-			propsData: { views: [], loading: true },
-		})
-
-		const menu = await openNcActionsMenu(wrapper)
-		await expectAccessible(menu)
+	it('the panel has no violations while loading and when empty', async () => {
+		wrapper = mountAttached(CnSavedViewsPanel, { propsData: { views: [], loading: true } })
+		await expectAccessible(wrapper)
+		wrapper.unmount()
+		wrapper = mountAttached(CnSavedViewsPanel, { propsData: { views: [] } })
+		await expectAccessible(wrapper)
 	})
 
-	it('has no WCAG 2.1 AA violations in the empty menu state', async () => {
-		wrapper = mountAttached(CnSavedViewsControl, {
-			propsData: { views: [] },
-		})
-
-		const menu = await openNcActionsMenu(wrapper)
-		await expectAccessible(menu)
+	it('the panel has no violations with own and shared views', async () => {
+		wrapper = mountAttached(CnSavedViewsPanel, { propsData: { views, currentUserId: 'alice', menuIds: [] } })
+		await expectAccessible(wrapper)
 	})
 
-	it('has no WCAG 2.1 AA violations with a mix of own and foreign views', async () => {
-		wrapper = mountAttached(CnSavedViewsControl, {
-			propsData: {
-				views: [
-					{ id: '1', name: 'My pipeline view', owner: 'alice' },
-					{ id: '2', name: "Bob's view", owner: 'bob' },
-				],
-				currentUserId: 'alice',
-			},
-		})
-
-		const menu = await openNcActionsMenu(wrapper)
+	it('one view\'s menu has no violations', async () => {
+		wrapper = mountAttached(CnSavedViewsPanel, { propsData: { views: views.slice(0, 1), currentUserId: 'alice', menuIds: [] } })
+		// The first button is Save view; open the row's own menu instead.
+		const row = wrapper.find('[data-testid="cn-saved-views-manage"]')
+		const menu = await openNcActionsMenu({ find: (selector) => row.find(selector), vm: wrapper.vm })
 		await expectAccessible(menu)
 	})
 })

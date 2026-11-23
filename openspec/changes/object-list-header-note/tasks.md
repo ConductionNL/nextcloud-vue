@@ -1,0 +1,2 @@
+- [x] CnObjectListWidget content.headerNote, emitted as header.note
+- [x] Spec tests/components/CnHeaderSubtitleCounts.spec.js

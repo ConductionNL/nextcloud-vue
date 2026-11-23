@@ -1,0 +1,2 @@
+- [x] look-board.css bar row rule
+- [x] Spec tests/css/lookBoardBarListRows.spec.js

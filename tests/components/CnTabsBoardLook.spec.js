@@ -99,7 +99,7 @@ describe('CnTabsWidget in the board look', () => {
 		const w = mountWidget('board', content)
 		await nextTick()
 		const tabs = w.findAll('[role="tab"]').map((t) => t.text())
-		expect(tabs).toEqual(['Documents', 'Tasks', 'Archiving', 'History'])
+		expect(tabs).toEqual(['Documents', 'History'])
 	})
 
 	it('keeps a label the manifest gives the activity tab', async () => {

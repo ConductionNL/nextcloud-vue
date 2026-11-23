@@ -42,6 +42,8 @@ Page header with an optional MDI icon, title, and description. Used at the top o
 |------|------|----------|---------|-------------|
 | `title` | String | ✓ | — | Page title text |
 | `description` | String | | `''` | Optional description shown below the title |
+| `breadcrumb` | Object \| Array | | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
+| `meta` | String | | `''` | A note after the breadcrumb and a middle dot, such as "12 open". Translated like the title. |
 | `icon` | String | | `''` | MDI icon name rendered via CnIcon |
 | `iconSize` | Number | | `28` | Icon size in pixels |
 | `translate` | Function | | `null` | Translate function applied to `title` and `description` (manifest-authored English source strings). Falls back to the injected `cnTranslate` (identity by default), so a missing catalogue renders the source string unchanged. |

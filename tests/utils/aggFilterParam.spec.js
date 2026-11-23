@@ -21,4 +21,11 @@ describe('aggFilterParam', () => {
 		expect(flat).toEqual({ 'filter[meetingDate][gte]': '2026-01-01' })
 		expect(flat).toEqual(nested)
 	})
+	it('names a metadata field as the aggregation endpoint does (`@self[updated]` is `_updated`)', () => {
+		expect(aggFilterParam('@self[updated][lt]')).toBe('filter[_updated][lt]')
+		expect(aggFilterParam('@self.created')).toBe('filter[_created]')
+		const nested = {}
+		flattenAggFilter(nested, { '@self.updated': { lt: '2026-10-14' } })
+		expect(nested).toEqual({ 'filter[_updated][lt]': '2026-10-14' })
+	})
 })

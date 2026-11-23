@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 1 direct reference, 12 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 1 direct reference, 17 files reached through imports.
 
-Through: `CnIndexPage`, `CnStatWidget`.
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`, `CnStatWidget`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -28,3 +28,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `filled`        | `boolean`         |          | `false`     | Draw each tile's own grey box. Off by default — the widget is rendered inside a CnWidgetWrapper that already draws a card.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `route`         | `union`           |          | `null`      | Vue-router location to navigate to on click. When set, the inner CnStatsBlock renders as a `&lt;router-link&gt;`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `iconClass`     | `string`          |          | `''`        | Optional CSS class applied to the widget's outermost wrapping `&lt;div&gt;`. Designed for Nextcloud core icon classes (`icon-link`, `icon-mail`, `icon-history`, …) that ship with NC and render a 16×16 glyph via background-image. When empty (the default), the wrapper carries only the base `cn-stats-block-widget` class and is visually invisible. The wrapping element is a `&lt;div&gt;` with no layout styles of its own, so the rendered KPI tile keeps the same dimensions and spacing it had before this prop was added. MDI icon names (e.g. `'Database'`) are NOT supported here — that would require an async dynamic-import. Use `CnStatsBlock` directly when you need an MDI Vue component icon. |
+
+### Events
+
+| Name   | Payload | Description                                |
+| ------ | ------- | ------------------------------------------ |
+| `data` | —       | What the widget shows, as a plain summary. |

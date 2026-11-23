@@ -1,0 +1,1 @@
+- [x] 1 `selected` on CnChartWidget: bar-list rows ringed and pressed, bars and slices outlined through `data-cn-selected` and the shadow rules in `chartShadow.js`, ApexCharts' own click state off on a selectable chart (tests/components/CnChartWidgetSelected.spec.js), documented in docs/components/cn-chart-widget.md

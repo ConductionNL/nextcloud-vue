@@ -15,7 +15,8 @@ A card of boxed stat tiles is spaced as the board draws it.
 ### Requirement: A card of boxed stat tiles keeps the board's inset
 
 In the board look, a dashboard card whose stats block draws boxed tiles SHALL place its tiles 22px from the card's
-sides and SHALL draw no rule under its header. A stats card without boxed tiles SHALL keep its inset and divider.
+sides and SHALL draw no rule under its header. A stats card without boxed tiles SHALL keep its inset; it draws no divider either (see
+board-dashboard-card-header).
 
 #### Scenario: Vergaderingen en efficiëntie
 

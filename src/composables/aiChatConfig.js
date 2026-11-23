@@ -108,6 +108,18 @@ export function conversationsUrl(appId) {
 }
 
 /**
+ * Session list endpoint (`GET`). Takes `subject=<objectUuid>` to list only the
+ * caller's sessions about one record, most recent activity first.
+ *
+ * @param {string} [appId] Backend app id.
+ * @return {string}
+ * @spec openspec/changes/ai-chat-opens-the-subject-session/specs/ai-companion/spec.md#requirement-an-embedded-chat-may-open-the-users-session-about-the-pages-record
+ */
+export function sessionsUrl(appId) {
+	return `${chatApiBase(appId)}/sessions`
+}
+
+/**
  * Messages of a single conversation (`GET`).
  *
  * @param {string} [appId] Backend app id.

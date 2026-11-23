@@ -59,6 +59,7 @@ With static values:
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The configuration blob described above. |
 | `translate` | `function` | `null` | Translate function for labels and the empty text. Falls back to the injected `cnTranslate`. |
+| `objectId` | `string` | `null` | The record on the page, for the `@objectId` token of `endpointSource`. |
 
 ## Colours
 
@@ -67,6 +68,10 @@ The segments take their colour from one ramp built on the theme: a light tint of
 ## Accessibility
 
 The legend is a list that holds every label and count. The bar is a picture of that list, so it is `aria-hidden` and nothing is read twice.
+
+## `content.compact`
+
+`compact: true` draws the widget as a summary box, as DqZaakDocumenten's "4 van 7 beoordeeld": the sunken ground (radius 10, 14px 16px), a 15px heading with its meta beside it, one 8px bar of joined segments, and the legend on one line with each count beside its label. Off by default.
 
 ## `content.inset`
 

@@ -2,13 +2,15 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 2 direct references, 0 files reached through imports.
+**light**: this component touches OpenRegister lightly. 1 direct reference, 1 file reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name       | Type      | Required | Default | Description                                                                                                             |
-| ---------- | --------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `repo`     | `string`  | ✓        | —       | `&lt;owner&gt;/&lt;repo&gt;` of the app's GitHub repository. Passed through to the proxy as the `repo` query parameter. |
-| `disabled` | `boolean` |          | `false` | Admin opt-out flag — when true the tab renders the disabled empty state.                                                |
+| Name               | Type      | Required | Default  | Description                                                                                                                                                            |
+| ------------------ | --------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo`             | `string`  | ✓        | —        | `&lt;owner&gt;/&lt;repo&gt;` of the app's GitHub repository. Passed through to the proxy as the `repo` query parameter.                                                |
+| `disabled`         | `boolean` |          | `false`  | Admin opt-out flag — when true the tab renders the disabled empty state.                                                                                               |
+| `layout`           | `string`  |          | `'grid'` | `grid` (default): the open issues as cards. `columns`: Planned, In development and Available with their counts, closed-as-completed issues included (`config.layout`). |
+| `inProgressLabels` | `array`   |          | `[]`     | Labels that put an open issue under In development (case-insensitive). Empty takes the defaults: "in progress", "in-progress", "in development".                       |

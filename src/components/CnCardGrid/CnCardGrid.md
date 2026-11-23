@@ -107,12 +107,15 @@ Custom card slot — replace the default CnObjectCard with your own rendering:
 | `selectable` | `Boolean` | `false` | When `true`, each card shows a selection checkbox and the grid emits `select` events |
 | `selectedIds` | `Array` | `[]` | Array of currently selected object IDs (matched against `object[rowKey]`) |
 | `accentOf` | `Function` | `null` | `(object) => { variant, icon?, label? } \| null`, each card's status accent (see CnObjectCard `accent`) |
+| `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`), passed to each CnObjectCard for the record layout's pills that declare `resolve`. |
 
 ## Board look props
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `cardFields` | Array | `null` | Property keys each card's facts list shows |
+| `cardFieldColumns` | Object | `null` | The page's columns by key, passed to each CnObjectCard (see CnObjectCard `cardFieldColumns`) |
+| `cardLayout` | Object | `null` | Board look: the record layout each card draws, passed to CnObjectCard `layout` |
 | `statusOf` | Function | `null` | `(object) => status` for each card's status pill |
 | `leadingOf` | Function | `null` | `(object) => { initials | icon }` for each card's leading element |
 | `footerActionOf` | Function | `null` | `(object) => { label, meta? }` for each card's footer action |

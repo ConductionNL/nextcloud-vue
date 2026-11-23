@@ -25,15 +25,45 @@
  * @module integrations/utils/marker
  */
 
-// UUID-shaped (or any non-`]` content) marker enclosed in brackets,
-// optionally surrounded by whitespace.
-const BRACKETED = /\s*\[or:[^\]]+\]\s*/g
+const OPEN = '[or:'
 
 // Bare `or:{uuid}` marker without enclosing brackets. UUID-shaped
 // payload only — we deliberately do NOT match arbitrary `or:foo` text
 // to avoid eating legitimate values like "or:option-a" (a poll option).
 // Pattern: `or:` followed by hex/hyphens (UUID alphabet) of length ≥ 8.
-const BARE = /\s*or:[0-9a-f-]{8,}\s*/gi
+const BARE = /or:[0-9a-f-]{8,}/gi
+
+/**
+ * Replace every `[or:…]` marker (any non-empty, non-`]` content) with a
+ * space, in one pass over the text.
+ *
+ * @param {string} text The text to clean.
+ *
+ * @return {string}
+ */
+function dropBracketed(text) {
+	let out = ''
+	let from = 0
+	let search = 0
+	for (;;) {
+		const start = text.indexOf(OPEN, search)
+		if (start === -1) {
+			break
+		}
+		const end = text.indexOf(']', start + OPEN.length)
+		if (end === -1) {
+			break
+		}
+		if (end === start + OPEN.length) {
+			search = end
+			continue
+		}
+		out += text.slice(from, start) + ' '
+		from = end + 1
+		search = from
+	}
+	return out + text.slice(from)
+}
 
 /**
  * Strip the `[or:{uuid}]` marker (and the rarer bare `or:{uuid}`
@@ -48,8 +78,7 @@ export function stripMarker(raw) {
 	if (raw === null || raw === undefined) {
 		return ''
 	}
-	return String(raw)
-		.replace(BRACKETED, ' ')
+	return dropBracketed(String(raw))
 		.replace(BARE, ' ')
 		.replace(/\s+/g, ' ')
 		.trim()

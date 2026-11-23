@@ -78,6 +78,13 @@ describe('CnInteractionFormWidget', () => {
 		expect(w.vm.registerLabel).toBe('Contactmoment opslaan')
 	})
 
+	it('draws the summary four rows high, or content.summaryRows', () => {
+		const summary = (content) => mount(content).w.vm.formFields.find((field) => field.key === 'summary')
+		expect(summary({}).rows).toBe(4)
+		expect(summary({ summaryRows: 3 }).rows).toBe(3)
+		expect(summary({ summaryRows: 0 }).rows).toBe(4)
+	})
+
 	it('defaults the channel to the first configured channel', () => {
 		const { w } = mount({ channels: [{ value: 'email', label: 'Email' }, { value: 'chat', label: 'Chat' }] })
 		expect(w.vm.form.channel).toBe('email')

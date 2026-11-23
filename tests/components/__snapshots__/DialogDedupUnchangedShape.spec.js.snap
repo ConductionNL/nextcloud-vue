@@ -1,0 +1,663 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`CnConfirmDialog default render confirm phase, defaults (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Confirm action" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Confirm action</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <p class="cn-dialog__sentence" data-testid="cn-confirm-sentence">Are you sure you want to continue?</p>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="primary" data-testid="cn-confirm-dialog-confirm"> Confirm
+    
+    <!--v-if-->
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render confirm phase, defaults (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Confirm action" size="small" noclose="false">
+  <!--v-if-->
+  
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <div class="stub NcNoteCard" type="info">Are you sure you want to continue?</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="primary" data-testid="cn-confirm-dialog-confirm"> Confirm
+    
+    <!--v-if-->
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render confirm phase, destructive with icon and labels (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Release lock" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Release lock</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <p class="cn-dialog__sentence" data-testid="cn-confirm-sentence">Release the lock on this dashboard?</p>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Keep</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-confirm-dialog-confirm"> Release
+    <span aria-hidden="true" class="material-design-icon help-circle-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"><!--v-if--></path></svg></span>
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render confirm phase, destructive with icon and labels (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Release lock" size="small" noclose="false">
+  <!--v-if-->
+  
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <div class="stub NcNoteCard" type="warning">Release the lock on this dashboard?</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Keep</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-confirm-dialog-confirm"> Release
+    <span aria-hidden="true" class="material-design-icon help-circle-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"><!--v-if--></path></svg></span>
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render confirm phase, typed confirm value (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Confirm action" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Confirm action</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <p class="cn-dialog__sentence" data-testid="cn-confirm-sentence">Are you sure you want to continue?</p>
+    <div class="cn-dialog__confirm-field" data-testid="cn-confirm-value-field"><label class="cn-dialog__confirm-label" for="cn-confirm-value-2">Type to confirm</label><input id="cn-confirm-value-2" class="cn-dialog__confirm-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="cn-confirm-value-2-hint" data-testid="cn-confirm-value-input" value=""><span id="cn-confirm-value-2-hint" class="cn-dialog__confirm-hint" data-testid="cn-confirm-value-hint">Type <code>main</code> to enable the button.</span></div>
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton cn-dialog__confirm-pending" variant="primary" disabled="true" aria-disabled="true" data-testid="cn-confirm-dialog-confirm"> Confirm
+    
+    <!--v-if-->
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render confirm phase, typed confirm value (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Confirm action" size="small" noclose="false">
+  <!--v-if-->
+  
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <div class="stub NcNoteCard" type="info">Are you sure you want to continue?</div>
+    <div class="cn-dialog__confirm-field" data-testid="cn-confirm-value-field"><label class="cn-dialog__confirm-label" for="cn-confirm-value-1">Type to confirm</label><input id="cn-confirm-value-1" class="cn-dialog__confirm-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="cn-confirm-value-1-hint" data-testid="cn-confirm-value-input" value=""><span id="cn-confirm-value-1-hint" class="cn-dialog__confirm-hint" data-testid="cn-confirm-value-hint">Type <code>main</code> to enable the button.</span></div>
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton cn-dialog__confirm-pending" variant="primary" disabled="true" aria-disabled="true" data-testid="cn-confirm-dialog-confirm"> Confirm
+    
+    <!--v-if-->
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render loading phase (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Confirm action" size="normal" noclose="true" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Confirm action</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close" disabled="true"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <p class="cn-dialog__sentence" data-testid="cn-confirm-sentence">Are you sure you want to continue?</p>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
+  <div class="stub NcButton" variant="primary" data-testid="cn-confirm-dialog-confirm" disabled="true"> Confirm
+    
+    <div class="stub NcLoadingIcon" size="20" name="Loading&nbsp;…"></div>
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render loading phase (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Confirm action" size="small" noclose="true">
+  <!--v-if-->
+  
+  <div class="cn-confirm__confirm" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="confirm">
+    <div class="stub NcNoteCard" type="info">Are you sure you want to continue?</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
+  <div class="stub NcButton" variant="primary" data-testid="cn-confirm-dialog-confirm" disabled="true"> Confirm
+    
+    <div class="stub NcLoadingIcon" size="20" name="Loading&nbsp;…"></div>
+  </div>
+</div>"
+`;
+
+exports[`CnConfirmDialog default render result phase, error (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Confirm action" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Confirm action</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-confirm__result" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="result">
+    <!--v-if-->
+    <div class="stub NcNoteCard" type="error">It failed</div>
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnConfirmDialog default render result phase, error (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Confirm action" size="small" noclose="false">
+  <!--v-if-->
+  <div class="cn-confirm__result" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="result">
+    <!--v-if-->
+    <div class="stub NcNoteCard" type="error">It failed</div>
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnConfirmDialog default render result phase, success (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Confirm action" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Confirm action</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-confirm__result" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="result">
+    <div class="stub NcNoteCard" type="success">Released.</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnConfirmDialog default render result phase, success (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Confirm action" size="small" noclose="false">
+  <!--v-if-->
+  <div class="cn-confirm__result" data-testid="cn-modal" data-testid-modal="cn-confirm-dialog" data-testid-phase="result">
+    <div class="stub NcNoteCard" type="success">Released.</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render loading phase (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete items" size="normal" noclose="true" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete items</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close" disabled="true"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <p class="cn-dialog__sentence" data-testid="cn-mass-delete-sentence">Are you sure you want to permanently delete <strong class="cn-dialog__name">3 items</strong>? This action cannot be undone.</p>
+    <p class="cn-dialog__note" role="note" data-testid="cn-mass-delete-note"><span aria-hidden="true" class="material-design-icon alert-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"><!--v-if--></path></svg></span><span>The following items will be permanently deleted. Remove any items you want to keep.</span></p>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report A</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report B</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm" disabled="true"> Delete<div class="stub NcLoadingIcon" size="20"></div>
+  </div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render loading phase (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete items" size="normal" noclose="true">
+  <!--v-if-->
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <div class="stub NcNoteCard" type="warning">The following items will be permanently deleted. Remove any items you want to keep.</div>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report A</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report B</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton" disabled="true">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm" disabled="true"> Delete<div class="stub NcLoadingIcon" size="20"></div>
+  </div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render result phase, error (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete items" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete items</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__result" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="result">
+    <!--v-if-->
+    <div class="stub NcNoteCard" type="error">It failed</div>
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render result phase, error (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete items" size="normal" noclose="false">
+  <!--v-if-->
+  
+  <div class="cn-mass-delete__result" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="result">
+    <!--v-if-->
+    <div class="stub NcNoteCard" type="error">It failed</div>
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render result phase, success (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete items" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete items</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__result" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="result">
+    <div class="stub NcNoteCard" type="success">Items successfully deleted.</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render result phase, success (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete items" size="normal" noclose="false">
+  <!--v-if-->
+  
+  <div class="cn-mass-delete__result" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="result">
+    <div class="stub NcNoteCard" type="success">Items successfully deleted.</div>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Close</div>
+  <!--v-if-->
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, custom labels and formatter (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete reports" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete reports</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <p class="cn-dialog__sentence" data-testid="cn-mass-delete-sentence">Are you sure you want to permanently delete <strong class="cn-dialog__name">3 items</strong>?
+      <!--v-if-->
+    </p>
+    <p class="cn-dialog__note" role="note" data-testid="cn-mass-delete-note"><span aria-hidden="true" class="material-design-icon alert-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"><!--v-if--></path></svg></span><span>These reports go.</span></p>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">#1</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">#2</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">#3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm"> Delete reports<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, custom labels and formatter (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete reports" size="normal" noclose="false">
+  <!--v-if-->
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <div class="stub NcNoteCard" type="warning">These reports go.</div>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">#1</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">#2</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">#3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm"> Delete reports<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, defaults (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete items" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete items</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <p class="cn-dialog__sentence" data-testid="cn-mass-delete-sentence">Are you sure you want to permanently delete <strong class="cn-dialog__name">3 items</strong>? This action cannot be undone.</p>
+    <p class="cn-dialog__note" role="note" data-testid="cn-mass-delete-note"><span aria-hidden="true" class="material-design-icon alert-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"><!--v-if--></path></svg></span><span>The following items will be permanently deleted. Remove any items you want to keep.</span></p>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report A</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report B</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm"> Delete<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, defaults (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete items" size="normal" noclose="false">
+  <!--v-if-->
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <div class="stub NcNoteCard" type="warning">The following items will be permanently deleted. Remove any items you want to keep.</div>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report A</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report B</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm"> Delete<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, every item removed (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete items" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete items</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <p class="cn-dialog__sentence" data-testid="cn-mass-delete-sentence">Are you sure you want to permanently delete <strong class="cn-dialog__name">0 items</strong>? This action cannot be undone.</p>
+    <p class="cn-dialog__note" role="note" data-testid="cn-mass-delete-note"><span aria-hidden="true" class="material-design-icon alert-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"><!--v-if--></path></svg></span><span>The following items will be permanently deleted. Remove any items you want to keep.</span></p>
+    <div class="cn-mass-delete__list"></div>
+    <p class="cn-mass-delete__empty">No items selected for deletion.</p>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm" disabled="true"> Delete<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, every item removed (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete items" size="normal" noclose="false">
+  <!--v-if-->
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <div class="stub NcNoteCard" type="warning">The following items will be permanently deleted. Remove any items you want to keep.</div>
+    <div class="cn-mass-delete__list"></div>
+    <p class="cn-mass-delete__empty">No items selected for deletion.</p>
+    <!--v-if-->
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton" variant="error" data-testid="cn-mass-delete-dialog-confirm" disabled="true"> Delete<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, typed confirm value (board) 1`] = `
+"<div class="stub NcDialog cn-look-board cn-dialog-board cn-dialog-board--confirm" name="Delete items" size="normal" noclose="false" style="--cn-dialog-width: 560px;">
+  <div class="cn-dialog-header" data-testid="cn-dialog-header">
+    <div class="cn-dialog-header__text">
+      <!--v-if-->
+      
+      <div class="cn-dialog-header__title" aria-hidden="true" data-testid="cn-dialog-title">Delete items</div>
+      <!--v-if-->
+    </div>
+    <div class="stub NcButton cn-dialog-header__close" variant="tertiary" aria-label="Close" data-testid="cn-dialog-close"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+  </div>
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <p class="cn-dialog__sentence" data-testid="cn-mass-delete-sentence">Are you sure you want to permanently delete <strong class="cn-dialog__name">3 items</strong>? This action cannot be undone.</p>
+    <p class="cn-dialog__note" role="note" data-testid="cn-mass-delete-note"><span aria-hidden="true" class="material-design-icon alert-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"><!--v-if--></path></svg></span><span>The following items will be permanently deleted. Remove any items you want to keep.</span></p>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report A</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report B</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <div class="cn-dialog__confirm-field" data-testid="cn-confirm-value-field"><label class="cn-dialog__confirm-label" for="cn-confirm-value-4">Type to confirm</label><input id="cn-confirm-value-4" class="cn-dialog__confirm-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="cn-confirm-value-4-hint" data-testid="cn-confirm-value-input" value=""><span id="cn-confirm-value-4-hint" class="cn-dialog__confirm-hint" data-testid="cn-confirm-value-hint">Type <code>delete</code> to enable the button.</span></div>
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton cn-dialog__confirm-pending" variant="error" disabled="true" aria-disabled="true" data-testid="cn-mass-delete-dialog-confirm"> Delete<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnMassDeleteDialog default render review phase, typed confirm value (nextcloud) 1`] = `
+"<div class="stub NcDialog" name="Delete items" size="normal" noclose="false">
+  <!--v-if-->
+  <div class="cn-mass-delete__review" data-testid="cn-modal" data-testid-modal="cn-mass-delete-dialog" data-testid-phase="review">
+    <div class="stub NcNoteCard" type="warning">The following items will be permanently deleted. Remove any items you want to keep.</div>
+    <div class="cn-mass-delete__list">
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report A</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">Report B</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+      <div class="cn-mass-delete__item"><span class="cn-mass-delete__item-name">3</span>
+        <div class="stub NcButton" variant="tertiary" aria-label="Remove from list"><span aria-hidden="true" class="material-design-icon close-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="16" height="16" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"><!--v-if--></path></svg></span></div>
+      </div>
+    </div>
+    <!--v-if-->
+    <div class="cn-dialog__confirm-field" data-testid="cn-confirm-value-field"><label class="cn-dialog__confirm-label" for="cn-confirm-value-3">Type to confirm</label><input id="cn-confirm-value-3" class="cn-dialog__confirm-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="cn-confirm-value-3-hint" data-testid="cn-confirm-value-input" value=""><span id="cn-confirm-value-3-hint" class="cn-dialog__confirm-hint" data-testid="cn-confirm-value-hint">Type <code>delete</code> to enable the button.</span></div>
+  </div>
+  <div class="stub NcButton">Cancel</div>
+  <div class="stub NcButton cn-dialog__confirm-pending" variant="error" disabled="true" aria-disabled="true" data-testid="cn-mass-delete-dialog-confirm"> Delete<span aria-hidden="true" class="material-design-icon trash-can-outline-icon" role="img"><svg fill="currentColor" class="material-design-icon__svg" width="20" height="20" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"><!--v-if--></path></svg></span></div>
+</div>"
+`;
+
+exports[`CnTreeView default render collapsed with title and description 1`] = `
+"<div class="cn-tree-view" data-testid="cn-tree-view">
+  <header class="cn-tree-view__header">
+    <h3 class="cn-tree-view__title">Pages</h3>
+    <p class="cn-tree-view__description">All pages</p>
+  </header>
+  <ul class="cn-tree-view__root" role="tree">
+    <li class="cn-tree-node" data-node-id="1" role="treeitem" aria-expanded="false" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;"><button type="button" class="cn-tree-node__toggle" aria-label="Expand"><span class="cn-tree-node__caret">▸</span></button><span class="cn-tree-node__icon">📁</span><span class="cn-tree-node__label">Root A</span><span class="cn-tree-node__badge">2</span>
+        
+      </div>
+      <!--v-if-->
+    </li>
+    <li class="cn-tree-node" data-node-id="2" role="treeitem" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;"><span class="cn-tree-node__toggle cn-tree-node__toggle--leaf"></span>
+        <!--v-if--><span class="cn-tree-node__label">Root B</span>
+        <!--v-if-->
+        
+      </div>
+      <!--v-if-->
+    </li>
+  </ul>
+</div>"
+`;
+
+exports[`CnTreeView default render empty 1`] = `
+"<div class="cn-tree-view" data-testid="cn-tree-view">
+  <!--v-if-->
+  <p class="cn-tree-view__empty">No items.</p>
+</div>"
+`;
+
+exports[`CnTreeView default render expanded and selected, custom keys and indent 1`] = `
+"<div class="cn-tree-view" data-testid="cn-tree-view">
+  <!--v-if-->
+  <ul class="cn-tree-view__root" role="tree">
+    <li class="cn-tree-node cn-tree-node--expanded" data-node-id="a" role="treeitem" aria-expanded="true" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;"><button type="button" class="cn-tree-node__toggle" aria-label="Collapse"><span class="cn-tree-node__caret cn-tree-node__caret--open">▸</span></button>
+        <!--v-if--><span class="cn-tree-node__label">Alpha</span>
+        <!--v-if-->
+        
+      </div>
+      <ul class="cn-tree-node__children" role="group">
+        <li class="cn-tree-node cn-tree-node--selected" data-node-id="b" role="treeitem" aria-selected="true">
+          <div class="cn-tree-node__row" style="padding-left: 24px;"><span class="cn-tree-node__toggle cn-tree-node__toggle--leaf"></span>
+            <!--v-if--><span class="cn-tree-node__label">Beta</span>
+            <!--v-if-->
+            
+          </div>
+          <!--v-if-->
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>"
+`;
+
+exports[`CnTreeView default render expanded with the actions slot 1`] = `
+"<div class="cn-tree-view" data-testid="cn-tree-view">
+  <!--v-if-->
+  <ul class="cn-tree-view__root" role="tree">
+    <li class="cn-tree-node cn-tree-node--expanded" data-node-id="1" role="treeitem" aria-expanded="true" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;"><button type="button" class="cn-tree-node__toggle" aria-label="Collapse"><span class="cn-tree-node__caret cn-tree-node__caret--open">▸</span></button><span class="cn-tree-node__icon">📁</span><span class="cn-tree-node__label">Root A</span><span class="cn-tree-node__badge">2</span>
+        
+        <span class="act">Root A:0</span>
+      </div>
+      <ul class="cn-tree-node__children" role="group">
+        <li class="cn-tree-node cn-tree-node--expanded" data-node-id="11" role="treeitem" aria-expanded="true" aria-selected="false">
+          <div class="cn-tree-node__row" style="padding-left: 18px;"><button type="button" class="cn-tree-node__toggle" aria-label="Collapse"><span class="cn-tree-node__caret cn-tree-node__caret--open">▸</span></button>
+            <!--v-if--><span class="cn-tree-node__label">Child A1</span>
+            <!--v-if-->
+            
+            <span class="act">Child A1:1</span>
+          </div>
+          <ul class="cn-tree-node__children" role="group">
+            <li class="cn-tree-node" data-node-id="111" role="treeitem" aria-selected="false">
+              <div class="cn-tree-node__row" style="padding-left: 36px;"><span class="cn-tree-node__toggle cn-tree-node__toggle--leaf"></span>
+                <!--v-if--><span class="cn-tree-node__label">Leaf A1a</span>
+                <!--v-if-->
+                
+                <span class="act">Leaf A1a:2</span>
+              </div>
+              <!--v-if-->
+            </li>
+          </ul>
+        </li>
+        <li class="cn-tree-node" data-node-id="12" role="treeitem" aria-selected="false">
+          <div class="cn-tree-node__row" style="padding-left: 18px;"><span class="cn-tree-node__toggle cn-tree-node__toggle--leaf"></span>
+            <!--v-if--><span class="cn-tree-node__label">Child A2</span><span class="cn-tree-node__badge">0</span>
+            
+            <span class="act">Child A2:1</span>
+          </div>
+          <!--v-if-->
+        </li>
+      </ul>
+    </li>
+    <li class="cn-tree-node" data-node-id="2" role="treeitem" aria-selected="false">
+      <div class="cn-tree-node__row" style="padding-left: 0px;"><span class="cn-tree-node__toggle cn-tree-node__toggle--leaf"></span>
+        <!--v-if--><span class="cn-tree-node__label">Root B</span>
+        <!--v-if-->
+        
+        <span class="act">Root B:0</span>
+      </div>
+      <!--v-if-->
+    </li>
+  </ul>
+</div>"
+`;

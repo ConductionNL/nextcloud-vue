@@ -12,7 +12,10 @@
   `layout-change` emission are byte-identical between the two input modes.
 -->
 <template>
-	<div ref="gridContainer" class="cn-dashboard-grid">
+	<div ref="gridContainer"
+		class="cn-dashboard-grid"
+		:class="{ 'cn-dashboard-grid--side-column': sideColumnStyle !== null, 'cn-dashboard-grid--weighted': columnBounds !== null, 'cn-dashboard-grid--fill': filling }"
+		:style="sideColumnStyle">
 		<!--
 			Keyboard instructions, referenced by every grid item through
 			`aria-describedby`. Rendered once (not per item) so a screen
@@ -26,12 +29,12 @@
 			{{ keyboardHelpText }}
 		</p>
 
-		<div class="grid-stack">
+		<div class="grid-stack" :style="fillGridStyle">
 			<div
 				v-for="item in itemsInRowOrder"
 				:key="resolveItemKey(item)"
 				class="grid-stack-item"
-				:class="{ 'cn-dashboard-grid__item--fit': sizeToContentAttr(item) !== undefined }"
+				:class="{ 'cn-dashboard-grid__item--fit': sizeToContentAttr(item) !== undefined, 'cn-dashboard-grid__item--same-height': sharesRowHeight(item) }"
 				role="group"
 				:aria-label="resolveItemLabel(item, layout.indexOf(item))"
 				:aria-describedby="itemDescribedBy"
@@ -44,6 +47,11 @@
 				:gs-min-w="minWidth"
 				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
+				:data-cn-track="item.track === 'main' || item.track === 'side' ? item.track : undefined"
+				:data-cn-weighted="weightStyle(item) ? '' : undefined"
+				:data-cn-widget-id="item.widgetId || undefined"
+				:gs-locked="item.clear === true && !editable ? 'true' : undefined"
+				:style="itemStyle(item)"
 				@keydown="onItemKeydown($event, item)">
 				<div class="grid-stack-item-content">
 					<slot name="widget" :item="item">
@@ -72,7 +80,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { GridStack } from 'gridstack'
 import { toRaw } from 'vue'
-import { planGrowth } from '../../utils/gridStack.js'
+import { planClearRows, planGrowth, planSameHeights } from '../../utils/gridStack.js'
 // `gridstack` is a peerDependency (see package.json), not bundled — this
 // component's JS and the consumer's GridStack stylesheet MUST come from the
 // exact same installed copy, because GridStack's JS writes layout state
@@ -103,9 +111,14 @@ const MENU_ANCHOR_OFFSET = 8
 
 /**
  * How many GridStack rows a layout row is drawn as on a grid with
- * size-to-content cells (`wantsRowSplit`): 80px rows become 10px rows.
+ * size-to-content cells (`wantsRowSplit`): 80px rows become 1px rows, so a
+ * cell sized to its content ends less than 1px under it. On 4px rows each
+ * stacked card could end up to 4px low, and the rounding added up down a
+ * column (r33 DqHandhaving "De overtreding" y +6).
+ *
+ * @spec openspec/changes/fit-cells-on-4px-rows/specs/fit-cells-on-4px-rows/spec.md#requirement-a-size-to-content-cell-ends-within-4px-of-its-content
  */
-const ROW_SPLIT = 8
+const ROW_SPLIT = 80
 
 /**
  * Whether a layout holds a size-to-content cell (`sizeToContent` true or a
@@ -117,6 +130,29 @@ const ROW_SPLIT = 8
 function hasFitCell(layout) {
 	return Array.isArray(layout) && layout.some((item) => item
 		&& (item.sizeToContent === true || (Number.isFinite(item.sizeToContent) && item.sizeToContent > 0)))
+}
+
+/**
+ * The row tracks of a grid that fills its height (`fillHeight`): `auto` for
+ * a row whose items all set `fitRows`, or that no item covers, and an equal
+ * share of the free height (`minmax(0, 1fr)`) for every other row.
+ *
+ * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+ * @param {Array<object>} layout The layout items.
+ * @return {string[]} One track per layout row.
+ */
+export function fillRowTracks(layout) {
+	const items = Array.isArray(layout) ? layout.filter(Boolean) : []
+	const top = (item) => (Number.isFinite(item.gridY) ? item.gridY : 0)
+	const height = (item) => (Number.isFinite(item.gridHeight) ? item.gridHeight : 1)
+	const rows = items.reduce((max, item) => Math.max(max, top(item) + height(item)), 0)
+	const tracks = []
+	for (let row = 0; row < rows; row++) {
+		const covering = items.filter((item) => row >= top(item) && row < top(item) + height(item))
+		const fits = covering.every((item) => item.fitRows === true)
+		tracks.push(fits ? 'auto' : 'minmax(0, 1fr)')
+	}
+	return tracks
 }
 
 /**
@@ -159,7 +195,7 @@ export default {
 	name: 'CnDashboardGrid',
 
 	props: {
-		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, ...extra } */
+		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, minHeight?, ...extra }. An item's `minHeight` (layout rows) replaces the grid's own for that item. */
 		layout: {
 			type: Array,
 			required: true,
@@ -187,6 +223,15 @@ export default {
 		margin: {
 			type: Number,
 			default: 12,
+		},
+
+		/**
+		 * Margin under each item in pixels, in place of `margin` on that side
+		 * only; null keeps `margin` on every side.
+		 */
+		marginBottom: {
+			type: Number,
+			default: null,
 		},
 
 		/** Minimum widget width in grid units */
@@ -289,6 +334,70 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * A side column of a fixed width: `{ width, from? }`. The layout items
+		 * that say which track they are on (`track: "main"` or `"side"`) are
+		 * drawn on two scales: from column `from` (8 by default) on at `width`
+		 * px (the card, not counting the item margins), the columns before it
+		 * sharing the rest, so the side cards keep their width on any screen
+		 * (DqMijnWerk). Items without a track keep the twelve shares, so a row
+		 * of four tiles stays four equal tiles. Only on the full twelve-column
+		 * grid and not while editing; GridStack keeps the twelve columns
+		 * underneath.
+		 *
+		 * @spec openspec/changes/dashboard-side-column-width/specs/dashboard-side-column-width/spec.md#requirement-a-dashboard-can-draw-its-side-column-at-a-fixed-width
+		 */
+		sideColumn: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Weights for groups of the twelve columns: `[{ span, weight }]`, the
+		 * spans adding up to 12. Each group takes its weight's share of the
+		 * width, split evenly over its columns, so three groups of four can be
+		 * drawn 332 / 415 / 332 (PqWerkplekKlant in a call). Items on a
+		 * `sideColumn` track keep that column. Only on the full twelve-column
+		 * grid and not while editing; GridStack keeps the twelve columns
+		 * underneath.
+		 *
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 */
+		columnWeights: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Fill the height the host gives the grid instead of growing with
+		 * the content: in view mode the layout rows divide the grid's own
+		 * height, so the page around it does not scroll. A row whose items
+		 * all set `fitRows: true` takes the height of its content; every
+		 * other row takes an equal share of what is left. A widget that is
+		 * taller than its share scrolls inside its own cell. The host gives
+		 * the grid a definite height (a flex child with `min-height: 0`, say).
+		 * Edit mode, and a grid narrower than `fillMinWidth`, keep the
+		 * GridStack grid of `cellHeight` rows.
+		 *
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 */
+		fillHeight: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The narrowest grid, in pixels, that `fillHeight` still fills.
+		 * Narrower, the cards take their `cellHeight` rows (and GridStack's
+		 * `columnOpts` reflow) and the page scrolls.
+		 *
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 */
+		fillMinWidth: {
+			type: Number,
+			default: 960,
+		},
 	},
 
 	emits: [
@@ -331,10 +440,96 @@ export default {
 			 * and again when the grid is rebuilt.
 			 */
 			rowSplit: (!this.editable && !this.float && hasFitCell(this.layout)) ? ROW_SPLIT : 1,
+			/** The grid's width in pixels, measured for `fillHeight`. */
+			containerWidth: 0,
+			sizeObserver: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * The CSS variables that draw the side column at its width, or null
+		 * when the grid keeps its twelve shares.
+		 *
+		 * @return {object|null}
+		 */
+		/**
+		 * The left edge of each of the twelve columns and the right edge of
+		 * the last, as fractions of the grid's width, from `columnWeights`;
+		 * null when the grid keeps its twelve shares.
+		 *
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 * @return {number[]|null}
+		 */
+		columnBounds() {
+			const groups = this.columnWeights
+			if (this.editable || !Array.isArray(groups) || groups.length === 0) {
+				return null
+			}
+			const perColumn = []
+			for (const group of groups) {
+				const span = Number(group?.span)
+				const weight = Number(group?.weight)
+				if (!Number.isInteger(span) || span < 1 || !Number.isFinite(weight) || weight <= 0) {
+					return null
+				}
+				for (let i = 0; i < span; i++) {
+					perColumn.push(weight / span)
+				}
+			}
+			if (perColumn.length !== 12) {
+				return null
+			}
+			const total = perColumn.reduce((sum, w) => sum + w, 0)
+			const bounds = [0]
+			for (const w of perColumn) {
+				bounds.push(bounds[bounds.length - 1] + w / total)
+			}
+			return bounds
+		},
+
+		sideColumnStyle() {
+			const width = Number(this.sideColumn?.width)
+			if (this.editable || !Number.isFinite(width) || width <= 0) {
+				return null
+			}
+			const from = Math.floor(Number(this.sideColumn?.from ?? 8))
+			const split = Number.isFinite(from) && from > 0 && from < 12 ? from : 8
+			return {
+				'--cn-side-width': `${width}px`,
+				'--cn-side-from': String(split),
+				'--cn-side-span': String(12 - split),
+			}
+		},
+
+		/**
+		 * Whether the grid fills its height now (`fillHeight`): in view mode,
+		 * on a grid at least `fillMinWidth` wide.
+		 *
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @return {boolean}
+		 */
+		filling() {
+			return this.fillHeight && !this.editable && this.containerWidth >= this.fillMinWidth
+		},
+
+		/**
+		 * The inline style of the grid element while it fills its height.
+		 *
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @return {object|null}
+		 */
+		fillGridStyle() {
+			if (!this.filling) {
+				return null
+			}
+			return {
+				gridTemplateColumns: `repeat(${this.columns}, minmax(0, 1fr))`,
+				gridTemplateRows: fillRowTracks(this.layout).join(' '),
+				'--cn-fill-margin': `${this.margin}px`,
+			}
+		},
+
 		/**
 		 * The layout's items top to bottom, then left to right: the order the
 		 * items are in the page, so GridStack places them in that order.
@@ -364,8 +559,8 @@ export default {
 		 * size-to-content cell can only be a whole number of rows tall, so on
 		 * 80px rows it kept up to a row of empty space under its content and
 		 * a packing grid (`float: false`) could not close it (pipelinq and
-		 * dossiq Mijn werk, decidiq Mijn acties). Split into 10px rows the
-		 * cell ends within 10px of its content and the widgets below move up.
+		 * dossiq Mijn werk, decidiq Mijn acties). Split into 4px rows the
+		 * cell ends within 4px of its content and the widgets below move up.
 		 *
 		 * Only in view mode, only on a packing grid with a size-to-content
 		 * cell: every other grid is built exactly as before. Item positions
@@ -446,6 +641,25 @@ export default {
 			this.syncInteractivity()
 		},
 
+		filling(fills) {
+			if (fills) {
+				this.disconnectContentObserver()
+				if (this.grid) {
+					this.grid.destroy(false)
+					this.grid = null
+				}
+				return
+			}
+			this.$nextTick(() => {
+				if (this.grid || !this.$refs.gridContainer) {
+					return
+				}
+				this.applyItemAttributes()
+				this.initGrid()
+				this.observeContentSizes()
+			})
+		},
+
 		wantsRowSplit(wants) {
 			if (this.grid && (wants ? ROW_SPLIT : 1) !== this.rowSplit) {
 				this.rebuildGrid()
@@ -463,11 +677,19 @@ export default {
 	},
 
 	mounted() {
+		this.observeContainerWidth()
+		if (this.filling) {
+			return
+		}
 		this.initGrid()
 		this.$nextTick(() => this.observeContentSizes())
 	},
 
 	beforeUnmount() {
+		if (this.sizeObserver) {
+			this.sizeObserver.disconnect()
+			this.sizeObserver = null
+		}
 		this.disconnectContentObserver()
 		if (this.grid) {
 			this.grid.destroy(false)
@@ -528,8 +750,20 @@ export default {
 		},
 
 		/**
-		 * The smallest height an item may take, in grid rows: `minHeight`
-		 * layout rows, except for a size-to-content cell on split rows, which
+		 * The smallest height an item may take, in layout rows: the item's own
+		 * `minHeight` (a divider may be one row), else the grid's.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum height in layout rows.
+		 */
+		itemMinHeight(item) {
+			const own = item && item.minHeight
+			return Number.isFinite(own) && own >= 1 ? Math.floor(own) : this.minHeight
+		},
+
+		/**
+		 * The smallest height an item may take, in grid rows: its minimum
+		 * height in layout rows, except for a size-to-content cell on split rows, which
 		 * may shrink to its content down to one grid row. The minimum is for
 		 * resizing by hand, and that only happens on whole rows in edit mode.
 		 *
@@ -541,7 +775,7 @@ export default {
 			if (this.rowSplit !== 1 && this.sizeToContentAttr(item) !== undefined) {
 				return 1
 			}
-			return this.minHeight * this.rowSplit
+			return this.itemMinHeight(item) * this.rowSplit
 		},
 
 		/**
@@ -562,19 +796,7 @@ export default {
 					return
 				}
 				// GridStack wrote its own places onto the items; put the layout's back.
-				for (const item of this.layout) {
-					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
-					if (!el) {
-						continue
-					}
-					for (const [name, value] of [['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
-						if (value === undefined) {
-							el.removeAttribute(name)
-						} else {
-							el.setAttribute(name, String(value))
-						}
-					}
-				}
+				this.applyItemAttributes()
 				this.initGrid()
 				this.observeContentSizes()
 			})
@@ -592,6 +814,104 @@ export default {
 		 *   last-resort positional name.
 		 * @return {string} the accessible name.
 		 */
+		/**
+		 * Write every item's place and size onto its element as the `gs-*`
+		 * attributes GridStack reads when it starts, in the current row split.
+		 *
+		 * @return {void}
+		 */
+		applyItemAttributes() {
+			for (const item of this.layout) {
+				const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
+				if (!el) {
+					continue
+				}
+				for (const [name, value] of [['gs-x', item.gridX], ['gs-w', item.gridWidth], ['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
+					if (value === undefined || value === null) {
+						el.removeAttribute(name)
+					} else {
+						el.setAttribute(name, String(value))
+					}
+				}
+			}
+		},
+
+		/**
+		 * Follow the grid's width, which decides whether `fillHeight` fills.
+		 *
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @return {void}
+		 */
+		observeContainerWidth() {
+			const container = this.$refs.gridContainer
+			if (!this.fillHeight || !container) {
+				return
+			}
+			this.containerWidth = container.clientWidth
+			if (typeof ResizeObserver === 'undefined') {
+				return
+			}
+			this.sizeObserver = new ResizeObserver(() => {
+				this.containerWidth = container.clientWidth
+			})
+			this.sizeObserver.observe(container)
+		},
+
+		/**
+		 * The inline style that places an item on the filled grid.
+		 *
+		 * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
+		 * @param {object} item The layout item.
+		 * @return {object}
+		 */
+		fillItemStyle(item) {
+			const x = Number.isFinite(item.gridX) ? item.gridX : 0
+			const y = Number.isFinite(item.gridY) ? item.gridY : 0
+			const w = Number.isFinite(item.gridWidth) ? item.gridWidth : this.minWidth
+			const h = Number.isFinite(item.gridHeight) ? item.gridHeight : this.minHeight
+			return {
+				gridColumn: `${x + 1} / span ${w}`,
+				gridRow: `${y + 1} / span ${h}`,
+			}
+		},
+
+		/**
+		 * The left and width fractions of an item on weighted columns, or
+		 * null when the grid keeps its twelve shares or the item is on a
+		 * side-column track.
+		 *
+		 * @spec openspec/changes/dashboard-column-weights/specs/dashboard-column-weights/spec.md#requirement-a-dashboard-can-weigh-its-column-groups
+		 * @param {object} item The layout item.
+		 * @return {object|null}
+		 */
+		weightStyle(item) {
+			const bounds = this.columnBounds
+			if (bounds === null || (this.sideColumnStyle !== null && (item.track === 'main' || item.track === 'side'))) {
+				return null
+			}
+			const x = Math.min(Math.max(Number.isFinite(item.gridX) ? item.gridX : 0, 0), 12)
+			const w = Number.isFinite(item.gridWidth) ? item.gridWidth : this.minWidth
+			const end = Math.min(Math.max(x + w, x), 12)
+			return {
+				'--cn-weight-left': String(bounds[x]),
+				'--cn-weight-width': String(bounds[end] - bounds[x]),
+			}
+		},
+
+		/**
+		 * The inline style of an item: its place on a filled grid, or its
+		 * place on weighted columns.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {object|undefined}
+		 */
+		itemStyle(item) {
+			if (this.filling) {
+				return this.fillItemStyle(item)
+			}
+			return this.weightStyle(item) || undefined
+		},
+
 		resolveItemLabel(item, index) {
 			if (this.itemLabel) {
 				return String(this.itemLabel(item, index) ?? '')
@@ -650,6 +970,7 @@ export default {
 				column: this.columns,
 				cellHeight: this.cellHeight / this.rowSplit,
 				margin: this.margin,
+				...(this.marginBottom !== null ? { marginBottom: this.marginBottom } : {}),
 				float: this.float,
 				animate: true,
 				disableDrag: !this.editable,
@@ -658,6 +979,8 @@ export default {
 				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
 			this.keepOrderOnGrowth()
+			this.matchRowHeights()
+			this.placeClearRows()
 
 			this.grid.on('change', (_event, items) => {
 				this.handleGridChange(items)
@@ -701,35 +1024,162 @@ export default {
 			const resize = grid.resizeToContent.bind(grid)
 			const growing = new Set()
 			grid.resizeToContent = (el) => {
-				if (growing.has(el)) {
-					resize(el)
+				if (this.pendingSizes) {
+					if (!this.pendingSizes.includes(el)) {
+						this.pendingSizes.push(el)
+					}
 					return
 				}
-				const node = el && el.gridstackNode
-				const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
-				const rows = node && nodes ? this.contentRows(el, node) : null
-				const plan = rows ? planGrowth(nodes, node, rows) : []
-				if (plan.length === 0) {
-					resize(el)
+				this.matchRowHeights()
+				this.resizeKeepingOrder(grid, resize, growing, el)
+				if (growing.size === 0) {
+					this.placeClearRows()
+				}
+			}
+		},
+
+		/**
+		 * One `resizeToContent` with the cards under a growing cell moved down
+		 * first (`keepOrderOnGrowth`).
+		 *
+		 * @param {object} grid The raw GridStack.
+		 * @param {function(HTMLElement): void} resize GridStack's own resizeToContent.
+		 * @param {Set<HTMLElement>} growing The cells being grown now.
+		 * @param {HTMLElement} el The cell.
+		 * @return {void}
+		 */
+		resizeKeepingOrder(grid, resize, growing, el) {
+			if (growing.has(el)) {
+				resize(el)
+				return
+			}
+			const node = el && el.gridstackNode
+			const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
+			const rows = node && nodes ? this.contentRows(el, node) : null
+			const plan = rows ? planGrowth(nodes, node, rows) : []
+			if (plan.length === 0) {
+				resize(el)
+				return
+			}
+			// Inside a batch the moves are not packed until the cell has grown.
+			const batching = Boolean(grid.engine.batchMode)
+			growing.add(el)
+			try {
+				if (!batching) {
+					grid.batchUpdate()
+				}
+				for (const step of plan) {
+					grid.update(step.node.el, { y: step.y })
+				}
+				resize(el)
+				if (!batching) {
+					grid.batchUpdate(false)
+				}
+			} finally {
+				growing.delete(el)
+			}
+		},
+
+		/**
+		 * Whether a layout item takes part in its row's shared height
+		 * (`sameHeight`). A size-to-content card stretches to the tallest; a card
+		 * of fixed height is not stretched but counts as the height to reach.
+		 *
+		 * @spec openspec/changes/dashboard-row-same-height/specs/dashboard-grid/spec.md
+		 * @param {object} item The layout item.
+		 * @return {boolean} True when it does.
+		 */
+		sharesRowHeight(item) {
+			return item?.sameHeight === true
+		},
+
+		/**
+		 * Stretch the shorter `sameHeight` cards of each layout row to the
+		 * tallest of them (`planSameHeights`), with a min-height on the widget
+		 * the cell measures, so GridStack sizes the cells alike and the next row
+		 * starts level, as the boards draw a row of cards (DqProcesanalyse).
+		 * Each pass measures the content again without the stretch, so a row
+		 * shrinks with its content. Edit mode and a reflowed (stacked) grid keep
+		 * every card at its own height.
+		 *
+		 * @spec openspec/changes/dashboard-row-same-height/specs/dashboard-grid/spec.md
+		 * @return {void}
+		 */
+		matchRowHeights() {
+			const container = this.$el && typeof this.$el.querySelectorAll === 'function' ? this.$el : null
+			if (!container || this.matchingRowHeights) {
+				return
+			}
+			const byId = new Map(this.layout.map((item) => [String(item.id), item]))
+			const cards = []
+			for (const cell of container.querySelectorAll('.grid-stack-item.cn-dashboard-grid__item--same-height')) {
+				const item = byId.get(String(cell.getAttribute('gs-id')))
+				const child = cell.querySelector('.grid-stack-item-content')?.firstElementChild
+				if (item && child) {
+					cards.push({ child, row: item.gridY ?? 0, fit: this.sizeToContentAttr(item) !== undefined })
+				}
+			}
+			if (cards.length === 0) {
+				return
+			}
+			this.matchingRowHeights = true
+			try {
+				for (const card of cards) {
+					if (card.fit) {
+						card.child.style.minHeight = ''
+					}
+				}
+				if (this.editable || this.reflowed) {
 					return
 				}
-				// Inside a batch the moves are not packed until the cell has grown.
-				const batching = Boolean(grid.engine.batchMode)
-				growing.add(el)
-				try {
-					if (!batching) {
-						grid.batchUpdate()
+				const heights = planSameHeights(cards.map((card) => ({ row: card.row, height: card.child.getBoundingClientRect().height })))
+				cards.forEach((card, index) => {
+					if (card.fit && heights[index] !== null) {
+						card.child.style.minHeight = `${heights[index]}px`
 					}
-					for (const step of plan) {
-						grid.update(step.node.el, { y: step.y })
-					}
-					resize(el)
-					if (!batching) {
-						grid.batchUpdate(false)
-					}
-				} finally {
-					growing.delete(el)
+				})
+			} finally {
+				this.matchingRowHeights = false
+			}
+		},
+
+		/**
+		 * Put every `clear` layout item below the cards of the earlier rows
+		 * (`planClearRows`), in one batch. Runs after the grid is built and after
+		 * each cell is measured to its content; a move made here that measures a
+		 * cell again does not start another round.
+		 *
+		 * @spec openspec/changes/dashboard-clear-row/specs/dashboard-grid/spec.md
+		 * @return {void}
+		 */
+		placeClearRows() {
+			const grid = this.grid ? toRaw(this.grid) : null
+			if (this.placingClearRows || !grid || !grid.engine || !Array.isArray(grid.engine.nodes) || typeof grid.update !== 'function') {
+				return
+			}
+			const byId = new Map(this.layout.map((item) => [String(item.id), item]))
+			const nodes = grid.engine.nodes.map((n) => {
+				const item = byId.get(String(n.id))
+				return Object.assign(Object.create(null), { node: n, x: n.x, y: n.y, w: n.w, h: n.h, row: item ? this.scaledRow(item.gridY ?? 0) : 0, clear: !this.editable && item?.clear === true })
+			})
+			const plan = planClearRows(nodes)
+			if (plan.length === 0) {
+				return
+			}
+			const batching = Boolean(grid.engine.batchMode)
+			this.placingClearRows = true
+			try {
+				if (!batching && typeof grid.batchUpdate === 'function') {
+					grid.batchUpdate()
 				}
+				for (const step of plan) {
+					grid.update(step.node.node.el, { y: step.y })
+				}
+				if (!batching && typeof grid.batchUpdate === 'function') {
+					grid.batchUpdate(false)
+				}
+			} finally {
+				this.placingClearRows = false
 			}
 		},
 
@@ -789,10 +1239,14 @@ export default {
 			if (!this.grid || typeof this.grid.enable !== 'function') {
 				return
 			}
+			// On the raw grid: enabled through Vue's proxy, GridStack binds its
+			// drag handlers to the proxy and a drop never ends, so the move is
+			// shown but no `change` follows.
+			const grid = toRaw(this.grid)
 			if (this.editable && !this.reflowed) {
-				this.grid.enable()
+				grid.enable()
 			} else {
-				this.grid.disable()
+				grid.disable()
 			}
 		},
 
@@ -977,12 +1431,13 @@ export default {
 		 * edge instead of pushing it into negative coordinates.
 		 *
 		 * @param {{x: number, y: number, w: number, h: number}} rect the candidate.
+		 * @param {object} [item] the layout item, whose own `minHeight` applies.
 		 * @return {{x: number, y: number, w: number, h: number}} the clamped rectangle.
 		 */
-		clampRect(rect) {
+		clampRect(rect, item) {
 			const cols = this.effectiveColumns
 			const w = Math.min(Math.max(rect.w, this.minWidth), cols)
-			const h = Math.max(rect.h, this.minHeight)
+			const h = Math.max(rect.h, item ? this.itemMinHeight(item) : this.minHeight)
 			return {
 				x: Math.min(Math.max(rect.x, 0), Math.max(cols - w, 0)),
 				y: Math.max(rect.y, 0),
@@ -1015,7 +1470,7 @@ export default {
 			}
 
 			const current = this.currentRect(item)
-			const next = this.clampRect({ ...current, ...patch })
+			const next = this.clampRect({ ...current, ...patch }, item)
 
 			if (next.x === current.x && next.y === current.y
 				&& next.w === current.w && next.h === current.h) {
@@ -1025,7 +1480,7 @@ export default {
 				return true
 			}
 
-			this.grid.update(el, next)
+			toRaw(this.grid).update(el, next)
 
 			this.announce(kind === 'resize'
 				? t('nextcloud-vue', '{label} resized to {width} columns by {height} rows', {
@@ -1214,22 +1669,59 @@ export default {
 			return nodes.find((n) => String(n.id) === String(id)) || null
 		},
 
+		/**
+		 * Make the cards a layout change brings in GridStack widgets, in the
+		 * order given (row order), and size the size-to-content ones only once
+		 * all are placed, in the same order. GridStack sizes such a cell the
+		 * moment it is added, and a card added after it onto a cell that has
+		 * grown pushes that cell below itself: the in-call tile row on
+		 * PqWerkplekKlant ended under every column card.
+		 *
+		 * @spec openspec/changes/dashboard-layout-swap-keeps-order/specs/dashboard-grid/spec.md#requirement-cards-a-layout-change-adds-keep-their-authored-order
+		 * @param {Array<HTMLElement>} els The new cells, top to bottom.
+		 * @return {void}
+		 */
+		addWidgetsInOrder(els) {
+			if (els.length === 0) {
+				return
+			}
+			const grid = toRaw(this.grid)
+			const queued = []
+			this.pendingSizes = queued
+			try {
+				for (const el of els) {
+					grid.makeWidget(el)
+				}
+			} finally {
+				this.pendingSizes = null
+			}
+			for (const el of queued) {
+				grid.resizeToContent(el)
+			}
+		},
+
 		syncGridItems(newLayout) {
 			// Add new items, and re-adopt items whose backing DOM element was
 			// replaced. When a consumer's `itemKey` changes for an unchanged
 			// `id` (e.g. a style edit — the documented use of `itemKey`), Vue
 			// swaps the element. GridStack keeps tracking the old, now-detached
 			// element, leaving the new one unmanaged (no positioning/sizing) —
-			// so re-register it against the new element.
-			for (const item of newLayout) {
-				this.$nextTick(() => {
+			// so re-register it against the new element. New items are added
+			// together, top to bottom (`addWidgetsInOrder`).
+			this.$nextTick(() => {
+				if (!this.grid || !this.$refs.gridContainer) {
+					return
+				}
+				const grid = toRaw(this.grid)
+				const added = []
+				for (const item of this.itemsInRowOrder) {
 					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
 					if (!el) {
-						return
+						continue
 					}
-					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
+					const node = grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
-						this.grid.makeWidget(el)
+						added.push(el)
 					} else if (node.el === el) {
 						// The layout MOVED an item the grid already tracks: the
 						// page re-compacts its display layout when a widget's
@@ -1238,16 +1730,23 @@ export default {
 						// where the hidden widget had been. A drag reports the
 						// grid's own position back, which matches and does
 						// nothing here.
+						// A width or height the layout changed (a form, an
+						// undo) is synced the same way. A size-to-content cell
+						// keeps the height its content gave it.
 						const x = item.gridX ?? node.x
 						const y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
-						if (x !== node.x || y !== node.y) {
+						const w = Number.isFinite(item.gridWidth) ? item.gridWidth : node.w
+						const h = Number.isFinite(item.gridHeight) && this.sizeToContentAttr(item) === undefined
+							? item.gridHeight * this.rowSplit
+							: node.h
+						if (x !== node.x || y !== node.y || w !== node.w || h !== node.h) {
 							// The layout said where it goes; GridStack's `change`
 							// for it is not a user's arrangement and is not
 							// reported back (it would write the display-only
 							// compaction into the authored layout).
 							this.applyingLayout = true
 							try {
-								this.grid.update(el, { x, y })
+								grid.update(el, { x, y, w, h })
 							} finally {
 								this.applyingLayout = false
 							}
@@ -1255,11 +1754,12 @@ export default {
 					} else {
 						// Drop the stale node without touching its detached DOM,
 						// then adopt the new element so GridStack sizes/places it.
-						this.grid.removeWidget(node.el, false, false)
-						this.grid.makeWidget(el)
+						grid.removeWidget(node.el, false, false)
+						grid.makeWidget(el)
 					}
-				})
-			}
+				}
+				this.addWidgetsInOrder(added)
+			})
 
 			// Remove items no longer in layout
 			const ids = newLayout.map((i) => String(i.id))
@@ -1267,7 +1767,7 @@ export default {
 			for (const node of toRemove) {
 				const el = this.$refs.gridContainer.querySelector(`[gs-id="${node.id}"]`)
 				if (el) {
-					this.grid.removeWidget(el, false)
+					toRaw(this.grid).removeWidget(el, false)
 				}
 			}
 
@@ -1286,6 +1786,61 @@ export default {
 
 .grid-stack {
 	background: transparent;
+}
+
+/* `fillHeight`: the layout rows divide the grid's height (CSS grid instead of
+   GridStack's absolute rows). GridStack may have left its inline places on the
+   items, hence !important. Each cell scrolls what does not fit in it. */
+.cn-dashboard-grid--fill {
+	height: 100%;
+	min-height: 0;
+}
+
+.cn-dashboard-grid--fill > .grid-stack {
+	display: grid;
+	height: 100% !important;
+	min-height: 0 !important;
+}
+
+.cn-dashboard-grid--fill > .grid-stack > .grid-stack-item {
+	position: relative !important;
+	inset: auto !important;
+	width: auto !important;
+	height: auto !important;
+	min-width: 0;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: var(--cn-fill-margin, 0);
+}
+
+.cn-dashboard-grid--fill > .grid-stack > .grid-stack-item > .grid-stack-item-content {
+	position: relative !important;
+	inset: auto !important;
+	height: 100%;
+	overflow: hidden auto;
+}
+
+/* `sideColumn`: an item on a track has its left edge and width follow its
+   column on two scales, the columns before `--cn-side-from` sharing what the side column
+   leaves, the columns after it sharing the side column's fixed width (the
+   card plus its two item margins). GridStack writes `--gs-x` and `--gs-w` on
+   every item and its own left and width inline, hence !important. */
+.cn-dashboard-grid--side-column > .grid-stack.gs-12:not(.grid-stack-rtl) > .grid-stack-item[data-cn-track] {
+	--cn-side-cell: calc(var(--cn-side-width) + var(--gs-item-margin-left, 0px) + var(--gs-item-margin-right, 0px));
+	--cn-main-col: calc((100% - var(--cn-side-cell)) / var(--cn-side-from));
+	--cn-side-col: calc(var(--cn-side-cell) / var(--cn-side-span));
+	/* stylelint-disable-next-line csstools/use-logical -- GridStack places a left-to-right item by `left`. */
+	left: calc(min(var(--gs-x), var(--cn-side-from)) * var(--cn-main-col) + max(var(--gs-x) - var(--cn-side-from), 0) * var(--cn-side-col)) !important;
+	width: calc((min(var(--gs-x) + var(--gs-w), var(--cn-side-from)) - min(var(--gs-x), var(--cn-side-from))) * var(--cn-main-col) + (max(var(--gs-x) + var(--gs-w) - var(--cn-side-from), 0) - max(var(--gs-x) - var(--cn-side-from), 0)) * var(--cn-side-col)) !important;
+}
+
+/* `columnWeights`: an item's left edge and width follow the weighted columns
+   it spans, as fractions of the grid. GridStack writes its own left and width
+   inline, hence !important. */
+.cn-dashboard-grid--weighted > .grid-stack.gs-12:not(.grid-stack-rtl) > .grid-stack-item[data-cn-weighted] {
+	/* stylelint-disable-next-line csstools/use-logical -- GridStack places a left-to-right item by `left`. */
+	left: calc(var(--cn-weight-left) * 100%) !important;
+	width: calc(var(--cn-weight-width) * 100%) !important;
 }
 
 /* Screen-reader-only text: the keyboard key map and the live region. Kept in
@@ -1309,6 +1864,15 @@ export default {
 	outline: 2px solid var(--color-primary-element, #0082c9);
 	outline-offset: 2px;
 	border-radius: var(--border-radius-container-large, 16px);
+}
+
+/* A stretched `sameHeight` card keeps its content at the top, as the boards
+   draw a row of cards, not centred in the extra height. `.grid-stack-item`
+   outranks the dashboard page's centring of a fitted card, which is as
+   strong and loads later (DqProcesanalyse stat tiles).
+   @spec openspec/changes/same-height-fit-card-content-top/specs/dashboard-grid/spec.md#requirement-a-stretched-fitted-card-keeps-its-content-at-the-top */
+.cn-dashboard-grid__item--same-height.grid-stack-item > :deep(.grid-stack-item-content > * > .cn-widget-wrapper__content) {
+	justify-content: flex-start;
 }
 
 /* A size-to-content cell (`sizeToContent`) is measured by GridStack from the

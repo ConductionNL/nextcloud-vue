@@ -5,9 +5,9 @@
 
 <template>
 	<div class="cn-container-widget" :style="wrapperStyle">
-		<h4 v-if="hasTitle" class="cn-container-widget__title">
+		<component :is="innerHeadingTag" v-if="hasTitle" class="cn-container-widget__title cn-inner-heading">
 			{{ titleText }}
-		</h4>
+		</component>
 
 		<div ref="innerGrid" class="grid-stack cn-container-widget__grid">
 			<div
@@ -31,6 +31,7 @@
 
 <script>
 import CnContainerChild from './CnContainerChild.vue'
+import innerHeading from '../../mixins/innerHeading.js'
 
 const PADDING_TOKENS = Object.freeze({
 	none: '0',
@@ -73,6 +74,8 @@ export default {
 	components: {
 		CnContainerChild,
 	},
+
+	mixins: [innerHeading],
 
 	props: {
 		/**

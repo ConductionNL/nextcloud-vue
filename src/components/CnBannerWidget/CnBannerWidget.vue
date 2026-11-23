@@ -101,6 +101,49 @@ const MAX_ACTIONS = 2
 const MAX_ACTIONS_BOARD = 4
 
 /**
+ * Whether the record grants the action's `declaredAction` (`@self.can[name] === true`).
+ *
+ * @param {object} action A banner action.
+ * @param {object|null} record The page's record.
+ * @return {boolean}
+ */
+function declaredActionGranted(action, record) {
+	const can = record && record['@self'] ? record['@self'].can : null
+	return Boolean(can) && typeof can === 'object' && can[action.declaredAction] === true
+}
+
+/**
+ * The api-call that runs the action's `declaredAction` on the record through
+ * OpenRegister, with a page refresh after it. The page's register and schema
+ * win over the record's own `@self` ones.
+ *
+ * @param {object} action A banner action with `declaredAction`.
+ * @param {object} record The page's record.
+ * @param {{register?: string, schema?: string}} [page] The detail page's register and schema.
+ * @return {object} The manifest action to dispatch.
+ */
+function declaredActionCall(action, record, page = {}) {
+	const self = record['@self'] || {}
+	const path = [page.register || self.register, page.schema || self.schema, self.id || record.id, action.declaredAction]
+		.map((part) => encodeURIComponent(String(part ?? '')))
+	const call = { type: 'api-call', method: 'POST', url: `/apps/openregister/api/objects/${path.slice(0, 3).join('/')}/actions/${path[3]}`, refresh: true }
+	for (const key of ['successMessage', 'errorMessage']) {
+		if (typeof action[key] === 'string' && action[key] !== '') {
+			call[key] = action[key]
+		}
+	}
+	return call
+}
+
+/**
+ * @param {unknown} action A banner action.
+ * @return {boolean} Whether it names a declared action.
+ */
+function isDeclaredAction(action) {
+	return Boolean(action) && typeof action.declaredAction === 'string' && action.declaredAction !== ''
+}
+
+/**
  * CnBannerWidget — declarative notice banner for dashboards and v2 pages
  * (`banner` widget type, Wave 1 of nextcloud-vue#91).
  *
@@ -142,6 +185,12 @@ const MAX_ACTIONS_BOARD = 4
  * `primary` itself). `visibleWhen` works the same way. Without `layout` the
  * note card above renders, as it always did.
  *
+ * An action with `declaredAction` runs that OpenRegister declared action on
+ * the page's record (`POST .../objects/{register}/{schema}/{id}/actions/{name}`)
+ * and refreshes the page. It shows only while the record's `@self.can` grants
+ * the action, and a banner whose every action is a declared action the record
+ * does not grant stays hidden.
+ *
  * ```json
  * {
  *   "widgetKey": "banner",
@@ -172,6 +221,20 @@ export default {
 		cnTranslate: { default: () => (key) => key },
 		/** The app's look, provided by CnAppRoot or CnPageRenderer (`nextcloud` or `board`). */
 		cnLook: { default: 'nextcloud' },
+		/**
+		 * The detail page's object context (`{ objectId, object }`), provided by
+		 * CnDetailPage: a `visibleWhen.source` filter's `@objectId` and
+		 * `@object.<field>` tokens read it, so a notice on a record's page can
+		 * count that record's related rows. Null elsewhere.
+		 */
+		cnObjectContext: { default: null },
+		/** The page's pre-bound action dispatcher (CnPageRenderer), for an action with a `type`. */
+		cnDispatchAction: { default: null },
+		/**
+		 * The app's named formatters (CnAppRoot), so a subject token can name
+		 * one: `{subject.channel|channelWord}`.
+		 */
+		cnFormatters: { default: () => ({}) },
 	},
 
 	props: {
@@ -342,6 +405,19 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The record of the page the banner sits on, as a detail-page host
+		 * binds it. A local `visibleWhen` (a `field` with no `endpoint` or
+		 * `source`) reads it when no `cnObjectContext` is provided, and it is
+		 * the card's subject: `{subject.@self.archived.by}` fills from it.
+		 *
+		 * @type {object|null}
+		 */
+		objectData: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	emits: [
@@ -384,10 +460,23 @@ export default {
 			conditionFailed: false,
 			/** Why it failed, as the request reported it. */
 			conditionFailureReason: '',
+			/** Whether the browser says it is online, for `content.connection`. */
+			online: typeof navigator === 'undefined' || navigator.onLine !== false,
 		}
 	},
 
 	computed: {
+		/**
+		 * The page record's id, so the condition is asked again once it is known.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		tokenContextKey() {
+			const ctx = this.tokenContext()
+			return ctx && ctx.objectId ? String(ctx.objectId) : ''
+		},
+
 		/** The effective variant (prop → content → 'info'). */
 		resolvedVariant() {
 			const v = this.variant || (this.content && this.content.variant) || 'info'
@@ -406,9 +495,9 @@ export default {
 			return lead ? this.tl(lead) : ''
 		},
 
-		/** The lead with `{value}` filled in. */
+		/** The lead with `{value}` filled in, else `content.fallbackLead`. */
 		displayLead() {
-			return this.fillValue(this.resolvedLead)
+			return this.withFallback(this.fillValue(this.resolvedLead), this.resolvedLead, 'fallbackLead')
 		},
 
 		/** The effective icon name (prop → content → ''). */
@@ -428,9 +517,52 @@ export default {
 			return normalizeLook(this.cnLook) === 'board' ? this.resolvedActions.slice(0, 1) : []
 		},
 
+		/**
+		 * `content.connection`: `offline` shows the banner only while the
+		 * device is offline, `online` only while it is online (DqInspectie
+		 * "3 wijzigingen wachten op bereik"); unset shows it either way.
+		 *
+		 * @return {boolean}
+		 */
+		connectionAllows() {
+			const connection = this.content && this.content.connection
+			if (connection === 'offline') {
+				return !this.online
+			}
+			if (connection === 'online') {
+				return this.online
+			}
+			return true
+		},
+
 		/** The effective visibleWhen condition (prop → content → null). */
 		resolvedVisibleWhen() {
 			return this.visibleWhen || (this.content && this.content.visibleWhen) || null
+		},
+
+		/**
+		 * Whether the condition is decided on the page's own record (a `field`
+		 * with no `endpoint` or `source`), which is then the card's subject.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-banner-can-read-the-pages-record
+		 */
+		isLocalCondition() {
+			const cond = this.resolvedVisibleWhen
+			return Boolean(cond) && typeof cond === 'object' && !cond.endpoint && !cond.source && typeof cond.field === 'string' && cond.field !== ''
+		},
+
+		/**
+		 * The page's record, while the condition is a local one.
+		 *
+		 * @return {object|null}
+		 */
+		localSubject() {
+			if (!this.isLocalCondition) {
+				return null
+			}
+			const ctx = this.tokenContext()
+			return (ctx && ctx.object) || null
 		},
 
 		/** The effective injected outcome (prop → content → null). */
@@ -448,7 +580,7 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayText() {
-			return this.fillValue(this.resolvedText)
+			return this.withFallback(this.fillValue(this.resolvedText), this.resolvedText, 'fallbackText')
 		},
 
 		/** The effective click-through route (prop → content → null). */
@@ -487,14 +619,24 @@ export default {
 		},
 
 		/**
+		 * The title as written: the `title` prop, else `content.title`, else ''.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 */
+		rawTitle() {
+			return this.title || (this.content && this.content.title) || ''
+		},
+
+		/**
 		 * The attention card's title: `title`, else `text`, with `{value}` filled in.
 		 *
 		 * @return {string}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		displayTitle() {
-			const title = this.title || (this.content && this.content.title) || ''
-			return title ? this.fillValue(this.tl(title)) : this.displayText
+			const title = this.rawTitle
+			return title ? this.withFallback(this.fillValue(this.tl(title)), title, 'fallbackTitle') : this.displayText
 		},
 
 		/**
@@ -507,9 +649,9 @@ export default {
 		displayReason() {
 			const reason = this.reason || (this.content && this.content.reason) || ''
 			if (reason) {
-				return this.fillValue(this.tl(reason))
+				return this.withFallback(this.fillValue(this.tl(reason)), reason, 'fallbackReason')
 			}
-			const title = this.title || (this.content && this.content.title) || ''
+			const title = this.rawTitle
 			// A card that sets `text` to the same words as its `title` says
 			// them once.
 			return title && this.displayText !== this.displayTitle ? this.displayText : ''
@@ -537,13 +679,52 @@ export default {
 			return normalizeLook(this.cnLook) === 'board' ? MAX_ACTIONS_BOARD : MAX_ACTIONS
 		},
 
-		resolvedActions() {
+		/**
+		 * The actions that have a label, as written.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		labelledActions() {
 			const raw = this.actions || (this.content && this.content.actions) || []
-			if (!Array.isArray(raw)) {
-				return []
-			}
-			const usable = raw
-				.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+			return Array.isArray(raw)
+				? raw.filter((action) => action && typeof action === 'object' && typeof action.label === 'string' && action.label !== '')
+				: []
+		},
+
+		/**
+		 * The page's record, for a declared action.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		actionRecord() {
+			const ctx = this.tokenContext()
+			return (ctx && ctx.object) || null
+		},
+
+		/**
+		 * Whether every action is a declared action the record does not grant,
+		 * so the banner has nothing the reader can do.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		declaredActionsWithheld() {
+			const all = this.labelledActions
+			return all.length > 0 && all.every(isDeclaredAction) && !all.some((action) => declaredActionGranted(action, this.actionRecord))
+		},
+
+		/**
+		 * The actions the banner shows: labelled, a declared action only while the
+		 * record grants it, at most `actionCap`, each with its target or dispatch.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		resolvedActions() {
+			const usable = this.labelledActions
+				.filter((action) => !isDeclaredAction(action) || declaredActionGranted(action, this.actionRecord))
 				.slice(0, this.actionCap)
 			const declaredPrimary = usable.findIndex((action) => action.primary === true)
 			const primaryIndex = declaredPrimary === -1 ? 0 : declaredPrimary
@@ -563,6 +744,7 @@ export default {
 					label: this.tl(action.label),
 					href,
 					target,
+					dispatch: this.actionDispatch(action, target, href),
 					primary: index === primaryIndex,
 					index,
 				}
@@ -575,8 +757,18 @@ export default {
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
 		 */
 		visible() {
-			const title = this.title || (this.content && this.content.title) || ''
+			if (!this.connectionAllows) {
+				return false
+			}
+			const title = this.rawTitle
 			if (this.resolvedText === '' && this.resolvedLead === '' && !(this.isAttention && title !== '')) {
+				return false
+			}
+			// Every line emptied by a subject token with no value: nothing to say.
+			if (!this.isAttention && this.displayText === '' && this.displayLead === '') {
+				return false
+			}
+			if (this.declaredActionsWithheld) {
 				return false
 			}
 			if (!this.resolvedVisibleWhen) {
@@ -594,7 +786,7 @@ export default {
 		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-an-attention-card-says-when-it-could-not-check
 		 */
 		checkFailed() {
-			const title = this.title || (this.content && this.content.title) || ''
+			const title = this.rawTitle
 			return this.isAttention
 				&& !!this.resolvedVisibleWhen
 				&& this.conditionFailed
@@ -659,9 +851,47 @@ export default {
 		resolvedConditionOutcome() {
 			this.evaluateCondition()
 		},
+
+		/** The page's record arrived or changed: a token-scoped source asks again. */
+		tokenContextKey() {
+			this.evaluateCondition()
+		},
+
+		/** A local condition reads the record itself, so a new record is a new answer. */
+		localSubject() {
+			if (this.isLocalCondition) {
+				this.evaluateCondition()
+			}
+		},
+	},
+
+	mounted() {
+		window.addEventListener('online', this.onConnection)
+		window.addEventListener('offline', this.onConnection)
+	},
+
+	beforeUnmount() {
+		window.removeEventListener('online', this.onConnection)
+		window.removeEventListener('offline', this.onConnection)
 	},
 
 	methods: {
+		/**
+		 * The injected object context, unwrapped when it is a ref.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		pageObjectContext() {
+			const raw = this.cnObjectContext
+			return raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw
+		},
+
+		/** Follow the browser's connection, for `content.connection`. */
+		onConnection() {
+			this.online = typeof navigator === 'undefined' || navigator.onLine !== false
+		},
+
 		/**
 		 * A manifest string through the host's label lookup (`cnTranslate`), so a key
 		 * such as "Mine" reads in the user's language.
@@ -690,8 +920,27 @@ export default {
 		},
 
 		/**
-		 * Fill `{subject.<field>}` (and `{subject.<field>|date}`, `|days`) from
-		 * the card's subject row. A token with no value empties the whole text,
+		 * The filled text, or the content's fallback when a subject token left
+		 * the written text empty ("filed it on {subject.@self.archived.at|date}"
+		 * on a record that carries no date). The fallback is filled too.
+		 *
+		 * @param {string} filled The filled text.
+		 * @param {string} written The text as written.
+		 * @param {string} key The content key holding the fallback.
+		 * @return {string} The text to show.
+		 * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-banner-can-read-the-pages-record
+		 */
+		withFallback(filled, written, key) {
+			if (filled !== '' || !written) {
+				return filled
+			}
+			const fallback = this.content && typeof this.content[key] === 'string' ? this.content[key] : ''
+			return fallback ? this.fillValue(this.tl(fallback)) : ''
+		},
+
+		/**
+		 * Fill `{subject.<field>}` (and `{subject.<field>|date}`, `|days`, or an
+		 * app formatter `|<name>`) from the card's subject row. A token with no value empties the whole text,
 		 * as in a record list. Text without a subject token is untouched.
 		 *
 		 * @param {string} text The text.
@@ -704,7 +953,7 @@ export default {
 			}
 			// `{value}` is not a subject token: keep it out of the template fill.
 			const guard = '\u0000value\u0000'
-			const filled = fillTemplate(text.replaceAll('{value}', guard), { subject: this.conditionRow || {} })
+			const filled = fillTemplate(text.replaceAll('{value}', guard), { subject: this.conditionRow || {} }, new Date(), { formatters: this.cnFormatters })
 			return filled.replaceAll(guard, '{value}')
 		},
 
@@ -734,22 +983,69 @@ export default {
 		},
 
 		/**
+		 * The manifest action a button dispatches: the declared-action call,
+		 * an action with a `type`, or null for a link or a plain button.
+		 *
+		 * @param {object} action The action as written.
+		 * @param {object|null} target Its route target.
+		 * @param {string} href Its href.
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-banner-action-can-run-a-declared-action-on-the-record
+		 */
+		actionDispatch(action, target, href) {
+			if (target || href) {
+				return null
+			}
+			if (isDeclaredAction(action)) {
+				return declaredActionCall(action, this.actionRecord || {}, this.pageObjectContext() || {})
+			}
+			return typeof action.type === 'string' && action.type !== '' ? action : null
+		},
+
+		/**
 		 * Run an attention-card action: route an in-app link, leave an
-		 * external link to the browser, and emit `action` for a button.
+		 * external link to the browser, dispatch a manifest action (one with a
+		 * `type`) through the page with its `@subject.` tokens filled, and
+		 * emit `action` for any other button.
 		 *
 		 * @param {MouseEvent} event The click.
 		 * @param {object} action The resolved action.
 		 * @return {void}
 		 * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-attention-card
+		 * @spec openspec/changes/banner-action-dispatch/specs/banner-action-dispatch/spec.md#requirement-a-banner-action-can-be-a-manifest-action-on-the-subject
 		 */
 		onActionClick(event, action) {
 			if (action.target) {
 				followLinkClick(event, action.target, this.$router)
 				return
 			}
+			if (action.dispatch && typeof this.cnDispatchAction === 'function') {
+				this.cnDispatchAction(this.resolveSubject(action.dispatch))
+				return
+			}
 			if (!action.href) {
 				this.$emit('action', { id: action.id, label: action.label, index: action.index })
 			}
+		},
+
+		/**
+		 * The token context a `visibleWhen.source` filter resolves against: the
+		 * detail page's record, when the banner sits on one.
+		 *
+		 * @return {{objectId?: string, object?: object}|undefined}
+		 * @spec openspec/changes/notice-scoped-to-the-record/specs/notice-scoped-to-the-record/spec.md#requirement-a-banners-source-may-be-scoped-to-the-pages-record
+		 */
+		tokenContext() {
+			const ctx = this.pageObjectContext()
+			if (ctx && typeof ctx === 'object' && ctx.objectId) {
+				return { objectId: ctx.objectId, object: ctx.object || this.objectData || undefined }
+			}
+			const own = this.objectData
+			if (own && typeof own === 'object') {
+				const id = own.id || (own['@self'] && own['@self'].id) || ''
+				return { objectId: id, object: own }
+			}
+			return undefined
 		},
 
 		/**
@@ -789,8 +1085,9 @@ export default {
 			}
 			try {
 				const sink = {}
-				const value = await readVisibleWhenValue(cond, undefined, sink)
-				this.conditionRow = sink.row || null
+				const ctx = this.tokenContext()
+				const value = await readVisibleWhenValue(cond, ctx, sink)
+				this.conditionRow = sink.row || (this.isLocalCondition && ctx ? ctx.object : null) || null
 				this.conditionValue = value
 				this.conditionMet = compareVisibleWhen(value, cond.op || 'eq', cond.value)
 				this.conditionFailed = false
@@ -831,7 +1128,11 @@ export default {
 	width: 100%;
 }
 
-.cn-banner-widget__card {
+/* Doubled: NcNoteCard's own `.notecard` margin (15px above and below) is as
+   strong as one scoped class and loads later, so the card kept it and stood
+   15px under its grid cell's top (DqDashboard info line, r33).
+   @spec openspec/changes/banner-card-no-margin/specs/banner-card-no-margin/spec.md#requirement-a-banner-card-draws-no-margin-of-its-own */
+.cn-banner-widget__card.cn-banner-widget__card {
 	margin: 0;
 }
 

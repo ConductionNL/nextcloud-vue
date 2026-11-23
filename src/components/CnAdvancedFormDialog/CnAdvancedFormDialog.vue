@@ -97,6 +97,7 @@
 								:validationDisplay="validationDisplay"
 								:excludeFields="excludeFields"
 								:includeFields="includeFields"
+								:propertyOverrides="propertyOverrides"
 								@update:propertyValue="onPropertyValueUpdate"
 								@update:selectedProperty="selectedProperty = $event" />
 						</slot>
@@ -395,6 +396,24 @@ export default {
 				includeReadOnly: true,
 				translate: this.cnTranslate,
 			})
+		},
+
+		/**
+		 * Per-property cell settings for the Properties tab: a field whose
+		 * options come from a source (`fieldOverrides.<key>.optionsFrom`, or
+		 * the property's `x-options-from`) renders a select over them.
+		 *
+		 * @return {Record<string, {optionsFrom: object, widget: string, selectMultiple: boolean}>}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		propertyOverrides() {
+			const out = {}
+			for (const field of this.resolvedFields) {
+				if (field.optionsFrom) {
+					out[field.key] = { optionsFrom: field.optionsFrom, widget: 'select', selectMultiple: field.type === 'array' }
+				}
+			}
+			return out
 		},
 
 		/** objectProperties exposed to the #form and #tab-properties slot consumers */

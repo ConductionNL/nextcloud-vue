@@ -1,0 +1,2 @@
+- [x] tests/css/lookBoardFilesBar16.spec.js (red first)
+- [x] src/css/look-board-detail.css rule

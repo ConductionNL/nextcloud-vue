@@ -184,8 +184,9 @@
 					:key="item.id"
 					:name="resolveLabel(item)"
 					:data-testid="`cn-nav-caption-${item.id}`">
-					<template v-if="item.href" #actions>
+					<template v-if="item.href || item.action === 'user-settings'" #actions>
 						<NcActionLink
+							v-if="item.href"
 							:href="item.href"
 							:aria-label="captionEditLabel(item)"
 							:data-testid="`cn-nav-caption-edit-${item.id}`">
@@ -194,12 +195,32 @@
 							</template>
 							{{ captionEditLabel(item) }}
 						</NcActionLink>
+						<NcActionButton
+							v-else
+							:aria-label="captionEditLabel(item)"
+							:data-testid="`cn-nav-caption-edit-${item.id}`"
+							@click="cnOpenUserSettings()">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+							{{ captionEditLabel(item) }}
+						</NcActionButton>
 					</template>
 				</NcAppNavigationCaption>
+				<!-- `type: "hint"`: a muted line, no link, as the empty "My
+				     filters" group says how to add a filter. -->
+				<li
+					v-else-if="item.type === 'hint'"
+					:key="item.id"
+					class="cn-app-nav__hint"
+					:data-testid="`cn-nav-hint-${item.id}`">
+					{{ resolveLabel(item) }}
+				</li>
 				<NcAppNavigationItem
 					v-else
 					:key="item.id"
 					:name="resolveLabel(item)"
+					:title="itemTooltip(item)"
 					:to="linkTo(item)"
 					:href="linkHref(item)"
 					:icon="cssIconClass(item)"
@@ -437,8 +458,9 @@
 							:key="item.id"
 							:name="resolveLabel(item)"
 							:data-testid="`cn-nav-caption-${item.id}`">
-							<template v-if="item.href" #actions>
+							<template v-if="item.href || item.action === 'user-settings'" #actions>
 								<NcActionLink
+									v-if="item.href"
 									:href="item.href"
 									:aria-label="captionEditLabel(item)"
 									:data-testid="`cn-nav-caption-edit-${item.id}`">
@@ -447,6 +469,16 @@
 									</template>
 									{{ captionEditLabel(item) }}
 								</NcActionLink>
+								<NcActionButton
+									v-else
+									:aria-label="captionEditLabel(item)"
+									:data-testid="`cn-nav-caption-edit-${item.id}`"
+									@click="cnOpenUserSettings()">
+									<template #icon>
+										<Pencil :size="20" />
+									</template>
+									{{ captionEditLabel(item) }}
+								</NcActionButton>
 							</template>
 						</NcAppNavigationCaption>
 						<NcAppNavigationItem
@@ -490,7 +522,7 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcActionLink, NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
+import { NcActionButton, NcActionLink, NcAppNavigation, NcAppNavigationCaption, NcAppNavigationItem, NcAppNavigationList, NcAppNavigationNew, NcAppNavigationSettings, NcButton, NcCounterBubble } from '@nextcloud/vue'
 import { toRaw } from 'vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -585,6 +617,7 @@ export default {
 	name: 'CnAppNav',
 
 	components: {
+		NcActionButton,
 		NcActionLink,
 		Pencil,
 		NcAppNavigation,
@@ -1514,6 +1547,18 @@ export default {
 		 * @param {{ icon?: string }} item Menu item descriptor.
 		 * @return {import('vue').Component|null}
 		 */
+		/**
+		 * The tooltip of a menu entry: its `description` (a saved view's, say),
+		 * else null, which leaves NcAppNavigationItem's own (the name).
+		 *
+		 * @param {{ description?: string }} item Menu item descriptor.
+		 * @return {string|null}
+		 * @spec openspec/changes/saved-view-icon-description-count/specs/saved-view-icon-description-count/spec.md#requirement-a-saved-view-has-an-icon-and-a-description
+		 */
+		itemTooltip(item) {
+			return typeof item?.description === 'string' && item.description !== '' ? item.description : null
+		},
+
 		mdiIconComponent(item) {
 			const icon = item?.icon
 			if (typeof icon !== 'string' || icon.length === 0) {
@@ -1952,6 +1997,8 @@ export default {
 		 * `icon`, `count`, `children`, and `pinned`. A caption's `href` is
 		 * drawn as a pencil link beside the heading: the place where what
 		 * stands under it is changed (a user's own choice of entries, say).
+		 * `action: "user-settings"` draws the same pencil as a button that
+		 * opens the user settings dialog.
 		 *
 		 * @param {{ type?: string }} item Menu entry descriptor.
 		 * @return {boolean}
@@ -2474,6 +2521,14 @@ export default {
 </script>
 
 <style>
+.cn-app-nav__hint {
+	list-style: none;
+	padding: 4px 12px 8px 16px;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--color-text-maxcontrast);
+}
+
 /* The emblem beside the app name (`nav.brand.emblem`). A theme sets
    --nldesign-emblem-url for `emblem: true`, and --cn-nav-emblem-size for both. */
 .cn-app-nav__brand-emblem {

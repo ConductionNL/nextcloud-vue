@@ -19,7 +19,7 @@ function rule(selector) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).includes(selector)) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).includes(selector)) {
 			return m[2]
 		}
 	}
@@ -35,5 +35,11 @@ describe.each([
 		expect(body).toMatch(/text-align:\s*start/)
 		expect(body).toMatch(/padding:\s*0\s*;/)
 		expect(body).toMatch(/margin:\s*0\s*;/)
+	})
+})
+
+describe('facts widget label column', () => {
+	it('takes the label its own width, not core\'s 130px dt (DqZaak "Prioriteit", r25b: values 44px right of the board)', () => {
+		expect(rule('.cn-facts-widget__label.cn-facts-widget__label')).toMatch(/width:\s*auto/)
 	})
 })

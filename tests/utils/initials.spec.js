@@ -21,3 +21,14 @@ describe('initialsOf', () => {
 		expect(initialsOf(42)).toBe('')
 	})
 })
+
+describe('initialsOf with letters', () => {
+	it('takes that many letters of a one-word name', () => {
+		expect(initialsOf('Omgevingsvergunning', 2)).toBe('OM')
+		expect(initialsOf('Reeks', 2)).toBe('RE')
+	})
+
+	it('still takes first and last letter of a name of two words or more', () => {
+		expect(initialsOf('Sanne de Vries', 2)).toBe('SV')
+	})
+})

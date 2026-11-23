@@ -42,6 +42,7 @@ Instead of an OpenRegister `source`, the tile can bind to an arbitrary app REST 
 - `valueField` — dot-path into the payload for the displayed value (omitted = the payload itself).
 - `previousField` — previous-period value → **trend sublabel** (arrow + percent-vs-previous, the pipelinq KPI contract), tinted good/bad by `goodDirection` (`'up'` default).
 - `deltaField` — a server-computed delta percent; wins over `previousField`.
+- `noPreviousText` — sublabel shown instead of the trend when `previousField` is set but the previous value is missing, not numeric or `0` (e.g. `"No earlier period to compare with"`). Translated like the other tile texts; omitted = no sublabel.
 - `variantWhen` — first-match threshold rules `[{ op: eq|neq|gt|gte|lt|lte, value, variant, icon? }]`; the matched `variant` (`default|primary|success|warning|error`, plus `danger` as an error alias) re-tints the value + icon circle, `icon` overrides `content.icon`.
 - `variant` — the tile's **resting** colour, from the same set as `variantWhen`. It is the lowest-priority tint: a matched `variantWhen` rule wins, and so does the `limit` warning. Use it for a tile whose colour is a property of *what it counts* ("overdue" is always red) rather than of the current number; use `variantWhen` when the colour is a statement about the value. An unrecognised name is ignored rather than emitted, so a typo yields the default tint instead of a broken style.
 - `caption` — the small line under the value. `{token}` placeholders are resolved against the fetched payload, dot-paths included, so a tile can carry a secondary fact without an app writing its own card to render one: `"caption": "{levelName} · {currentStreakDays}-day streak"`. A token that resolves to nothing collapses to an empty string (never the literal `{token}`), and the result is whitespace-collapsed so a missing middle field does not leave a gap. Interpolation applies to `endpointSource` payloads; a caption with no `{` is passed through untouched, and is translated via `translate` first either way.
@@ -239,6 +240,15 @@ The day count is taken when the tile renders. A tile left open across midnight k
 - Filter tokens (`@page.*`, `@object.*`, `@workspace.*`, `@range.*`) are resolved from injected dashboard/detail context when present, in the `endpointSource` and in the tile's `route` alike, so a tile on a detail page can link to `{ name: 'Traffic', query: { portal: '@object.slug' } }`. A route token that stays unresolved is dropped from the URL.
 - The tile injects `cnDashboardDateRange` — the same ref `CnChartWidget` reads — so a tile and a chart on one dashboard always agree on the period.
 
+## A caption for one and for many
+
+`caption` can be `{ singular, plural }`. The singular shows for a count of one, the plural otherwise. The count is the caption's own (`captionSource`), or the tile's number when the caption has none. Each form is translated on its own, so a Dutch reader sees "1 loopt vandaag af" and "2 lopen vandaag af". `zeroText` still applies at zero.
+
+```json
+{ "caption": { "singular": "{count} ends today", "plural": "{count} end today" },
+  "captionSource": { "filter": { "deadline": { "gte": "@today", "lt": "@today+1d" } }, "zeroText": "nothing ends today" } }
+```
+
 ## Colouring the caption (`captionVariant`, `captionVariantWhen`, overrides)
 
 The caption can be coloured without recolouring the tile: `captionVariant` sets it outright (`primary | success | warning | error`), `captionVariantWhen` is a list of `{ op, value, variant }` rules on the value (the `variantWhen` shape, first match wins), and a record override can carry `caption` and `captionVariant` to replace and colour it. `{value}` in a caption is the tile's own number, so a register-counted tile can read "1 due today".
@@ -271,6 +281,17 @@ With `kind: "ratio"` the caption is a share: the `numerator` over the `denominat
   "source": { "register": "shillinq", "schema": "ARInvoice", "metric": "sum", "field": "grossAmount", "filter": { "dueDate": { "gte": "@today-30d", "lt": "@today" } } },
   "caption": "{ratio}% of open",
   "captionSource": { "kind": "ratio", "denominator": { "metric": "sum", "field": "grossAmount", "filter": { "lifecycleState": ["issued", "overdue", "disputed"] } } } }
+```
+
+### The longest wait (`captionSource.metric: "daysSinceEarliest"`)
+
+With `metric: "daysSinceEarliest"` and a date `field`, `{count}` is the number of whole days from the earliest `field` date among the matching records to today. The tile reads it from one list request, ordered by the field, of the first record that has it. No matching record, or one dated today, counts 0, so the caption reads `zeroText` or is left out.
+
+```json
+{ "label": "Waiting on the applicant", "layout": "stacked",
+  "source": { "register": "dossiq", "schema": "case", "filter": { "waitingOnApplicant": true } },
+  "caption": "longest: {count} days",
+  "captionSource": { "metric": "daysSinceEarliest", "field": "currentStatusEnteredAt", "filter": { "waitingOnApplicant": true } } }
 ```
 
 ## The stacked tile (`layout: "stacked"`)
@@ -310,3 +331,28 @@ tone the value takes. It has no effect without the board look.
 ```json
 { "type": "stat", "content": { "label": "Te laat", "icon": "AlertCircleOutline", "iconPlacement": "end", "variant": "error", "caption": "actie nodig" } }
 ```
+
+`content.iconPlacement: "top"` draws the icon in a 42px circle above the label
+(the learniq Today tiles), tinted the same way, with no glyph before the label.
+It has no effect without the board look either.
+
+```json
+{ "type": "stat", "content": { "label": "Openstaande betrokkenheidssignalen", "icon": "AlertOutline", "iconPlacement": "top", "variant": "warning" } }
+```
+
+### Reading only when asked (`loadOn: "request"`)
+
+An endpoint whose every read is recorded (an audit trail per read, say) should not be read because somebody opened the page. With `loadOn: "request"` in the `endpointSource` block the widget reads nothing on mount: it shows a button (`requestLabel`, default "Show") with an optional `requestHint` sentence above it, and reads only when the reader presses it. When the request changes (another period from the page filters), the last answer is dropped and the widget waits for the next press. Page and widget refreshes do not read a widget that is waiting. Each press is a fresh read, past the shared cache.
+
+```json
+"endpointSource": {
+  "url": "/apps/dossiq/api/woo/reports/throughput",
+  "params": { "from": "@workspace.from", "to": "@workspace.to" },
+  "responsePath": "rows",
+  "loadOn": "request",
+  "requestLabel": "Show",
+  "requestHint": "Every time you open this report, it is recorded."
+}
+```
+
+`CnWidgetObjectTable`, `CnChartWidget` and `CnStatWidget` all honour it; the labels go through the app's translate.

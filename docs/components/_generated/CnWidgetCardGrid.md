@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 10 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 18 files reached through imports.
 
-Through: `CnActionsMenu`, `CnFkResolveCell`, `CnIndexPage`.
+Through: `CnActionDialog`, `CnActionsMenu`, `CnAssignDialog`, `CnBulkJobProgress`, `CnCellRenderer`, `CnFkResolveCell`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 2 direct references, 6 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 2 direct references, 7 files reached through imports.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

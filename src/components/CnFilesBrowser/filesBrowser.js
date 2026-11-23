@@ -9,6 +9,8 @@
  */
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { conditionHolds } from '../../utils/fieldCondition.js'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * Actions the Files app registers that cannot run on a page without the Files
@@ -42,7 +44,7 @@ export function userRelativePathFromHref(href, uid) {
 	const marker = `/dav/files/${uid}`
 	const at = decoded.indexOf(marker)
 	const rest = at === -1 ? decoded : decoded.slice(at + marker.length)
-	const trimmed = rest.replace(/\/+$/, '')
+	const trimmed = stripTrailingSlashes(rest)
 	return trimmed === '' ? '/' : trimmed
 }
 
@@ -54,7 +56,7 @@ export function userRelativePathFromHref(href, uid) {
  * @return {string} The child's path.
  */
 export function joinPath(dir, name) {
-	return `${String(dir || '').replace(/\/+$/, '')}/${String(name || '').replace(/^\/+/, '')}`
+	return `${stripTrailingSlashes(String(dir || ''))}/${String(name || '').replace(/^\/+/, '')}`
 }
 
 /**
@@ -74,8 +76,8 @@ export function joinPath(dir, name) {
  * @return {Array<{name: string, path: string, aboveRoot: boolean}>} The crumbs, outermost first.
  */
 export function crumbsFor(rootPath, currentPath, rootLabel = null) {
-	const root = String(rootPath || '/').replace(/\/+$/, '') || '/'
-	const current = String(currentPath || root).replace(/\/+$/, '') || '/'
+	const root = stripTrailingSlashes(String(rootPath || '/')) || '/'
+	const current = stripTrailingSlashes(String(currentPath || root)) || '/'
 	const crumbs = []
 	let path = ''
 	for (const segment of root.split('/').filter(Boolean)) {
@@ -209,7 +211,7 @@ export async function resolveObjectFolderInfo({ apiBase, register, schema, objec
 	try {
 		const response = await axios.request({
 			method: 'SEARCH',
-			url: `${remoteUrl.replace(/\/+$/, '')}/`,
+			url: `${stripTrailingSlashes(remoteUrl)}/`,
 			headers: { 'Content-Type': 'application/xml' },
 			data: fileIdSearchBody(folderId, uid),
 			responseType: 'text',
@@ -280,18 +282,46 @@ export function indexRowData(data, { path = '', key = 'fileId' } = {}) {
 }
 
 /**
+ * Whether one field of a file's row meets its `visibleIf.row` entry: a plain
+ * value is compared strictly, an object is a predicate of a form field
+ * condition (`equals`, `in`, `notEmpty` and the rest).
+ *
+ * @param {string} key The row field.
+ * @param {unknown} wanted The value, or the predicate.
+ * @param {unknown} value What the row holds.
+ * @return {boolean} True when the field meets it.
+ */
+function rowFieldMatches(key, wanted, value) {
+	if (wanted !== null && typeof wanted === 'object' && !Array.isArray(wanted)) {
+		return conditionHolds({ ...wanted, field: key }, { [key]: value }, key)
+	}
+	return value === wanted
+}
+
+/**
  * Whether a host row action is offered on a file, by its `visibleIf`.
  *
  * `visibleIf.extension` lists file extensions (no case, a leading dot is
  * allowed); `visibleIf.mime` lists mime types, where one ending in `/` or
- * `/*` names the whole family. Every condition named must hold. An action
- * without `visibleIf` is offered on every file, as before.
+ * `/*` names the whole family; `visibleIf.row` maps fields of the host's row
+ * for the file to the value each must have (compared strictly, so `true` is
+ * not `"true"`), or to a predicate of a form field condition such as
+ * `{ notEmpty: true }` or `{ in: [...] }`. Every condition named must hold. An action without
+ * `visibleIf` is offered on every file, as before. An action with `when` is
+ * offered only while `when` is `true`.
  *
  * @param {object} action The declared action.
  * @param {object} node The file (`basename`, `mime`).
+ * @param {((key: string) => unknown)|null} rowValue Reads a field of the host's row for the file; without it a `row` condition fails.
  * @return {boolean} True when the action belongs on this file.
+ * @spec openspec/changes/files-browser-action-visible-if-row/specs/files-browser/spec.md#requirement-a-host-action-can-be-offered-by-a-field-of-the-files-row
  */
-export function hostActionApplies(action, node) {
+export function hostActionApplies(action, node, rowValue = null) {
+	// `when`: the action applies only while it is true (a case type flag).
+	// @spec openspec/changes/files-review-row-when/specs/files-review-row-when/spec.md#requirement-a-files-browser-entry-can-apply-only-when-a-condition-holds
+	if (action && typeof action === 'object' && 'when' in action && action.when !== true) {
+		return false
+	}
 	const condition = action && action.visibleIf
 	if (!condition || typeof condition !== 'object') {
 		return true
@@ -315,6 +345,15 @@ export function hostActionApplies(action, node) {
 			return mime === wanted
 		})
 		if (!matches) {
+			return false
+		}
+	}
+	if (condition.row && typeof condition.row === 'object') {
+		if (typeof rowValue !== 'function') {
+			return false
+		}
+		const holds = Object.entries(condition.row).every(([key, wanted]) => rowFieldMatches(key, wanted, rowValue(key)))
+		if (!holds) {
 			return false
 		}
 	}

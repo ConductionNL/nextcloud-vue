@@ -78,6 +78,36 @@ describe('CnDashboardPage: greeting in the header subtitle', () => {
 		expect(w.find(SUBTITLE).text().startsWith('Good morning, Pieter Jansen · ')).toBe(true)
 	})
 
+	it('puts a translated label where the greeting would be, date still written out', () => {
+		const w = mount(CnDashboardPage, {
+			propsData: { title: 'My work', pageId: 'mywork', widgets: [], layout: [], greeting: { label: 'Customer contact' }, description: 'available for calls' },
+			global: {
+				stubs,
+				mocks: { $route: { name: 'MyWork', query: {} }, $router: { replace: jest.fn(async () => {}), push: jest.fn() } },
+				provide: { cnLook: 'board', cnTranslate: (key) => (key === 'Customer contact' ? 'Klantcontact' : key) },
+			},
+		})
+		const text = w.find(SUBTITLE).text()
+		expect(text.startsWith('Klantcontact · ')).toBe(true)
+		expect(text).toContain('October')
+		expect(text.endsWith(' · available for calls')).toBe(true)
+		expect(text).not.toContain('Good afternoon')
+	})
+
+	it('leads with the date alone, capitalised, for greeting "date"', () => {
+		const w = mountPage({ greeting: 'date', description: 'nine items are with you' })
+		const text = w.find(SUBTITLE).text()
+		expect(text).toMatch(/^[A-Z]/)
+		expect(text).toContain('October')
+		expect(text.endsWith(' · nine items are with you')).toBe(true)
+		expect(text).not.toContain('Good')
+	})
+
+	it('keeps the description alone for a label object without a label', () => {
+		const w = mountPage({ greeting: { label: ' ' }, description: 'What needs attention today' })
+		expect(w.find(SUBTITLE).text()).toBe('What needs attention today')
+	})
+
 	it('keeps the description alone without greeting, as before', () => {
 		const w = mountPage({ description: 'What needs attention today' })
 		expect(w.find(SUBTITLE).text()).toBe('What needs attention today')

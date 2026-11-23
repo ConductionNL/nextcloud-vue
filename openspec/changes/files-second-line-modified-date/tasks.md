@@ -1,0 +1,2 @@
+- [x] CnFilesBrowser nameSecondaryOf modified as ISO text
+- [x] jest CnFilesBrowserSecondLine date case (red first)

@@ -2,7 +2,7 @@
 <!-- SPDX-FileCopyrightText: 2026 Conduction B.V. <info@conduction.nl> -->
 <template>
 	<fieldset class="cn-choice-cards" :aria-busy="loading ? 'true' : 'false'">
-		<legend v-if="label" class="cn-choice-cards__legend">
+		<legend v-if="label" class="cn-choice-cards__legend" :class="{ 'hidden-visually': hideLabel }">
 			{{ label }}
 		</legend>
 
@@ -13,6 +13,59 @@
 		<NcNoteCard v-else-if="normalizedOptions.length === 0" type="warning">
 			{{ emptyText }}
 		</NcNoteCard>
+
+		<!-- Rows: one full-width option per row, the input on the left and the
+		     title over a muted description, no card chrome. -->
+		<div v-else-if="layout === 'rows'"
+			class="cn-choice-cards__rows"
+			:style="rowsStyle"
+			data-testid="cn-choice-cards-rows">
+			<div
+				v-for="option in normalizedOptions"
+				:key="String(option.value)"
+				class="cn-choice-cards__cell"
+				:class="{ 'cn-choice-cards__cell--with-details': hasDetails(option) }">
+				<label
+					class="cn-choice-cards__row"
+					:class="{ 'cn-choice-cards__row--selected': isSelected(option), 'cn-choice-cards__row--disabled': isDisabled(option), 'cn-choice-cards__row--readonly': readonly }">
+					<input
+						class="cn-choice-cards__row-input"
+						:type="multiple ? 'checkbox' : 'radio'"
+						:name="groupName"
+						:value="String(option.value)"
+						:checked="isSelected(option)"
+						:disabled="isDisabled(option) || readonly"
+						:aria-describedby="option.disabled && option.disabledReason ? reasonId(option) : null"
+						@change="onToggle(option)">
+					<CnIcon v-if="option.icon"
+						:name="option.icon"
+						:size="20"
+						class="cn-choice-cards__row-icon" />
+					<span class="cn-choice-cards__row-text">
+						<span class="cn-choice-cards__row-title">{{ option.label }}</span>
+						<span v-if="option.description" class="cn-choice-cards__row-description">{{ option.description }}</span>
+						<span
+							v-if="option.disabled && option.disabledReason"
+							:id="reasonId(option)"
+							class="cn-choice-cards__reason"
+							data-testid="cn-choice-cards-reason">{{ option.disabledReason }}</span>
+					</span>
+				</label>
+				<div v-if="hasDetails(option)"
+					class="cn-choice-cards__details"
+					:data-testid="`cn-choice-cards-details-${option.value}`">
+					<!-- @slot option-details The chosen option's own fields, drawn
+					     inside the selected row's frame under its text (DqVolgendeStap:
+					     Opschorten's reason, days and return date). Rendered only for a
+					     selected option, outside the label so a field is not part of
+					     the radio's label. Scope: `{ option }`. -->
+					<slot name="option-details" :option="option" />
+				</div>
+				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
+					<slot name="option-actions" :option="option" :selected="isSelected(option)" />
+				</div>
+			</div>
+		</div>
 
 		<div v-else class="cn-choice-cards__grid" :style="gridStyle">
 			<!-- One cell per option: the card's label, and below it whatever the
@@ -25,7 +78,7 @@
 				class="cn-choice-cards__cell">
 				<label
 					class="cn-choice-cards__option"
-					:class="{ 'cn-choice-cards__option--selected': isSelected(option) }">
+					:class="{ 'cn-choice-cards__option--selected': isSelected(option), 'cn-choice-cards__option--disabled': isDisabled(option) }">
 					<!-- A REAL, VISIBLE input, not a styled div with a click handler.
 					     It carries the checked state to assistive technology and to
 					     Windows high-contrast mode for free, and it keeps the
@@ -37,7 +90,8 @@
 						:name="groupName"
 						:value="String(option.value)"
 						:checked="isSelected(option)"
-						:disabled="disabled"
+						:disabled="isDisabled(option) || readonly"
+						:aria-describedby="option.disabled && option.disabledReason ? reasonId(option) : null"
 						@change="onToggle(option)">
 					<CnCard
 						class="cn-choice-cards__card"
@@ -53,6 +107,11 @@
 							<CnIcon :name="option.icon" :size="20" />
 						</template>
 					</CnCard>
+					<span
+						v-if="option.disabled && option.disabledReason"
+						:id="reasonId(option)"
+						class="cn-choice-cards__reason cn-choice-cards__reason--card"
+						data-testid="cn-choice-cards-reason">{{ option.disabledReason }}</span>
 				</label>
 				<div v-if="$slots['option-actions']" class="cn-choice-cards__actions">
 					<!-- @slot option-actions Content below one card, outside its label
@@ -109,7 +168,9 @@ export default {
 	props: {
 		/**
 		 * The options to offer. Each: `{ value, label, description?, stats?,
-		 * tags?, icon? }` — `icon` is a PascalCase MDI name resolved by CnIcon.
+		 * tags?, icon?, disabled?, disabledReason? }` — `icon` is a PascalCase
+		 * MDI name resolved by CnIcon; a `disabled` option is greyed out and
+		 * cannot be picked, with `disabledReason` shown under it.
 		 */
 		options: {
 			type: Array,
@@ -122,7 +183,8 @@ export default {
 		 * @type {string|number|boolean|Array|null}
 		 */
 		modelValue: {
-			type: [Boolean, String, Number, Array, Object],
+			// eslint-disable-next-line vue/prefer-prop-type-boolean-first -- an option value of '' must stay a string
+			type: [String, Number, Boolean, Array, Object],
 			default: null,
 		},
 
@@ -138,8 +200,27 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * Keep the legend for assistive tech only, where the dialog's title
+		 * already says what is chosen (DqZaakSamenwerken).
+		 */
+		hideLabel: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Disable every card (e.g. a dependent choice with no parent value yet). */
 		disabled: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Show the choice without letting it change: every option at full
+		 * contrast, the selected one marked, nothing pickable (DqBesluit's
+		 * recorded outcome). `disabled` greys the options out instead.
+		 */
+		readonly: {
 			type: Boolean,
 			default: false,
 		},
@@ -154,6 +235,27 @@ export default {
 		emptyText: {
 			type: String,
 			default: () => t('nextcloud-vue', 'Nothing to choose from here.'),
+		},
+
+		/**
+		 * `cards`: a grid of cards with stats and tags. `rows`: one option per
+		 * row, full width, the input on the left and the title over a muted
+		 * description; with `multiple` and one option it is a checkbox card.
+		 */
+		layout: {
+			type: String,
+			default: 'cards',
+			validator: (value) => ['cards', 'rows'].includes(value),
+		},
+
+		/**
+		 * Columns of the card grid; 0 lets the grid fit as many as the width
+		 * allows. In `rows`, more than 1 sets the rows side by side
+		 * (DqZaakSamenwerken: Share | Hand over); 0 or 1 stacks them.
+		 */
+		columns: {
+			type: Number,
+			default: 0,
 		},
 
 		/** Lines of description shown before clamping. */
@@ -214,6 +316,19 @@ export default {
 		},
 
 		/**
+		 * Inline override for the rows' columns: side by side as a grid when
+		 * `columns` is above 1, else the stylesheet's single column (`{}`).
+		 *
+		 * @return {object} A grid override, or `{}`.
+		 */
+		rowsStyle() {
+			if (this.columns > 1) {
+				return { display: 'grid', gridTemplateColumns: `repeat(${this.columns}, minmax(0, 1fr))` }
+			}
+			return {}
+		},
+
+		/**
 		 * Inline override for the grid's column count. `auto-fit` with a
 		 * 260px minimum wraps a small option count onto its own row well
 		 * before the container is actually too narrow for them side by
@@ -226,6 +341,9 @@ export default {
 		 * @return {object} A `gridTemplateColumns` override, or `{}`.
 		 */
 		gridStyle() {
+			if (this.columns > 0) {
+				return { gridTemplateColumns: `repeat(${this.columns}, minmax(0, 1fr))` }
+			}
 			const count = this.normalizedOptions.length
 			if (count > 0 && count <= 2) {
 				return { gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }
@@ -244,6 +362,37 @@ export default {
 		 * @param {object} option The normalised option.
 		 * @return {boolean} True when selected.
 		 */
+		/**
+		 * Whether a rows option draws the `option-details` slot in its frame:
+		 * the slot is given and the option is the chosen one.
+		 *
+		 * @param {object} option The option.
+		 * @return {boolean}
+		 */
+		hasDetails(option) {
+			return Boolean(this.$slots['option-details']) && this.isSelected(option)
+		},
+
+		/**
+		 * Whether an option cannot be picked: the whole group is disabled, or the option is.
+		 *
+		 * @param {object} option The normalised option.
+		 * @return {boolean} True when disabled.
+		 */
+		isDisabled(option) {
+			return this.disabled || option.disabled === true
+		},
+
+		/**
+		 * Id of an option's disabled reason, for `aria-describedby`.
+		 *
+		 * @param {object} option The normalised option.
+		 * @return {string} The id.
+		 */
+		reasonId(option) {
+			return `${this.groupName}-reason-${String(option.value).replace(/[^A-Za-z0-9_-]/g, '-')}`
+		},
+
 		isSelected(option) {
 			return this.selectedValues.some((v) => String(v) === String(option.value))
 		},
@@ -255,7 +404,7 @@ export default {
 		 * @return {void}
 		 */
 		onToggle(option) {
-			if (this.disabled) {
+			if (this.readonly || this.isDisabled(option)) {
 				return
 			}
 			if (!this.multiple) {
@@ -365,7 +514,137 @@ export default {
 	cursor: default;
 }
 
-.cn-choice-cards__input:disabled + :deep(.cn-card) {
+.cn-choice-cards__option--disabled .cn-choice-cards__input + :deep(.cn-card) {
 	opacity: 0.6;
+}
+
+.cn-choice-cards__rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+/* 12px 14px, as the boards draw an option row (DqVolgendeStap, DqBesluit). */
+.cn-choice-cards__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-main-background);
+	cursor: pointer;
+}
+
+.cn-choice-cards__row:hover {
+	border-color: var(--color-border-dark);
+}
+
+/* Rows side by side (`columns` above 1) are as high as the tallest: a grid
+   cell stretches, and its row fills it, as the boards draw "Delen" beside
+   "Overdragen" (DqZaakSamenwerken). A cell with details keeps its row at its
+   own height, the fields under it. In a single column the cell is as high as
+   its row, so nothing changes there. */
+.cn-choice-cards__cell:not(.cn-choice-cards__cell--with-details) > .cn-choice-cards__row {
+	flex-grow: 1;
+}
+
+.cn-choice-cards__row--selected,
+.cn-choice-cards__row--selected:hover {
+	border-color: var(--color-primary-element);
+	/* The second pixel of the 2px selected border, without moving the content. */
+	box-shadow: inset 0 0 0 1px var(--color-primary-element);
+	background: var(--color-primary-element-light);
+}
+
+/* An option this record does not allow: the grey ground and the muted ink,
+   still legible (DqVolgendeStap), not faded. */
+.cn-choice-cards__row--disabled,
+.cn-choice-cards__row--disabled:hover {
+	border-color: var(--color-border);
+	background: var(--color-background-hover);
+	color: var(--color-text-maxcontrast);
+	cursor: default;
+}
+
+/* The title takes the muted ink itself: a theme that colours every label
+   with `!important` (thematiq) would otherwise hand it the label colour. */
+.cn-choice-cards__row--disabled .cn-choice-cards__row-title {
+	color: var(--color-text-maxcontrast);
+}
+
+/* The chosen option's fields share the selected row's frame: the cell draws
+   the 2px primary border and the ground, the row inside it draws none, and
+   the fields sit under the text, indented to it (DqVolgendeStap). */
+.cn-choice-cards__cell--with-details {
+	border: 1px solid var(--color-primary-element);
+	border-radius: var(--border-radius-large, 8px);
+	box-shadow: inset 0 0 0 1px var(--color-primary-element);
+	background: var(--color-primary-element-light);
+}
+
+.cn-choice-cards__cell--with-details .cn-choice-cards__row,
+.cn-choice-cards__cell--with-details .cn-choice-cards__row:hover {
+	border-color: transparent;
+	box-shadow: none;
+	background: transparent;
+}
+
+.cn-choice-cards__details {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 0 14px 14px 44px;
+}
+
+.cn-choice-cards__row--readonly {
+	cursor: default;
+}
+
+.cn-choice-cards__row--readonly:not(.cn-choice-cards__row--selected):hover {
+	border-color: var(--color-border);
+}
+
+.cn-choice-cards__row:has(.cn-choice-cards__row-input:focus-visible) {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
+.cn-choice-cards__row-input {
+	flex: none;
+	margin: 2px 0 0;
+	accent-color: var(--color-primary-element);
+	cursor: inherit;
+}
+
+.cn-choice-cards__row-icon {
+	flex: none;
+}
+
+.cn-choice-cards__row-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-choice-cards__row-title {
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+/* Regular weight on the span itself: a theme that sets every label bold
+   with `!important` (thematiq) reaches a span that only inherits. */
+.cn-choice-cards__row-description,
+.cn-choice-cards__reason {
+	font-size: 13px;
+	font-weight: 400;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-choice-cards__reason--card {
+	display: block;
+	margin-block-start: 4px;
 }
 </style>

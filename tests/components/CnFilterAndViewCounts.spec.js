@@ -14,7 +14,7 @@ jest.mock('@nextcloud/l10n', () => ({
 
 const { mount } = require('@vue/test-utils')
 const CnQuickFilterBar = require('../../src/components/CnQuickFilterBar/CnQuickFilterBar.vue').default
-const CnSavedViewsControl = require('../../src/components/CnSavedViewsControl/CnSavedViewsControl.vue').default
+const CnSavedViewsPanel = require('../../src/components/CnSavedViewsPanel/CnSavedViewsPanel.vue').default
 
 const TABS = [
 	{ label: 'Open', filter: { status: 'open' } },
@@ -83,12 +83,12 @@ describe('CnSavedViewsControl counts', () => {
 	const row = (wrapper, id) => rows(wrapper).find((item) => item.attributes('data-view-id') === id)
 
 	it('shows names only by default', () => {
-		const wrapper = mount(CnSavedViewsControl, { props: { views: views.slice(0, 2), currentUserId: 'alice' } })
+		const wrapper = mount(CnSavedViewsPanel, { props: { views: views.slice(0, 2), currentUserId: 'alice' } })
 		expect(rows(wrapper).map((item) => item.text()).sort()).toEqual(['Late', 'My cases'])
 	})
 
 	it('shows the count after the name, by id or by slug, zero included', () => {
-		const wrapper = mount(CnSavedViewsControl, {
+		const wrapper = mount(CnSavedViewsPanel, {
 			props: { views, currentUserId: 'alice', counts: { v1: 14, late: 0 } },
 		})
 		expect(row(wrapper, 'v1').text()).toBe('My cases (14)')
@@ -96,12 +96,12 @@ describe('CnSavedViewsControl counts', () => {
 	})
 
 	it('reads a count the view carries itself', () => {
-		const wrapper = mount(CnSavedViewsControl, { props: { views, currentUserId: 'alice' } })
+		const wrapper = mount(CnSavedViewsPanel, { props: { views, currentUserId: 'alice' } })
 		expect(row(wrapper, 'v3').text()).toBe('Carried (7)')
 	})
 
 	it('puts the count in the accessible label, nested rows included', () => {
-		const wrapper = mount(CnSavedViewsControl, {
+		const wrapper = mount(CnSavedViewsPanel, {
 			props: { views, currentUserId: 'alice', counts: { v1: 14, v4: 2 } },
 		})
 		expect(row(wrapper, 'v1').attributes('aria-label')).toBe('My cases (14)')

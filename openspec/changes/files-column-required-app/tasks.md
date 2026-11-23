@@ -1,0 +1,3 @@
+- [x] filesBrowserColumns normaliseFileColumns honours requiredApp (isAppInstalled)
+- [x] jest CnFilesBrowserColumnRequiredApp (red first)
+- [x] docs cn-files-browser columns row

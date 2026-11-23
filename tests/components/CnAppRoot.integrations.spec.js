@@ -151,6 +151,24 @@ describe('CnAppRoot — the Integrations section survives a #user-settings overr
 		expect(wrapper.find('#cn-integrations').exists()).toBe(true)
 	})
 
+	it('shows a link in the reader\'s language, through the app\'s translate', async () => {
+		const wrapper = mount(CnAppRoot, {
+			propsData: {
+				manifest: manifestWith([AVG]),
+				appId: 'myapp',
+				permissions: [],
+				requiresApps: [],
+				translate: (text) => (text === 'Processing activities (AVG)' ? 'Verwerkingsactiviteiten (AVG)' : text),
+			},
+			stubs: { 'router-view': { template: '<div class="router-view-stub" />' } },
+		})
+		wrapper.vm.userSettingsOpen = true
+		await wrapper.vm.$nextTick()
+		const link = wrapper.find('#cn-integrations .cn-app-root__integrations')
+		expect(link.text()).toContain('Verwerkingsactiviteiten (AVG)')
+		expect(link.text()).not.toContain('Processing activities')
+	})
+
 	it('renders no section at all when the app declares no integrations', async () => {
 		const wrapper = mountRoot({ manifest: manifestWith([{ id: 'home', label: 'Home', route: 'home' }]) })
 		wrapper.vm.userSettingsOpen = true

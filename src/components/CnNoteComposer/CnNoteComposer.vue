@@ -76,6 +76,12 @@ export default {
 			default: () => t('nextcloud-vue', 'Write a note…'),
 		},
 
+		/** Accessible name of the note box; not shown. */
+		label: {
+			type: String,
+			default: () => t('nextcloud-vue', 'Note'),
+		},
+
 		/** Register slug of the record the note belongs to, for image upload. */
 		register: {
 			type: String,
@@ -125,8 +131,29 @@ export default {
 		},
 	},
 
+	watch: {
+		label() {
+			this.nameInput()
+		},
+	},
+
+	mounted() {
+		this.nameInput()
+	},
+
 	methods: {
 		t,
+
+		/**
+		 * Name the contenteditable box. NcRichContenteditable only names it
+		 * through its visible `label`, so the name is set on the element.
+		 */
+		nameInput() {
+			const input = this.$el?.querySelector?.('[contenteditable]')
+			if (input) {
+				input.setAttribute('aria-label', this.label)
+			}
+		},
 
 		/**
 		 * `@` suggestions for NcRichContenteditable: users, then groups. A group's

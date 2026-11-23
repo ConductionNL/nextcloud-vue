@@ -250,6 +250,7 @@ describe('a sectioned template replayed to an app endpoint', () => {
 		expect(queue).toHaveLength(1)
 		expect(queue[0].operationType).toBe('submit')
 		expect(queue[0].endpoint).toBe('/apps/myapp/api/cases/case-77/checklist-run')
+		expect(queue[0].label).toBe(`${PLANNED_S.caseRef}, checklist`)
 		expect(queue[0].payload).toMatchObject({
 			checklistId: 'tpl-s',
 			inspection: 'i-2',

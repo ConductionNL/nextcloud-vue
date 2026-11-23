@@ -99,9 +99,10 @@ export default {
 | `editable` | Boolean | `false` | Enable drag and resize interactions |
 | `columns` | Number | `12` | Number of grid columns |
 | `cellHeight` | Number | `80` | Cell height in pixels |
+| `columnWeights` | Array | `null` | Optional weights for the twelve-column grid's column groups, as `[{ span, weight }]` (e.g. three groups of 4 weighted 352/435/352). Applies only on the full twelve-column grid and not while editing; items on a side-column track are left alone. `null` keeps twelve equal shares. |
 | `margin` | Number | `12` | Gutter between grid items in pixels |
 | `minWidth` | Number | `2` | Minimum widget width in grid units |
-| `minHeight` | Number | `2` | Minimum widget height in grid units |
+| `minHeight` | Number | `2` | Minimum widget height in grid units. A layout item's own `minHeight` replaces it for that item (a divider registers `minHeight: 1`). |
 | `columnOpts` | Object | `null` | GridStack v12 responsive `columnOpts` bag; when set the grid reflows its column count across screen sizes. Build with `getDashboardColumnOpts()`. Default `null` = fixed `columns`. |
 | `cellHeightCssVar` | String | `null` | When set, `cellHeight` is mirrored into this CSS custom property on the document root at init. Default `null` = none. |
 | `itemKey` | Function | `null` | Optional `(item) => string\|number` to derive each item's render key; forces a re-render when an item changes in a way its `id` doesn't capture (e.g. style edits). Default `null` = key on `item.id`. |
@@ -160,3 +161,7 @@ explicit event when you are writing new code:
 ```
 
 `float` (Boolean, default `true`): GridStack's `float`. `false` packs items upward, so a size-to-content cell that shrinks, or a widget that is not shown, closes its gap.
+
+`fillHeight` (Boolean, default `false`) and `fillMinWidth` (Number, default `960`): in view mode, on a grid at least `fillMinWidth` px wide, the layout rows divide the height the host gives the grid instead of growing with the content, so the page around it does not scroll (LpVandaag). A row whose items all set `fitRows: true` takes its content's height; the other rows share what is left, and a cell scrolls what does not fit. Edit mode and a narrower grid keep GridStack's `cellHeight` rows.
+
+`sideColumn` (Object, default `null`): `{ width, from? }`. Layout items with `track: "side"` are drawn at `width` px (the card, without its margins) from column `from` (8 by default), items with `track: "main"` share the rest, so the side cards keep their width on any screen (DqMijnWerk). Items without a track keep the twelve shares. Only on the full twelve-column grid and not while editing.

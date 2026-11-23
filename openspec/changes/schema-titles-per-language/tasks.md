@@ -1,0 +1,1 @@
+- [x] 1 `propertyTitle` and its use wherever a property is named (tests/utils/propertyTitle.spec.js); docs

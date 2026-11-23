@@ -425,9 +425,10 @@ describe('CnDataTable — hideHeader', () => {
 		expect(wrapper.find('thead').exists()).toBe(true)
 	})
 
-	it('omits the <thead> when hideHeader is set', () => {
+	it('draws no header row when hideHeader is set, only hidden header cells', () => {
 		const wrapper = mountTable({ rows, columns: ['name'], hideHeader: true })
-		expect(wrapper.find('thead').exists()).toBe(false)
+		expect(wrapper.find('thead').classes()).toContain('cn-data-table__hidden-head')
+		expect(wrapper.find('thead button').exists()).toBe(false)
 		// Rows still render.
 		expect(wrapper.findAll('.cn-table-row').length).toBe(2)
 	})

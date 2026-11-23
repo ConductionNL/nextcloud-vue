@@ -1,0 +1,3 @@
+- [x] Crumb visibleWhen
+- [x] nextStep variants
+- [x] Jest

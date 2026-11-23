@@ -1,0 +1,2 @@
+- [x] actionsDispatcher: object-op values through resolveDeepTokens
+- [x] tests/utils/actionsDispatcher.spec.js

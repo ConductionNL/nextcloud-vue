@@ -138,6 +138,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import FileDocumentMultiple from 'vue-material-design-icons/FileDocumentMultiple.vue'
 import CnDetailCard from '../../../components/CnDetailCard/CnDetailCard.vue'
+import { htmlToText } from '../../../utils/htmlToText.js'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 
 const VALID_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -357,12 +358,7 @@ export default {
 			if (raw === '') {
 				return ''
 			}
-			let text = raw
-				.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-				.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-				.replace(/<[^>]+>/g, ' ')
-				.replace(/\s+/g, ' ')
-				.trim()
+			let text = htmlToText(raw)
 			if (text.length > PREVIEW_MAX_CHARS) {
 				text = text.slice(0, PREVIEW_MAX_CHARS).trimEnd() + '…'
 			}

@@ -76,6 +76,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 |------|------|---------|-------------|
 | `schema` | Object | `null` | Schema object — drives auto-generated filters (from `properties`) and the column list |
 | `title` | String | `''` | Sidebar header title; defaults to `schema.title` when empty |
+| `subtitle` | String | `''` | The line under the title, in place of `schema.description`: CnIndexPage hands it the page's `sidebar.subtitle` with `{total}` and `{shown}` filled ("48 zaken, 8 op deze pagina", DqFilterBeheren) |
 | `icon` | String | `''` | MDI icon name or emoji shown in the header; defaults to `schema.icon` |
 | `open` | Boolean | `true` | Controls sidebar open/closed state (use with `v-model:open`) |
 | `searchValue` | String | `''` | Current search term (controlled); bind to your store's search state |
@@ -85,6 +86,9 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `visibleColumns` | Array | `null` | Array of column keys currently shown in the table; controls the Columns tab checkboxes |
 | `personalColumns` | Boolean | `true` | Show the Order and pin list and Reset columns in the Columns tab. |
 | `pinnedCount` | Number | `0` | How many of the first visible columns are pinned to the start of the table. |
+| `sortOptions` | Array | `[]` | The orders the Sort section in the Search tab offers: `[{ value, label, keys }]`, `keys` a `[{ key, order }]` list read as its ascending form. Empty draws no Sort section. Choosing a field or a direction emits `sort-change` with the new `[{ key, order }]`. |
+| `currentSort` | Array | `[]` | The list's current order, `[{ key, order }]`: the Sort section shows its field, its direction and "Current order: ...". |
+| `currentSortValue` | String | `''` | The Sort option chosen by its value, for an order that is not a list of sort keys: an option with `fixed: true`, such as one whose rows an endpoint ranks (`sortSelectOptions[].source`). Wins over matching `currentSort`. |
 | `columnGroups` | Array | `[]` | Additional custom column groups to add to the Columns tab |
 | `showMetadata` | Boolean | `true` | When `true`, includes a built-in "Metadata" group with `created`, `updated`, `uuid` columns |
 | `propertiesGroupLabel` | String | `''` | Override the label for the auto-generated properties column group |
@@ -99,6 +103,8 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `filterFields` | Object | `null` | Filter declarations for a page with no schema of its own. Wins over `schema`, and feeds the Search tab only |
 | `columnsHeading` | String | `'Column Visibility'` | Heading inside the Columns tab |
 | `columnsDescription` | String | `'Select which columns to display in the table'` | Subtitle inside the Columns tab |
+| `activeTab` | String | `''` | Switch to a tab while the sidebar is mounted, e.g. `'filters-tab'`. Empty leaves the tab alone. |
+| `savedViews` | Object | `null` | The page's saved views, shown in a third tab, Filters, by [`CnSavedViewsPanel`](./cn-saved-views-panel.md): `{ views, loading, currentUserId, counts, selectedViewId, maxDepth, menuIds }`. `null` shows none. |
 | `userIsAdmin` | Boolean | `true` | Whether the current user is an admin. When `false`, schema properties with `adminOnly: true` are hidden from the filter list in the Search tab. |
 
 ### Events
@@ -112,6 +118,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `pin-change` | `count` | The user pinned or unpinned a column; payload is the new number of pinned columns |
 | `columns-reset` | none | The user chose Reset columns |
 | `update:open` | `isOpen` | Emitted when the close button is clicked; use with `v-model:open` |
+| `saved-view` | `{ action, view }` | A saved-view intent from the Filters tab: `apply`, `save`, `edit`, `share`, `presentation`, `update`, `copy`, `menu` or `delete`. |
 | `tab-change` | `tabId` | Emitted when the user switches tabs; payload is the new tab's `id` string |
 | `clear-filters` | — | Emitted when "Clear all" is clicked; the host resets the search term and every active filter |
 
@@ -139,3 +146,7 @@ The sidebar header displays an icon from the `icon` prop (or `schema.icon`). Ico
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnIndexSidebar.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnIndexSidebar/CnIndexSidebar.vue) and update automatically whenever the component changes.
 
 <GeneratedRef />
+
+## A note under a filter, and a switch
+
+A filter property may carry `facetNote`, drawn as a muted line under the filter (DqZaken "Het team staat op de zaak als groep; ..."). `inputControl: "switch"` with `switchLabel` draws the filter as one switch with its own words ("Ook concepten van anderen tonen"); on filters on `true`, off clears it.

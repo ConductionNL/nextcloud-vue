@@ -21,24 +21,34 @@ const {
 const v = (slug, extra = {}) => ({ slug, name: slug, ...extra })
 
 describe('the tree order', () => {
-	it('puts seeded views first, then the own views of the reader, each alphabetically', () => {
+	it('puts seeded views first in the order the app declares them, then the own views in the order they were saved', () => {
 		const rows = buildViewTree({
 			views: [
-				v('zebra'),
-				v('alpha'),
+				v('zebra', { created: '2026-10-21T08:00:00+00:00' }),
+				v('opgeschort', { created: '2026-10-24T17:05:58+00:00' }),
+				v('alpha', { created: '2026-10-22T05:21:24+00:00' }),
 				v('shipped-b', { seeded: true }),
 				v('shipped-a', { seeded: true }),
 			],
 		})
 
+		// DqFilterBeheren: Mijn zaken, Alle lopende zaken, Termijn verstreken as
+		// dossiq declares them; Termijn deze week, Wacht op inwoner, Opgeschort
+		// as Pieter saved them.
 		expect(rows.map((row) => row.view.slug)).toEqual([
-			'shipped-a',
 			'shipped-b',
-			'alpha',
+			'shipped-a',
 			'zebra',
+			'alpha',
+			'opgeschort',
 		])
 		expect(rows[0].group).toBe(VIEW_GROUPS.SEEDED)
 		expect(rows[2].group).toBe(VIEW_GROUPS.OWN)
+	})
+
+	it('orders own views without a saved time by name, after the dated ones', () => {
+		const rows = buildViewTree({ views: [v('zebra'), v('alpha'), v('dated', { created: '2026-10-01T00:00:00+00:00' })] })
+		expect(rows.map((row) => row.view.slug)).toEqual(['dated', 'alpha', 'zebra'])
 	})
 
 	it('nests a child under its parent and gives it a depth', () => {

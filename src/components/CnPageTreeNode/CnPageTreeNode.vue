@@ -55,6 +55,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import draggable from 'vuedraggable'
 import CnPageTreeRow from './CnPageTreeRow.vue'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 // Stable per-page-object render keys, independent of the mutable `id`. Keyed by
 // the page ref itself (a WeakMap, so removed pages are GC'd) so a slug rename —
@@ -317,7 +318,7 @@ export default {
 		 * @return {void}
 		 */
 		addChild(node) {
-			const base = String(node.ref.route || '').replace(/\/+$/, '')
+			const base = stripTrailingSlashes(String(node.ref.route || ''))
 			const ref = { id: this.nextId(), parent: node.ref.id, type: 'detail', route: `${base}/:id`, title: '', config: {} }
 			node.children.push({ ref, children: [] })
 			this.flatten()

@@ -204,6 +204,32 @@ describe('CnAiCompanion', () => {
 			expect(second.find('.cn-ai-companion').exists()).toBe(false)
 		})
 
+		it('the app\'s own companion takes the slot from a standalone one that claimed first', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const standalone = mountCompanion()
+			await flushPromises()
+			const inApp = mountCompanion({ aiContext: { appId: 'dossiq', pageKind: 'index' } })
+			await flushPromises()
+
+			expect(window.__cnAiCompanionPrimary).toBe(inApp.vm)
+			expect(inApp.find('.cn-ai-companion').exists()).toBe(true)
+			expect(standalone.find('.cn-ai-companion').exists()).toBe(false)
+		})
+
+		it('a standalone companion does not take the slot from the app\'s own', async () => {
+			axios.get.mockResolvedValue({ status: 200, data: { status: 'ok' } })
+
+			const inApp = mountCompanion({ aiContext: { appId: 'dossiq', pageKind: 'index' } })
+			await flushPromises()
+			const standalone = mountCompanion()
+			await flushPromises()
+
+			expect(window.__cnAiCompanionPrimary).toBe(inApp.vm)
+			expect(inApp.find('.cn-ai-companion').exists()).toBe(true)
+			expect(standalone.find('.cn-ai-companion').exists()).toBe(false)
+		})
+
 		it('a companion whose probe FAILED does not take the slot from one that works', async () => {
 			// 🔴 The bug the first version of this guard introduced: the slot was
 			// claimed in created(), BEFORE the probe answered. A companion that

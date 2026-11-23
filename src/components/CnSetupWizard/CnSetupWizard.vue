@@ -5,6 +5,7 @@
 		ref="wizard"
 		:steps="wizardSteps"
 		:dialogTitle="resolvedDialogTitle"
+		stepHeading
 		:submitLabel="submitLabel"
 		:cancelLabel="cancelLabel"
 		:nextLabel="nextLabel"
@@ -69,11 +70,20 @@
 
 				<!-- choice -->
 				<template v-else-if="step.type === 'choice'">
-					<NcNoteCard v-if="step.body" type="info">
+					<!-- The board sets the intro as a plain paragraph above the
+					     cards (DqInstellen); the Nextcloud look keeps the note. -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
+					<!-- In the board look the step's title is the dialog's heading,
+					     so the cards' legend is kept for assistive tech only. -->
 					<CnChoiceCards
 						v-if="isCardChoice(step)"
+						:class="{ 'cn-setup-step__choices--titled': isBoard }"
+						:layout="step.display === 'rows' ? 'rows' : 'cards'"
 						:label="stepTitle(step)"
 						:options="optionsFor(step)"
 						:multiple="step.multiple === true"
@@ -119,40 +129,87 @@
 					<NcNoteCard v-if="isChoiceDisabled(step)" type="warning">
 						{{ dependsOnHint(step) }}
 					</NcNoteCard>
+					<!-- `noteStyle: "card"` sets the note as an info card (DqInstellen). -->
+					<NcNoteCard
+						v-if="stepNote(step) && step.noteStyle === 'card'"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
+					<p v-else-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- config-fields -->
 				<template v-else-if="step.type === 'config-fields'">
-					<!-- The step's intro, drawn like choice and run-action steps.
-					     It was left out here, so pipelinq's organisation step
-					     ("Your organisation details…") showed fields with no
-					     word about what they were for. -->
-					<NcNoteCard v-if="step.body" type="info" data-testid="cn-setup-step-intro">
+					<!-- The step's intro, drawn like choice and run-action steps:
+					     a plain paragraph in the board look (PqInstellen). -->
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info" data-testid="cn-setup-step-intro">
 						{{ stepBody(step) }}
 					</NcNoteCard>
 					<div
 						v-for="field in fieldsFor(step)"
 						:key="field.key"
 						class="cn-setup-field">
+						<!-- A repeatable group (`repeatable: true` on an array of
+						     objects): one row of sub-fields per entry, posted as one list. -->
+						<fieldset v-if="field.repeatable"
+							class="cn-setup-repeat"
+							data-testid="cn-setup-repeat">
+							<legend class="cn-setup-repeat__legend">
+								{{ fieldLabel(step, field) }}
+							</legend>
+							<div v-for="(row, rowIndex) in repeatRows(field)"
+								:key="rowIndex"
+								class="cn-setup-repeat__row"
+								data-testid="cn-setup-repeat-row">
+								<NcTextField
+									v-for="sub in field.repeatable.fields"
+									:key="sub.key"
+									:label="sub.label"
+									:type="sub.widget === 'number' ? 'number' : 'text'"
+									:modelValue="row[sub.key] != null ? String(row[sub.key]) : ''"
+									@update:modelValue="(v) => onRepeatInput(field, rowIndex, sub, v)" />
+								<NcButton variant="tertiary"
+									:aria-label="t('nextcloud-vue', 'Remove row {number}', { number: rowIndex + 1 })"
+									data-testid="cn-setup-repeat-remove"
+									@click="removeRepeatRow(field, rowIndex)">
+									{{ t('nextcloud-vue', 'Remove') }}
+								</NcButton>
+							</div>
+							<NcButton variant="secondary"
+								data-testid="cn-setup-repeat-add"
+								@click="addRepeatRow(field)">
+								{{ field.repeatable.addLabel || t('nextcloud-vue', 'Add row') }}
+							</NcButton>
+						</fieldset>
 						<NcCheckboxRadioSwitch
-							v-if="field.widget === 'checkbox'"
+							v-else-if="field.widget === 'checkbox'"
 							:modelValue="!!configModel[field.key]"
 							@update:modelValue="(v) => configModel[field.key] = v">
 							{{ field.label }}
 						</NcCheckboxRadioSwitch>
 						<NcSelect
 							v-else-if="field.widget === 'select'"
-							:inputLabel="field.label"
+							:inputLabel="fieldLabel(step, field)"
 							:options="field.enum || []"
 							:modelValue="configModel[field.key]"
 							@update:modelValue="(v) => configModel[field.key] = v" />
 						<NcTextField
 							v-else
-							:label="field.label"
+							:label="fieldLabel(step, field)"
 							:type="field.widget === 'number' ? 'number' : 'text'"
 							:modelValue="configModel[field.key] != null ? String(configModel[field.key]) : ''"
 							@update:modelValue="(v) => configModel[field.key] = v" />
 					</div>
+					<p v-if="stepNote(step)" class="cn-setup-step__note" data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</p>
 				</template>
 
 				<!-- run-action -->
@@ -183,10 +240,41 @@
 
 				<!-- summary -->
 				<template v-else-if="step.type === 'summary'">
-					<NcNoteCard v-if="step.body" type="info">
+					<p v-if="step.body && isBoard" class="cn-setup-step__intro" data-testid="cn-setup-step-intro">
+						{{ stepBody(step) }}
+					</p>
+					<NcNoteCard v-else-if="step.body" type="info">
 						{{ stepBody(step) }}
 					</NcNoteCard>
-					<ul class="cn-setup-summary">
+					<ul v-if="readinessRows(step).length > 0"
+						class="cn-setup-readiness"
+						:aria-label="readinessLabel"
+						data-testid="cn-setup-readiness">
+						<li v-for="row in readinessRows(step)"
+							:key="row.id"
+							class="cn-setup-readiness__row"
+							data-testid="cn-setup-readiness-row">
+							<span class="cn-setup-readiness__mark"
+								:class="{ 'cn-setup-readiness__mark--done': row.done }"
+								aria-hidden="true">
+								<Check v-if="row.done" :size="14" />
+							</span>
+							<span class="cn-setup-readiness__text">
+								<strong class="cn-setup-readiness__title">{{ row.title }}</strong>
+								<span v-if="row.detail" class="cn-setup-readiness__detail">{{ row.detail }}</span>
+							</span>
+							<a v-if="row.link" class="cn-setup-readiness__link" :href="row.link.href">{{ row.link.label }}</a>
+							<NcButton v-else-if="step.summaryEditable === true && recapEditable(row.id)"
+								variant="tertiary"
+								class="cn-setup-readiness__link"
+								:aria-label="t('nextcloud-vue', 'Change {step}', { step: row.title })"
+								data-testid="cn-setup-summary-change"
+								@click="openStep(row.id)">
+								{{ t('nextcloud-vue', 'Change') }}
+							</NcButton>
+						</li>
+					</ul>
+					<ul v-else class="cn-setup-summary">
 						<li
 							v-for="item in summaryItems"
 							:key="item.id"
@@ -195,8 +283,23 @@
 							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
 							<span class="cn-setup-summary__label">{{ item.title }}</span>
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
+							<NcButton v-if="step.summaryEditable === true && item.editable"
+								variant="tertiary"
+								class="cn-setup-summary__change"
+								:aria-label="t('nextcloud-vue', 'Change {step}', { step: item.title })"
+								data-testid="cn-setup-summary-change"
+								@click="openStep(item.id)">
+								{{ t('nextcloud-vue', 'Change') }}
+							</NcButton>
+							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 						</li>
 					</ul>
+					<NcNoteCard v-if="stepNote(step)"
+						type="info"
+						class="cn-setup-step__note-card"
+						data-testid="cn-setup-step-note">
+						{{ stepNote(step) }}
+					</NcNoteCard>
 				</template>
 			</div>
 		</template>
@@ -208,10 +311,12 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcSelect, NcTextField } from '@nextcloud/vue'
+import Check from 'vue-material-design-icons/Check.vue'
 import CnChoiceCards from '../CnChoiceCards/CnChoiceCards.vue'
 import CnLeafDependencySettings from '../CnLeafDependencySettings/CnLeafDependencySettings.vue'
 import CnWizardDialog from '../CnWizardDialog/CnWizardDialog.vue'
 import { checkDependencies, isDependencyResolved, missingRequiredApps, readServerAppStatuses } from '../../composables/useDependencyCheck.js'
+import { useLook } from '../../composables/useLook.js'
 import { useSetupStatus } from '../../composables/useSetupStatus.js'
 import { fieldsFromSchema } from '../../utils/schema.js'
 
@@ -248,6 +353,7 @@ export default {
 	name: 'CnSetupWizard',
 
 	components: {
+		Check,
 		CnWizardDialog,
 		CnChoiceCards,
 		CnLeafDependencySettings,
@@ -428,12 +534,13 @@ export default {
 	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
 	 */
 	setup(props) {
-		const wantsSource = (props.steps || []).some((s) => s && s.optionsSource)
+		const { isBoard } = useLook()
+		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen))
 		if (!wantsSource) {
-			return {}
+			return { isBoard }
 		}
 		const { status, loading } = useSetupStatus(props.appId, { setup: { steps: props.steps } })
-		return { setupStatus: status, setupStatusLoading: loading }
+		return { isBoard, setupStatus: status, setupStatusLoading: loading }
 	},
 
 	data() {
@@ -454,14 +561,16 @@ export default {
 	computed: {
 		/**
 		 * The title actually rendered by CnWizardDialog: "Set up {appName}"
-		 * when a display name was passed, otherwise whatever `dialogTitle`
-		 * resolves to (a caller override, or its own generic default).
+		 * when a display name was passed (the name through the host's
+		 * translate), otherwise whatever `dialogTitle` resolves to (a caller
+		 * override, or its own generic default). In the board look it is the
+		 * eyebrow's context and the current step's title is the heading.
 		 *
 		 * @return {string}
 		 */
 		resolvedDialogTitle() {
 			return this.appName
-				? t('nextcloud-vue', 'Set up {app}', { app: this.appName })
+				? t('nextcloud-vue', 'Set up {app}', { app: this.cnTranslate(this.appName) })
 				: this.dialogTitle
 		},
 
@@ -496,7 +605,7 @@ export default {
 
 		setupSteps() {
 			const skipped = new Set(this.skippedSteps.map((entry) => entry.step.id))
-			return this.declaredSteps.filter((s) => !skipped.has(s.id))
+			return this.declaredSteps.filter((s) => !skipped.has(s.id) && this.stepConditionHolds(s))
 		},
 
 		/**
@@ -596,6 +705,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it */
 		wizardSteps() {
 			if (this.dependencyBlocked) {
 				return [{
@@ -608,7 +718,20 @@ export default {
 				id: s.id,
 				label: this.stepTitle(s),
 				optional: s.required !== true,
+				skippable: s.skippable === true,
+				cancelLabel: s.cancelLabel ? this.cnTranslate(s.cancelLabel) : undefined,
+				submitLabel: s.submitLabel ? this.cnTranslate(s.submitLabel) : undefined,
 			}))
+		},
+
+		/**
+		 * The accessible name of the readiness list.
+		 *
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessLabel() {
+			return t('nextcloud-vue', 'Readiness')
 		},
 
 		/**
@@ -633,6 +756,8 @@ export default {
 					id: entry.step.id,
 					title: this.stepTitle(entry.step),
 					value: t('nextcloud-vue', 'Skipped, needs {apps}', { apps: entry.missing.join(', ') }),
+					hint: '',
+					editable: false,
 					done: false,
 					notRun: true,
 				}))
@@ -651,19 +776,21 @@ export default {
 						// Only the fields the reader filled in: a row of empty
 						// "Name: , KvK: ," reads as broken, not as "not set".
 						value = this.fieldsFor(step)
-							.filter((f) => {
-								const v = this.configModel[f.key]
-								return v !== null && v !== undefined && String(v).trim() !== ''
-							})
-							.map((f) => `${f.label}: ${this.configModel[f.key]}`)
+							.map((f) => ({ f, v: f.repeatable ? this.repeatSummary(f) : this.configModel[f.key] }))
+							.filter(({ v }) => v !== null && v !== undefined && String(v).trim() !== '')
+							.map(({ f, v }) => `${f.label}: ${v}`)
 							.join(', ') || t('nextcloud-vue', 'Not set')
 					}
+					const hint = step.summaryHint ? this.cnTranslate(step.summaryHint) : ''
+					const editable = step.type !== 'info'
 					if (this.isOnDemand(step)) {
 						const ran = this.ranThisSession(step.id)
 						return {
 							id: step.id,
 							title: this.stepTitle(step),
 							value: ran ? '' : t('nextcloud-vue', 'Not run'),
+							hint,
+							editable,
 							done: ran,
 							notRun: !ran,
 						}
@@ -676,7 +803,7 @@ export default {
 					} else {
 						done = this.isStepDone(step.id)
 					}
-					return { id: step.id, title: this.stepTitle(step), value, done, notRun: false }
+					return { id: step.id, title: this.stepTitle(step), value, hint, editable, done, notRun: false }
 				})
 				.concat(skipped)
 		},
@@ -715,6 +842,12 @@ export default {
 			}
 			return actionable[firstUnmetIndex].id
 		},
+	},
+
+	created() {
+		for (const step of this.setupSteps) {
+			this.applyDefault(step)
+		}
 	},
 
 	mounted() {
@@ -793,6 +926,125 @@ export default {
 			return raw === '' ? '' : this.cnTranslate(raw)
 		},
 
+		/**
+		 * The footnote under a choice step's options, from the step's `note`
+		 * (or `footnote`), translated like the body.
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {string} The translated footnote, or ''.
+		 */
+		stepNote(step) {
+			const raw = (step && (step.note || step.footnote)) || ''
+			return raw === '' ? '' : this.cnTranslate(raw)
+		},
+
+		/**
+		 * A config field's label; with the step's `optionalLabels`, a field
+		 * the step's schema does not require reads "(optional)" after it.
+		 *
+		 * @param {object} step The step.
+		 * @param {object} field The field.
+		 * @return {string} The label.
+		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-mark-its-fields-optional
+		 */
+		/**
+		 * The rows of a repeatable group: what was entered, else one empty row.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {Array<object>} The rows.
+		 * @spec openspec/changes/setup-wizard-recap-and-repeatable/specs/setup-wizard/spec.md#requirement-a-config-fields-step-can-hold-a-repeatable-group
+		 */
+		repeatRows(field) {
+			const rows = this.configModel[field.key]
+			return Array.isArray(rows) && rows.length > 0 ? rows : [{}]
+		},
+
+		/**
+		 * Write one sub-field of one row of a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @param {number} rowIndex The row.
+		 * @param {object} sub The sub-field.
+		 * @param {string} value The typed value.
+		 */
+		onRepeatInput(field, rowIndex, sub, value) {
+			const rows = this.repeatRows(field).map((row) => ({ ...row }))
+			rows[rowIndex] = { ...rows[rowIndex], [sub.key]: sub.widget === 'number' && value !== '' ? Number(value) : value }
+			this.configModel[field.key] = rows
+		},
+
+		/**
+		 * Add an empty row to a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 */
+		addRepeatRow(field) {
+			this.configModel[field.key] = [...this.repeatRows(field), {}]
+		},
+
+		/**
+		 * Remove one row of a repeatable group.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @param {number} rowIndex The row.
+		 */
+		removeRepeatRow(field, rowIndex) {
+			this.configModel[field.key] = this.repeatRows(field).filter((row, index) => index !== rowIndex)
+		},
+
+		/**
+		 * The rows of a repeatable group that hold a value, without the empty ones.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {Array<object>} The filled rows.
+		 */
+		filledRepeatRows(field) {
+			return (Array.isArray(this.configModel[field.key]) ? this.configModel[field.key] : [])
+				.filter((row) => row && Object.values(row).some((v) => v !== null && v !== undefined && String(v).trim() !== ''))
+		},
+
+		/**
+		 * A repeatable group in the recap: each filled row's first value.
+		 *
+		 * @param {object} field The repeatable field.
+		 * @return {string|null} The recap, or null when nothing was entered.
+		 */
+		repeatSummary(field) {
+			const rows = this.filledRepeatRows(field)
+			const first = field.repeatable.fields[0]
+			return rows.length === 0 ? null : rows.map((row) => (first ? row[first.key] : '') || '').filter(Boolean).join('; ')
+		},
+
+		/**
+		 * Whether the recap row of a step can open that step again.
+		 *
+		 * @param {string} stepId The step.
+		 * @return {boolean}
+		 */
+		recapEditable(stepId) {
+			const recap = this.summaryItems.find((item) => item.id === stepId)
+			return Boolean(recap && recap.editable)
+		},
+
+		/**
+		 * Open a step from the recap (`summaryEditable`), without validating.
+		 *
+		 * @param {string} stepId The step.
+		 * @spec openspec/changes/setup-wizard-recap-and-repeatable/specs/setup-wizard/spec.md#requirement-the-recap-can-say-why-and-open-a-step-again
+		 */
+		openStep(stepId) {
+			if (this.$refs.wizard && typeof this.$refs.wizard.jumpTo === 'function') {
+				this.$refs.wizard.jumpTo(stepId)
+			}
+		},
+
+		fieldLabel(step, field) {
+			const required = Array.isArray(step?.schema?.required) && step.schema.required.includes(field.key)
+			return step?.optionalLabels === true && !required
+				? t('nextcloud-vue', '{label} (optional)', { label: field.label })
+				: field.label
+		},
+
 		stepSlot(step) {
 			return 'step-' + step.id
 		},
@@ -803,7 +1055,23 @@ export default {
 
 		fieldsFor(step) {
 			if (step.schema && typeof step.schema === 'object') {
-				return fieldsFromSchema(step.schema, { translate: this.cnTranslate })
+				const props = step.schema.properties || {}
+				return fieldsFromSchema(step.schema, { translate: this.cnTranslate }).map((field) => {
+					const prop = props[field.key]
+					const items = prop && prop.type === 'array' && prop.repeatable === true ? prop.items : null
+					if (!items || items.type !== 'object') {
+						return field
+					}
+					return {
+						...field,
+						repeatable: {
+							// In the order the items declare their properties: the first names the row in the recap.
+							fields: fieldsFromSchema(items, { translate: this.cnTranslate })
+								.sort((a, b) => Object.keys(items.properties || {}).indexOf(a.key) - Object.keys(items.properties || {}).indexOf(b.key)),
+							addLabel: prop.addLabel ? this.cnTranslate(prop.addLabel) : '',
+						},
+					}
+				})
 			}
 			// Fallback: a plain text field per declared config key.
 			return (step.configKeys || []).map((key) => ({ key, label: key, widget: 'text' }))
@@ -848,6 +1116,84 @@ export default {
 		},
 
 		/**
+		 * Whether a step's `visibleWhen` holds: the value at that path in the
+		 * setup status (`"flags.hasPayouts"`, dots walk into objects) is truthy,
+		 * or equals `equals` when the step gives `{ path, equals }`. A step
+		 * without `visibleWhen` always shows; one with it stays hidden until the
+		 * status says so, also while the status loads (DqInstellen: the dwangsom
+		 * step only when the app pays penalties).
+		 *
+		 * @param {object} step The step declaration.
+		 * @return {boolean}
+		 */
+		stepConditionHolds(step) {
+			const when = step && step.visibleWhen
+			if (when === undefined || when === null || when === '') {
+				return true
+			}
+			const path = typeof when === 'string' ? when : when.path
+			if (typeof path !== 'string' || path === '') {
+				return true
+			}
+			let node = this.setupStatus
+			for (const key of path.split('.')) {
+				if (node === null || node === undefined || typeof node !== 'object') {
+					return false
+				}
+				node = node[key]
+			}
+			if (typeof when === 'object' && Object.hasOwn(when, 'equals')) {
+				return node === when.equals
+			}
+			return Boolean(node)
+		},
+
+		/**
+		 * The readiness rows of a `summary` step under the board look: its
+		 * declared `rows` in order. A row naming a `step` takes the recap of that
+		 * step; any other row is done when `doneWhen` holds in the setup status.
+		 *
+		 * @param {object} step The summary step.
+		 * @return {Array<{ id: string, title: string, detail: string, done: boolean, link: (object|null) }>}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRows(step) {
+			if (!this.isBoard || !Array.isArray(step.rows)) {
+				return []
+			}
+			return step.rows.map((row) => {
+				const recap = this.summaryItems.find((item) => item.id === row.step)
+				const done = recap ? recap.done : this.readinessRowDone(row)
+				const detail = (!done && row.detailWhenOpen) || row.detail
+				const fallback = recap ? recap.value : ''
+				return {
+					id: row.step || row.id,
+					title: row.title ? this.cnTranslate(row.title) : (recap ? recap.title : ''),
+					detail: detail ? this.cnTranslate(detail) : fallback,
+					done,
+					link: row.link ? { label: this.cnTranslate(row.link.label), href: row.link.href } : null,
+				}
+			})
+		},
+
+		/**
+		 * Whether a row without a step is done: the setup status `readiness`
+		 * item it names, else its `doneWhen`. A row naming neither stays open.
+		 *
+		 * @param {object} row The row.
+		 * @return {boolean}
+		 * @spec openspec/changes/setup-summary-readiness-rows/specs/setup-summary-readiness-rows/spec.md#requirement-the-closing-step-lists-what-is-ready-and-where-to-change-it
+		 */
+		readinessRowDone(row) {
+			if (row.readinessItem) {
+				const items = (this.setupStatus && this.setupStatus.readiness) || []
+				const item = Array.isArray(items) ? items.find((entry) => entry.id === row.readinessItem) : null
+				return Boolean(item && item.done)
+			}
+			return row.doneWhen !== undefined && this.stepConditionHolds({ visibleWhen: row.doneWhen })
+		},
+
+		/**
 		 * The option list a `choice` step declares `optionsSource` for, read
 		 * from the setup status document the app already serves.
 		 *
@@ -889,13 +1235,14 @@ export default {
 		},
 
 		/**
-		 * Whether a choice step renders as a card grid rather than a dropdown.
+		 * Whether a choice step renders as CnChoiceCards (a card grid, or radio
+		 * rows with `display: "rows"`) rather than a dropdown.
 		 *
 		 * @param {object} step The choice step.
-		 * @return {boolean} True for `display: "cards"`.
+		 * @return {boolean} True for `display: "cards"` and `display: "rows"`.
 		 */
 		isCardChoice(step) {
-			return step.display === 'cards'
+			return step.display === 'cards' || step.display === 'rows'
 		},
 
 		/**
@@ -1000,6 +1347,36 @@ export default {
 		},
 
 		/**
+		 * Preselect a `choice` step's `default` option. Skipped once the user
+		 * picked here, when a value is already chosen, and for a step the
+		 * server already completed (its stored value must not be overwritten
+		 * by a Next). A card step holds the plain value; a dropdown holds the
+		 * option object, or the value while the options are still loading.
+		 *
+		 * @param {object} step The choice step.
+		 * @return {void}
+		 */
+		applyDefault(step) {
+			if (!step || step.type !== 'choice' || step.default === undefined || step.default === null) {
+				return
+			}
+			if (this.userTouched[step.id] === true || this.hasChoice(step) || this.isServerDone(step.id)) {
+				return
+			}
+			const wanted = step.multiple === true ? [].concat(step.default) : step.default
+			if (this.isCardChoice(step)) {
+				this.choiceModel[step.id] = wanted
+			} else {
+				const options = this.optionsFor(step)
+				const pick = (value) => options.find((o) => o.value === value) || value
+				this.choiceModel[step.id] = Array.isArray(wanted) ? wanted.map(pick) : pick(wanted)
+			}
+			if (step.configKey) {
+				this.choiceValues[step.configKey] = this.scalarChoice(step)
+			}
+		},
+
+		/**
 		 * Auto-fill a `choice` step's suggested default from an earlier choice
 		 * (its `suggestFrom` configKey → `suggestMap[parentValue]`). No-op once
 		 * the user has manually picked here, so a suggestion never clobbers an
@@ -1030,7 +1407,9 @@ export default {
 		/**
 		 * CnWizardDialog `validate` hook — intercepts Next/Submit to persist
 		 * the active step before advancing. `choice`/`config-fields` steps
-		 * POST their value via the setup contract; required `choice` steps
+		 * POST their value via the setup contract (a `config-fields` step only
+		 * the fields the person filled in, and nothing when they filled in
+		 * none); required `choice` steps
 		 * block advance until a value is picked; required `run-action` steps
 		 * block until the action has succeeded. Returns `true` to advance or
 		 * an error string to surface above the step and block navigation.
@@ -1064,10 +1443,27 @@ export default {
 				}
 			}
 			if (step.type === 'config-fields') {
+				// Only what the person filled in is written: a field left alone
+				// keeps what is stored, and a step left alone writes nothing.
+				const patch = {}
+				for (const field of this.fieldsFor(step)) {
+					if (Object.hasOwn(this.configModel, field.key)) {
+						patch[field.key] = field.repeatable ? this.filledRepeatRows(field) : this.configModel[field.key]
+					}
+				}
+				if (Object.keys(patch).length === 0) {
+					return true
+				}
 				try {
-					const patch = {}
-					for (const field of this.fieldsFor(step)) {
-						patch[field.key] = this.configModel[field.key]
+					if (step.action) {
+						// A config-fields step with an `action` posts its values to that action, not to the config.
+						const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+						const { data } = await axios.post(generateUrl(`/apps/${this.appId}/api/setup/action/${step.action}`), patch)
+						if (data && data.success === false) {
+							return data.message || t('nextcloud-vue', 'The step could not be saved.')
+						}
+						this.localDone[step.id] = true
+						return true
 					}
 					await this.saveConfig(patch)
 					this.localDone[step.id] = true
@@ -1305,6 +1701,15 @@ export default {
 			if (step && step.suggestFrom) {
 				this.applySuggestion(step)
 			}
+			// A default seeded before a dropdown's options arrived is a bare
+			// value; swap in its option object now the step opens.
+			if (step && step.default !== undefined && this.userTouched[step.id] !== true && !this.isCardChoice(step)) {
+				const held = this.choiceModel[step.id]
+				const option = this.optionsFor(step).find((o) => o.value === held)
+				if (option && held !== null && typeof held !== 'object') {
+					this.choiceModel[step.id] = option
+				}
+			}
 			this.maybeAutoRunStep(payload.stepId)
 			/**
 			 * @event step-change Emitted when the active step changes.
@@ -1336,6 +1741,30 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+}
+
+.cn-setup-step__intro {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.cn-setup-step__choices--titled :deep(.cn-choice-cards__legend) {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.cn-setup-step__note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-setup-step__nav {
@@ -1399,10 +1828,102 @@ export default {
 	flex: 0 0 auto;
 }
 
+.cn-setup-summary__hint {
+	flex-basis: 100%;
+	margin-inline-start: 24px;
+	color: var(--color-text-maxcontrast);
+	font-size: var(--font-size-small, 13px);
+}
+
+.cn-setup-repeat {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.cn-setup-repeat__legend {
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.cn-setup-repeat__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+}
+
 .cn-setup-summary__value {
 	margin-inline-start: auto;
 	font-weight: 600;
 	color: var(--color-main-text);
+}
+
+/* The closing step under the board look: one bordered row per item, with a
+   mark, what was set and the screen to change it on. */
+.cn-setup-readiness {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-setup-readiness__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+}
+
+.cn-setup-readiness__mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 24px;
+	height: 24px;
+	border: 2px solid var(--color-warning-text);
+	border-radius: 12px;
+}
+
+.cn-setup-readiness__mark--done {
+	border: 0;
+	background: var(--color-success-light, var(--color-background-hover));
+	color: var(--color-success-text);
+}
+
+.cn-setup-readiness__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.cn-setup-readiness__title {
+	font-size: 15px;
+}
+
+.cn-setup-readiness__detail {
+	color: var(--color-text-maxcontrast);
+	font-size: 14px;
+}
+
+.cn-setup-readiness__link {
+	flex: none;
+	color: var(--color-primary-element);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: underline;
+	white-space: nowrap;
 }
 
 /* An on-demand step that did not run says so quietly: it is a choice the

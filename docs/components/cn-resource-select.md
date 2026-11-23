@@ -62,6 +62,8 @@ Three opt-in props cover what a plain object picker cannot do:
 | `preload` | Boolean | `false` | Fetch a first page of options on mount (and on every `filters` change) so the field can be browsed without typing. Off by default so existing consumers issue no extra request. |
 | `disabled` | Boolean | `false` | Disable the input — e.g. a dependent select still waiting on its parent. |
 | `placeholder` | String | `''` | Placeholder text for the underlying `NcSelect`. |
+| `scope` | Object | `null` | A vocabulary scoped to an owner plus the rows every owner shares: `{ field, value, includeUnscoped?, dedupeOn? }`. The whole list is read once (up to 200 rows); the rows whose `field` equals `value` come first, then (with `includeUnscoped`) the rows that name no owner, an unscoped row dropped when an owned row already claims its `dedupeOn` key. An empty `value` offers every row. The list is searched in place and nothing is created. |
+| `failedText` | String | `''` | With `scope`: the sentence shown, in place of the picker, when the list could not be read. An empty picker would read as "there are none". |
 | `createHandler` | Function | `null` | Override how a new object is created from the typed term. Receives `(term, payload)` and must resolve to the created object, or a falsy value to abort (e.g. the user cancelled a dialog). Without it the payload goes straight to `objectStore.saveObject`, which fails for any schema requiring a field the term cannot supply. |
 
 ## Events

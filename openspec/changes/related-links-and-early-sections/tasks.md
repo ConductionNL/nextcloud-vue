@@ -1,0 +1,3 @@
+- [x] links prop + host + rows above the groups
+- [x] pending line once a section answered
+- [x] jest CnRelatedObjectsWidgetProgressive (2 new, red before)

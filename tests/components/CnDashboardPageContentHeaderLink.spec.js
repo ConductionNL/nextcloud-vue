@@ -4,7 +4,8 @@
  *
  * A widget whose content asks for a header link (`viewAllRoute`, the tasks
  * widget's "View all") gets it on the dashboard card; a link declared on the
- * placement or the definition still wins.
+ * placement or the definition still wins. A view-all the widget draws under
+ * its own rows (`viewAllPlacement: "footer"`) is not repeated in the header.
  */
 jest.mock('gridstack', () => ({ GridStack: { init: jest.fn() } }), { virtual: true })
 jest.mock('gridstack/dist/gridstack.min.css', () => ({}), { virtual: true })
@@ -45,5 +46,14 @@ describe('CnDashboardPage: header link from the widget content', () => {
 		])
 		expect(links.a).toEqual({ label: 'Own', href: '#x' })
 		expect(links.b).toBeNull()
+	})
+
+	it('leaves the header empty when the content draws its view-all in the footer', () => {
+		const links = linkOf([
+			{ id: 'clients', type: 'custom', title: 'Clients', content: { viewAllRoute: { name: 'Clients' }, viewAllLabel: 'View all clients', viewAllPlacement: 'footer' } },
+			{ id: 'own', type: 'custom', title: 'Own', content: { viewAllRoute: 'Clients', viewAllPlacement: 'footer', headerLink: { label: 'Mine', route: 'Mine' } } },
+		])
+		expect(links.clients).toBeNull()
+		expect(links.own).toEqual({ label: 'Mine', route: 'Mine' })
 	})
 })

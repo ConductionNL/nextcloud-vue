@@ -169,6 +169,7 @@ import CnDeckCardPicker from '../../../components/CnDeckCardPicker/CnDeckCardPic
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl, safeHref } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
+import { cardAssignees, cardBoardTitle, cardLabels, cardStackTitle } from './deckCardParts.js'
 
 /** Maximum assignee avatars shown before collapsing the rest into a +N overflow badge. */
 const MAX_VISIBLE_ASSIGNEES = 3
@@ -365,8 +366,7 @@ export default {
 		},
 
 		cardLabels(card) {
-			const labels = card.labels ?? card.tags ?? []
-			return Array.isArray(labels) ? labels : []
+			return cardLabels(card)
 		},
 
 		chipText(label) {
@@ -451,8 +451,8 @@ export default {
 		 * @return {string} board (or board · stack) label, or '' when unknown
 		 */
 		boardBadge(card) {
-			const board = card.boardTitle ?? card.board?.title ?? ''
-			const stack = card.stackTitle ?? card.stack?.title ?? ''
+			const board = cardBoardTitle(card)
+			const stack = cardStackTitle(card)
 			if (board && stack) {
 				return `${board} · ${stack}`
 			}
@@ -468,8 +468,7 @@ export default {
 		 * @return {Array} assignee entries
 		 */
 		cardAssignees(card) {
-			const raw = card.assignedUsers ?? card.assignees ?? card.users ?? []
-			return Array.isArray(raw) ? raw : []
+			return cardAssignees(card)
 		},
 
 		/**

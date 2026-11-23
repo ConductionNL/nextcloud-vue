@@ -21,7 +21,10 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('sortBy', $event)" />
+			@update:modelValue="updateSortBy($event)" />
+		<p v-if="sortByError" class="cn-people-widget-form__error" role="alert">
+			{{ sortByError }}
+		</p>
 
 		<label class="cn-people-widget-form__field">
 			{{ t('nextcloud-vue', 'Group filter (comma-separated, blank for all)') }}
@@ -58,7 +61,7 @@
 				max="30"
 				:value="birthdayWindowDays"
 				@input="updateBirthdayWindow($event.target.value)">
-			<span v-if="birthdayWindowError" class="cn-people-widget-form__error">
+			<span v-if="birthdayWindowError" class="cn-people-widget-form__error" role="alert">
 				{{ birthdayWindowError }}
 			</span>
 		</label>
@@ -86,6 +89,8 @@
 <script>
 import { translate as t } from '@nextcloud/l10n'
 import { NcSelect } from '@nextcloud/vue'
+
+const SORT_KEYS = ['displayName', 'group']
 
 const DEFAULT_CONTENT = Object.freeze({
 	layout: 'grid',
@@ -116,7 +121,10 @@ const DEFAULT_CONTENT = Object.freeze({
  * (selectionMode, selectedUsers, filterOperator, showFields) travel through
  * untouched from their defaults. Group filter persists as the canonical
  * `[{fieldName:'group', operator:'in', values:[...]}]` shape. Emits
- * `update:content` on change and exposes `validate()` (birthday window 0..30).
+ * `update:content` on change and exposes `validate()`: a birthday window
+ * typed outside 0..30 keeps the form invalid until it is corrected, and a
+ * stored unknown `sortBy` is shown as Display name with a message, keeping
+ * the form invalid until a sort key is picked.
  */
 export default {
 	name: 'CnPeopleWidgetForm',
@@ -151,6 +159,8 @@ export default {
 
 	data() {
 		const initial = this.editingWidget?.content || this.value || {}
+		const storedSortBy = initial.sortBy ?? DEFAULT_CONTENT.sortBy
+		const sortByKnown = SORT_KEYS.includes(storedSortBy)
 		const groupFilter = (initial.filters || [])
 			.find((f) => f && f.fieldName === 'group')
 		return {
@@ -173,7 +183,11 @@ export default {
 				? initial.birthdayWindowDays
 				: DEFAULT_CONTENT.birthdayWindowDays,
 
-			sortBy: initial.sortBy ?? DEFAULT_CONTENT.sortBy,
+			sortBy: sortByKnown ? storedSortBy : DEFAULT_CONTENT.sortBy,
+			sortByError: sortByKnown
+				? ''
+				: t('nextcloud-vue', 'Unknown sort key "{key}". Display name is used instead.', { key: String(storedSortBy) }),
+
 			columns: typeof initial.columns === 'number'
 				? initial.columns
 				: DEFAULT_CONTENT.columns,
@@ -256,6 +270,18 @@ export default {
 		},
 
 		/**
+		 * Set the sort key; picking one confirms it and clears the
+		 * unknown-key message.
+		 *
+		 * @param {string} value the chosen sort key.
+		 * @return {void}
+		 */
+		updateSortBy(value) {
+			this.sortByError = ''
+			this.updateField('sortBy', value)
+		},
+
+		/**
 		 * Parse the comma-separated group input into the canonical filters
 		 * shape and re-emit the assembled content.
 		 *
@@ -271,20 +297,22 @@ export default {
 		},
 
 		/**
-		 * Validate + clamp the birthday window to the 0..30 range, recording a
-		 * localised inline error when out of range.
+		 * Validate the birthday window against the 0..30 range. An out-of-range
+		 * value records a localised inline error, which keeps `validate()`
+		 * failing until a valid value is typed; the last valid value stays in
+		 * the content.
 		 *
 		 * @param {string|number} raw the input value.
 		 * @return {void}
 		 */
 		updateBirthdayWindow(raw) {
 			const numeric = Number(raw)
-			if (!Number.isFinite(numeric) || numeric < 0 || numeric > 30) {
+			if (raw === '' || !Number.isFinite(numeric) || numeric < 0 || numeric > 30) {
 				this.birthdayWindowError = t('nextcloud-vue', 'Must be between 0 and 30')
-				return
+			} else {
+				this.birthdayWindowError = ''
+				this.birthdayWindowDays = Math.floor(numeric)
 			}
-			this.birthdayWindowError = ''
-			this.birthdayWindowDays = Math.floor(numeric)
 			this.$emit('update:content', this.assembledContent)
 		},
 
@@ -295,6 +323,12 @@ export default {
 		 */
 		validate() {
 			const errors = []
+			if (this.sortByError) {
+				errors.push(this.sortByError)
+			}
+			if (this.showBirthdays && this.birthdayWindowError) {
+				errors.push(this.birthdayWindowError)
+			}
 			if (typeof this.birthdayWindowDays !== 'number'
 				|| this.birthdayWindowDays < 0
 				|| this.birthdayWindowDays > 30) {
@@ -303,7 +337,7 @@ export default {
 			if (!['card', 'grid', 'list'].includes(this.layout)) {
 				errors.push(t('nextcloud-vue', 'Invalid layout'))
 			}
-			if (!['displayName', 'group'].includes(this.sortBy)) {
+			if (!SORT_KEYS.includes(this.sortBy)) {
 				errors.push(t('nextcloud-vue', 'Invalid sort key'))
 			}
 			return errors

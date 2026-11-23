@@ -9,7 +9,7 @@
  * OpenRegister's bundle registered rendered under the wrong Vue and its nested
  * `NcButton`s reached the DOM as literal `<ncbutton>` elements.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { h } from 'vue'
 import CnIntegrationWidget from '../../src/components/CnIntegrationWidget/CnIntegrationWidget.vue'
 import { createIntegrationRegistry } from '../../src/integrations/registry.js'
@@ -32,10 +32,11 @@ function mountWidget(registry, props = {}) {
 }
 
 describe('CnIntegrationWidget — lib-owned leaves', () => {
-	it('single mode renders the lib tab for a lib-owned id, not the stored foreign one', () => {
+	it('single mode renders the lib tab for a lib-owned id, not the stored foreign one', async () => {
 		const registry = createIntegrationRegistry()
 		registry.register({ id: 'contacts', label: 'Contacts', requiredApp: null, tab: ForeignLeaf, widget: ForeignLeaf, __libOwned: true })
 		const w = mountWidget(registry, { only: 'contacts' })
+		await flushPromises()
 		expect(w.findComponent({ name: 'CnContactsTab' }).exists()).toBe(true)
 		expect(w.find('.foreign-leaf').exists()).toBe(false)
 		expect(w.html()).not.toMatch(/<ncbutton/i)

@@ -5,7 +5,7 @@
 
 <template>
 	<div class="cn-nc-widget-widget" :class="{ 'cn-nc-widget-widget--horizontal': displayMode === 'horizontal' }">
-		<header class="cn-nc-widget-widget__header">
+		<header v-if="showsHeader" class="cn-nc-widget-widget__header" data-testid="cn-nc-widget-header">
 			<img
 				v-if="widgetIconUrl"
 				class="cn-nc-widget-widget__header-icon"
@@ -46,7 +46,7 @@
 				{{ t('nextcloud-vue', 'This widget can only be shown on the Nextcloud dashboard itself.') }}
 			</div>
 
-			<div v-else-if="items.length === 0" class="cn-nc-widget-widget__state">
+			<div v-else-if="shownItems.length === 0" class="cn-nc-widget-widget__state">
 				{{ t('nextcloud-vue', 'No items available') }}
 			</div>
 
@@ -55,7 +55,7 @@
 					v-for="(item, idx) in shownItems"
 					:key="item.sinceId || item.id || idx"
 					class="cn-nc-widget-widget__item"
-					:class="itemClass"
+					:class="[itemClass, toneClass(item)]"
 					:href="item.link || '#'"
 					:title="item.title">
 					<span class="cn-nc-widget-widget__item-icon-wrap">
@@ -92,6 +92,9 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl } from '@nextcloud/router'
+
+/** The tones `content.itemTones` may give an item. */
+const ITEM_TONES = ['success', 'info', 'neutral', 'warning', 'error']
 
 const API_ITEM_LIMIT = 7
 
@@ -130,9 +133,19 @@ function getDashboardGlobal() {
 export default {
 	name: 'CnNcWidgetWidget',
 
+	inject: {
+		/** Whether the hosting card draws a title row (CnWidgetWrapper). */
+		cnWidgetTitled: { default: null },
+	},
+
 	props: {
 		/**
-		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?}`.
+		 * Persisted widget content `{widgetId, displayMode, limit?, showAllUrl?, showAllLabel?, showHeader?, excludeApps?, excludeTypes?, itemTones?}`.
+		 * `excludeApps` (`["systemtags"]`) and `excludeTypes` leave out the
+		 * items of those apps or types (an item's own `app` / `type`, else the
+		 * app in its link or icon URL); the list then comes from the items API.
+		 * `showHeader: false` drops the widget's own header (icon and title);
+		 * it is dropped too when the hosting card draws a title row.
 		 * `limit` is the most items shown (the list then comes from the items
 		 * API, so it fits its cell); `showAllUrl` / `showAllLabel` the link to
 		 * the rest (default the widget's own page and "Show all").
@@ -208,6 +221,20 @@ export default {
 		},
 
 		/**
+		 * Whether the widget draws its own header: not with
+		 * `content.showHeader: false`, nor inside a card that draws a title.
+		 *
+		 * @spec openspec/changes/nc-widget-header/specs/nc-widget-header/spec.md#requirement-a-nextcloud-widget-draws-no-second-heading
+		 * @return {boolean}
+		 */
+		showsHeader() {
+			if (this.content && this.content.showHeader === false) {
+				return false
+			}
+			return !(typeof this.cnWidgetTitled === 'function' && this.cnWidgetTitled())
+		},
+
+		/**
 		 * The header title.
 		 *
 		 * @return {string} the title.
@@ -244,7 +271,38 @@ export default {
 		 * @return {object[]} the items.
 		 */
 		shownItems() {
-			return this.itemLimit > 0 ? this.items.slice(0, this.itemLimit) : this.items
+			const kept = this.hasExclusions ? this.items.filter((item) => !this.isExcluded(item)) : this.items
+			return this.itemLimit > 0 ? kept.slice(0, this.itemLimit) : kept
+		},
+
+		/**
+		 * The apps and item types `content.excludeApps` / `content.excludeTypes`
+		 * leave out, lower-cased.
+		 *
+		 * @spec openspec/changes/nc-widget-exclude-apps/specs/nc-widget/spec.md#requirement-a-nextcloud-widget-can-leave-out-items-of-an-app-or-type
+		 * @return {{apps: string[], types: string[]}}
+		 */
+		exclusions() {
+			const list = (value) => (Array.isArray(value) ? value : (typeof value === 'string' && value !== '' ? [value] : []))
+				.filter((entry) => typeof entry === 'string' && entry !== '')
+				.map((entry) => entry.toLowerCase())
+			return { apps: list(this.content && this.content.excludeApps), types: list(this.content && this.content.excludeTypes) }
+		},
+
+		/**
+		 * How many items to ask the API for: the limit (or the default), and
+		 * more while items are left out, so a filtered list still fills it.
+		 *
+		 * @return {number}
+		 */
+		requestLimit() {
+			const base = this.itemLimit > 0 ? this.itemLimit : API_ITEM_LIMIT
+			return this.hasExclusions ? Math.max(base * 3, 20) : base
+		},
+
+		/** @return {boolean} Whether any app or type is left out. */
+		hasExclusions() {
+			return this.exclusions.apps.length > 0 || this.exclusions.types.length > 0
 		},
 
 		/**
@@ -296,6 +354,70 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Whether an item belongs to an app or type the content leaves out: its
+		 * own `app` / `type` / `objectType`, else the app in an `/apps/<app>/`
+		 * part of its link or icons.
+		 *
+		 * @spec openspec/changes/nc-widget-exclude-apps/specs/nc-widget/spec.md#requirement-a-nextcloud-widget-can-leave-out-items-of-an-app-or-type
+		 * @param {object} item A widget item.
+		 * @return {boolean}
+		 */
+		isExcluded(item) {
+			if (!item || typeof item !== 'object') {
+				return false
+			}
+			const { apps, types } = this.exclusions
+			const kinds = this.kindsOf(item)
+			if (apps.length > 0 && kinds.apps.some((app) => apps.includes(app))) {
+				return true
+			}
+			return types.length > 0 && kinds.types.some((type) => types.includes(type))
+		},
+
+		/**
+		 * What an item is, lower case: its own `type` / `objectType`, and its
+		 * own `app` or the app in an `/apps/<app>/` part of its icons or link.
+		 *
+		 * @param {object} item A widget item.
+		 * @return {{apps: string[], types: string[]}}
+		 */
+		kindsOf(item) {
+			const own = (value) => (typeof value === 'string' ? value.toLowerCase() : '')
+			// The icons first: the activity app sets them from the activity's own app.
+			const apps = [own(item.app)]
+			for (const url of [item.iconUrl, item.overlayIconUrl, item.link]) {
+				const match = typeof url === 'string' ? url.match(/\/apps\/([a-z0-9_-]+)\//i) : null
+				if (match) {
+					apps.push(match[1].toLowerCase())
+				}
+			}
+			return { apps: apps.filter((app) => app !== ''), types: [own(item.type), own(item.objectType)].filter((type) => type !== '') }
+		},
+
+		/**
+		 * The item's class for its tone (`content.itemTones`), keyed by its
+		 * type first, then its app; '' without a match.
+		 *
+		 * @spec openspec/changes/nc-widget-item-tones/specs/nc-widget-item-tones/spec.md#requirement-a-nextcloud-widget-item-can-take-a-tone-from-its-app-or-type
+		 * @param {object} item A widget item.
+		 * @return {string}
+		 */
+		toneClass(item) {
+			const map = this.content && this.content.itemTones
+			if (!map || typeof map !== 'object' || !item || typeof item !== 'object') {
+				return ''
+			}
+			const kinds = this.kindsOf(item)
+			for (const key of [...kinds.types, ...kinds.apps]) {
+				const tone = Object.keys(map).find((name) => name.toLowerCase() === key)
+				if (tone && ITEM_TONES.includes(map[tone])) {
+					return `cn-nc-widget-widget__item--tone-${map[tone]}`
+				}
+			}
+			return ''
+		},
+
 		t,
 
 		/**
@@ -318,7 +440,8 @@ export default {
 			// where the widget has a registered native callback.
 			// A `limit` also takes the API list first: the native callback paints
 			// as many items as it likes. Its fallback to native stays.
-			if (this.displayMode !== 'horizontal' && this.itemLimit === 0) {
+			// Leaving items out works on the API list only, so it skips native too.
+			if (this.displayMode !== 'horizontal' && this.itemLimit === 0 && !this.hasExclusions) {
 				const callback = this.resolveNativeCallback()
 				if (typeof callback === 'function') {
 					this.mountNative(callback)
@@ -403,7 +526,7 @@ export default {
 				// both the flat-array (older providers) and `{items}` (v2) shapes.
 				const url = generateOcsUrl('/apps/dashboard/api/v2/widget-items')
 				const response = await axios.get(url, {
-					params: { widgets: [this.widgetId], limit: this.itemLimit > 0 ? this.itemLimit : API_ITEM_LIMIT },
+					params: { widgets: [this.widgetId], limit: this.requestLimit },
 				})
 				const data = response && response.data && response.data.ocs ? response.data.ocs.data : null
 				const widgetData = data ? data[this.widgetId] : null

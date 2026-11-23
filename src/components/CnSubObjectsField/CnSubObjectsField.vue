@@ -8,6 +8,8 @@
 			<span class="cn-sub-objects-field__label">{{ inputLabel }}</span>
 			<NcButton
 				v-if="!disabled"
+				ref="addButton"
+				:disabled="full"
 				data-testid="cn-sub-objects-add"
 				@click="openAdd">
 				{{ addLabel }}
@@ -17,13 +19,16 @@
 			:columns="columns"
 			:rows="tableRows"
 			rowKey="__row"
-			:emptyText="t('nextcloud-vue', 'No rows yet.')">
+			:emptyText="emptyText || t('nextcloud-vue', 'No rows yet.')">
 			<template v-if="!disabled" #row-actions="{ row }">
-				<NcActions :ariaLabel="t('nextcloud-vue', 'Row actions')">
+				<NcActions
+					class="cn-sub-objects-field__row-actions"
+					:data-row-index="row.__index"
+					:ariaLabel="t('nextcloud-vue', 'Actions for {row}', { row: rowName(row.__index) })">
 					<NcActionButton @click="openEdit(row.__index)">
 						{{ t('nextcloud-vue', 'Edit') }}
 					</NcActionButton>
-					<NcActionButton @click="duplicateRow(row.__index)">
+					<NcActionButton :disabled="full" @click="duplicateRow(row.__index)">
 						{{ t('nextcloud-vue', 'Duplicate') }}
 					</NcActionButton>
 					<NcActionButton :disabled="row.__index === 0" @click="moveRow(row.__index, -1)">
@@ -38,6 +43,9 @@
 				</NcActions>
 			</template>
 		</CnDataTable>
+		<p v-if="full && !disabled" class="cn-sub-objects-field__limit" data-testid="cn-sub-objects-limit">
+			{{ t('nextcloud-vue', 'At most {max} rows.', { max: maxItems }) }}
+		</p>
 		<p v-if="error" class="cn-sub-objects-field__error" role="alert">
 			{{ error }}
 		</p>
@@ -45,8 +53,9 @@
 			v-if="editing !== null"
 			:schema="items"
 			:item="editing.row"
+			:initialData="editing.index === null && newItem ? newItem : null"
 			:fieldOverrides="fieldOverrides"
-			:dialogTitle="editing.index === null ? addLabel : t('nextcloud-vue', 'Edit row {n}', { n: editing.index + 1 })"
+			:dialogTitle="editing.index === null ? addLabel : t('nextcloud-vue', 'Edit {row}', { row: rowName(editing.index) })"
 			data-testid="cn-sub-objects-dialog"
 			@confirm="onDialogConfirm"
 			@close="editing = null" />
@@ -58,6 +67,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 
 /**
  * CnSubObjectsField — edits an array of objects embedded in one object as a
@@ -138,6 +148,42 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * The values a new row starts with, e.g. `{ required: false }`; the row
+		 * schema's own defaults fill the rest.
+		 */
+		newItem: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * What one row is called, for the row's accessible name and the edit
+		 * dialog title: "Checklist item" gives "Checklist item 2". Defaults to
+		 * "Row".
+		 */
+		itemLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Shown while there are no rows. Defaults to "No rows yet.". */
+		emptyText: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The most rows the field takes; 0 for no limit. At the limit Add and
+		 * Duplicate are disabled and a line says so.
+		 *
+		 * @spec openspec/changes/form-page-sub-objects/specs/form-page-sub-objects/spec.md#requirement-a-form-page-can-ask-for-a-list-of-objects
+		 */
+		maxItems: {
+			type: Number,
+			default: 0,
+		},
 	},
 
 	emits: ['update:modelValue'],
@@ -147,6 +193,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether the rows reached `maxItems`. */
+		full() {
+			return this.maxItems > 0 && this.list.length >= this.maxItems
+		},
+
 		list() {
 			return Array.isArray(this.modelValue) ? this.modelValue : []
 		},
@@ -157,7 +208,7 @@ export default {
 
 		columns() {
 			const props = (this.items && this.items.properties) || {}
-			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: props[key].title || key }))
+			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: propertyTitle(props[key], key) }))
 		},
 
 		tableRows() {
@@ -186,6 +237,34 @@ export default {
 			this.$emit('update:modelValue', next)
 		},
 
+		/**
+		 * A row's name: the item label and its number ("Checklist item 2").
+		 *
+		 * @param {number} index The row's index.
+		 * @return {string}
+		 */
+		rowName(index) {
+			const label = this.itemLabel || t('nextcloud-vue', 'Row')
+			return `${label} ${index + 1}`
+		},
+
+		/**
+		 * Move focus to a row's actions, or to the add button when there is no
+		 * such row, after the table re-renders.
+		 *
+		 * @param {number} index The row's index.
+		 * @return {Promise<void>}
+		 */
+		async focusRow(index) {
+			await this.$nextTick()
+			const el = this.$el && this.$el.querySelector(`.cn-sub-objects-field__row-actions[data-row-index="${index}"] button`)
+			const add = this.$refs.addButton && (this.$refs.addButton.$el || this.$refs.addButton)
+			const target = el || add
+			if (target && typeof target.focus === 'function') {
+				target.focus()
+			}
+		},
+
 		openAdd() {
 			this.editing = { index: null, row: null }
 		},
@@ -204,6 +283,9 @@ export default {
 			}
 			this.editing = null
 			this.commit(rows)
+			if (index === null) {
+				this.focusRow(rows.length - 1)
+			}
 		},
 
 		duplicateRow(index) {
@@ -225,6 +307,7 @@ export default {
 
 		removeRow(index) {
 			this.commit(this.list.filter((_, i) => i !== index))
+			this.focusRow(Math.max(index - 1, 0))
 		},
 	},
 }
@@ -240,6 +323,11 @@ export default {
 
 .cn-sub-objects-field__label {
 	font-weight: bold;
+}
+
+.cn-sub-objects-field__limit {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-sub-objects-field__error {

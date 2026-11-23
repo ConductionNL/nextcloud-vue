@@ -11,18 +11,36 @@
 			:source="browserSource"
 			:deleteLabel="deleteLabel"
 			:uploadButton="uploadButton"
+			:newMenu="newMenu"
+			:folderButton="folderButton"
 			:dropOverlay="dropOverlay"
+			:dropLabel="dropLabel"
+			:dropDetail="dropDetail"
+			:dropDetailValues="dropDetailValues"
 			:dropHint="dropHint"
 			:rowActions="rowActions"
 			:newActions="newActions"
+			:headerActions="headerActions"
+			:rowButton="rowButton"
+			:reviewSummary="reviewSummary"
+			:footnote="footnote"
+			:nameSecondary="nameSecondary"
+			:secondLine="secondLine"
 			:linkedItems="linkedItems"
 			:columns="columns"
 			:rowData="rowDataSource"
 			:preferenceApp="preferenceApp"
 			:preferenceKey="preferenceKey"
 			:bulkActions="bulkActions"
+			:toolbarSelectionActions="toolbarSelectionActions"
+			:selectionLabel="selectionLabel"
+			:selectionLabelOne="selectionLabelOne"
+			:showClearSelection="showClearSelection"
+			:sideCards="sideCards"
+			:sideCardsPlacement="sideCardsPlacement"
 			:groupBy="groupBy"
 			:facets="facets"
+			:facetPresentation="facetPresentation"
 			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
@@ -45,7 +63,11 @@
 			<div
 				class="cn-sidebar-tab__dropzone"
 				:class="{ 'cn-sidebar-tab__dropzone--active': isDragOver }"
+				role="button"
+				tabindex="0"
 				@click="triggerFileInput"
+				@keydown.enter.prevent="triggerFileInput"
+				@keydown.space.prevent="triggerFileInput"
 				@dragover.prevent="onDragOver"
 				@dragleave.prevent="onDragLeave"
 				@drop.prevent="onDrop">
@@ -79,6 +101,7 @@
 					type="file"
 					multiple
 					class="cn-sidebar-tab__file-input"
+					:aria-label="dropZoneLabel"
 					@change="onFileUpload">
 				<Upload :size="24" class="cn-sidebar-tab__dropzone-icon" />
 				<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
@@ -336,8 +359,18 @@ export default {
 
 		/** Forwarded to CnFilesBrowser: a primary "Add files" button beside the New menu. */
 		uploadButton: { type: Boolean, default: false },
+		/** Whether the bar has the New menu; `false` leaves it out (CnFilesBrowser `newMenu`). */
+		newMenu: { type: Boolean, default: true },
+		/** Whether the bar has a New folder button (CnFilesBrowser `folderButton`). */
+		folderButton: { type: Boolean, default: false },
 		/** Forwarded to CnFilesBrowser: the drop state drawn over the list ("Drop to add") and announced. */
 		dropOverlay: { type: Boolean, default: false },
+		/** Forwarded to CnFilesBrowser: the drop state's line ("Laat los om toe te voegen"); the library's own without it. */
+		dropLabel: { type: String, default: undefined },
+		/** Forwarded to CnFilesBrowser: the drop state's second line, `{count}` the files dragged; it also makes the overlay fill the panel. */
+		dropDetail: { type: [String, Array], default: '' },
+		/** Forwarded to CnFilesBrowser: named values filled into `dropDetail`. */
+		dropDetailValues: { type: Object, default: null },
 		/** Forwarded to CnFilesBrowser: "Or drag files onto this list." under the list. */
 		dropHint: { type: Boolean, default: false },
 		/**
@@ -394,6 +427,23 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
 		 */
 		bulkActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: bulk actions as toolbar buttons, off while nothing is ticked. */
+		toolbarSelectionActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: the bulk bar's count, a template with `{count}`. */
+		selectionLabel: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the bulk bar's count for one file. */
+		selectionLabelOne: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: whether the bulk bar ends in "Clear selection". */
+		showClearSelection: { type: Boolean, default: true },
+		/**
+		 * Forwarded to CnFilesBrowser: cards beside the list about the last
+		 * selected file.
+		 *
+		 * @type {Array<{id: string, title: string, fields?: Array<object>, actions?: Array<object>}>}
+		 */
+		sideCards: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: `page-side` puts the side cards in the detail page's side column. */
+		sideCardsPlacement: { type: String, default: 'beside' },
 		/** Forwarded to CnFilesBrowser: the key of a declared column to group the files on. */
 		groupBy: { type: String, default: '' },
 		/**
@@ -403,6 +453,20 @@ export default {
 		 * @type {string[]}
 		 */
 		facets: { type: Array, default: () => [] },
+		/** How the facets are drawn: `chips` or `menu` (CnFilesBrowser `facetPresentation`). */
+		facetPresentation: { type: String, default: 'chips' },
+		/** Forwarded to CnFilesBrowser: the host's own buttons in the bar. */
+		headerActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: one visible button on every file row. */
+		rowButton: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the review summary above the list. */
+		reviewSummary: { type: Object, default: null },
+		/** Forwarded to CnFilesBrowser: the host's own line under the list. */
+		footnote: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line under each file's name. */
+		nameSecondary: { type: String, default: '' },
+		/** Forwarded to CnFilesBrowser: the second line as a list of fields, or variants. */
+		secondLine: { type: Array, default: null },
 		/** A dotted path to the list of records in the `rowDataUrl` answer; empty reads the answer itself. */
 		rowDataPath: { type: String, default: '' },
 		/** The record field that holds the Nextcloud file id. */
@@ -1083,6 +1147,10 @@ export default {
 .cn-sidebar-tab__dropzone--active {
 	border-color: var(--color-primary-element);
 	background-color: var(--color-primary-element-light, rgba(0, 130, 201, 0.12));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-sidebar-tab__dropzone { transition: none; }
 }
 
 .cn-sidebar-tab__share { margin-bottom: 12px; }

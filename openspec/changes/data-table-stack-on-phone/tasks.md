@@ -1,0 +1,1 @@
+- [x] 1 `stackOnPhone` on CnDataTable and the phone layout in src/css/table.css (tests/components/CnDataTableStackOnPhone.spec.js); docs
