@@ -339,7 +339,9 @@ export default {
 		 * translated for the reader, before the title the kind declares. An
 		 * entry whose `fields.messageKey` is set reads that key translated by
 		 * the host, filled with `fields.messageVars`; its stored `message`
-		 * stays as written for every other reader.
+		 * stays as written for every other reader. `messageKeys`
+		 * (`{ storedMessage: key }`) does the same for entries written before
+		 * they carried a key.
 		 * `errorTitle` and `errorText` word a failed read in the host's own
 		 * words; a failed read always offers Try again.
 		 */
@@ -903,15 +905,15 @@ export default {
 		},
 
 		/**
-		 * The text an entry reads: its `fields.messageKey` in the reader's language, else the stored message.
+		 * The text an entry reads: its `fields.messageKey` (or the `messageKeys` key of its stored message) in the reader's language, else the stored message.
 		 *
 		 * @param {object} entry The entry.
 		 * @return {string} The text.
 		 */
 		entryMessage(entry) {
-			const key = entry.fields?.messageKey
+			const key = entry.fields?.messageKey || this.content?.messageKeys?.[entry.message]
 			if (typeof key === 'string' && key !== '' && typeof this.cnTranslate === 'function') {
-				const vars = entry.fields.messageVars && typeof entry.fields.messageVars === 'object' ? entry.fields.messageVars : {}
+				const vars = entry.fields?.messageVars && typeof entry.fields.messageVars === 'object' ? entry.fields.messageVars : {}
 				return this.cnTranslate(key, vars)
 			}
 			return entry.message
