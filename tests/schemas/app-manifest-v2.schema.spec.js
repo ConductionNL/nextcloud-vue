@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.191.0', () => {
+	it('the manifest schema version reads 2.192.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1465,7 +1465,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.189.0 adds config.layoutPanel on a dashboard, a side panel where the user arranges the page (dashboard-layout-panel).
 		// 2.190.0 adds the connections page type (CnConnectionRegistry; connection-registry-page).
 		// 2.191.0 lets a bulk action sit under More in the band (action.menu; bulk-actions-more-menu).
-		expect(schema.version).toBe('2.191.0')
+		// 2.192.0 lets a page name the menu entry it marks (page.menuEntry; page-names-its-menu-entry).
+		expect(schema.version).toBe('2.192.0')
+	})
+
+	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
+		const page = (extra) => ({ ...MINIMAL_V2, pages: [{ id: 'Postvak', route: '/postvak', type: 'index', title: 'Mailbox', config: { register: 'r', schema: 's' }, ...extra }] })
+		expect(validateManifestV2(page({ menuEntry: 'Queue' })).valid).toBe(true)
+		expect(validateManifestV2(page({ menuEntry: '' })).valid).toBe(false)
+		expect(validateManifestV2(page({ menuEntry: 3 })).valid).toBe(false)
 	})
 
 	it('accepts menu on a bulk action, as a yes or no (2.191.0)', () => {
