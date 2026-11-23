@@ -2838,6 +2838,7 @@
     "At least one calendar source is required": "At least one calendar source is required",
     "External ICS URLs must start with https://": "External ICS URLs must start with https://",
     "Folder breadcrumb": "Folder breadcrumb",
+    "Folder {name}": "Folder {name}",
     "Root": "Root",
     "Search this folder": "Search this folder",
     "Search this folder…": "Search this folder…",
