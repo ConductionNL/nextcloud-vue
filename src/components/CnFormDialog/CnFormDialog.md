@@ -174,6 +174,8 @@ All user-visible strings have props so they can be pre-translated by the consume
 | `confirmIcon` | `''` | MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. |
 | `feedback` | `true` | Toast the write: "Saved {title}" on success, the server's message on failure. `false` suppresses the toasts only. |
 | `confirmDisabled` | `false` | Keep the Confirm button disabled regardless of the form state. |
+| `noClose` (`no-close`) | `false` | Leave the dialog only through its buttons: no header close button, and Escape or a backdrop click does nothing. For a host moving off an `NcDialog` that had `no-close`. Off, the dialog blocks closing only while it saves. |
+| `cancelIcon` (`cancel-icon`) | `''` | MDI icon name on the Cancel / Close button (`Cancel`). Empty draws no icon. |
 
 ## Fields the data decides
 
