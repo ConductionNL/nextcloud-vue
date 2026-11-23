@@ -1186,7 +1186,10 @@ export default {
 	margin-block-end: 12px;
 }
 
+/* As wide as its words, not the row (board DqZaakHistorie). */
 .cn-timeline-manage__filter {
+	flex: 0 0 auto;
+	width: 200px;
 	min-width: 200px;
 }
 
