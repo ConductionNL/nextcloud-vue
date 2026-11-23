@@ -3211,7 +3211,16 @@
     "checked {time}": "gecontroleerd {time}",
     "The connections could not be loaded: {reason}": "De koppelingen konden niet worden geladen: {reason}",
     "{shown} of {total} connections that {app} declares, checked by integriq": "{shown} van {total} koppelingen die {app} aangeeft, gecontroleerd door integriq",
-    "{shown} of {total} connections, checked by integriq": "{shown} van {total} koppelingen, gecontroleerd door integriq"
+    "{shown} of {total} connections, checked by integriq": "{shown} van {total} koppelingen, gecontroleerd door integriq",
+    "Arrange page": "Pagina indelen",
+    "Arrange this page": "Deze pagina indelen",
+    "Choose which parts you see and drag them into your own order. Only you see this layout.": "Kies welke onderdelen je ziet en sleep ze in je eigen volgorde. Alleen jij ziet deze indeling.",
+    "Shown": "Zichtbaar",
+    "Hidden": "Verborgen",
+    "Back to default": "Terug naar standaard",
+    "Save layout": "Indeling opslaan",
+    "Use the arrow keys to move this part up or down.": "Gebruik de pijltjestoetsen om dit onderdeel omhoog of omlaag te zetten.",
+    "{name} moved to position {position} of {total}": "{name} staat nu op plaats {position} van {total}"
   },
   "plurals": {
     "{count} member": [

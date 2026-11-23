@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.189.0', () => {
+	it('the manifest schema version reads 2.190.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1462,8 +1462,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.186.0 adds the object-action action type with action and inputs (object-actions)
 		// 2.187.0 lets a stat tile say there is no earlier period to compare with (noPreviousText; stat-widget-no-previous-text).
 		// 2.188.0 lets an api-call or navigate action act on a looked-up record (action.resolve; screens-action-resolve).
-		// 2.189.0 adds the connections page type (CnConnectionRegistry; connection-registry-page).
-		expect(schema.version).toBe('2.189.0')
+		// 2.189.0 adds config.layoutPanel on a dashboard, a side panel where the user arranges the page (dashboard-layout-panel).
+		// 2.190.0 adds the connections page type (CnConnectionRegistry; connection-registry-page).
+		expect(schema.version).toBe('2.190.0')
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
@@ -2930,7 +2931,7 @@ describe('app-manifest-v2: an action that looks a record up (screens-action-reso
 	})
 })
 
-describe('app-manifest-v2: the connections page type (connection-registry-page, 2.189.0)', () => {
+describe('app-manifest-v2: the connections page type (connection-registry-page, 2.190.0)', () => {
 	const connectionsPage = (config = {}) => ({
 		...MINIMAL_V2,
 		pages: [{ id: 'Connections', route: '/connections', type: 'connections', title: 'Connections', config }],
@@ -2944,5 +2945,15 @@ describe('app-manifest-v2: the connections page type (connection-registry-page, 
 	it('refuses an empty app or add URL', () => {
 		expect(validateManifestV2(connectionsPage({ app: '' })).valid).toBe(false)
 		expect(validateManifestV2(connectionsPage({ addUrl: '' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: the dashboard layout panel (dashboard-layout-panel, 2.189.0)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config }] })
+
+	it('declares config.layoutPanel as a boolean', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		expect(schema.$defs.page.properties.config.properties.layoutPanel.type).toBe('boolean')
+		expect(validateManifestV2(page({ layoutPanel: true, userLayout: true })).valid).toBe(true)
 	})
 })
