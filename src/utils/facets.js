@@ -47,6 +47,9 @@ export function normalizeFacetBucket(bucket) {
  */
 export const MISSING_VALUE = '__cn_missing__'
 
+/** Joins the values of buckets merged into one option by their shared label. */
+export const MERGED_SEPARATOR = '\u001f'
+
 /**
  * Normalise the `facets` block of a collection response into sidebar format.
  *
@@ -97,10 +100,25 @@ export function normalizeFacets(facets) {
  *   facet offers nothing, so the caller can fall back to its static options
  */
 export function facetOptions(facet, missingLabel) {
-	const options = (facet?.values || []).map((v) => ({
-		id: v.value,
-		label: facetOptionLabel(v),
-	}))
+	// Buckets that carry the same label are one option: the statuses of
+	// several case types that share a name ("Received" per type) read once,
+	// with their counts added, and select all their values together.
+	const groups = []
+	for (const bucket of facet?.values || []) {
+		const label = bucket.label !== undefined && bucket.label !== null ? String(bucket.label) : null
+		const same = label === null ? undefined : groups.find((group) => group.label === label)
+		if (same) {
+			same.values.push(bucket.value)
+			if (typeof bucket.count === 'number') {
+				same.count = (same.count ?? 0) + bucket.count
+			}
+		} else {
+			groups.push({ label, values: [bucket.value], count: bucket.count, bucket })
+		}
+	}
+	const options = groups.map((group) => group.values.length === 1
+		? { id: group.values[0], label: facetOptionLabel(group.bucket) }
+		: { id: group.values.join(MERGED_SEPARATOR), label: facetOptionLabel({ value: group.label, label: group.label, count: group.count }) })
 
 	if (typeof facet?.missing === 'number' && facet.missing > 0) {
 		options.push({ id: MISSING_VALUE, label: missingLabel(facet.missing) })
@@ -133,8 +151,9 @@ export function facetFilterParams(key, values) {
 	if (values.includes(MISSING_VALUE)) {
 		return { [`${key}_isnull`]: 'true' }
 	}
+	const flat = values.flatMap((value) => (typeof value === 'string' && value.includes(MERGED_SEPARATOR) ? value.split(MERGED_SEPARATOR) : [value]))
 
-	return { [key]: values.length === 1 ? values[0] : values }
+	return { [key]: flat.length === 1 ? flat[0] : flat }
 }
 
 /**
