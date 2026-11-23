@@ -172,3 +172,16 @@ describe('CnWalkthrough and app dialogs', () => {
 		w.unmount()
 	})
 })
+
+describe('CnWalkthrough without a tour on screen', () => {
+	it('stops following the page for dialogs once the tour ends', async () => {
+		const w = mountTour()
+		await flush()
+		expect(w.vm._modalObs).toBeTruthy()
+		w.vm.wt.dismiss()
+		await flush()
+		expect(w.vm.active).toBe(false)
+		expect(w.vm._modalObs).toBeNull()
+		w.unmount()
+	})
+})
