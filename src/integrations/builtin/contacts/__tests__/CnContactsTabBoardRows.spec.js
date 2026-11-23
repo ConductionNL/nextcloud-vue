@@ -25,9 +25,9 @@ const ROWS = [{
 	validFrom: '2026-10-03',
 }]
 
-function mountTab(look) {
+function mountTab(look, props = {}) {
 	return mount(CnContactsTab, {
-		propsData: { objectId: 'o1', register: 'r1', schema: 's1' },
+		propsData: { objectId: 'o1', register: 'r1', schema: 's1', ...props },
 		global: { provide: { cnLook: look } },
 	})
 }
@@ -52,6 +52,21 @@ describe('CnContactsTab board rows', () => {
 		expect(item.find('[data-testid="cn-contacts-tab-board-period"]').text()).toBe(`From ${formatBoardDate('2026-10-03')}`)
 		expect(item.find('.cn-contacts-tab__unlink').exists()).toBe(false)
 		expect(item.find('[data-testid="cn-contacts-tab-menu"]').exists()).toBe(true)
+		w.unmount()
+	})
+
+	it('leads the details with the word for the party\'s kind the app gives (DqZaakBetrokkenen "Contact", "Organisatie", "Collega")', async () => {
+		const rows = [
+			{ id: 1, contactUid: 'c1', displayName: 'Sanne de Vries', role: 'r', kind: 'party', partyKind: 'person', note: 'Lindelaan 14 · ingelogd met DigiD' },
+			{ id: 2, contactUid: 'c2', displayName: 'Van Wijk B.V.', role: 'r', kind: 'party', partyKind: 'organisation', note: 'KvK 00001005' },
+			{ id: 3, contactUid: 'c3', displayName: 'Lars de Koning', role: 'r', kind: 'user', note: 'Mobiliteit en verkeer' },
+			{ id: 4, contactUid: 'c4', displayName: 'Iemand', role: 'r', kind: 'party', partyKind: 'unknown', note: 'Zonder soort' },
+		]
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ results: rows, total: 4 }) })
+		const w = mountTab('board', { kindLabels: { person: 'Contact', organisation: 'Organisatie', user: 'Collega' } })
+		await flushPromises()
+		const metas = w.findAll('[data-testid="cn-contacts-tab-meta"]').map((meta) => meta.text())
+		expect(metas).toEqual(['Contact · Lindelaan 14 · ingelogd met DigiD', 'Organisatie · KvK 00001005', 'Collega · Mobiliteit en verkeer', 'Zonder soort'])
 		w.unmount()
 	})
 

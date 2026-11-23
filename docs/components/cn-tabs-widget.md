@@ -189,14 +189,25 @@ those records load. So a contact-moment card shows only on interaction tickets:
 { "id": "ticket-interaction", "type": "custom", "visibleWhen": { "field": "kind", "op": "eq", "value": "interaction" } }
 ```
 
-A condition that needs a request (`source` or `endpoint`) is not evaluated on a
-stack child; the widget draws.
+A condition that needs a request (`source` or `endpoint`) is asked once per
+record, and the widget stays out until the answer says it holds.
+
+A stack can take its order from a list on the record with `orderFrom`, a
+dot-path read the way a `visibleWhen` field is (`@context.<name>` included).
+The widgets that list names take the places of the listed widgets, in the
+list's order; every other widget keeps its own place. Without the list, or with
+an empty one, the authored order stands. A case type that names its Overview
+cards in `overviewCards` so gets them in its own order:
+
+```json
+{ "widgetIds": ["case-summary", "case-request", "case-terms", "case-kpis-hours"], "label": "Overview", "orderFrom": "@context.caseType.overviewCards" }
+```
 
 ## Props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout?, sections? }`, or a bare widget-id string. |
+| `content` | `Object` | `{}` | The widget config: `{ tabs, ariaLabel, variant? }`. `variant: "segmented"` draws the strip as a pill switch (CnTabs' segmented variant); the default is the line strip. `tabs[]` entries are `{ widgetId, label?, icon? }` or `{ widgetIds, label?, icon?, columns?, layout?, sections?, orderFrom? }`, or a bare widget-id string. |
 | `availableWidgets` | `Array` | `[]` | Every widget definition on the surface, so `content.tabs[]` can reference siblings by id. |
 | `objectId` | `String \| Number` | `''` | The bound record's id. |
 | `objectData` | `Object` | `null` | The loaded record, or null while it is still being fetched. |

@@ -25,12 +25,11 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                                      | Payload | Description                                                                                                                                     |
-| ----------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `add`                                                                                     | —       | Emitted when file(s) are related via the picker or the path field. Payload is a single ref when one file was added, otherwise an array of refs. |
-| `remove`                                                                                  | —       | Emitted when a row's Remove button is clicked.                                                                                                  |
-| `update:files`                                                                            | —       |                                                                                                                                                 |
-| `update:files Emitted with the full new file list, enabling v-model:files / :files.sync.` | —       |                                                                                                                                                 |
+| Name           | Payload | Description                                                                                                                                     |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add`          | —       | Emitted when file(s) are related via the picker or the path field. Payload is a single ref when one file was added, otherwise an array of refs. |
+| `remove`       | —       | Emitted when a row's Remove button is clicked.                                                                                                  |
+| `update:files` | —       | Emitted with the full new file list, enabling v-model:files / :files.sync.                                                                      |
 
 ### Slots
 

@@ -98,8 +98,8 @@ at the end, named "<action> <title>".
 
 #### Scenario: An installed template
 
-- **GIVEN** a store item "B2B sales pipeline", kind "Pipeline template", publisher Conduction, installed at version 1.3.0
+- **GIVEN** a marketplace item "B2B sales pipeline", kind "Pipeline template", publisher Conduction, installed at version 1.3.0
 - **WHEN** the store renders under the board look
 - **THEN** the card shows the icon chip, the title, "Pipeline template · Conduction", an "Installed" pill, the description, and a footer with "Version 1.3.0" and an Open button
 
-@e2e include Compare a store card with pipelinq/PqStore.
+@e2e include Compare a marketplace card with pipelinq/PqStore.

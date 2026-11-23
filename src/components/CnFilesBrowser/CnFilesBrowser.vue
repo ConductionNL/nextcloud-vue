@@ -74,6 +74,56 @@
 					{{ columnLabel(column) }}
 				</NcActionCheckbox>
 			</NcActions>
+			<!-- `toolbarSelectionActions`: a bulk action as a toolbar button,
+			     off with its reason while nothing is ticked (DqZaakDocumenten
+			     "Samenvoegen tot één PDF"). -->
+			<template v-for="action in toolbarSelectionList" :key="`toolbar-selection-${action.id}`">
+				<NcButton
+					variant="secondary"
+					:disabled="selectedIds.length === 0"
+					:title="selectedIds.length === 0 ? action.reason : undefined"
+					:aria-describedby="selectedIds.length === 0 ? `${toolbarReasonPrefix}-${action.id}` : undefined"
+					:data-testid="`cn-files-browser-toolbar-selection-${action.id}`"
+					@click="runBulkAction(action.action)">
+					<template v-if="action.icon" #icon>
+						<CnIcon :name="action.icon" :size="20" />
+					</template>
+					{{ action.label }}
+				</NcButton>
+				<span v-if="selectedIds.length === 0"
+					:id="`${toolbarReasonPrefix}-${action.id}`"
+					class="hidden-visually">{{ action.reason }}</span>
+			</template>
+			<!-- `facetPresentation: "menu"`: each facet as a toolbar menu
+			     "<column>: <value>" (DqZaakDocumenten "Trefwoord: alle"),
+			     one value at a time, "all" clears it. -->
+			<template v-if="facetPresentation === 'menu'">
+				<NcActions v-for="facet in facetGroups"
+					:key="`facet-menu-${facet.key}`"
+					:menuName="facetMenuName(facet)"
+					:forceMenu="true"
+					:forceName="true"
+					variant="tertiary"
+					:data-testid="`cn-files-browser-facet-menu-${facet.key}`">
+					<NcActionButton
+						:closeAfterClick="true"
+						:modelValue="!facet.values.some((option) => option.active)"
+						type="radio"
+						:data-testid="`cn-files-browser-facet-all-${facet.key}`"
+						@click="chooseFacet(facet.key, null)">
+						{{ facetAllLabel }}
+					</NcActionButton>
+					<NcActionButton v-for="option in facet.values"
+						:key="option.value"
+						:closeAfterClick="true"
+						:modelValue="option.active"
+						type="radio"
+						data-testid="cn-files-browser-facet-option"
+						@click="chooseFacet(facet.key, option.value)">
+						{{ option.value }} ({{ option.count }})
+					</NcActionButton>
+				</NcActions>
+			</template>
 			<NcActions v-if="canChange && newMenu"
 				:menuName="newLabel"
 				:forceMenu="true"
@@ -206,7 +256,7 @@
 
 		<!-- The host's filter: per declared column, a chip per value in use
 		     with how many files carry it. Chips narrow the list. -->
-		<div v-if="facetGroups.length > 0 && !loading && error === ''"
+		<div v-if="facetPresentation !== 'menu' && facetGroups.length > 0 && !loading && error === ''"
 			class="cn-files-browser__facets"
 			data-testid="cn-files-browser-facets">
 			<div v-for="facet in facetGroups"
@@ -235,7 +285,7 @@
 		</div>
 
 		<!-- The host's bulk actions, once something is selected. -->
-		<div v-if="bulkEnabled && selectedIds.length > 0"
+		<div v-if="bulkEnabled && bulkActions.length > 0 && selectedIds.length > 0"
 			class="cn-files-browser__bulk-bar"
 			role="toolbar"
 			:aria-label="t('nextcloud-vue', 'Actions for the selected files')"
@@ -405,11 +455,14 @@
 									:widget="column.widget || null"
 									:widgetProps="cellWidgetProps(column, node)"
 									:row="node" />
+								<span v-if="column.key !== 'name' && cellSubline(column, node)"
+									class="cn-files-browser__cell-subline"
+									data-testid="cn-files-browser-cell-subline">{{ cellSubline(column, node) }}</span>
 							</td>
 							<td class="cn-files-browser__col-actions" @click.stop @auxclick.stop>
 								<!-- The host's one visible button on a file ("Beoordelen"),
 								     primary while the row still asks for it. -->
-								<NcButton v-if="rowButton && !isFolder(node) && hostActionApplies(rowButton, node)"
+								<NcButton v-if="rowButtonApplies(node)"
 									:variant="rowButtonPrimary(node) ? 'primary' : 'secondary'"
 									class="cn-files-browser__row-button"
 									:aria-label="t('nextcloud-vue', '{action}: {name}', { action: hostLabel(rowButton), name: node.basename })"
@@ -802,6 +855,8 @@ const FOLDER_CHANGED_CHANNELS = ['cn:page:refresh', 'files:node:created', 'files
 
 const FOLDER_CHANGED_DEBOUNCE_MS = 300
 
+let reasonUid = 0
+
 export default {
 	name: 'CnFilesBrowser',
 
@@ -1185,9 +1240,12 @@ export default {
 		 * The columns this browser shows, in order. An entry is a built-in name
 		 * (`name`, `size`, `modified`, `owner`, `type`, `tags`) or an object
 		 * declaring its own: `{ key, label, source, attribute, formatter,
-		 * sortable }`, where `source` is `node` (a property of the node),
+		 * sortable, subline }`, where `source` is `node` (a property of the node),
 		 * `attribute` (a DAV property, added to the PROPFIND before listing) or
-		 * `row` (a value from `rowData`).
+		 * `row` (a value from `rowData`). `subline` is a template drawn as a
+		 * muted second line under the value, filled from the file's `rowData`
+		 * entry ("ground {reviewGrounds|values}"); it is left out when it
+		 * names no value.
 		 *
 		 * Declaring none keeps today's table: name, size and modified.
 		 *
@@ -1248,6 +1306,20 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object, handler?: string, args?: Array}>}
 		 */
 		bulkActions: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Actions on the ticked files drawn as toolbar buttons, declared as
+		 * `bulkActions` plus `disabledReason` (translated; default "Select
+		 * files first"). Each is disabled, saying why, while no file is
+		 * ticked, and turns the row checkboxes on as `bulkActions` does.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, disabledReason?: string}>}
+		 * @spec openspec/changes/files-columns-by-flag-and-toolbar-selection/specs/files-browser/spec.md#requirement-a-selection-action-can-sit-in-the-toolbar
+		 */
+		toolbarSelectionActions: {
 			type: Array,
 			default: () => [],
 		},
@@ -1333,6 +1405,22 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * How the facets are drawn: `chips` (default, a row of chips with
+		 * counts under the toolbar) or `menu` (one toolbar menu per facet,
+		 * "<column>: <value>", one value at a time).
+		 */
+		facetPresentation: {
+			type: String,
+			default: 'chips',
+		},
+
+		/** The menu's word for no choice ("all"), through the host translate. */
+		facetAllLabel: {
+			type: String,
+			default: () => t('nextcloud-vue', 'all'),
+		},
+
 		/** Label of the toolbar's Columns chooser. */
 		columnsLabel: {
 			type: String,
@@ -1343,7 +1431,10 @@ export default {
 	emits: ['changed'],
 
 	data() {
+		reasonUid += 1
 		return {
+			/** The id prefix of the toolbar selection buttons' reasons. */
+			toolbarReasonPrefix: `cn-files-browser-reason-${reasonUid}`,
 			/** The actions column's measured width while a row button stands in it, else null. */
 			actionsColumnWidth: null,
 			currentPath: this.rootPath,
@@ -1593,7 +1684,27 @@ export default {
 		 * @spec openspec/changes/files-browser-hosts-a-documents-list/specs/files-browser/spec.md
 		 */
 		bulkEnabled() {
-			return Array.isArray(this.bulkActions) && this.bulkActions.length > 0
+			return (Array.isArray(this.bulkActions) && this.bulkActions.length > 0) || this.toolbarSelectionList.length > 0
+		},
+
+		/**
+		 * The toolbar's selection buttons (`toolbarSelectionActions`), labels translated.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string, reason: string, action: object}>}
+		 * @spec openspec/changes/files-columns-by-flag-and-toolbar-selection/specs/files-browser/spec.md#requirement-a-selection-action-can-sit-in-the-toolbar
+		 */
+		toolbarSelectionList() {
+			return (Array.isArray(this.toolbarSelectionActions) ? this.toolbarSelectionActions : [])
+				.filter((action) => action && typeof action === 'object' && typeof action.id === 'string' && action.id !== '')
+				.map((action) => ({
+					id: action.id,
+					label: this.hostLabel(action),
+					icon: typeof action.icon === 'string' ? action.icon : '',
+					reason: typeof action.disabledReason === 'string' && action.disabledReason !== ''
+						? this.cnTranslate(action.disabledReason)
+						: t('nextcloud-vue', 'Select files first'),
+					action,
+				}))
 		},
 
 		/**
@@ -2219,8 +2330,7 @@ export default {
 			if ((!this.nameSecondary && fields === null) || this.isFolder(node)) {
 				return ''
 			}
-			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
-			const entry = byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+			const entry = this.rowEntryOf(node)
 			const owner = node.attributes ? node.attributes['owner-display-name'] : undefined
 			const object = {
 				...entry,
@@ -2302,6 +2412,20 @@ export default {
 		},
 
 		/**
+		 * Whether the row button is drawn on a file: never on a folder, and
+		 * only where its `when` and `visibleIf` (row included) hold.
+		 *
+		 * @param {object} node The file.
+		 * @return {boolean}
+		 */
+		rowButtonApplies(node) {
+			if (!this.rowButton || this.isFolder(node)) {
+				return false
+			}
+			return hostActionApplies(this.rowButton, node, this.rowValueOf(node))
+		},
+
+		/**
 		 * Whether a file's row button is the primary one: the row-data field
 		 * `primaryWhen.key` holds one of `primaryWhen.values`.
 		 *
@@ -2319,8 +2443,6 @@ export default {
 			}
 			return when.values.some((v) => String(v).toLowerCase() === String(raw).toLowerCase())
 		},
-
-		hostActionApplies,
 
 		/**
 		 * Re-read the folder once after a burst of change signals. One upload
@@ -2760,6 +2882,34 @@ export default {
 		},
 
 		/**
+		 * The host's row data for one file (`rowData`, by file id), `{}` without it.
+		 *
+		 * @param {object} node The node.
+		 * @return {object} The row entry.
+		 */
+		rowEntryOf(node) {
+			const byId = this.resolvedRowData && typeof this.resolvedRowData === 'object' ? this.resolvedRowData : {}
+			return byId[node.fileid] ?? byId[String(node.fileid)] ?? {}
+		},
+
+		/**
+		 * A declared column's second line under its value: the column's
+		 * `subline` template, translated and filled from the file's row data
+		 * ("ground {reviewGrounds|values}"), '' when it names no value.
+		 *
+		 * @param {object} column A resolved column.
+		 * @param {object} node The node.
+		 * @return {string} The line, or ''.
+		 * @spec openspec/changes/files-column-subline/specs/files-column-subline/spec.md#requirement-a-declared-column-can-draw-a-second-line-under-its-value
+		 */
+		cellSubline(column, node) {
+			if (!column || typeof column.subline !== 'string' || column.subline === '') {
+				return ''
+			}
+			return fillTemplate(this.cnTranslate(column.subline), this.rowEntryOf(node))
+		},
+
+		/**
 		 * The tone a column or card field draws a value in: its `colorMap`
 		 * entry for the value (case-insensitive), read from the `colorKey` field
 		 * of the row when given, else from the value itself. '' without one.
@@ -3106,6 +3256,29 @@ export default {
 		 * @param {string} value The value.
 		 * @return {void}
 		 */
+		/**
+		 * A facet menu's name: "<column>: <chosen value>", or "<column>: all".
+		 *
+		 * @param {{label: string, values: Array<{value: string, active: boolean}>}} facet The facet.
+		 * @return {string} The name.
+		 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+		 */
+		facetMenuName(facet) {
+			const chosen = facet.values.filter((option) => option.active).map((option) => option.value)
+			return `${facet.label}: ${chosen.length > 0 ? chosen.join(', ') : this.facetAllLabel}`
+		},
+
+		/**
+		 * Choose one value of a facet, or none.
+		 *
+		 * @param {string} key The facet column.
+		 * @param {string|null} value The value, or null for all.
+		 * @spec openspec/changes/files-browser-facet-menu/specs/files-browser-facet-menu/spec.md#requirement-a-files-facet-can-be-a-toolbar-menu
+		 */
+		chooseFacet(key, value) {
+			this.facetSelections = { ...this.facetSelections, [key]: value === null ? [] : [value] }
+		},
+
 		toggleFacet(key, value) {
 			const chosen = this.facetSelections[key] || []
 			const next = chosen.includes(value) ? chosen.filter((entry) => entry !== value) : [...chosen, value]
@@ -3697,7 +3870,7 @@ export default {
 
 /* The row button and the row menu stand side by side on one line, not
    stacked (DqZaakDocumenten: Beoordelen, then the menu, 14px apart).
-   @spec openspec/changes/files-row-button-beside-menu/specs/files-row-button-beside-menu/spec.md#requirement-a-files-row-button-stands-beside-the-row-menu */
+   @spec openspec/changes/files-row-button-gap-14/specs/files-row-button-gap-14/spec.md#requirement-the-row-button-and-menu-stand-14px-apart */
 .cn-files-browser__col-actions > .cn-files-browser__row-button,
 .cn-files-browser__col-actions > .cn-files-browser__row-menu {
 	display: inline-flex;
@@ -3717,6 +3890,14 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-files-browser__cell-subline {
+	display: block;
+	margin-top: 3px;
+	color: var(--color-text-maxcontrast);
+	font-size: 12px;
+	line-height: normal;
 }
 
 .cn-files-browser__name-secondary {

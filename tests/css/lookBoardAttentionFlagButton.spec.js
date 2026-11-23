@@ -36,4 +36,16 @@ describe('look-board-detail.css: attention flag buttons', () => {
 		expect(body).not.toBeNull()
 		expect(body).toContain('--button-size: var(--cn-board-control-height);')
 	})
+
+	it('puts the flag\'s hairline 10px under the status in a sections card (column gap 8 + 2)', () => {
+		const body = ruleFor('.cn-look-board .cn-detail-page__sections-card .cn-attention-flag.cn-attention-flag:not(.cn-look-nextcloud *)')
+		expect(body).not.toBeNull()
+		expect(body).toContain('margin-block-start: 2px;')
+	})
+
+	it('puts the button 6px under the hint in a sections card, as the flag column gap', () => {
+		const body = ruleFor('.cn-look-board .cn-detail-page__sections-card .cn-attention-flag:not(.cn-look-nextcloud *) .cn-attention-flag__hint')
+		expect(body).not.toBeNull()
+		expect(body).toContain('margin-block-end: 0;')
+	})
 })

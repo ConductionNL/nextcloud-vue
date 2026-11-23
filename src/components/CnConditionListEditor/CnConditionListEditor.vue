@@ -11,54 +11,20 @@
 		<p v-if="rows.length === 0" class="cn-condition-list__empty">
 			{{ emptyText || t('nextcloud-vue', 'No conditions: the rule always applies.') }}
 		</p>
-		<div
+		<CnConditionRow
 			v-for="(row, i) in rows"
 			:key="i"
-			class="cn-condition-list__row">
-			<NcSelect
-				class="cn-condition-list__field"
-				:modelValue="fieldOption(row.field)"
-				:options="fieldOptions"
-				label="label"
-				:inputLabel="t('nextcloud-vue', 'Field')"
-				:clearable="false"
-				@update:modelValue="setField(i, $event)" />
-			<NcSelect
-				class="cn-condition-list__operator"
-				:modelValue="operatorOption(row.operator)"
-				:options="operatorOptions(row.field)"
-				label="label"
-				:inputLabel="t('nextcloud-vue', 'Operator')"
-				:clearable="false"
-				:disabled="!row.field"
-				@update:modelValue="setOperator(i, $event)" />
-			<template v-if="takesValue(row.operator)">
-				<NcSelect
-					v-if="valueOptions(row.field)"
-					class="cn-condition-list__value"
-					:modelValue="valueOption(row)"
-					:options="valueOptions(row.field)"
-					label="label"
-					:inputLabel="t('nextcloud-vue', 'Value')"
-					:clearable="false"
-					@update:modelValue="setValue(i, $event ? $event.id : '')" />
-				<NcTextField
-					v-else
-					class="cn-condition-list__value"
-					:type="inputType(row.field)"
-					:modelValue="row.value === undefined || row.value === null ? '' : String(row.value)"
-					:label="t('nextcloud-vue', 'Value')"
-					@update:modelValue="setValue(i, typedValue(row.field, $event))" />
-			</template>
-			<NcButton
-				variant="tertiary"
-				:aria-label="t('nextcloud-vue', 'Remove condition')"
-				@click="remove(i)">
-				<template #icon>
-					<Close :size="18" />
-				</template>
-			</NcButton>
-		</div>
+			class="cn-condition-list__row"
+			:condition="row"
+			:fieldOptions="fieldOptions"
+			:operatorOptions="operatorOptions(row.field)"
+			:valueOptions="valueOptions(row.field)"
+			:inputType="inputType(row.field)"
+			:showValue="takesValue(row.operator)"
+			@field="setField(i, $event)"
+			@operator="setOperator(i, $event)"
+			@value="setValue(i, valueOptions(row.field) ? $event : typedValue(row.field, $event))"
+			@remove="remove(i)" />
 		<NcButton variant="tertiary" :disabled="fields.length === 0" @click="add">
 			<template #icon>
 				<Plus :size="18" />
@@ -70,9 +36,9 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcButton, NcSelect, NcTextField } from '@nextcloud/vue'
-import Close from 'vue-material-design-icons/Close.vue'
+import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import CnConditionRow from './CnConditionRow.vue'
 import { operatorLabel, operatorsForType, operatorTakesValue } from './conditionOperators.js'
 
 /**
@@ -88,7 +54,7 @@ import { operatorLabel, operatorsForType, operatorTakesValue } from './condition
 export default {
 	name: 'CnConditionListEditor',
 
-	components: { NcButton, NcSelect, NcTextField, Close, Plus },
+	components: { CnConditionRow, NcButton, Plus },
 
 	props: {
 		/**
@@ -181,16 +147,8 @@ export default {
 			return this.fields.find((f) => f.id === id)
 		},
 
-		fieldOption(id) {
-			return this.fieldOptions.find((o) => o.id === id) || null
-		},
-
 		operatorOptions(fieldId) {
 			return operatorsForType(this.fieldOf(fieldId)?.type).map((id) => ({ id, label: operatorLabel(id) }))
-		},
-
-		operatorOption(operator) {
-			return operator ? { id: operator, label: operatorLabel(operator) } : null
 		},
 
 		takesValue(operator) {
@@ -217,10 +175,6 @@ export default {
 					: { id: o, label: String(o) }))
 			}
 			return null
-		},
-
-		valueOption(row) {
-			return (this.valueOptions(row.field) || []).find((o) => String(o.id) === String(row.value)) || null
 		},
 
 		inputType(fieldId) {
@@ -325,22 +279,5 @@ export default {
 .cn-condition-list__empty {
 	color: var(--color-text-maxcontrast);
 	margin: 0;
-}
-
-.cn-condition-list__row {
-	display: grid;
-	grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.6fr) auto;
-	gap: 8px;
-	align-items: end;
-}
-
-.cn-condition-list__row > :nth-child(3):last-child {
-	grid-column: 4;
-}
-
-@media (max-width: 640px) {
-	.cn-condition-list__row {
-		grid-template-columns: minmax(0, 1fr) auto;
-	}
 }
 </style>

@@ -34,6 +34,7 @@ async onSaveViewConfirm({ name, isPublic }) {
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `dialogTitle` | `String` | `"Save current view"` | Dialog title shown in the NcDialog header. |
+| `shareGroups` | `String \| Array` | `'all'` | Which groups the share picker offers; see [`CnSavedViewShareFields`](./cn-saved-view-share-fields.md). |
 
 ## Events
 

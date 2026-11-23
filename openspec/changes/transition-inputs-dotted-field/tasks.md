@@ -1,0 +1,1 @@
+- [x] 1 Dotted inputs fold into an object input with per-sub-field `required` and `label` (tests/utils/transitionInputsDottedField.spec.js), documented in docs/components/cn-transition-input-dialog.md

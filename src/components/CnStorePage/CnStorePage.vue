@@ -52,9 +52,18 @@
 		<CnPageHeader
 			v-if="isBoardLook"
 			:title="resolvedTitle"
-			:description="boardDescription">
+			:description="showsPackages ? '' : boardDescription">
 			<template #extra>
-				<div class="cn-store-page__header-actions">
+				<div v-if="showsPackages" class="cn-store-page__header-actions">
+					<NcButton v-for="button in shippedButtons"
+						:key="button.label"
+						variant="secondary"
+						:href="button.href"
+						data-testid="store-header-link">
+						{{ shown(button.label) }}
+					</NcButton>
+				</div>
+				<div v-else class="cn-store-page__header-actions">
 					<CnBuildiqEditButton />
 					<NcButton
 						v-if="showPublish"
@@ -89,7 +98,13 @@
 			</p>
 		</div>
 
-		<div v-if="isBoardLook" class="cn-store-page__lens-row">
+		<CnStorePackages v-if="showsPackages"
+			:app="resolvedApp"
+			:config="shipped"
+			:canInstall="showInstall"
+			:tr="shown" />
+
+		<div v-else-if="isBoardLook" class="cn-store-page__lens-row">
 			<div
 				class="cn-store-page__lenses"
 				role="group"
@@ -114,8 +129,8 @@
 					v-model="query"
 					type="search"
 					class="cn-store-page__lens-search-input"
-					:placeholder="t('nextcloud-vue', 'Search the store')"
-					:aria-label="t('nextcloud-vue', 'Search the store')"
+					:placeholder="t('nextcloud-vue', 'Search the marketplace')"
+					:aria-label="t('nextcloud-vue', 'Search the marketplace')"
 					:disabled="offline"
 					data-testid="store-search"
 					@input="onSearchInput">
@@ -124,7 +139,7 @@
 		<div v-else class="cn-store-page__controls">
 			<NcTextField
 				v-model="query"
-				:label="t('nextcloud-vue', 'Search the store')"
+				:label="t('nextcloud-vue', 'Search the marketplace')"
 				:disabled="offline"
 				data-testid="store-search"
 				@update:modelValue="onSearchInput" />
@@ -145,7 +160,21 @@
 			</div>
 		</div>
 
-		<div :class="{ 'cn-store-page__layout': isBoardLook }">
+		<!-- `targets`: where an install goes (a world, an administration); the
+		     chosen id travels in the install body as `target`. -->
+		<div v-if="!showsPackages && showInstall && targetOptions.length > 0"
+			class="cn-store-page__target"
+			data-testid="store-target">
+			<NcSelect
+				:inputLabel="resolvedTargetLabel"
+				:options="targetOptions"
+				:modelValue="selectedTarget"
+				:clearable="false"
+				label="label"
+				@update:modelValue="(option) => targetId = option ? option.id : ''" />
+		</div>
+
+		<div v-if="!showsPackages" :class="{ 'cn-store-page__layout': isBoardLook }">
 			<div class="cn-store-page__main">
 				<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
 
@@ -294,10 +323,10 @@
 			<aside v-if="isBoardLook && !loading && !offline && !unreachable" class="cn-store-page__aside">
 				<section class="cn-store-page__side-card" data-testid="store-installed">
 					<h2 class="cn-store-page__side-title">
-						{{ t('nextcloud-vue', 'Installed from this store') }}
+						{{ t('nextcloud-vue', 'Installed from this marketplace') }}
 					</h2>
 					<p v-if="installedCards.length === 0" class="cn-store-page__side-note">
-						{{ t('nextcloud-vue', 'Nothing from this store is installed yet.') }}
+						{{ t('nextcloud-vue', 'Nothing from this marketplace is installed yet.') }}
 					</p>
 					<ul v-else class="cn-store-page__installed">
 						<li v-for="card in installedCards" :key="card.slug">
@@ -370,6 +399,7 @@ import {
 	NcEmptyContent,
 	NcLoadingIcon,
 	NcNoteCard,
+	NcSelect,
 	NcTextField,
 } from '@nextcloud/vue'
 import ClockOutline from 'vue-material-design-icons/ClockOutline.vue'
@@ -379,9 +409,11 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
+import CnStorePackages from './CnStorePackages.vue'
 import CnStorePublishDialog from './CnStorePublishDialog.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { labelLang } from '../../utils/manifestTranslate.js'
+import { isOptionsFrom, loadOptionsFrom } from '../../utils/optionsFrom.js'
 import { CnIcon } from '../CnIcon/index.js'
 
 /**
@@ -401,6 +433,7 @@ export default {
 	name: 'CnStorePage',
 
 	components: {
+		CnStorePackages,
 		ClockOutline,
 		CnBuildiqEditButton,
 		CnIcon,
@@ -414,6 +447,7 @@ export default {
 		NcEmptyContent,
 		NcLoadingIcon,
 		NcNoteCard,
+		NcSelect,
 		NcTextField,
 	},
 
@@ -518,6 +552,42 @@ export default {
 		},
 
 		/**
+		 * Where an install can go (`config.targets`): a list of `{ id, label }`,
+		 * or a source in the `optionsFrom` shape (`{ register, schema,
+		 * valueField?, labelField? }` or `{ url, ... }`), such as the app's
+		 * worlds. With targets the page shows a picker, the first target
+		 * chosen, and the install body carries `{ target: <id> }`. Without
+		 * any the install is sent as before.
+		 *
+		 * @spec openspec/changes/store-install-target/specs/store-page/spec.md#requirement-an-install-can-go-into-a-chosen-target
+		 * @type {Array<{id: string, label: string}>|object|null}
+		 */
+		targets: {
+			type: [Array, Object],
+			default: null,
+		},
+
+		/** The picker's label (`config.targetLabel`), through the app's translate; default "Install into". */
+		targetLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * The app's shipped packages (`config.shipped`), drawn under the board
+		 * look while no registry is configured, in place of `builtIn`:
+		 * `{ title, subtitle?, parts?, notice?: { title, text }, crumbs?, buttons?, aside? }`.
+		 * The list reads `/api/store/packages`.
+		 *
+		 * @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages
+		 * @type {object|null}
+		 */
+		shipped: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * Whether the signed-in user sees Publish, as the app resolved it.
 		 * `null` (the default) falls back to administrators only. Publish
 		 * renders only when `publishRoute` is set as well. Presentation
@@ -586,6 +656,9 @@ export default {
 			// The board look's lens: all, installed, updates or an item kind.
 			lens: 'all',
 			publishOpen: false,
+			// The targets read from a `targets` source, and the chosen one.
+			sourcedTargets: [],
+			targetId: '',
 			// When the registry last answered (`checkedAt` from the engine).
 			checkedAt: '',
 		}
@@ -599,6 +672,26 @@ export default {
 		 */
 		isBoardLook() {
 			return normalizeLook(this.cnLook) === 'board'
+		},
+
+		/**
+		 * Whether the shipped packages stand in for the marketplace.
+		 *
+		 * @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages
+		 * @return {boolean}
+		 */
+		showsPackages() {
+			return this.isBoardLook && this.shipped !== null && !this.loading && this.offline
+		},
+
+		/**
+		 * The header links of the shipped packages view.
+		 *
+		 * @spec openspec/changes/store-shipped-packages/specs/store-shipped-packages/spec.md#requirement-without-a-registry-the-board-store-lists-the-shipped-packages
+		 * @return {Array<{label: string, href: string}>}
+		 */
+		shippedButtons() {
+			return Array.isArray(this.shipped?.buttons) ? this.shipped.buttons : []
 		},
 
 		/**
@@ -625,7 +718,7 @@ export default {
 		 * @return {string} The heading to render.
 		 */
 		resolvedTitle() {
-			return this.title || this.page?.title || t('nextcloud-vue', 'Store')
+			return this.title || this.page?.title || t('nextcloud-vue', 'Marketplace')
 		},
 
 		/**
@@ -644,6 +737,31 @@ export default {
 		 */
 		resolvedApp() {
 			return this.app || this.page?.config?.app || ''
+		},
+
+		/**
+		 * The targets an install can go into, `[{ id, label }]`.
+		 *
+		 * @return {Array<{id: string, label: string}>}
+		 * @spec openspec/changes/store-install-target/specs/store-page/spec.md#requirement-an-install-can-go-into-a-chosen-target
+		 */
+		targetOptions() {
+			if (Array.isArray(this.targets)) {
+				return this.targets
+					.filter((target) => target && (typeof target.id === 'string' || typeof target.id === 'number') && String(target.id) !== '')
+					.map((target) => ({ id: String(target.id), label: this.shown(target.label) || String(target.id) }))
+			}
+			return this.sourcedTargets
+		},
+
+		/** @return {{id: string, label: string}|null} The chosen target, the first by default. */
+		selectedTarget() {
+			return this.targetOptions.find((target) => target.id === this.targetId) || this.targetOptions[0] || null
+		},
+
+		/** @return {string} The picker's label. */
+		resolvedTargetLabel() {
+			return this.targetLabel ? this.shown(this.targetLabel) : t('nextcloud-vue', 'Install into')
 		},
 
 		/**
@@ -924,7 +1042,7 @@ export default {
 		notConfiguredMessage() {
 			const base = t(
 				'nextcloud-vue',
-				'No store registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.',
+				'No marketplace registry is configured, so nothing was requested from the network. An administrator can connect one under Administration settings.',
 			)
 
 			return this.builtIn.length > 0
@@ -938,7 +1056,7 @@ export default {
 		 * @return {string} The unreachable note.
 		 */
 		unreachableMessage() {
-			const base = t('nextcloud-vue', 'The store registry did not answer.')
+			const base = t('nextcloud-vue', 'The marketplace registry did not answer.')
 
 			return this.builtIn.length > 0
 				? `${base} ${t('nextcloud-vue', 'The items below ship with this app.')}`
@@ -948,6 +1066,7 @@ export default {
 
 	mounted() {
 		this.search()
+		this.loadTargets()
 	},
 
 	/**
@@ -1198,6 +1317,24 @@ export default {
 		},
 
 		/**
+		 * Read the targets of a `targets` source once; a failed read offers none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/store-install-target/specs/store-page/spec.md#requirement-an-install-can-go-into-a-chosen-target
+		 */
+		async loadTargets() {
+			if (!isOptionsFrom(this.targets)) {
+				return
+			}
+			try {
+				const options = await loadOptionsFrom(this.targets)
+				this.sourcedTargets = options.map((option) => ({ id: String(option.id), label: option.label }))
+			} catch {
+				this.sourcedTargets = []
+			}
+		},
+
+		/**
 		 * Install one item, and report per component.
 		 *
 		 * A partial install is a real outcome rather than a failure: an item
@@ -1211,6 +1348,7 @@ export default {
 		async install(card) {
 			this.installing = card.slug
 			this.report = null
+			const target = this.selectedTarget
 
 			try {
 				const response = await fetch(
@@ -1221,6 +1359,7 @@ export default {
 							'Content-Type': 'application/json',
 							requesttoken: window.OC?.requestToken,
 						},
+						...(target ? { body: JSON.stringify({ target: target.id }) } : {}),
 					},
 				)
 				const body = await response.json()
@@ -1287,6 +1426,11 @@ export default {
 .cn-store-page__intro {
 	color: var(--color-text-maxcontrast);
 	margin: 0 0 16px;
+}
+
+.cn-store-page__target {
+	max-width: 360px;
+	margin-bottom: 12px;
 }
 
 .cn-store-page__controls {

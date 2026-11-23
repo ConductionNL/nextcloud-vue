@@ -45,6 +45,6 @@ describe('look-board-detail.css: parties rows', () => {
 	})
 
 	it('stands the rows 8px under the accepted kinds strip (r29: 12)', () => {
-		expect(rule(B)).toContain('gap: 8px')
+		expect(rule('.cn-look-board .cn-object-parties.cn-object-parties--board')).toContain('gap: 8px')
 	})
 })

@@ -40,6 +40,11 @@
 								:button="button"
 								:entries="headerMenuEntries(button)"
 								@linkClick="onHeaderMenuLinkClick" />
+							<!-- An Export with `menu`: one entry per format, and the note under them. -->
+							<CnIndexHeaderMenu
+								v-else-if="button.action === 'export' && button.exportMenu"
+								:button="button"
+								:entries="exportMenuEntries(button)" />
 							<NcButton
 								v-else
 								:variant="button.variant"
@@ -527,6 +532,7 @@
 			v-if="showSaveViewDialog"
 			ref="saveViewDialog"
 			:schema="viewPresentationSchema"
+			:shareGroups="savedViewsShareGroups"
 			@confirm="onSaveViewConfirm"
 			@close="showSaveViewDialog = false" />
 
@@ -554,6 +560,7 @@
 			v-if="viewPendingShare"
 			ref="shareViewDialog"
 			:view="viewPendingShare"
+			:shareGroups="savedViewsShareGroups"
 			@confirm="onShareViewConfirm"
 			@close="viewPendingShare = null" />
 
@@ -601,6 +608,7 @@
 				:item="actionTargetItem"
 				:nameField="massActionNameField"
 				:nameFormatter="nameFormatter"
+				v-bind="singleDeleteDialogTexts"
 				@confirm="onSingleDeleteConfirm"
 				@close="closeSingleDelete" />
 		</slot>
@@ -666,10 +674,13 @@
 				:nameField="massActionNameField"
 				:size="formSize"
 				:columns="formColumns"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialData="resolvedCreateDefaults"
 				:draftAppId="draftAppId"
 				:allowDraft="allowDraft && !rowFormTarget && (!editItem || editItem[draftField] === true)"
 				:draftField="draftField"
+				:templateSource="recordTemplates && !rowFormTarget && !editItem ? { register: copyRegisterSlug, schema: copySchemaSlug } : null"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog">
 				<template v-if="$slots['form-fields']" #form="scope">
@@ -685,10 +696,29 @@
 				:includeFields="rowFormTarget ? null : includeFields"
 				:fieldOverrides="rowFormTarget ? {} : fieldOverrides"
 				:nameField="massActionNameField"
+				:eyebrow="formHeaderText(formEyebrow)"
+				:subtitle="formHeaderText(formSubtitle)"
 				:initialValues="resolvedCreateDefaults"
 				@confirm="onFormConfirm"
 				@close="closeFormDialog" />
 		</slot>
+
+		<!-- The page's state banners (R1, `notices`): a source that is down, a
+		     bulk move that was partly done. Above the list card. -->
+		<CnCardNotices
+			v-if="pageNotices.length > 0"
+			class="cn-index-page__notices"
+			:notices="pageNotices"
+			@noticeDismiss="onPageNoticeDismiss" />
+
+		<!-- Someone else changed the list (`realtime`): DqWerkbord "Zojuist
+		     bijgewerkt door ..."; the list reads again. -->
+		<CnRealtimeToast
+			v-if="realtimeShown"
+			:source="{ url: realtime.url, interval: realtime.interval }"
+			:titleTemplate="realtime.titleTemplate || ''"
+			:refreshOnChange="false"
+			@change="onRefreshEvent()" />
 
 		<!-- Body -->
 		<div class="cn-index-page__body" :class="{ 'cn-index-page__body--with-folders': showsFolderPane }">
@@ -735,8 +765,40 @@
 				<h2 v-if="tableTitleShown" class="cn-index-page__table-title" data-testid="cn-index-page-table-title">
 					{{ cnTranslate(tableTitle) }}
 				</h2>
+				<!-- `scan`: find a record by scanning or typing its code. -->
+				<div v-if="scanEnabled" class="cn-index-page__scan" data-testid="cn-index-page-scan">
+					<CnScanField
+						:modelValue="scanCode"
+						:label="t('nextcloud-vue', 'Scan or type a code')"
+						:formats="Array.isArray(scan.formats) ? scan.formats : []"
+						@update:modelValue="(v) => scanCode = v"
+						@scanned="applyScan" />
+					<NcButton :disabled="!scanCode" data-testid="cn-index-page-scan-find" @click="applyScan(scanCode)">
+						{{ t('nextcloud-vue', 'Find') }}
+					</NcButton>
+					<p v-if="scanNoMatch"
+						class="cn-index-page__scan-note"
+						role="status"
+						data-testid="cn-index-page-scan-none">
+						{{ t('nextcloud-vue', 'No record has this code.') }}
+					</p>
+				</div>
 				<!-- @slot before-collection Content rendered above the collection in EVERY view mode (table, cards, list, map) — e.g. a folder/group strip that must stay visually separate from the objects instead of masquerading as rows or cards. -->
 				<slot name="before-collection" />
+
+				<!-- Counters a named source supplies (`counters()`), above the rows. -->
+				<CnKpiGrid v-if="sourceCounters.length > 0"
+					columns="auto"
+					class="cn-index-page__counters"
+					data-testid="cn-index-counters">
+					<CnStatsBlock v-for="counter in sourceCounters"
+						:key="counter.id"
+						:title="counter.label"
+						:count="counter.count"
+						:countLabel="counter.note"
+						:variant="counter.variant"
+						showZeroCount />
+				</CnKpiGrid>
 
 				<!-- A sort option whose endpoint could not answer: the list fell
 				     back to the option's own order, and says so. -->
@@ -783,19 +845,19 @@
 
 				<!-- A search the server refused for its grammar: the term with the
 				     character it stopped at, the server's reason, and what to do. -->
-				<div v-else-if="searchRefusal"
+				<div v-else-if="searchRefused && !searchRefusalAsNotice"
 					class="cn-index-page__search-refusal"
 					role="status"
 					data-testid="cn-index-page-search-refusal">
 					<NcNoteCard type="warning">
 						<p class="cn-index-page__search-refusal-headline">
-							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefusal.position }) }}
+							{{ t('nextcloud-vue', 'This search could not be read from character {position}.', { position: searchRefused.position }) }}
 						</p>
 						<p class="cn-index-page__search-refusal-term" data-testid="cn-index-page-search-refusal-term">
-							<span>{{ searchRefusal.before }}</span><mark v-if="searchRefusal.at">{{ searchRefusal.at }}</mark><span>{{ searchRefusal.after }}</span>
+							<span>{{ searchRefused.before }}</span><mark v-if="searchRefused.at">{{ searchRefused.at }}</mark><span>{{ searchRefused.after }}</span>
 						</p>
 						<p class="cn-index-page__search-refusal-muted">
-							{{ searchRefusal.message }}
+							{{ searchRefused.message }}
 						</p>
 						<p class="cn-index-page__search-refusal-muted">
 							{{ searchRefusalHintText }}
@@ -804,7 +866,7 @@
 				</div>
 
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="selfFetchFailed || sourceFailed"
+				<div v-else-if="(selfFetchFailed && !searchRefusalAsNotice) || sourceFailed"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -1049,6 +1111,8 @@
 					:sumField="board.sumField || ''"
 					:sumFormat="boardSumFormat"
 					:columnLimit="board.columnLimit || 0"
+					:fullNote="board.fullNote ? cnTranslate(board.fullNote) : ''"
+					:mergedNote="board.mergedNote ? cnTranslate(board.mergedNote) : ''"
 					:rowKey="rowKey"
 					:runTransition="boardRunTransition"
 					:paged="isPaged"
@@ -1231,6 +1295,14 @@
 					@close="closeContextMenu" />
 
 				<p
+					v-if="searchNoteText"
+					class="cn-index-page__content-search-note"
+					role="status"
+					data-testid="cn-index-search-note">
+					{{ searchNoteText }}
+				</p>
+
+				<p
 					v-if="searchInFiles && contentSearch"
 					class="cn-index-page__content-search-note"
 					data-testid="cn-index-content-search-note">
@@ -1396,7 +1468,8 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { getCanonicalLocale, translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { getCanonicalLocale, getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import { getCurrentInstance, inject, markRaw, ref } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1414,14 +1487,19 @@ import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
+import CnKpiGrid from '../CnKpiGrid/CnKpiGrid.vue'
+import CnRealtimeToast from '../CnRealtimeToast/CnRealtimeToast.vue'
 import CnRelatedFieldFilters from '../CnRelatedFieldFilters/CnRelatedFieldFilters.vue'
+import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
 import { useLook } from '../../composables/useLook.js'
+import { actionLabelText, fetchSelectionActions, runSelectionAction } from '../../composables/useObjectActions.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
@@ -1442,12 +1520,13 @@ import {
 	refIdOf,
 	resolveDropValue,
 } from '../../utils/boardReferenceColumns.js'
+import { normalizeNotice, PAGE_NOTICE_CHANNEL } from '../../utils/cardNotices.js'
 import { cnFetchJson } from '../../utils/cnFetch.js'
 import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine, footerNoteForView } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchAggregateValue, fetchGroupedCounts } from '../../utils/fetchAggregate.js'
-import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchFilterCounts, fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
@@ -1469,6 +1548,7 @@ import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
 import { objectUrlOf, patchObject } from '../../utils/objectWrite.js'
 import { withPersonalLenses } from '../../utils/personalLenses.js'
 import { getDotted } from '../../utils/propertySourceFill.js'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveDeepTokens, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveRowActions } from '../../utils/resolveRowActions.js'
 import { heldDefaultFilters, resolveFilterMap } from '../../utils/routeFilters.js'
@@ -1484,11 +1564,12 @@ import { viewCriteriaSummary } from '../../utils/savedViewSummary.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { columnsFromSchema, fieldsFromSchema, isGroupProp } from '../../utils/schema.js'
 import { resolveScopeLayout, resolveScopePresentation } from '../../utils/scopeListLayout.js'
-import { readSearchRefusal } from '../../utils/searchRefusal.js'
+import { readSearchRefusal, searchRefusalNotice } from '../../utils/searchRefusal.js'
 import { orderToSortKeys } from '../../utils/sortOrder.js'
 import { annotateRows, filterSourceRows, pageSourceRows, rowsFromSourceBody } from '../../utils/sortSourceRows.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
+import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
@@ -1521,6 +1602,7 @@ import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
 import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
 import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
+import { CnScanField } from '../CnScanField/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
 import { dispatchAction } from './manifestActionDispatch.js'
@@ -1921,9 +2003,13 @@ export default {
 	name: 'CnIndexPage',
 
 	components: {
+		CnCardNotices,
+		CnRealtimeToast,
 		CnIndexHeaderMenu,
 		CnIndexPageWidgets,
 		CnRelatedFieldFilters,
+		CnKpiGrid,
+		CnStatsBlock,
 		CnStatusBadge,
 		NcNoteCard,
 		CnBuildiqEditButton,
@@ -1976,6 +2062,7 @@ export default {
 		CnSavedViewPresentationDialog,
 		CnSavedViewEditDialog,
 		CnSavedViewShareDialog,
+		CnScanField,
 		CnSaveViewDialog,
 		CnConfirmDialog,
 		CnQuickEditDialog,
@@ -2185,6 +2272,35 @@ export default {
 			default: null,
 		},
 
+		/**
+		 * The page's state banners above the list (R1, manifest
+		 * `config.notices`): each a `notice` content (`{ variant, role?,
+		 * layout?, title?, text, actions?, dismissible?, visibleWhen? }`). A
+		 * row action's answer that asks for a notice, and a notice raised on
+		 * the `cn:page:notice` event-bus channel, join them.
+		 *
+		 * @type {Array<object>}
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Follow changes others make (manifest `config.realtime`):
+		 * `{ url, interval?, views?, titleTemplate? }`. A change shows the
+		 * "Just updated by ..." toast and reads the list again, while the page
+		 * is in one of `views` (every view when unset).
+		 *
+		 * @type {{url: string, interval?: number, views?: string[], titleTemplate?: string}|null}
+		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
+		 */
+		realtime: {
+			type: Object,
+			default: null,
+		},
+
 		/** Optional description shown below the title */
 		description: {
 			type: String,
@@ -2359,6 +2475,33 @@ export default {
 		},
 
 		/**
+		 * Header buttons per view (manifest `config.headerButtonsByView`),
+		 * `{ table?, cards?, list?, board?, map? }`, each a list as
+		 * `headerButtons`: the board view reads "Downloaden" where the table
+		 * reads "Exporteren" with a menu (DqWerkbord, DqZaken). A view it does
+		 * not name keeps `headerButtons`; a scope's own buttons come first.
+		 */
+		headerButtonsByView: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Text added to the count line after a middle dot while a quick filter
+		 * or lens is selected (manifest `config.countSuffixByFilter`),
+		 * `{ <tab id or label>: text }`: a lens that sorts by waiting time
+		 * says "longest waiting first". A quick filter tab can also carry
+		 * its own `countSuffix`, which comes first. The text goes through the
+		 * host translate function. Null (the default) adds nothing.
+		 *
+		 * @spec openspec/changes/index-count-suffix-per-filter/specs/index-page/spec.md#requirement-the-count-line-can-say-what-the-selected-quick-filter-does
+		 */
+		countSuffixByFilter: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The property keys the card's facts list shows, in order (manifest key
 		 * `config.cardFields`). Without it the board look shows the first four
 		 * list columns.
@@ -2405,7 +2548,7 @@ export default {
 		 * CnObjectCard `layout`.
 		 *
 		 * @type {object}
-		 * @spec openspec/changes/board-record-card-layout/specs/board-record-card-layout/spec.md#requirement-a-board-card-can-draw-the-record-layout-from-config
+		 * @spec openspec/changes/card-layout-part-formatter/specs/card-layout-part-formatter/spec.md#requirement-a-card-meta-part-can-name-its-own-formatter
 		 */
 		cardLayout: {
 			type: Object,
@@ -2574,15 +2717,17 @@ export default {
 		 * How the board look draws the table's title column (manifest
 		 * `config.rowTitle`): `link` (the default) underlines the title,
 		 * `plain` draws it as bold text without an underline over a 13px muted
-		 * secondary line. The row stays clickable. The Nextcloud look ignores
-		 * it. Maps to CnDataTable `rowTitle`.
+		 * secondary line, `text` as an ordinary 14px cell and `strong` as a
+		 * 14px weight 600 name in the main ink. The row stays clickable. The
+		 * Nextcloud look ignores it. Maps to CnDataTable `rowTitle`.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/index-row-title-text-strong/specs/index-list-board-look/spec.md#requirement-an-index-list-takes-every-title-look-the-table-draws
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/** Optional MDI icon name. Defaults to schema.icon when a schema is provided. */
@@ -2927,6 +3072,20 @@ export default {
 		searchInFiles: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * A handler from the app's registry that reads a typed search before
+		 * it is sent: `(term) => { search?, filters?, note? } | null`, or a
+		 * promise of one. A phone number can become a filter on a normalised
+		 * field with the note "Searching by phone number"; `null` sends the
+		 * term as typed. Self-fetch pages only. Manifest: `config.searchHandler`.
+		 *
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchHandler: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -3352,12 +3511,14 @@ export default {
 		/**
 		 * Optional leading icon for every table row — a static MDI icon name or
 		 * a `(row) => iconName` function. Forwarded to CnDataTable. Fed from the
-		 * manifest as `pages[].config.rowIcon`. Unset = no icon column.
+		 * manifest as `pages[].config.rowIcon`. Unset = no icon column. An
+		 * object `{ field, icons, tones?, icon? }` picks the icon and its tile
+		 * tone by a field of the row (see CnDataTable).
 		 *
-		 * @type {string | ((row: object) => string) | null}
+		 * @type {string | ((row: object) => string) | {field: string, icons: object, tones?: object, icon?: string} | null}
 		 */
 		rowIcon: {
-			type: [String, Function],
+			type: [String, Function, Object],
 			default: null,
 		},
 
@@ -3447,6 +3608,21 @@ export default {
 		searchRefusalHint: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * A refused search keeps the rows the list had and says so in an
+		 * alert above the list, under the search field (DqZaken): `{ title?,
+		 * after? }` (manifest `config.searchRefusal`), the title with
+		 * `{position}` ("Search term not understood at position {position}:")
+		 * and the line after the server's reason ("The list is not filtered;
+		 * adjust the term."). Unset, the refusal replaces the rows.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
+		searchRefusal: {
+			type: Object,
+			default: null,
 		},
 
 		/** Accessible label for the loading spinner (NcLoadingIcon aria-label) */
@@ -3545,7 +3721,10 @@ export default {
 		 * OpenRegister's copy endpoint. Without it a copy carries the fields only,
 		 * as before. A server without the endpoint shows the list read-only.
 		 *
-		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>}|null}
+		 * `overrides` gives every copy field values over the source's, such as
+		 * `{ publicationDate: null }`; the new name still wins on the name field.
+		 *
+		 * @type {{include?: Array<'relationRows'|'incoming'|'files'>, overrides?: object}|null}
 		 */
 		copy: {
 			type: Object,
@@ -3612,6 +3791,68 @@ export default {
 		savedViewsScope: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * `openregister` adds to the selection strip every action OpenRegister
+		 * offers on the bulk surface of this schema (`GET
+		 * /api/object-actions/{register}/{schema}`); `actionsInclude` narrows
+		 * and orders them. A bulk action, or a manifest `bulkActions` entry of
+		 * type `object-action`, runs on the selection in one request.
+		 */
+		actionsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/** The action keys `actionsFrom` offers, in this order; empty offers all. */
+		actionsInclude: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Find a record by its code (`config.scan`): `{ enabled, field,
+		 * onMatch?, formats? }`. A scan field above the list reads a code from
+		 * the camera or the keyboard and filters the list on `field`; with
+		 * `onMatch: "open"` a single match opens its record. No match says so.
+		 *
+		 * @type {{enabled: boolean, field: string, onMatch?: ('filter'|'open'), formats?: string[]}|null}
+		 */
+		scan: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Offer OpenRegister's record templates of this register and schema on
+		 * the create form (`config.recordTemplates`): a "Start from a
+		 * template" picker fills the form.
+		 */
+		recordTemplates: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The words of the single-item delete dialog: `{ title?, message?,
+		 * description? }`, each through the app's translate. `message` is the
+		 * question (`{name}` is the item), `description` a muted line under it
+		 * saying what else the delete removes. Unset keys keep the defaults.
+		 */
+		deleteDialog: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Which groups a saved view can be shared with: `all` (every group
+		 * the sharee API offers), `mine` (the groups the current user is in)
+		 * or an array of group ids. People can be picked either way.
+		 */
+		savedViewsShareGroups: {
+			type: [String, Array],
+			default: 'all',
 		},
 
 		/**
@@ -3701,6 +3942,25 @@ export default {
 			type: Number,
 			default: 1,
 			validator: (value) => value === 1 || value === 2,
+		},
+
+		/**
+		 * The small line above the built-in Add/Edit form's title (board
+		 * look). A string for both, or `{ create, edit }` per mode; either
+		 * goes through the host `cnTranslate`. Empty draws none.
+		 */
+		formEyebrow: {
+			type: [String, Object],
+			default: '',
+		},
+
+		/**
+		 * The muted line under the built-in Add/Edit form's title. Same
+		 * shape as `formEyebrow`.
+		 */
+		formSubtitle: {
+			type: [String, Object],
+			default: '',
 		},
 
 		/**
@@ -4820,6 +5080,18 @@ export default {
 
 	data() {
 		return {
+			/** Notices this page's actions answered, or that were raised on the page channel. */
+			runtimeNotices: [],
+			/** The bulk-surface actions OpenRegister offers for this schema (`actionsFrom`). */
+			objectBulkActions: [],
+			/** The verdict of each header action's `visibleWhen`, by id; an action waits hidden until it is in. */
+			headerActionVisibility: {},
+			/** Whether each header action's `disabledWhen` holds, by id. */
+			headerActionDisabled: {},
+			/** The code in the scan field, the code waiting to open its record, and whether the last scan found nothing. */
+			scanCode: null,
+			pendingScanOpen: null,
+			scanNoMatch: false,
 			/**
 			 * The chosen sort option that names an endpoint `source`, its rows,
 			 * their state ('idle' | 'loading' | 'ready' | 'failed') and the page
@@ -4981,6 +5253,81 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The bulk actions `actionsFrom: "openregister"` offers, as selection
+		 * strip entries of type `object-action`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+		 */
+		objectBulkEntries() {
+			if (this.actionsFrom !== 'openregister') {
+				return []
+			}
+			const language = String(getLanguage() || '').replace('_', '-')
+			const include = Array.isArray(this.actionsInclude) ? this.actionsInclude : []
+			const listed = this.objectBulkActions.filter((action) => Array.isArray(action.surfaces) && action.surfaces.includes('bulk') && (include.length === 0 || include.includes(action.key)))
+			const ordered = include.length > 0 ? include.map((key) => listed.find((action) => action.key === key)).filter(Boolean) : listed
+			return ordered.map((action) => ({
+				id: `or-action-${action.key}`,
+				type: 'object-action',
+				action: action.key,
+				label: actionLabelText(action.label, language) || action.key,
+				...(action.icon ? { icon: action.icon } : {}),
+			}))
+		},
+
+		/** @return {boolean} Whether the page offers the scan field. */
+		scanEnabled() {
+			return Boolean(this.scan && this.scan.enabled === true && typeof this.scan.field === 'string' && this.scan.field !== '')
+		},
+
+		/**
+		 * The single-item delete dialog's texts from `deleteDialog`, as
+		 * CnDeleteDialog props; the keys it leaves unset are left out, so the
+		 * dialog's defaults stand.
+		 *
+		 * @return {{dialogTitle?: string, warningText?: string, description?: string}}
+		 * @spec openspec/changes/index-delete-dialog-texts/specs/index-delete-dialog-texts/spec.md#requirement-an-index-page-can-word-its-delete-dialog
+		 */
+		singleDeleteDialogTexts() {
+			const texts = this.deleteDialog && typeof this.deleteDialog === 'object' ? this.deleteDialog : {}
+			const out = {}
+			for (const [key, prop] of [['title', 'dialogTitle'], ['message', 'warningText'], ['description', 'description']]) {
+				if (typeof texts[key] === 'string' && texts[key] !== '') {
+					out[prop] = this.cnTranslate(texts[key])
+				}
+			}
+			return out
+		},
+
+		/**
+		 * @return {boolean} Whether the page follows changes now.
+		 * @spec openspec/changes/realtime-toast/specs/realtime-toast/spec.md#requirement-an-index-page-follows-changes-live
+		 */
+		realtimeShown() {
+			const config = this.realtime
+			if (!config || typeof config.url !== 'string' || config.url === '') {
+				return false
+			}
+			return !Array.isArray(config.views) || config.views.length === 0 || config.views.includes(this.currentViewMode)
+		},
+
+		/**
+		 * @return {Array<object>} The manifest's notices, then the ones this page's actions raised.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 * @spec openspec/changes/notice-text-from-endpoint/specs/card-state-notices/spec.md#requirement-an-index-page-notice-can-belong-to-saved-views
+		 */
+		pageNotices() {
+			const view = this.appliedSavedView
+			const names = [this.appliedSavedViewId, ...(view ? [view.id, view.slug, view.uuid] : [])].filter((v) => v !== undefined && v !== null && v !== '').map(String)
+			// `savedViews` keeps a notice to the saved views it names (DqTeamwachtrij).
+			const declared = (Array.isArray(this.notices) ? this.notices : [])
+				.filter((notice) => !notice || !Array.isArray(notice.savedViews) || notice.savedViews.some((id) => names.includes(String(id))))
+			const refusal = this.searchRefusalAsNotice ? [searchRefusalNotice(this.searchRefused, this.searchRefusal, (text) => this.cnTranslate(text))] : []
+			return [...refusal, ...declared, ...this.runtimeNotices]
+		},
+
 		/**
 		 * Whether the table card draws its title.
 		 *
@@ -5190,12 +5537,19 @@ export default {
 				if (entry && entry.adminOnly === true && !this.viewerIsAdmin()) {
 					continue
 				}
+				// A `visibleWhen` (reader groups, an endpoint such as `/api/me`) decides per reader.
+				if (entry && entry.visibleWhen && this.headerActionVisibility[entry.id] !== true) {
+					continue
+				}
 				if (entry && reserved.has(entry.id)) {
 					// eslint-disable-next-line no-console
 					console.warn(`CnIndexPage: headerActions[].id "${entry.id}" is reserved by the built-in bar; dropping entry`)
 					continue
 				}
-				merged.push(this.resolveHeaderHandler(entry))
+				const resolved = this.resolveHeaderHandler(entry)
+				merged.push(this.headerActionDisabled[entry.id] === true
+					? { ...resolved, disabled: true, disabledReason: entry.disabledReason ? this.cnTranslate(entry.disabledReason) : '' }
+					: resolved)
 			}
 			return merged
 		},
@@ -5240,7 +5594,7 @@ export default {
 		mergedBulkActions() {
 			const reserved = new Set(['copy', 'delete'])
 			const merged = []
-			for (const entry of this.bulkActions || []) {
+			for (const entry of [...(this.bulkActions || []), ...this.objectBulkEntries]) {
 				if (!entry || typeof entry !== 'object' || !entry.id || !entry.label) {
 					// eslint-disable-next-line no-console
 					console.warn(`[CnIndexPage] Ignoring bulkActions entry ${JSON.stringify(entry)}: a bulk action needs an id and a label.`)
@@ -5265,6 +5619,33 @@ export default {
 		},
 
 		/**
+		 * The `searchHandler` named on the page, from the app's registry, or
+		 * null when none is named or it is not registered.
+		 *
+		 * @return {((term: string) => (object|null|Promise<object|null>))|null} The handler.
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchInterpreterFn() {
+			if (!this.searchHandler) {
+				return null
+			}
+			const handler = resolveRegisteredHandler(this.searchHandler, this.effectiveRegistry, this.resolvedCustomComponents)
+			return typeof handler === 'function' ? handler : null
+		},
+
+		/**
+		 * The line the search handler gives the current search, through the
+		 * app's translate; '' when it gave none.
+		 *
+		 * @return {string} The note.
+		 * @spec openspec/changes/index-search-handler/specs/index-page/spec.md#requirement-a-registered-handler-can-read-the-search-before-it-is-sent
+		 */
+		searchNoteText() {
+			const note = this.isSelfFetchMode && this.list.searchNote ? this.list.searchNote.value : ''
+			return note ? this.cnTranslate(note) : ''
+		},
+
+		/**
 		 * Whether the latest self-fetch failed. The store keeps the previous
 		 * rows and pagination on a failed fetch, so while this holds the page
 		 * shows its error state instead of results for an earlier query.
@@ -5279,8 +5660,19 @@ export default {
 		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
 		 * @return {object|null}
 		 */
-		searchRefusal() {
+		searchRefused() {
 			return this.selfFetchFailed ? readSearchRefusal(this.list.error.value, this.effectiveSearchValue) : null
+		},
+
+		/**
+		 * Whether a refused search keeps the rows and says so in a notice under
+		 * the search field (`searchRefusal` set), rather than in place of them.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 * @return {boolean}
+		 */
+		searchRefusalAsNotice() {
+			return this.searchRefused !== null && !!this.searchRefusal && typeof this.searchRefusal === 'object'
 		},
 
 		/**
@@ -5369,7 +5761,11 @@ export default {
 			return t('nextcloud-vue', 'Correct that character, or search for plain words. AND, OR and NOT work in capitals, and quotes make a phrase.')
 		},
 
-		/** Rows: store collection in self-fetch mode, else the `objects` prop. */
+		/**
+		 * Rows: store collection in self-fetch mode, else the `objects` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectiveObjects() {
 			if (this.isNamedSource) {
 				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
@@ -5384,7 +5780,7 @@ export default {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.rows
 			}
-			if (this.selfFetchFailed) {
+			if (this.selfFetchFailed && !this.searchRefusalAsNotice) {
 				return []
 			}
 			const rows = this.isSelfFetchMode ? (this.list.objects.value || []) : this.objects
@@ -6047,7 +6443,7 @@ export default {
 		boardNarrowLabel() {
 			const narrow = this.boardNarrow || {}
 			const prop = (this.effectiveSchema?.properties || {})[narrow.field] || {}
-			return t('nextcloud-vue', '{label}:', { label: this.cnTranslate(narrow.label || prop.title || narrow.field || '') })
+			return t('nextcloud-vue', '{label}:', { label: this.cnTranslate(narrow.label || propertyTitle(prop, narrow.field || '')) })
 		},
 
 		/** @return {string} The narrowing select's "all" option. */
@@ -6634,7 +7030,7 @@ export default {
 				return this.cnTranslate(strip.label)
 			}
 			const prop = (this.effectiveSchema?.properties || {})[strip.field] || {}
-			return this.cnTranslate(prop.title || strip.field || '')
+			return this.cnTranslate(propertyTitle(prop, strip.field || ''))
 		},
 
 		/**
@@ -7733,12 +8129,16 @@ export default {
 			return this.refreshing || this.internalRefreshing
 		},
 
-		/** Pagination: store pagination in self-fetch mode, else the `pagination` prop. */
+		/**
+		 * Pagination: store pagination in self-fetch mode, else the `pagination` prop.
+		 *
+		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
+		 */
 		effectivePagination() {
 			if (this.sortSourceShown) {
 				return this.sortSourceView.pagination
 			}
-			if (this.selfFetchFailed) {
+			if (this.selfFetchFailed && !this.searchRefusalAsNotice) {
 				return { ...this.list.pagination.value, total: 0, page: 1, pages: 1 }
 			}
 			// A named source that reports its own total (the search source)
@@ -7878,7 +8278,7 @@ export default {
 			}
 			return Object.entries(properties)
 				.filter(([, prop]) => prop && prop.readOnly !== true)
-				.map(([key, prop]) => ({ key, label: prop.title || key }))
+				.map(([key, prop]) => ({ key, label: propertyTitle(prop, key) }))
 		},
 
 		effectiveSchema() {
@@ -8409,6 +8809,8 @@ export default {
 		 * `CnRowActions` sees the same `{ handler: fn }` shape it does
 		 * for built-in defaults. Function-typed handlers (the existing
 		 * runtime path) pass through untouched.
+		 *
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
 		 */
 		mergedActions() {
 			const ctx = {
@@ -8422,6 +8824,11 @@ export default {
 				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 				// A row action of `type: "api-call"` reads the list again after it.
 				refresh: () => this.onRefreshEvent(),
+				// ...and an answer that asks for a notice shows above the list.
+				showNotice: (notice) => this.addPageNotice(notice),
+				// A row action of `type: "object-action"` runs on this schema.
+				register: this.copyRegisterSlug,
+				schema: this.copySchemaSlug,
 			}
 			// A named source may supply its own row actions, on the same
 			// precedence as its columns: what the manifest declares wins, and the
@@ -8481,6 +8888,17 @@ export default {
 				}
 			}
 			return refs
+		},
+
+		/**
+		 * The counters a named source draws above its rows.
+		 *
+		 * @return {Array<object>} The tiles, `{id, label, count, note, variant}`.
+		 */
+		sourceCounters() {
+			const source = this.isNamedSource ? this.namedSource : null
+
+			return source && typeof source.counters === 'function' ? source.counters() : []
 		},
 
 		/**
@@ -8675,10 +9093,15 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-an-index-page-can-take-the-board-header
 		 * @spec openspec/changes/screens-index-header-buttons-parity/specs/index-list-board-look/spec.md#requirement-the-add-header-button-carries-a-plus
 		 * @spec openspec/changes/header-action-href/specs/header-action-href/spec.md#requirement-a-header-action-with-href-is-a-link-that-runs-and-emits-nothing
+		 * @spec openspec/changes/index-export-menu/specs/index-header/spec.md#requirement-header-buttons-can-differ-per-view
 		 * @return {Array<{key: string, label: string, action: string, variant: string, icon: string, format: string, link: ({href: string, target: (string|undefined)}|null)}>}
 		 */
 		resolvedHeaderButtons() {
-			const headerButtons = this.presented('headerButtons')
+			const byView = this.headerButtonsByView
+			const ownForView = byView && typeof byView === 'object' && (this.activeScopePresentation || {}).headerButtons === undefined
+				? byView[this.currentViewMode]
+				: undefined
+			const headerButtons = Array.isArray(ownForView) ? ownForView : this.presented('headerButtons')
 			const declared = Array.isArray(headerButtons) ? headerButtons : []
 			const builtInActions = new Set(['add', 'export', 'import', 'refresh', 'save-view', 'actions-menu'])
 			return declared
@@ -8735,6 +9158,10 @@ export default {
 							? button.items.filter((item) => (typeof item === 'string' && item !== '')
 								|| (item && typeof item === 'object' && typeof item.heading === 'string' && item.heading !== ''))
 							: null,
+						exportMenu: button.action === 'export' && Array.isArray(button.menu)
+							? button.menu.filter((entry) => entry && (entry.format === 'csv' || entry.format === 'excel') && typeof entry.label === 'string' && entry.label !== '')
+							: null,
+						note: typeof button.note === 'string' && button.note !== '' ? this.cnTranslate(button.note) : '',
 					}
 				})
 				.filter((button) => button.label !== '')
@@ -9272,7 +9699,8 @@ export default {
 		 * @return {string}
 		 */
 		headerDescription() {
-			const base = this.headerDescriptionBase
+			const suffix = this.quickFilterCountSuffix
+			const base = suffix && this.headerDescriptionBase ? `${this.headerDescriptionBase} · ${suffix}` : this.headerDescriptionBase
 			if (this.currentViewMode !== 'map' || !this.mapListEnabled) {
 				return base
 			}
@@ -9292,6 +9720,29 @@ export default {
 			const active = Object.values(this.effectiveActiveFilters || {})
 				.some((value) => !(value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)))
 			return active || this.quickFilterNarrows
+		},
+
+		/**
+		 * The count line text of the selected quick filters or lenses: each
+		 * tab's `countSuffix`, else its entry in `countSuffixByFilter` (by
+		 * id, then by label), translated and joined by a middle dot.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-count-suffix-per-filter/specs/index-page/spec.md#requirement-the-count-line-can-say-what-the-selected-quick-filter-does
+		 */
+		quickFilterCountSuffix() {
+			const tabs = this.tabStripEntries || []
+			const byFilter = this.countSuffixByFilter && typeof this.countSuffixByFilter === 'object' ? this.countSuffixByFilter : {}
+			const indices = this.quickFilterMultiple
+				? (this.selectedQuickFilterIndices || [])
+				: [this.activeQuickFilterIndex]
+			return indices
+				.map((index) => (typeof index === 'number' ? tabs[index] : null))
+				.filter(Boolean)
+				.map((tab) => [tab.countSuffix, byFilter[tab.id], byFilter[tab.label]].find((text) => typeof text === 'string' && text !== ''))
+				.filter(Boolean)
+				.map((text) => this.cnTranslate(text))
+				.join(' · ')
 		},
 
 		/**
@@ -9601,6 +10052,38 @@ export default {
 	},
 
 	watch: {
+		actionsFrom: {
+			immediate: true,
+			handler() {
+				this.loadObjectBulkActions()
+			},
+		},
+
+		headerActions: {
+			immediate: true,
+			handler() {
+				this.evaluateHeaderActionVisibility()
+			},
+		},
+
+		/**
+		 * A scan waiting to open its record: once the list has loaded, one
+		 * match opens it and none says so.
+		 *
+		 * @param {boolean} loading Whether the list is loading.
+		 */
+		effectiveLoading(loading) {
+			if (loading || this.pendingScanOpen === null) {
+				return
+			}
+			const rows = this.effectiveObjects || []
+			this.scanNoMatch = rows.length === 0
+			if (rows.length === 1) {
+				this.onView(rows[0])
+			}
+			this.pendingScanOpen = null
+		},
+
 		// A group filter's chip names the group: ask for each id's display
 		// name (cached, once per id per page).
 		effectiveActiveFilters: {
@@ -9976,6 +10459,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	mounted() {
+		subscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		this.openSortSource()
 		this.measureSplitViewport()
 		if (this.splitViewEnabled && typeof window !== 'undefined') {
@@ -10021,6 +10505,7 @@ export default {
 			effectiveObjects: () => this.effectiveObjects,
 			effectiveSchema: () => this.effectiveSchema,
 			massActionNameField: () => this.massActionNameField,
+			copyOverrides: () => (this.copy ? this.copy.overrides : null),
 			editItem: () => this.editItem,
 			emit: (event, payload) => this.$emit(event, payload),
 			afterCreateSuccess: (saved) => this.afterCreateSuccess(saved),
@@ -10043,6 +10528,7 @@ export default {
 	 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 	 */
 	beforeUnmount() {
+		unsubscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		this.stopLive()
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('resize', this.measureSplitViewport)
@@ -10057,6 +10543,147 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the bulk-surface actions OpenRegister offers for this schema.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+		 */
+		async loadObjectBulkActions() {
+			if (this.actionsFrom !== 'openregister' || !this.copyRegisterSlug || !this.copySchemaSlug) {
+				this.objectBulkActions = []
+				return
+			}
+			this.objectBulkActions = await fetchSelectionActions({ register: this.copyRegisterSlug, schema: this.copySchemaSlug })
+		},
+
+		/**
+		 * Run an object action on the selection in one request, say how it
+		 * went, and read the list again.
+		 *
+		 * @param {object} entry The bulk entry (`action`, `inputs?`).
+		 * @param {Array<string>} ids The selected ids.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-selection-can-run-an-action-openregister-offers-in-bulk
+		 */
+		async runBulkObjectAction(entry, ids) {
+			if (!entry.action || ids.length === 0) {
+				return
+			}
+			const result = await runSelectionAction({ register: entry.register || this.copyRegisterSlug, schema: entry.schema || this.copySchemaSlug }, entry.action, ids, entry.inputs || {})
+			const { showError, showSuccess } = await import('@nextcloud/dialogs')
+			if (!result.ok) {
+				showError(result.message || t('nextcloud-vue', 'Action failed.'))
+			} else if (result.queued) {
+				showSuccess(t('nextcloud-vue', 'Started. It finishes in the background.'))
+			} else {
+				showSuccess(t('nextcloud-vue', 'Action completed.'))
+			}
+			if (this.isSelfFetchMode && this.list && typeof this.list.refresh === 'function') {
+				this.list.refresh(1)
+			}
+		},
+
+		/**
+		 * Ask each header action's `visibleWhen` once: a reader-groups
+		 * condition, an endpoint (`{ endpoint: "/apps/x/api/me", field:
+		 * "mayFindDuplicates", op: "eq", value: true }`) or an installed app,
+		 * with `@config.<key>` tokens from the app config. An action stays
+		 * hidden until its answer holds; a failed request hides it.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-header-action-visible-when/specs/index-header-action-visible-when/spec.md#requirement-an-index-header-action-can-show-only-for-some-readers
+		 */
+		async evaluateHeaderActionVisibility() {
+			const ctx = { config: this.effectiveAppConfig }
+			const ask = (cond) => evaluateVisibleWhen(cond, ctx).catch(() => false)
+			const entries = (this.headerActions || []).filter((entry) => entry && entry.id && entry.visibleWhen)
+			const verdicts = await Promise.all(entries.map((entry) => ask(entry.visibleWhen)))
+			const next = {}
+			entries.forEach((entry, index) => {
+				next[entry.id] = verdicts[index] === true
+			})
+			this.headerActionVisibility = next
+			// `disabledWhen`: shown, but disabled with `disabledReason` while it holds.
+			const gated = (this.headerActions || []).filter((entry) => entry && entry.id && entry.disabledWhen)
+			const disabled = await Promise.all(gated.map((entry) => ask(entry.disabledWhen)))
+			const off = {}
+			gated.forEach((entry, index) => {
+				off[entry.id] = disabled[index] === true
+			})
+			this.headerActionDisabled = off
+		},
+
+		/**
+		 * Filter the list on a scanned or typed code (`scan.field` in the
+		 * address), and with `onMatch: "open"` open a single match.
+		 *
+		 * @param {string} code The code.
+		 * @spec openspec/changes/index-scan/specs/index-scan/spec.md#requirement-an-index-page-finds-a-record-by-scanning-its-code
+		 */
+		applyScan(code) {
+			const value = typeof code === 'string' ? code.trim() : ''
+			if (!this.scanEnabled || value === '') {
+				return
+			}
+			this.scanCode = value
+			this.scanNoMatch = false
+			this.pendingScanOpen = this.scan.onMatch === 'open' ? value : null
+			const query = { ...((this.$route && this.$route.query) || {}), [this.scan.field]: value }
+			if (this.$router && typeof this.$router.replace === 'function') {
+				this.$router.replace({ query }).catch(() => {})
+			}
+		},
+
+		/**
+		 * The eyebrow or subtitle of the built-in Add/Edit form: `value` as a
+		 * string, or its `create` / `edit` entry for the open mode. A row
+		 * action's own form (`rowFormTarget`) draws none.
+		 *
+		 * @param {string|object} value `formEyebrow` or `formSubtitle`.
+		 * @return {string} The translated text, or ''.
+		 * @spec openspec/changes/index-form-eyebrow-subtitle/specs/index-page/spec.md#requirement-an-index-pages-form-can-carry-an-eyebrow-and-a-subtitle
+		 */
+		formHeaderText(value) {
+			if (!value || this.rowFormTarget) {
+				return ''
+			}
+			const text = typeof value === 'string' ? value : value[this.editItem ? 'edit' : 'create']
+			return text ? this.cnTranslate(text) : ''
+		},
+
+		/**
+		 * Show a notice above the list, replacing an earlier answer.
+		 *
+		 * @param {object} notice The notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		addPageNotice(notice) {
+			if (notice && typeof notice === 'object') {
+				this.runtimeNotices = [notice]
+			}
+		},
+
+		/**
+		 * A notice raised on the page channel without a `widgetId`.
+		 *
+		 * @param {{notice?: object, widgetId?: string}} payload The event.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		onPageNoticeEvent(payload) {
+			if (payload && !payload.widgetId) {
+				this.addPageNotice(normalizeNotice(payload.notice, 'info'))
+			}
+		},
+
+		/**
+		 * @param {object} notice The closed notice.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-index-page-draws-its-notices-above-the-list
+		 */
+		onPageNoticeDismiss(notice) {
+			this.runtimeNotices = this.runtimeNotices.filter((entry) => entry !== notice)
+		},
+
 		/**
 		 * On mount: open on a source option the page defaults to
 		 * (`default: true`, unless the address carries an order of its own),
@@ -10366,10 +10993,11 @@ export default {
 		},
 
 		/**
-		 * Read the totals of the lists `headerMetaCounts` names, one list
-		 * request each. A failed count is null and leaves the note out.
+		 * Read the totals of the lists `headerMetaCounts` names, all in one
+		 * batch count request. A failed count is null and leaves the note out.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async loadHeaderMetaCounts() {
 			const key = this.headerMetaCountKey
@@ -10378,21 +11006,24 @@ export default {
 				return
 			}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const entries = JSON.parse(key)
+			const totals = await fetchListTotals(entries.map(([, from]) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
 			const values = {}
-			await Promise.all(JSON.parse(key).map(async ([name, from]) => {
-				values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
-			}))
+			entries.forEach(([name], index) => {
+				values[name] = totals[index]
+			})
 			if (key === this.headerMetaCountKey) {
 				this.headerMetaCountValues = values
 			}
 		},
 
 		/**
-		 * Count the lists behind the manifest page tabs (`countFrom`), one list
-		 * request each. A failed count shows no number.
+		 * Count the lists behind the manifest page tabs (`countFrom`), all in
+		 * one batch count request. A failed count shows no number.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async loadPageTabCounts() {
 			const key = this.pageTabCountKey
@@ -10401,13 +11032,14 @@ export default {
 				return
 			}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const counted = this.pageTabs
+				.map((tab, index) => ({ index, from: tab && tab.countFrom }))
+				.filter(({ from }) => from && from.register && from.schema)
+			const totals = await fetchListTotals(counted.map(({ from }) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
 			const counts = {}
-			await Promise.all(this.pageTabs.map(async (tab, index) => {
-				const from = tab && tab.countFrom
-				if (from && from.register && from.schema) {
-					counts[index] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
-				}
-			}))
+			counted.forEach(({ index }, position) => {
+				counts[index] = totals[position]
+			})
 			if (key === this.pageTabCountKey) {
 				this.pageTabCounts = counts
 			}
@@ -10956,7 +11588,9 @@ export default {
 			const count = selectedIds.length
 			const entry = this.mergedBulkActions.find((e) => e.id === id)
 
-			if (entry) {
+			if (entry && entry.type === 'object-action') {
+				this.runBulkObjectAction(entry, selectedIds)
+			} else if (entry) {
 				const handler = entry.handler
 				const scope = { actionId: id, selectedIds, count }
 
@@ -11201,6 +11835,28 @@ export default {
 			}
 			followItemActionLink(event, entry.link, this.$router)
 			this.$emit('header-action', { action: entry.key, id: entry.key })
+		},
+
+		/**
+		 * The entries of an Export button's menu (`menu`): one per format,
+		 * its label bold and its description muted, each running the export
+		 * in that format; the button's `note` as a muted line after them.
+		 *
+		 * @param {object} button The resolved Export button.
+		 * @return {Array<object>} The menu entries.
+		 * @spec openspec/changes/index-export-menu/specs/index-header/spec.md#requirement-an-export-header-button-can-be-a-menu-of-formats
+		 */
+		exportMenuEntries(button) {
+			const entries = (button.exportMenu || []).map((entry) => ({
+				key: `export-${entry.format}`,
+				label: this.cnTranslate(entry.label),
+				description: typeof entry.description === 'string' && entry.description !== '' ? this.cnTranslate(entry.description) : '',
+				run: () => this.onHeaderButton({ ...button, format: entry.format }),
+			}))
+			if (button.note) {
+				entries.push({ key: 'export-note', kind: 'note', label: button.note })
+			}
+			return entries
 		},
 
 		/**

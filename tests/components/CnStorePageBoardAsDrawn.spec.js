@@ -84,14 +84,14 @@ describe('CnStorePage as board PqStore draws it', () => {
 		expect(actions[2].classes()).toContain('cn-store-page__card-action--soft')
 	})
 
-	it('reads "Alle" on the first lens and "Zoek in de store" in the search', async () => {
+	it('reads "Alle" on the first lens and "Zoek in de marktplaats" in the search', async () => {
 		const w = await mountStore()
 		expect(nl[w.find('[data-testid="store-lens-all"]').text().replace(/\s*\d+$/, '')]).toBe('Alle')
 		const search = w.find('input[data-testid="store-search"]')
 		expect(search.attributes('type')).toBe('search')
-		expect(search.attributes('placeholder')).toBe('Search the store')
-		expect(search.attributes('aria-label')).toBe('Search the store')
-		expect(nl['Search the store']).toBe('Zoek in de store')
+		expect(search.attributes('placeholder')).toBe('Search the marketplace')
+		expect(search.attributes('aria-label')).toBe('Search the marketplace')
+		expect(nl['Search the marketplace']).toBe('Zoek in de marktplaats')
 	})
 
 	it('filters the cards from the search field', async () => {

@@ -6,7 +6,7 @@ What it shows:
 
 - a **Save view** button (nl "Weergave opslaan") that saves the current search term, filters and sort as a new view;
 - the views, in sections **My views**, **Shared with me** and the read-only **Default views** (from `config.defaultSavedViews`), each name applying it, with its description (or who shared it) on a second line;
-- per view, a labelled **Manage "{name}"** menu (nl "Beheer {name}"), in the order the boards draw it.
+- per view, a labelled **Manage "\{name\}"** menu (nl "Beheer \{name\}"), in the order the boards draw it.
 
 | Access | Entries |
 |--------|---------|

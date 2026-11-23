@@ -5,7 +5,7 @@ Rename an own saved view and, when asked, replace its criteria with the filters,
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `view` | `Object` | `{}` | The view being edited; its `name` fills the field. |
-| `dialogTitle` | `String` | `''` | Dialog title; empty reads "Edit view: {name}". |
+| `dialogTitle` | `String` | `''` | Dialog title; empty reads "Edit view: \{name\}". |
 | `savedSummary` | `String` | `''` | What the view holds now, shown under "Keep what is saved" in the board look. |
 | `currentSummary` | `String` | `''` | What the list shows now, shown under "Replace with …" in the board look. |
 

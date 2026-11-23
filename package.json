@@ -15,11 +15,12 @@
   "sideEffects": [
     "**/*.css",
     "**/*.vue",
-    "**/*.vue.js",
     "**/*.vue2.js",
     "**/CnWidgetGrid/registerDashboardWidgets.js",
     "**/dashboardRegistration.js",
-    "**/Cn*Widget/index.js"
+    "**/Cn*Widget/index.js",
+    "**/CnConflictResolveCard/index.js",
+    "**/CnShareList/index.js"
   ],
   "exports": {
     ".": {
@@ -61,6 +62,9 @@
     "testing/",
     "webpack/"
   ],
+  "engines": {
+    "npm": "^11.0.0"
+  },
   "scripts": {
     "prebuild": "npm run build:validators",
     "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c",
@@ -203,7 +207,7 @@
     "marked": "^18.0.13",
     "pinia": "^4.0.3",
     "postcss-import": "^16.1.1",
-    "rollup": "^3.29.0",
+    "rollup": "^4.63.3",
     "rollup-plugin-postcss": "^4.0.0",
     "rollup-plugin-vue": "^6.0.0",
     "sass": "^1.101.6",
@@ -238,7 +242,7 @@
     "gridstack": "^12.0.0 || ^13.0.0",
     "marked": ">=12 <19",
     "pinia": "^2.0.0 || ^3.0.0 || ^4.0.0",
-    "stylelint": "^17.9.1",
+    "stylelint": "^17.9.1 || ^18",
     "vue": "^3.5.0",
     "vue-eslint-parser": "^9.4.0 || ^10.0.0",
     "vue-material-design-icons": "^5.0.0"

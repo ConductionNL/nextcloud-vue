@@ -16,7 +16,8 @@
 		variant="secondary"
 		:data-testid="`cn-index-header-button-${button.key}`">
 		<template #icon>
-			<DotsHorizontal :size="20" />
+			<CnIcon v-if="button.action === 'export' && button.icon" :name="button.icon" :size="20" />
+			<DotsHorizontal v-else :size="20" />
 		</template>
 		<!-- The menu's entries (`items` on the button; the page's header
 		     actions when it names none): a header action, a built-in by
@@ -33,6 +34,23 @@
 			<NcActionSeparator
 				v-else-if="entry.kind === 'separator'"
 				:data-testid="`cn-index-header-menu-${entry.key}`" />
+			<!-- A muted line closing the menu (an Export menu's `note`). -->
+			<NcActionText
+				v-else-if="entry.kind === 'note'"
+				class="cn-index-header-menu__note"
+				:data-testid="`cn-index-header-menu-${entry.key}`">
+				{{ entry.label }}
+			</NcActionText>
+			<!-- An entry with a description: the label bold, the description
+			     muted under it (an Export menu's formats). -->
+			<NcActionButton
+				v-else-if="entry.description"
+				:name="entry.label"
+				:closeAfterClick="true"
+				:data-testid="`cn-index-header-menu-${entry.key}`"
+				@click="entry.run()">
+				{{ entry.description }}
+			</NcActionButton>
 			<NcActionLink
 				v-else-if="entry.href"
 				:href="entry.href"
@@ -76,17 +94,17 @@
 </template>
 
 <script>
-import { NcActionButton, NcActionCaption, NcActionLink, NcActions, NcActionSeparator } from '@nextcloud/vue'
+import { NcActionButton, NcActionCaption, NcActionLink, NcActions, NcActionSeparator, NcActionText } from '@nextcloud/vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import { CnIcon } from '../CnIcon/index.js'
 
 export default {
 	name: 'CnIndexHeaderMenu',
 
-	components: { CnIcon, DotsHorizontal, NcActionButton, NcActionCaption, NcActionLink, NcActions, NcActionSeparator },
+	components: { CnIcon, DotsHorizontal, NcActionButton, NcActionCaption, NcActionLink, NcActions, NcActionSeparator, NcActionText },
 
 	props: {
-		/** The resolved header button: `{ key, label }`. */
+		/** The resolved header button: `{ key, label, action?, icon? }`; an Export menu draws its icon. */
 		button: {
 			type: Object,
 			required: true,

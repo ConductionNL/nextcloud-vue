@@ -138,6 +138,8 @@ export function resolveActionTarget(action, row, ctx, warn = false) {
  *   - `api-call` → the shared api-call (POST by default, toasts) for the row:
  *     `{objectId}` and `{field}` row tokens fill the url, and on success
  *     `ctx.refresh` reads the list again (unless `refresh: false`).
+ *   - `object-action` → runs the OpenRegister action `action.action` on the
+ *     row (`ctx.register` / `ctx.schema`, the row's id), then `ctx.refresh`.
  *
  * Handler dispatch (`type: 'handler'`, the default) reads `action.handler`:
  *   - `navigate` → $router.push to `action.route` with `{ id: row[rowKey] }`
@@ -205,6 +207,21 @@ export function resolveActionHandler(action, ctx) {
 		})
 	}
 
+	if (type === 'object-action') {
+		return async (row) => {
+			const objectId = row && ctx.rowKey ? readPath(row, ctx.rowKey) : undefined
+			const result = await dispatchSharedAction({ ...action, refresh: false }, {
+				translate: ctx.translate,
+				tokenCtx: { objectId, object: row, register: ctx.register, schema: ctx.schema },
+				showNotice: ctx.showNotice,
+			})
+			if (result && result.ok && action.refresh !== false && typeof ctx.refresh === 'function') {
+				await ctx.refresh()
+			}
+			return result
+		}
+	}
+
 	// type === 'handler' (default): the v1.3.0 handler-string path.
 	if (type === 'api-call') {
 		return async (row) => {
@@ -213,6 +230,7 @@ export function resolveActionHandler(action, ctx) {
 			const result = await dispatchSharedAction({ ...action, url, refresh: false }, {
 				translate: ctx.translate,
 				tokenCtx: { objectId, object: row },
+				showNotice: ctx.showNotice,
 			})
 			if (result && result.ok && action.refresh !== false && typeof ctx.refresh === 'function') {
 				await ctx.refresh()

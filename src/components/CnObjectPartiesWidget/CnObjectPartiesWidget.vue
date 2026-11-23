@@ -262,8 +262,10 @@ import {
 	kindCode,
 	newPartyRecord,
 	partyKindAccepted,
+	partyNoteOf,
 	representedByMap,
 	roleLabel,
+	roleRowsByParticipant,
 	rolesInOrder,
 	savedUuid,
 	showsNoSecrecy,
@@ -374,7 +376,9 @@ export default {
 		 * The configuration: `rolesSource` (the listing URL, default
 		 * OpenRegister's `/parties` of this record), `partySource` (one
 		 * party, `{uuid}` filled in), `rolesObjects` (`{ register, schema,
-		 * field }`, the role rows that say who represents whom), `roleLabels`,
+		 * field }`, the role rows that say who represents whom), `note`
+		 * (`{ from: "roles", field }`: a board row prints that field of the
+		 * party's role row instead of the link's note), `roleLabels`,
 		 * `kindsSource` (`{ url, enforce?, sourceText? }`), `extraLines`
 		 * (`[{ endpoint, path?, valueLabels?, lines }]`, one request per
 		 * party, `{party}` filled in), `correspondence` (`{ endpoint, path?,
@@ -417,6 +421,7 @@ export default {
 			failed: false,
 			listing: null,
 			partyRecords: {},
+			roleRows: {},
 			represented: {},
 			kinds: null,
 			extra: {},
@@ -826,6 +831,7 @@ export default {
 			this.failed = false
 			this.partyRecords = {}
 			this.represented = {}
+			this.roleRows = {}
 			this.extra = {}
 			this.documents = []
 			const listing = await this.read(this.urlOf(this.content?.rolesSource || '/apps/openregister/api/objects/@register/@schema/@objectId/parties'))
@@ -864,6 +870,7 @@ export default {
 			const data = await this.read(`/apps/openregister/api/objects/${encodeURIComponent(source.register)}/${encodeURIComponent(source.schema)}`, { [source.field || 'object']: String(this.objectId), _limit: 200 })
 			const rows = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : [])
 			this.represented = representedByMap(rows)
+			this.roleRows = roleRowsByParticipant(rows)
 		},
 
 		/** @return {Promise<void>} The kinds this record accepts. */
@@ -1040,8 +1047,9 @@ export default {
 		 */
 		/**
 		 * The board row's meta line (design-system #811): the primary mark,
-		 * the role, the link's note, whom the party represents when no note
-		 * says it, its extra lines, e-mail and documents.
+		 * the role, the note (the link's, or the role row's field named by
+		 * `content.note`), whom the party represents when no note says it,
+		 * its extra lines, e-mail and documents.
 		 *
 		 * @param {object} party The party.
 		 * @param {object} group Its role group.
@@ -1050,15 +1058,16 @@ export default {
 		 */
 		boardMetaOf(party, group) {
 			const extras = []
+			const note = partyNoteOf(party, this.roleRows, this.content?.note)
 			const represented = this.representedBy(party)
-			if (represented && !party.note) {
+			if (represented && !note) {
 				extras.push(`${this.label('representedBy')}: ${represented}`)
 			}
 			extras.push(...this.extraLinesOf(party), party.email, this.correspondenceOf(party))
 			return boardMetaLine({
 				primary: this.primary && party.partyUuid === this.primary ? this.label('primary') : '',
 				role: group.label,
-				note: typeof party.note === 'string' ? party.note : '',
+				note,
 				extras,
 			})
 		},

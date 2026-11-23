@@ -32,6 +32,7 @@
 			:preferenceApp="preferenceApp"
 			:preferenceKey="preferenceKey"
 			:bulkActions="bulkActions"
+			:toolbarSelectionActions="toolbarSelectionActions"
 			:selectionLabel="selectionLabel"
 			:selectionLabelOne="selectionLabelOne"
 			:showClearSelection="showClearSelection"
@@ -39,6 +40,7 @@
 			:sideCardsPlacement="sideCardsPlacement"
 			:groupBy="groupBy"
 			:facets="facets"
+			:facetPresentation="facetPresentation"
 			@changed="onBrowserChanged" />
 		<template v-else>
 			<!-- Upload error -->
@@ -61,7 +63,11 @@
 			<div
 				class="cn-sidebar-tab__dropzone"
 				:class="{ 'cn-sidebar-tab__dropzone--active': isDragOver }"
+				role="button"
+				tabindex="0"
 				@click="triggerFileInput"
+				@keydown.enter.prevent="triggerFileInput"
+				@keydown.space.prevent="triggerFileInput"
 				@dragover.prevent="onDragOver"
 				@dragleave.prevent="onDragLeave"
 				@drop.prevent="onDrop">
@@ -95,6 +101,7 @@
 					type="file"
 					multiple
 					class="cn-sidebar-tab__file-input"
+					:aria-label="dropZoneLabel"
 					@change="onFileUpload">
 				<Upload :size="24" class="cn-sidebar-tab__dropzone-icon" />
 				<span class="cn-sidebar-tab__dropzone-text">{{ dropZoneLabel }}</span>
@@ -420,6 +427,8 @@ export default {
 		 * @type {Array<{id: string, label: string, icon?: string, type?: string, target?: string, props?: object}>}
 		 */
 		bulkActions: { type: Array, default: () => [] },
+		/** Forwarded to CnFilesBrowser: bulk actions as toolbar buttons, off while nothing is ticked. */
+		toolbarSelectionActions: { type: Array, default: () => [] },
 		/** Forwarded to CnFilesBrowser: the bulk bar's count, a template with `{count}`. */
 		selectionLabel: { type: String, default: '' },
 		/** Forwarded to CnFilesBrowser: the bulk bar's count for one file. */
@@ -444,6 +453,8 @@ export default {
 		 * @type {string[]}
 		 */
 		facets: { type: Array, default: () => [] },
+		/** How the facets are drawn: `chips` or `menu` (CnFilesBrowser `facetPresentation`). */
+		facetPresentation: { type: String, default: 'chips' },
 		/** Forwarded to CnFilesBrowser: the host's own buttons in the bar. */
 		headerActions: { type: Array, default: () => [] },
 		/** Forwarded to CnFilesBrowser: one visible button on every file row. */
@@ -1136,6 +1147,10 @@ export default {
 .cn-sidebar-tab__dropzone--active {
 	border-color: var(--color-primary-element);
 	background-color: var(--color-primary-element-light, rgba(0, 130, 201, 0.12));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-sidebar-tab__dropzone { transition: none; }
 }
 
 .cn-sidebar-tab__share { margin-bottom: 12px; }

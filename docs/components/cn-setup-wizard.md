@@ -22,10 +22,10 @@ shell while a `required` step is unmet.
 | `type` | Renders | Persists via |
 |--------|---------|--------------|
 | `info` | a note card (`title` + `body`) | — |
-| `config-fields` | fields from a JSON Schema (`fieldsFromSchema`) | `POST /api/setup/config` |
+| `config-fields` | fields from a JSON Schema (`fieldsFromSchema`), a repeatable group for an array of objects with `repeatable: true` | `POST /api/setup/config`, or `POST /api/setup/action/{action}` with an `action` |
 | `choice` | an `NcSelect` bound to `configKey` (`options[]`, `multiple?`), cards with `display: "cards"`, or radio rows with `display: "rows"` | `POST /api/setup/config` |
 | `run-action` | auto-starts `POST /api/setup/action/{action}` on entry (spinner), result + a "Run again" button | the action itself |
-| `summary` | a recap of step completion | — |
+| `summary` | a recap of step completion, with each step's `summaryHint` and, with `summaryEditable: true`, a Change button per row | — |
 | `component` | the parent's `#step-<id>` slot (escape hatch) | up to the slot |
 
 ## A choice step's intro and footnote
@@ -50,11 +50,11 @@ On a `config-fields` step, `optionalLabels: true` puts "(optional)" after every 
 ```
 
 On an admin page `CnAdminSettingsShell` passes its `appName` to the wizard, so
-the title reads "Set up {appName}", and hands it the app's catalog as
+the title reads "Set up \{appName\}", and hands it the app's catalog as
 `cnTranslate`.
 
 In the board look the heading is the current step's title, under the eyebrow
-"Set up {appName}, step N of M" ("Dossiq instellen, stap 4 van 5" in Dutch,
+"Set up \{appName\}, step N of M" ("Dossiq instellen, stap 4 van 5" in Dutch,
 board DqInstellen). The app name goes through the host's translate.
 
 ## Radio rows
@@ -174,6 +174,35 @@ An on-demand step:
 
 Steps without the flag behave as before: a server-done `run-action` step is
 ticked and never auto-runs.
+
+## A repeatable group
+
+A `config-fields` step can ask for a list, such as the administrations an app
+starts with. Mark an array-of-objects property `repeatable: true`: the step
+draws one row of sub-fields (the items' properties, in their declared order)
+with a Remove button per row and an Add row button (`addLabel` renames it).
+Rows left empty are not sent. Give the step an `action` and the values go to
+`POST /api/setup/action/{action}` as the request body instead of to the
+config; an answer with `success: false` keeps the step open with its `message`.
+
+```json
+{ "id": "administrations", "type": "config-fields", "action": "create-administrations",
+  "schema": { "type": "object", "properties": { "administrations": {
+    "type": "array", "title": "Administraties", "repeatable": true, "addLabel": "Administratie toevoegen",
+    "items": { "type": "object", "properties": {
+      "name": { "type": "string", "title": "Naam" },
+      "loonheffingennummer": { "type": "string", "title": "Loonheffingennummer" } } } } } } }
+```
+
+The step posts `{ "administrations": [{ "name": "...", "loonheffingennummer": "..." }, ...] }`.
+
+## The recap
+
+Every step can carry a `summaryHint`, a muted line under its row in the
+`summary` recap (through the app's translations). A `summary` step with
+`summaryEditable: true` gives each row a Change button that opens that step
+again, without validating the step the reader is on. In the board look the
+same button sits on a readiness row that names a `step` and has no `link`.
 
 ## Try it
 

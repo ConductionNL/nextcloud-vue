@@ -16,7 +16,7 @@ What an app shipped, what this instance changed, and what it authored. One row p
 | `description` | String | `''` | A line above the table |
 | `setsUrl` | String | `''` | An app path that lists the loaded sets, `{ sets: [{ id, label }] }`. With it the section lists them above the ledger; labels go through `cnTranslate` |
 | `removeSetUrl` | String | `''` | The app path that removes one set, `{id}` filled in. With it each set has a Remove button that asks first |
-| `removeSetQuestion` | String | `''` | The question before a removal, `{set}` filled in. Defaults to "Remove the set "{set}"? Its objects move to the trash, where you can restore them. Anything you made yourself stays." |
+| `removeSetQuestion` | String | `''` | The question before a removal, `{set}` filled in. Defaults to "Remove the set "\{set\}"? Its objects move to the trash, where you can restore them. Anything you made yourself stays." |
 
 ## The endpoint
 

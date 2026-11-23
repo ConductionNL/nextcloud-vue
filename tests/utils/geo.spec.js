@@ -12,7 +12,7 @@
  * SKIPS the object. Coercing it to 0 would plant a marker in the Gulf of Guinea, and
  * a confidently wrong marker is worse than an absent one.
  */
-import { finitePoint, objectToGeoFeature, parseGeoPoint } from '../../src/utils/geo.js'
+import { finitePoint, objectToGeoFeature, parseGeoGeometry, parseGeoPoint } from '../../src/utils/geo.js'
 
 describe('finitePoint', () => {
 	it('accepts finite numbers, including 0 and negatives', () => {
@@ -106,5 +106,38 @@ describe('objectToGeoFeature', () => {
 		expect(objectToGeoFeature({ id: 9, '@self': {} })).toBeNull()
 		expect(objectToGeoFeature({ id: 9, '@self': { geo: null } })).toBeNull()
 		expect(objectToGeoFeature(null)).toBeNull()
+	})
+})
+
+describe('objectToGeoFeature with a geoProperty', () => {
+	const polygon = { type: 'Polygon', coordinates: [[[5, 52], [5.1, 52], [5.1, 52.1], [5, 52]]] }
+
+	it('plots the geometry the property holds, of any type', () => {
+		expect(objectToGeoFeature({ id: 1, area: polygon }, { geoProperty: 'area' }).geometry).toEqual(polygon)
+		const line = { type: 'LineString', coordinates: [[5, 52], [5.2, 52.2]] }
+		expect(objectToGeoFeature({ route: { type: 'Feature', geometry: line } }, { geoProperty: 'route' }).geometry).toEqual(line)
+	})
+
+	it('reads a point-shaped value, lng first', () => {
+		expect(objectToGeoFeature({ spot: { lat: 52.1, lng: 5.1 } }, { geoProperty: 'spot' }).geometry)
+			.toEqual({ type: 'Point', coordinates: [5.1, 52.1] })
+	})
+
+	it('falls back to @self.geo when the property is empty', () => {
+		const obj = { area: null, '@self': { geo: { type: 'Point', coordinates: [5.29, 52.13] } } }
+		expect(objectToGeoFeature(obj, { geoProperty: 'area' }).geometry.coordinates).toEqual([5.29, 52.13])
+	})
+
+	it('keeps the object as the properties', () => {
+		expect(objectToGeoFeature({ id: 7, area: polygon }, { geoProperty: 'area' }).properties).toEqual({ id: 7, area: polygon })
+	})
+})
+
+describe('parseGeoGeometry', () => {
+	it('refuses what is not a usable geometry', () => {
+		expect(parseGeoGeometry(null)).toBeNull()
+		expect(parseGeoGeometry({ type: 'Polygon', coordinates: [] })).toBeNull()
+		expect(parseGeoGeometry({ type: 'Circle', coordinates: [1, 2] })).toBeNull()
+		expect(parseGeoGeometry({ type: 'Point', coordinates: ['x', 'y'] })).toBeNull()
 	})
 })

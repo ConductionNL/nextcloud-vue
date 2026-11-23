@@ -39,3 +39,10 @@
 .cn-row-action--destructive {
 	color: var(--color-error) !important;
 }
+
+/* Nextcloud gives the button or link inside the <li> its own ink, so the
+   colour names them as well. */
+.cn-row-action--destructive > .action-button,
+.cn-row-action--destructive > .action-link {
+	color: var(--color-error) !important;
+}

@@ -2,16 +2,19 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 0 direct references, 1 file reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 11 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name          | Type     | Required | Default | Description                                                |
-| ------------- | -------- | -------- | ------- | ---------------------------------------------------------- |
-| `view`        | `object` |          | `\{\}`  | The view being shared (its `sharedWith` seeds the fields). |
-| `dialogTitle` | `string` |          | `''`    | Dialog title; empty reads "Share view: \{name\}".          |
+| Name          | Type                | Required | Default | Description                                                                                                                                   |
+| ------------- | ------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `view`        | `object`            |          | `\{\}`  | The view being shared (its `sharedWith` seeds the fields).                                                                                    |
+| `dialogTitle` | `string`            |          | `''`    | Dialog title; empty reads "Share view: \{name\}".                                                                                             |
+| `shareGroups` | `string&#124;array` |          | `'all'` | Which groups the share picker offers: `all`, `mine` (the groups the current user is in) or an array of group ids. See CnSavedViewShareFields. |
 
 ### Events
 

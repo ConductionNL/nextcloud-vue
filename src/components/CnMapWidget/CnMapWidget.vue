@@ -18,6 +18,11 @@
       OpenRegister register/schema, reading each one's `@self.geo`
       (falling back to `latField` / `lngField` on the object itself).
       Objects with no usable location are skipped, not plotted at (0, 0).
+      `dataSource.spatialFilter` narrows them to a bbox, a radius around a
+      point, or a polygon, through OpenRegister's geo filters.
+    - `markers.detailLink` — a clicked object opens this address (with
+      `{id}`, `{register}`, `{schema}`, `{<property>}` tokens) in a new
+      tab; without it, a `url` the object carries is opened.
 
   `leaflet.markercluster`'s JS lazy-loads only when `clustering: true`
   (or `markers.clustering: true`), so a consumer without clustering does
@@ -72,6 +77,20 @@
 		<p v-if="unplottedCount > 0" class="cn-map-widget__note" data-testid="cn-map-unplotted">
 			{{ unplottedLabel }}
 		</p>
+		<!-- The layer switches (`layerToggles`): DqZaakLocatie "Kaartlagen"
+		     with "Luchtfoto (PDOK)" and "Omgevingsplan (WMS)". -->
+		<fieldset v-if="layerToggleEntries.length > 0" class="cn-map-widget__toggles" data-testid="cn-map-layer-toggles">
+			<legend class="cn-map-widget__toggles-title">
+				{{ layerTogglesTitle }}
+			</legend>
+			<label v-for="entry in layerToggleEntries" :key="entry.id" class="cn-map-widget__toggle">
+				<input type="checkbox"
+					:checked="entry.on"
+					:data-testid="`cn-map-layer-toggle-${entry.id}`"
+					@change="setLayerToggle(entry.id, $event.target.checked)">
+				{{ entry.label }}
+			</label>
+		</fieldset>
 		<div v-if="$slots.legend || $slots.legend" class="cn-map-widget__legend">
 			<!--
 				@slot legend
@@ -96,6 +115,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { fromImagePoint, hasImagePosition, imageBounds, paddedImageBounds, toImagePoint } from './imageCoordinates.js'
+import { featureDetailUrl, spatialFilterRequest } from './spatialFilter.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
 // images, and places the zoom/attribution controls. The JS is lazy-loaded
@@ -299,14 +319,17 @@ export default {
 		},
 
 		/**
-		 * Marker config. `{ features?, dataSource?, latField?, lngField?, xField?, yField?,
-		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker? }`. On an image map
+		 * Marker config. `{ features?, dataSource?, geoProperty?, latField?, lngField?, xField?, yField?,
+		 * popupField?, clustering?, iconColor?, iconUrl?, centerMarker?, detailLink? }`. On an image map
 		 * (a layer of type `image`) markers read `xField` / `yField` (default `x` / `y`,
 		 * pixels from the picture's top left) instead of `latField` / `lngField`. `features[]` is inline;
 		 * `dataSource.url` is HTTP-fetched on mount; `dataSource.{register, schema}`
-		 * plots the objects of an OpenRegister register/schema via their `@self.geo`.
+		 * plots the objects of an OpenRegister register/schema via `geoProperty` (a property
+		 * holding a GeoJSON geometry of any type, or a point) when set, else `@self.geo`.
 		 * `centerMarker: true` adds an extra pin at the map's `center`, alongside any
-		 * source markers.
+		 * source markers. `dataSource.spatialFilter` (`{ bbox }`, `{ near, radius }` or
+		 * `{ within }`) narrows a register source to an area; `detailLink` is the address
+		 * a clicked object opens in a new tab (see spatialFilter.js).
 		 *
 		 * @type {object|null}
 		 */
@@ -443,6 +466,19 @@ export default {
 		},
 
 		/**
+		 * Layers a person can switch on and off under the map:
+		 * `[{ id, label, layer, on? }]`, `layer` in the `layers` shape (`tile`,
+		 * `wms`, `wfs`, `geojson`), `on` the starting state (default true).
+		 * `content.layerToggles` wins. The labels go through the host translate.
+		 *
+		 * @type {Array<{id: string, label: string, layer: object, on?: boolean}>}
+		 */
+		layerToggles: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Dashboard placement record. Declared so the grid's `:placement` binding is
 		 * consumed as a prop instead of leaking onto the root element; unused here.
 		 *
@@ -498,6 +534,8 @@ export default {
 			L: null,
 			map: null,
 			layerInstances: [],
+			// Layer toggle id to whether the person switched it on (unset: its `on`).
+			toggleState: {},
 			markerLayer: null,
 			clusterGroup: null,
 			leafletAvailable: true,
@@ -545,6 +583,7 @@ export default {
 		 *
 		 * @return {object} the resolved `{ center, zoom, layers, markers,
 		 *   clustering, height, autoFit, basemaps }`.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		cfg() {
 			const c = this.content || {}
@@ -560,7 +599,47 @@ export default {
 				height: (c.height !== undefined && c.height !== null && c.height !== '') ? c.height : p.height,
 				autoFit: typeof c.autoFit === 'boolean' ? c.autoFit : p.autoFit,
 				basemaps: Array.isArray(c.basemaps) ? c.basemaps : p.basemaps,
+				layerToggles: Array.isArray(c.layerToggles) ? c.layerToggles : p.layerToggles,
 			}
+		},
+
+		/**
+		 * The layer switches as drawn: an entry needs an id, a label and a layer.
+		 *
+		 * @return {Array<{id: string, label: string, layer: object, on: boolean}>} The switches.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		layerToggleEntries() {
+			const list = Array.isArray(this.cfg.layerToggles) ? this.cfg.layerToggles : []
+			return list
+				.filter((entry) => entry && entry.id && typeof entry.label === 'string' && entry.layer && typeof entry.layer === 'object')
+				.map((entry) => ({
+					id: String(entry.id),
+					label: this.cnTranslate(entry.label),
+					layer: entry.layer,
+					on: Object.hasOwn(this.toggleState, String(entry.id)) ? this.toggleState[String(entry.id)] : entry.on !== false,
+				}))
+		},
+
+		/**
+		 * The declared layers plus the switched-on toggles.
+		 *
+		 * @return {Array<object>} The layers to mount.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		mountedLayers() {
+			const toggled = this.layerToggleEntries.filter((entry) => entry.on).map((entry) => entry.layer)
+			return [...(this.cfg.layers || []), ...toggled]
+		},
+
+		/**
+		 * @return {string} The switches' legend: `content.layerTogglesTitle`, else "Map layers".
+		 *
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		layerTogglesTitle() {
+			const title = this.content && this.content.layerTogglesTitle
+			return typeof title === 'string' && title !== '' ? this.cnTranslate(title) : t('nextcloud-vue', 'Map layers')
 		},
 
 		/**
@@ -658,14 +737,18 @@ export default {
 		},
 
 		/**
-		 * The data-source filter with its tokens resolved, serialised so a new
-		 * record re-reads the markers.
+		 * The data-source filter with its tokens resolved, and the spatial
+		 * filter, serialised so a new record or a new area re-reads the markers.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-map-can-narrow-its-objects-to-an-area
 		 */
 		filterKey() {
 			const ds = this.cfg.markers && this.cfg.markers.dataSource
-			return ds && ds.filter ? JSON.stringify(this.sourceFilter(ds)) : ''
+			if (!ds || (!ds.filter && !ds.spatialFilter)) {
+				return ''
+			}
+			return JSON.stringify([ds.filter ? this.sourceFilter(ds) : null, ds.spatialFilter || null])
 		},
 
 		unplottedLabel() {
@@ -742,6 +825,15 @@ export default {
 			}
 		},
 
+		/**
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		toggleState() {
+			if (this.map) {
+				this.renderLayers()
+			}
+		},
+
 		markersKey() {
 			if (this.map) {
 				this.renderMarkers()
@@ -808,6 +900,17 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Switch a toggled layer on or off.
+		 *
+		 * @param {string} id The toggle id.
+		 * @param {boolean} on Whether it is now on.
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
+		 */
+		setLayerToggle(id, on) {
+			this.toggleState = { ...this.toggleState, [id]: on === true }
+		},
+
 		/**
 		 * Mount the Leaflet map instance, attach event handlers, and
 		 * render the initial layer + marker set.
@@ -924,6 +1027,8 @@ export default {
 		 * Mount the configured `layers[]` onto the Leaflet map. Each entry
 		 * dispatches by `type` to a Leaflet factory; unknown types warn and
 		 * skip. `geojson` may supply inline `data` to skip the fetch.
+		 *
+		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		renderLayers() {
 			const L = this.L
@@ -949,7 +1054,7 @@ export default {
 
 			this.renderBasemaps()
 
-			for (const def of this.cfg.layers) {
+			for (const def of this.mountedLayers) {
 				if (!def || typeof def !== 'object') {
 					continue
 				}
@@ -1186,6 +1291,7 @@ export default {
 						 * @type {{feature: object, latlng: object}}
 						 */
 						this.$emit('marker-click', { feature, latlng: e.latlng })
+						this.openFeatureDetail(feature)
 					})
 				},
 			})
@@ -1683,8 +1789,11 @@ export default {
 		 * skipped rather than dropped at (0, 0) — an invisible wrong marker is worse
 		 * than an absent one.
 		 *
-		 * @param {{register: string, schema: string, limit?: number}} ds The data source.
+		 * A `spatialFilter` narrows the objects to an area (see spatialFilter.js).
+		 *
+		 * @param {{register: string, schema: string, limit?: number, spatialFilter?: object}} ds The data source.
 		 * @return {Promise<Array<object>>} GeoJSON Feature array.
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-map-can-narrow-its-objects-to-an-area
 		 */
 		async fetchRegisterFeatures(ds) {
 			try {
@@ -1696,21 +1805,41 @@ export default {
 					'/apps/openregister/api/objects/{register}/{schema}',
 					{ register: ds.register, schema: ds.schema },
 				)
-				const res = await axios.get(url, { params: { ...this.sourceFilter(ds), _limit: ds.limit || 500 } })
+				const params = { ...this.sourceFilter(ds), _limit: ds.limit || 500 }
+				const spatial = spatialFilterRequest(ds.spatialFilter, this.cfg.markers && this.cfg.markers.geoProperty)
+				const res = spatial && spatial.body
+					? await axios.post(url + '/geo-search', spatial.body, { params })
+					: await axios.get(url, { params: { ...params, ...(spatial ? spatial.params : {}) } })
 				const rows = (res && res.data && res.data.results) || []
 
 				const latField = this.cfg.markers && this.cfg.markers.latField
 				const lngField = this.cfg.markers && this.cfg.markers.lngField
+				const geoProperty = this.cfg.markers && this.cfg.markers.geoProperty
 
 				// (0, 0) is where an unset pair of numbers lands, not a place.
 				return rows
-					.map((row) => objectToGeoFeature(row, { latField, lngField }))
-					.filter((feature) => feature && !(feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
+					.map((row) => objectToGeoFeature(row, { geoProperty, latField, lngField }))
+					.filter((feature) => feature && !(feature.geometry.type === 'Point'
+						&& feature.geometry.coordinates[0] === 0 && feature.geometry.coordinates[1] === 0))
 			} catch (err) {
 				this.markersFailed = true
 				// eslint-disable-next-line no-console
 				console.warn('[CnMapWidget] Failed to load objects for the map', ds, err)
 				return []
+			}
+		},
+
+		/**
+		 * Open a clicked object's detail address in a new tab, when it has one.
+		 *
+		 * @param {object} feature The clicked GeoJSON feature.
+		 * @return {void}
+		 * @spec openspec/changes/map-spatial-filter-and-detail-link/specs/map-spatial-filter-and-detail-link/spec.md#requirement-a-clicked-object-opens-its-detail-page
+		 */
+		openFeatureDetail(feature) {
+			const href = featureDetailUrl(feature, this.cfg.markers && this.cfg.markers.detailLink)
+			if (href !== null) {
+				window.open(href, '_blank', 'noopener,noreferrer')
 			}
 		},
 
@@ -1772,6 +1901,29 @@ export default {
 	font-size: 15px;
 	line-height: 1.2;
 	color: var(--color-main-text);
+}
+
+.cn-map-widget__toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin: 12px 0 0;
+	padding: 0;
+	border: 0;
+	font-size: 14px;
+}
+
+.cn-map-widget__toggles-title {
+	width: 100%;
+	margin-bottom: 2px;
+	padding: 0;
+	font-weight: 600;
+}
+
+.cn-map-widget__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 }
 
 .cn-map-widget__note {

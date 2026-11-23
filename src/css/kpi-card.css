@@ -590,6 +590,21 @@ a.cn-kpi-card--board * {
 	background: color-mix(in srgb, var(--color-text-error, var(--color-error-text)) 10%, var(--color-main-background));
 }
 
+/* `content.iconPlacement: "top"` (LqTlVandaag, LqHrVandaag): the icon in a
+   42px circle above the label, a 22px glyph, 10px over the label.
+   @spec openspec/changes/board-stat-tile-icon-top/specs/stat-tile-board-look/spec.md#requirement-a-board-stat-tile-can-carry-its-icon-in-a-circle-above-the-label */
+.cn-kpi-card__badge--top {
+	width: 42px;
+	height: 42px;
+	margin-inline-start: 0;
+	margin-block-end: calc(10px - var(--cn-kpi-stacked-gap, 6px));
+}
+
+.cn-kpi-card__badge--top svg {
+	width: 22px;
+	height: 22px;
+}
+
 .cn-kpi-card__glyph {
 	display: inline-flex;
 	flex: 0 0 auto;
@@ -700,5 +715,11 @@ a.cn-kpi-card--board * {
 @container cn-kpi (max-width: 230px) {
 	.cn-kpi-card__value {
 		font-size: var(--cn-kpi-value-size-compact, 1.25rem);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-kpi-card {
+		transition: none;
 	}
 }

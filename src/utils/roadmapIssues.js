@@ -21,13 +21,14 @@ import { generateUrl } from '@nextcloud/router'
  * null when the fetch worked.
  *
  * @param {string} repo `<owner>/<repo>` on the forge.
+ * @param {{state?: ('open'|'closed'|'all')}} [options] `state` asks for closed issues too; unset sends no state (the proxy reads open).
  * @return {Promise<{items: Array<object>, degraded: (string|null)}>} The issues, most-reacted first.
  * @spec openspec/changes/screens-roadmap-board-look/specs/features-roadmap-board-look/spec.md#requirement-the-next-card-lists-the-most-requested-issues
  */
-export async function fetchRoadmapIssues(repo) {
+export async function fetchRoadmapIssues(repo, { state } = {}) {
 	try {
 		const response = await axios.get(generateUrl('/apps/openregister/api/github/issues'), {
-			params: { repo, labels: 'enhancement,feature' },
+			params: { repo, labels: 'enhancement,feature', ...(state ? { state } : {}) },
 		})
 		const data = response.data || {}
 		if (data.hint === 'github_pat_not_configured') {
@@ -79,4 +80,41 @@ export function issueStatus(issue, labelStatuses) {
 		}
 	}
 	return ''
+}
+
+/** The labels that put an open issue in the In development column by default. */
+export const ROADMAP_IN_PROGRESS_LABELS = Object.freeze(['in progress', 'in-progress', 'in development'])
+
+/**
+ * The roadmap issues in three columns: `planned` (open), `inProgress` (open
+ * with one of the in-progress labels) and `available` (closed as completed).
+ * A closed issue that was not completed is left out. Each column keeps the
+ * given order.
+ *
+ * @param {Array<object>} items The issues, with `state`, `state_reason` and `labels`.
+ * @param {string[]} [inProgressLabels] Labels that mean work has started (case-insensitive).
+ * @return {{planned: Array<object>, inProgress: Array<object>, available: Array<object>}} The columns.
+ * @spec openspec/changes/roadmap-tab-columns/specs/roadmap-tab-columns/spec.md#requirement-a-roadmap-can-be-drawn-as-three-columns
+ */
+export function roadmapColumns(items, inProgressLabels = ROADMAP_IN_PROGRESS_LABELS) {
+	const started = new Set((Array.isArray(inProgressLabels) ? inProgressLabels : []).map((label) => String(label).toLowerCase()))
+	const columns = { planned: [], inProgress: [], available: [] }
+	for (const issue of Array.isArray(items) ? items : []) {
+		if (!issue || typeof issue !== 'object') {
+			continue
+		}
+		if (issue.state === 'closed') {
+			if (issue.state_reason === 'completed') {
+				columns.available.push(issue)
+			}
+			continue
+		}
+		const labels = (Array.isArray(issue.labels) ? issue.labels : []).map((label) => String(typeof label === 'string' ? label : label?.name || '').toLowerCase())
+		if (labels.some((name) => started.has(name))) {
+			columns.inProgress.push(issue)
+		} else {
+			columns.planned.push(issue)
+		}
+	}
+	return columns
 }

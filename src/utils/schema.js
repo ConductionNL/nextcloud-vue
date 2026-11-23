@@ -6,7 +6,9 @@
  * @module utils/schema
  */
 
+import { getCurrentUser } from '@nextcloud/auth'
 import { fieldWithOptionsFrom, isOptionsFrom } from './optionsFrom.js'
+import { propertyTitle } from './propertyTitle.js'
 import { schemaRefSlug } from './schemaRefSlug.js'
 import { userLocale } from './userLocale.js'
 
@@ -92,7 +94,7 @@ export function columnsFromSchema(schema, options = {}) {
 	return entries.map(([key, prop]) => {
 		const column = {
 			key,
-			label: tr(prop.title || key),
+			label: tr(propertyTitle(prop, key)),
 			// The schema already explains what the property MEANS; carrying that
 			// through as the header tooltip means a column like "Maturity" or a
 			// computed score explains itself in place, instead of the description
@@ -861,6 +863,19 @@ function readHelp(key, value, language, tr) {
 }
 
 /**
+ * Whether the signed-in Nextcloud user is an instance administrator.
+ *
+ * @return {boolean} False when nobody is signed in or the user is unknown.
+ */
+function viewerIsAdmin() {
+	try {
+		return getCurrentUser()?.isAdmin === true
+	} catch {
+		return false
+	}
+}
+
+/**
  * Generate form field definitions from a schema's properties.
  *
  * Reads `schema.properties` and creates field descriptor objects suitable
@@ -874,6 +889,7 @@ function readHelp(key, value, language, tr) {
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
+ * @param {boolean} [options.isAdmin] Whether the viewer is an instance administrator, which keeps `x-admin-only` properties. Defaults to the signed-in Nextcloud user's `isAdmin`.
  * @param {string} [options.language] The user's language (e.g. `nl`, `en_GB`) used to pick from a language map in `x-help`; falls back to the base language, `en`, then the first entry.
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each field's `label` and `description`. Schema property titles/descriptions are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered field label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @spec openspec/changes/form-pickers-from-schema/specs/schema-utilities/spec.md
@@ -881,6 +897,7 @@ function readHelp(key, value, language, tr) {
  */
 export function fieldsFromSchema(schema, options = {}) {
 	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate, language = '' } = options
+	const isAdmin = typeof options.isAdmin === 'boolean' ? options.isAdmin : viewerIsAdmin()
 	const tr = typeof translate === 'function' ? translate : (text) => text
 
 	if (!schema || !schema.properties) {
@@ -900,6 +917,12 @@ export function fieldsFromSchema(schema, options = {}) {
 			// Skip properties marked as not visible, unless an override brings
 			// the field back for this form (`overrides[key].hidden === false`).
 			if (prop.visible === false && overrides[key]?.hidden !== false) {
+				return false
+			}
+			// `x-admin-only: true`: only an instance administrator sees the
+			// field. It hides a control and nothing more; the server still
+			// decides who may change the value.
+			if (prop['x-admin-only'] === true && !isAdmin) {
 				return false
 			}
 			// Per-key override visibility: `overrides[key].hidden === true` hides
@@ -969,7 +992,7 @@ export function fieldsFromSchema(schema, options = {}) {
 			|| null
 		const field = {
 			key,
-			label: tr(prop.title || key),
+			label: tr(propertyTitle(prop, key)),
 			description: description.short,
 			descriptionLong: help || description.long,
 			help,
@@ -1066,6 +1089,9 @@ export function fieldsFromSchema(schema, options = {}) {
 						schema: typeof prop.schema === 'string' && prop.schema !== '' ? prop.schema : (normalizeRef(prop.items && prop.items.$ref) ?? ''),
 						parentField: prop.parentField || prop.inversedBy || '',
 						columns: Array.isArray(prop.columns) ? prop.columns : [],
+						computed: Array.isArray(prop.computed) ? prop.computed : [],
+						totals: Array.isArray(prop.totals) ? prop.totals : [],
+						addFrom: prop.addFrom && typeof prop.addFrom === 'object' ? prop.addFrom : null,
 					}
 				: null,
 			// Select OR create (`x-allow-create: true`, on the property or on
@@ -1165,6 +1191,7 @@ function translateOverrideText(field, override, tr) {
  * @param {object} [options] Configuration options
  * @param {(text: string) => string} [options.translate] Optional display-layer translation function applied to each filter's `label` and `description`. Schema property titles are authored in English as the canonical source; consumers pass their bound `t()` (via the injected `cnTranslate`) so the rendered filter label follows the user's language. When omitted, label/description are the English source strings unchanged (pure, backward-compatible).
  * @return {Array<{key: string, label: string, type: string, propertyType: string, options: Array}>}
+ * @spec openspec/changes/index-sidebar-filter-notes/specs/index-sidebar-filter-notes/spec.md#requirement-a-filter-can-carry-a-note-and-be-a-switch
  */
 export function filtersFromSchema(schema, options = {}) {
 	if (!schema || !schema.properties) {
@@ -1192,7 +1219,7 @@ export function filtersFromSchema(schema, options = {}) {
 		.map(([key, prop]) => {
 			const filter = {
 				key,
-				label: tr(prop.title || key),
+				label: tr(propertyTitle(prop, key)),
 				description: prop.description ? tr(prop.description) : '',
 				propertyType: prop.type || 'string',
 				options: [],
@@ -1246,6 +1273,17 @@ export function filtersFromSchema(schema, options = {}) {
 				filter.type = 'reference'
 			} else if (control === 'boolean') {
 				filter.type = 'checkbox'
+			} else if (control === 'switch') {
+				// One on/off question with its own words beside the switch
+				// ("Ook concepten van anderen tonen"); on sends `true`.
+				filter.type = 'switch'
+				filter.switchLabel = tr(prop.switchLabel || propertyTitle(prop, key))
+			}
+
+			// A line under the filter that says what it reads (DqZaken "Het
+			// team staat op de zaak als groep; ...").
+			if (typeof prop.facetNote === 'string' && prop.facetNote !== '') {
+				filter.note = tr(prop.facetNote)
 			}
 
 			if (prop.optionsSource && typeof prop.optionsSource === 'object') {

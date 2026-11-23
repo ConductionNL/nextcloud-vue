@@ -241,6 +241,21 @@ export default {
 		},
 
 		/**
+		 * How the Roadmap tab draws its issues (`config.roadmapLayout`): `grid`
+		 * (default) or `columns` (Planned, In development, Available).
+		 */
+		roadmapLayout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/** Labels that put an open issue under In development (`config.roadmapInProgressLabels`). */
+		roadmapInProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The app's comparison with similar products on its public site,
 		 * linked above the page in a new tab. A URL, or a map from language
 		 * to URL with a `default` (`{ default, nl }`). Manifest `config.compareUrl`.
@@ -345,6 +360,8 @@ export default {
 				board: this.board || {},
 				title: this.title,
 				appVersion: this.resolvedAppVersion,
+				...(this.roadmapLayout !== 'grid' ? { roadmapLayout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { roadmapInProgressLabels: this.roadmapInProgressLabels } : {}),
 			}
 		},
 

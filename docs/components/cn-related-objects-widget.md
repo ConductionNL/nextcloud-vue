@@ -68,7 +68,7 @@ link an app keeps itself. `extraSources` reads it and adds the sections beside t
 ```
 
 A template in a list is candidates: the first that fills. `{ "parts": [...], "separator": ", " }` fills each part on
-its own and leaves the empty ones out ("{title}, every year, next on 1 Mar, 2 opened so far"). `valueLabels` maps a
+its own and leaves the empty ones out ("\{title\}, every year, next on 1 Mar, 2 opened so far"). `valueLabels` maps a
 field's stored values to the words a template shows (`{ "recurrence": { "yearly": "Every year", "none": "" } }`). `static` rows open nothing. A row action calls its endpoint
 (POST unless `method` says otherwise), with `@objectId` and the row's `{field}` tokens filled in, and reads the sources
 again; a refusal shows the server's sentence as an alert. A source that cannot be read is logged and left out, and the

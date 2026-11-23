@@ -2,18 +2,26 @@
 
 ### Props
 
-| Name            | Type                 | Required | Default      | Description                                                   |
-| --------------- | -------------------- | -------- | ------------ | ------------------------------------------------------------- |
-| `node`          | `object`             | ✓        | —            | The node data.                                                |
-| `depth`         | `number`             |          | `0`          | Depth (drives indent).                                        |
-| `indent`        | `number`             |          | `18`         | Pixels of padding per depth level.                            |
-| `expandedIds`   | `object`             | ✓        | —            | Set of expanded node ids.                                     |
-| `selectedId`    | `string&#124;number` |          | `null`       | Currently selected node id, read off `node[idKey]` (or null). |
-| `idKey`         | `string`             |          | `'id'`       | Node-field key for the id.                                    |
-| `labelKey`      | `string`             |          | `'label'`    | Node-field key for the display label.                         |
-| `childrenKey`   | `string`             |          | `'children'` | Node-field key for the children array.                        |
-| `expandLabel`   | `string`             |          | `'Expand'`   | A11y label for the expand button.                             |
-| `collapseLabel` | `string`             |          | `'Collapse'` | A11y label for the collapse button.                           |
+| Name            | Type                 | Required | Default      | Description                                                            |
+| --------------- | -------------------- | -------- | ------------ | ---------------------------------------------------------------------- |
+| `node`          | `object`             | ✓        | —            | The node data.                                                         |
+| `depth`         | `number`             |          | `0`          | Depth (drives indent).                                                 |
+| `indent`        | `number`             |          | `18`         | Pixels of padding per depth level.                                     |
+| `expandedIds`   | `object`             | ✓        | —            | Set of expanded node ids.                                              |
+| `selectedId`    | `string&#124;number` |          | `null`       | Currently selected node id, read off `node[idKey]` (or null).          |
+| `idKey`         | `string`             |          | `'id'`       | Node-field key for the id.                                             |
+| `labelKey`      | `string`             |          | `'label'`    | Node-field key for the display label.                                  |
+| `childrenKey`   | `string`             |          | `'children'` | Node-field key for the children array.                                 |
+| `expandLabel`   | `string&#124;func`   |          | `'Expand'`   | A11y label for the expand button, or `(node) =&gt; string`.            |
+| `collapseLabel` | `string&#124;func`   |          | `'Collapse'` | A11y label for the collapse button, or `(node) =&gt; string`.          |
+| `toggleAttrs`   | `func`               |          | `null`       | Extra expand-button attributes per node, `(node, depth) =&gt; object`. |
+| `rowAttrs`      | `func`               |          | `null`       | Extra row attributes per node, `(node, depth) =&gt; object`.           |
+| `focusableRows` | `boolean`            |          | `false`      | Rows take focus and select on Enter or Space.                          |
+| `reorderable`   | `boolean`            |          | `false`      | Rows can be moved among their siblings.                                |
+| `reorderLabels` | `object`             |          | `\{\}`       | The texts of the move controls, resolved by CnTreeView.                |
+| `parentId`      | `string&#124;number` |          | `null`       | The parent's id, or null at the root.                                  |
+| `siblingIndex`  | `number`             |          | `0`          | This node's index among its siblings.                                  |
+| `siblingCount`  | `number`             |          | `1`          | How many siblings there are, itself included.                          |
 
 ### Events
 
@@ -21,9 +29,11 @@
 | -------- | ------- | ----------- |
 | `toggle` | —       |             |
 | `select` | —       |             |
+| `move`   | —       |             |
 
 ### Slots
 
-| Name      | Bindings | Description                                 |
-| --------- | -------- | ------------------------------------------- |
-| `actions` | —        | actions Inline per-row actions slot. Scope: |
+| Name      | Bindings | Description                                                                                   |
+| --------- | -------- | --------------------------------------------------------------------------------------------- |
+| `label`   | —        | label The row's label. Scope: \{ node, depth, expanded \}. Defaults to the node's label text. |
+| `actions` | —        | actions Inline per-row actions slot. Scope:                                                   |

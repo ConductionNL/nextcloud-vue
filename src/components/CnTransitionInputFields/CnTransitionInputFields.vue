@@ -115,13 +115,22 @@
 					</div>
 				</fieldset>
 
-				<NcCheckboxRadioSwitch v-else-if="field.widget === 'checkbox'"
-					:modelValue="modelValue[field.key] === true"
-					type="switch"
-					:disabled="disabled"
-					@update:modelValue="setValue(field.key, $event === true)">
-					{{ labelOf(field) }}
-				</NcCheckboxRadioSwitch>
+				<template v-else-if="field.widget === 'checkbox'">
+					<NcCheckboxRadioSwitch
+						:modelValue="modelValue[field.key] === true"
+						type="switch"
+						:disabled="disabled"
+						@update:modelValue="setValue(field.key, $event === true)">
+						{{ labelOf(field) }}
+					</NcCheckboxRadioSwitch>
+					<!-- A note under the switch, as under a text field (DqVolgendeStap
+					     "Herinner de verzoeker als het antwoord uitblijft"). -->
+					<span v-if="field.input.note"
+						class="cn-transition-input-fields__muted"
+						:data-testid="`cn-transition-input-note-${field.key}`">
+						{{ field.input.note }}
+					</span>
+				</template>
 
 				<template v-else>
 					<!-- A label drawn above the field, as a form board draws it,

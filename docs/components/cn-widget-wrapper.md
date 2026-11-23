@@ -227,6 +227,12 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
 |------|------|---------|-------------|
 | `titleTone` | `String` | `''` | `side` titles the card as a side card in the board look: 15px, weight 600, muted. For a card in a page's right column (DqDagAfsluiten "Uw dag"). In a manifest: `titleTone: "side"` on the widget definition; CnDashboardPage and CnDetailWidgetHost pass it on. |
 
+## Actions under a long title (`headerWrap`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `headerWrap` | `Boolean` | `false` | Lets the header actions drop to a row of their own when the title and subtitle fill the header, instead of squeezing them. A widget definition sets it as `headerWrap: true` (DqZaaktypeOverzicht Rechten). |
+
 ## A text link in the header (`headerLink`)
 
 | Prop | Type | Default | Description |
@@ -275,3 +281,11 @@ Two actions belong to the detail page itself rather than to the dispatcher:
 - `{ "type": "open-tab", "tab": "<tab id>" }` opens that tab of the page, through the same `#<tab>` anchor a `headerLink` with `tab` uses (DqZaaktypeOverzicht "Statussen" Bewerken opens the Statuses tab).
 
 On a dashboard (CnDashboardPage) the same `headerActions` on a widget definition are drawn in that widget's card; the page resolves them and hands them to the card's `headerActions` prop. CnDetailWidgetHost resolves them and provides them to the card it puts the widget in. The outermost CnWidgetWrapper or CnDetailCard below it draws them, before its `actions` slot; a card inside that one does not draw them again. A title-less card gets a header for them. In a tab panel (bare), CnTabsWidget draws them in the panel's heading, or on a row of their own when the panel has no heading.
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn at the top of the card body; a detail host's provided notices come after these: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](./cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

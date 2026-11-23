@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**heavy**: this component cannot work without OpenRegister. 0 direct references, 123 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 124 files reached through imports.
 
 Through: `CnActionDialog`, `CnAnalyticsReportPicker`, `CnAssignDialog`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnBulkJobProgress`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
@@ -23,10 +23,10 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `newItem`        | `object`                                    |          | `null`                                   | The values a new row starts with, e.g. `{ required: false }`; the row schema's own defaults fill the rest.                                     |
 | `itemLabel`      | `string`                                    |          | `''`                                     | What one row is called, for the row's accessible name and the edit dialog title: "Checklist item" gives "Checklist item 2". Defaults to "Row". |
 | `emptyText`      | `string`                                    |          | `''`                                     | Shown while there are no rows. Defaults to "No rows yet.".                                                                                     |
+| `maxItems`       | `number`                                    |          | `0`                                      | The most rows the field takes; 0 for no limit. At the limit Add and Duplicate are disabled and a line says so.                                 |
 
 ### Events
 
-| Name                                                | Payload | Description |
-| --------------------------------------------------- | ------- | ----------- |
-| `update:modelValue`                                 | —       |             |
-| `update:modelValue The rows in their new sequence.` | —       |             |
+| Name                | Payload | Description                     |
+| ------------------- | ------- | ------------------------------- |
+| `update:modelValue` | —       | The rows in their new sequence. |

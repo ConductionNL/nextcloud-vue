@@ -13,6 +13,7 @@ import { mount } from '@vue/test-utils'
 import CnLinkedWidget from '../../src/components/CnLinkedWidget/CnLinkedWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { integrations } from '../../src/integrations/registry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnLinkedWidget/index.js'
@@ -60,8 +61,8 @@ function mountCard(leaves) {
 describe('CnLinkedWidget', () => {
 	afterEach(() => integrations.__resetForTests())
 
-	it('is a content-only `linked` widget type, so the page draws its titled card', () => {
-		expect(getWidgetTypeEntry('linked').renderer).toBe(CnLinkedWidget)
+	it('is a content-only `linked` widget type, so the page draws its titled card', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('linked').renderer)).toBe(CnLinkedWidget)
 		expect(isContentOnlyWidgetDef({ type: 'linked' })).toBe(true)
 	})
 

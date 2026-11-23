@@ -29,9 +29,17 @@ Place it in a detail page with `config.sideColumn: ["special-data", …]`.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | Object | `{}` | `{ variant?, title?, text, icon?, link? }`. `variant` is `info` (default), `warning`, `error` or `success`, each with its own tone and icon. `title` (bold) and `text` go through the app's translate. `icon` names a CnIcon instead of the variant's own. Without `title` and `text` nothing renders. |
+| `content` | Object | `{}` | `{ variant?, role?, layout?, title?, text, icon?, link?, actions?, dismissible? }`. `variant` is `info` (default), `warning`, `error` or `success`, each with its own tone and icon. `title` (bold) and `text` go through the app's translate. `icon` names a CnIcon instead of the variant's own. Without `title` and `text` nothing renders. |
 | `objectData` | Object | `null` | The page's record, for `@object.<field>` in the link. |
 | `objectId` | String \| Number | `''` | The page's record id, for `@objectId` in the link. |
+| `inline` | Boolean | `false` | Draw it as a card's state banner: the tighter board inset (10px 14px, radius 10) and a `status` / `alert` role. Set by [CnCardNotices](./cn-card-notices.md). |
+
+## Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `action` | `{ key, label, variant, action }` | A notice button was pressed (its action is dispatched too). |
+| `dismiss` | none | The close button was pressed. |
 
 ## A link to a record
 
@@ -43,6 +51,24 @@ Place it in a detail page with `config.sideColumn: ["special-data", …]`.
     "link": { "route": "CaseDetail", "params": { "id": "@object.objectUuid" }, "label": "@object.subjectLabel", "fallbackLabel": "Open the case" } } }
 ```
 
-The box is `role="note"`, named by its title.
+The box is `role="note"`, named by its title, unless `role` says otherwise.
+
+## A state banner in a card
+
+Inside a card the same content is the card's state banner (R1): an engine refusal, a partial result, a source that is down, a success. See [CnCardNotices](./cn-card-notices.md) for where it goes.
+
+| Key | Meaning |
+|-----|---------|
+| `role` | `status`, `alert` or `note`. Inside a card it defaults to `alert` for `error`, `status` for the rest; as a widget it stays `note`. |
+| `layout` | `inline` (default): the bold title, then the text on the same line. `stacked`: the title on its own line above the text (DqZaakLocatie, DqWerkbord). |
+| `actions` | `[{ label, action, variant? }]`: buttons after the text, each dispatching a manifest action through the page dispatcher (`@objectId`, `@object.<path>` resolved). `variant` is `link` (default, a text button), `secondary` or `primary`. |
+| `dismissible` | `true` draws a close button ("Close"). |
+
+`{path}` in `title` and `text` is filled from the record (`{actor.name}`); a path the record does not hold reads empty.
+
+```json
+{ "variant": "success", "title": "2 cases moved to In progress.", "text": "1 case moved without all of its automatic actions.",
+  "actions": [{ "label": "View failed actions", "action": { "type": "open-modal", "target": "FailedSideActions" } }] }
+```
 
 A `banner` draws a Nextcloud note card meant for a full-width row: in a side column it nests a second box and has no title. Use `notice` there.

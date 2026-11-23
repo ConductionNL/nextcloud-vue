@@ -26,6 +26,8 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { defineStore } from 'pinia'
+import { flowEdgeCondition, flowEdgeConditionText } from '../utils/flowCondition.js'
+import { flowStepBridge, flowStepSwap, flowStepTail, insertStepEdges, swapStepEdges, swapStepPlaces } from '../utils/flowStepList.js'
 import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
 import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
 
@@ -555,6 +557,8 @@ export const useFlowStore = defineStore('cnFlow', {
 				return (value === null || value === undefined || value === '') ? [] : [value]
 			}
 
+			const nodeOf = (id) => (state.flow.nodes || []).find((node) => node.id === id) || null
+
 			const lines = []
 			for (const [index, edge] of (state.flow.edges || []).entries()) {
 				const sources = toList(edge.source ?? edge.from)
@@ -630,6 +634,8 @@ export const useFlowStore = defineStore('cnFlow', {
 								lineType: edge.lineType || DEFAULT_EDGE_LINE_TYPE,
 								labelT: edge.labelT,
 								label: edge.title || edge.label || '',
+								condition: flowEdgeCondition(edge, nodeOf(source)),
+								conditionText: flowEdgeConditionText(edge, nodeOf(source)),
 								edge,
 							},
 						})
@@ -659,6 +665,15 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			return nodes.length ? [nodes[0].id] : []
+		},
+
+		/**
+		 * The flow as the list view reads it (see `utils/flowStepList.js`).
+		 *
+		 * @return {{nodes: Array<object>, lines: Array<object>, startIds: Array<string>, roleOf: Function}} The graph.
+		 */
+		stepGraph() {
+			return { nodes: this.nodes, lines: this.canvasEdges, startIds: this.startNodeIds, roleOf: this.roleOfNodeType }
 		},
 
 		/**
@@ -1194,6 +1209,59 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.selectedNodeId = node.id
 			this.dirty = true
 			this.checkResult = null
+
+			return node.id
+		},
+
+		/**
+		 * Add a step at the bottom of the list view: wired in before the
+		 * closing step, else after the last step, as one undoable change.
+		 *
+		 * @param {string} type The step type.
+		 * @return {string|undefined} The new node's id, unless the graph is locked.
+		 */
+		appendStep(type) {
+			const tail = flowStepTail(this.stepGraph)
+			const id = this.addNode(type)
+			if (id !== undefined) {
+				this.flow.edges = insertStepEdges(this.edges, { id, ...tail })
+			}
+
+			return id
+		},
+
+		/**
+		 * Swap a step with its neighbour in the list view, in the flow itself.
+		 * A move the list cannot make (a step on a branch) changes nothing.
+		 *
+		 * @param {{id: string, by: number}} move The step and -1 (up) or 1 (down).
+		 * @return {void}
+		 */
+		moveStep(move) {
+			const pair = flowStepSwap(this.stepGraph, move)
+			if (pair === null || !this.pushUndo()) {
+				return
+			}
+
+			this.flow.edges = swapStepEdges(this.edges, pair)
+			this.flow.nodes = swapStepPlaces(this.nodes, pair)
+			this.dirty = true
+			this.checkResult = null
+		},
+
+		/**
+		 * Remove a step in the list view: a step in a chain leaves no gap, the
+		 * line into it goes on to the step after it.
+		 *
+		 * @param {string} id The step.
+		 * @return {void}
+		 */
+		removeStep(id) {
+			const bridge = flowStepBridge(this.stepGraph, id)
+			this.removeNode(id)
+			if (bridge !== null && !this.nodes.some((node) => node.id === id)) {
+				this.flow.edges = [...this.edges, bridge]
+			}
 		},
 
 		/**
@@ -2148,13 +2216,14 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
-		 * Try the saved flow with a record, changing and sending nothing.
+		 * Try the saved flow with a record or an example payload, changing and
+		 * sending nothing.
 		 *
 		 * OpenRegister's dry-run walks the flow against the record: steps without
 		 * side effects run, every other step says what it would do. The answer,
-		 * with the record, is kept in `dryRunResult` for the board to show.
+		 * with the subject, is kept in `dryRunResult` for the board to show.
 		 *
-		 * @param {object} subject `{uuid, register, schema}` of the record.
+		 * @param {object} subject `{uuid, register, schema}` of the record, or `{payload}`.
 		 * @return {Promise<object|null>} The answer (`{status, steps, error?}`), or null.
 		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
 		 */
@@ -2168,7 +2237,9 @@ export const useFlowStore = defineStore('cnFlow', {
 			try {
 				const response = await axios.post(
 					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/dry-run`),
-					{ register: subject.register, schema: subject.schema, objectId: subject.uuid },
+					subject.payload === undefined
+						? { register: subject.register, schema: subject.schema, objectId: subject.uuid }
+						: { payload: subject.payload },
 				)
 				const result = response.data || { status: '', steps: [] }
 				this.dryRunResult = { ...result, subject: { ...subject } }

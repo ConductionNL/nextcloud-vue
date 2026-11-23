@@ -33,8 +33,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                                               | Payload | Description                                    |
-| ---------------------------------------------------------------------------------- | ------- | ---------------------------------------------- |
-| `update:modelValue`                                                                | —       |                                                |
-| `create`                                                                           | —       | A new object was created from the search term. |
-| `update:modelValue The selected (or newly-created) object id, or '' when cleared.` | —       |                                                |
+| Name                | Payload | Description                                                    |
+| ------------------- | ------- | -------------------------------------------------------------- |
+| `update:modelValue` | —       | The selected (or newly-created) object id, or '' when cleared. |
+| `create`            | —       | A new object was created from the search term.                 |

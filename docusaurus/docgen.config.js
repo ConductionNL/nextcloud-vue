@@ -90,8 +90,11 @@ function escapeMdxBraces(text) {
 			out += c
 		} else if (c === '$' && text[i + 1] === '{') {
 			// Escape ${...} template literal expressions everywhere — MDX executes
-			// them as JavaScript during SSG even inside backtick code spans.
-			out += '\\$'
+			// them as JavaScript during SSG even inside backtick code spans. A
+			// source template literal's own backticks also throw inCode off, so
+			// the brace is escaped here and not left to the branch below.
+			out += '\\$\\{'
+			i++
 		} else if (!inCode && (c === '{' || c === '}')) {
 			out += '\\' + c
 		} else if (c === '<') {
@@ -228,7 +231,7 @@ function cell(text) {
  * @param {string} rawName The event name as docgen read it, description included.
  */
 function splitMashedEventName(rawName) {
-	const m = rawName.match(/^([\w-]+)\s+(.+)$/s)
+	const m = rawName.match(/^([\w:-]+)\s+(.+)$/s)
 	if (m) {
 		return { name: m[1], extraDesc: m[2] }
 	}

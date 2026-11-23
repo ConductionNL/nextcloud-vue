@@ -44,3 +44,17 @@ onAddress(chosen) {
 ## Helpers
 
 `addressCoordinates(doc)` and `addressText(doc)` are named exports of the component file. They read `{ lat, lng }` and the display text from a normalised document (`location.coordinates`, `displayName`) or a raw Locatieserver one (`centroide_ll`, `weergavenaam`).
+
+## Typing the address when search is down
+
+With `manual-fallback`, a search that answers 404 or 503 turns into a warning ("Address search is not available right now", "Type the address yourself.") and fields for the street and house number and the postcode, as DqZaakLocatie draws when PDOK does not answer. `manual` shows the fields from the start; `manual-city` adds the place.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `manualFallback` | Boolean | `false` | Offer the typed fields when the search is unavailable. |
+| `manual` | Boolean | `false` | Show the typed fields from the start. |
+| `manualCity` | Boolean | `false` | Ask for the place too. |
+| `manualLabels` | Object | `{}` | `{ street?, postcode?, city? }` labels. |
+| `unavailableTitle`, `unavailableText` | String | | The warning's title and text. |
+
+Typing emits `update:modelValue` with the joined address ("Molenweg 4, 1234 AB") and `select` with `{ result: null, coordinates: null, address, manual: { street, postcode, city } }`.

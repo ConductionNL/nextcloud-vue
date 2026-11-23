@@ -97,7 +97,7 @@ describe('CnStorePublishDialog', () => {
 		await type(w, 'store-publish-title', 'Woo')
 		await w.find('[data-testid="store-publish-submit"]').trigger('click')
 		await flushPromises()
-		expect(showError).toHaveBeenCalledWith(expect.stringContaining('No store registry is configured'))
+		expect(showError).toHaveBeenCalledWith(expect.stringContaining('No marketplace registry is configured'))
 		expect(w.emitted('published')).toBeUndefined()
 	})
 })

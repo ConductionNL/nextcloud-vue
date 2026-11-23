@@ -57,6 +57,19 @@ describe('CnFormDialog validation', () => {
 		expect(w.findComponent({ name: 'CnSubObjectsField' }).exists()).toBe(true)
 	})
 
+	it('passes the clock settings of a field override to the duration field', async () => {
+		const w = mount(CnFormDialog, {
+			props: { schema, item: null, fieldOverrides: { handlingTerm: { timer: true, autoStart: true, norm: 'PT5M', normLabel: 'Call time' } } },
+			global: { stubs },
+		})
+		await flush()
+		const attrs = w.findComponent({ name: 'CnDurationField' }).attributes()
+		expect(attrs.timer).toBe('true')
+		expect(attrs.autostart).toBe('true')
+		expect(attrs.norm).toBe('PT5M')
+		expect(attrs.normlabel).toBe('Call time')
+	})
+
 	it('blocks save naming the row with a missing required value', async () => {
 		const w = mountIt()
 		await flush()

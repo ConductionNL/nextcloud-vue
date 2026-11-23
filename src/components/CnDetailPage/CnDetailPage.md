@@ -180,6 +180,8 @@ export default {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `icon` | String | `''` | Optional MDI icon name rendered in the header via `CnIcon` |
+| `actionsFrom` | String | `''` | `openregister` offers in the header's Actions every action OpenRegister lists for the record (`GET /api/objects/{register}/{schema}/{id}/actions`) whose `surfaces` hold `header` or `detail-menu`. An action with inputs opens a dialog over its input schema, an unavailable one is disabled with the server's reason, and actions the reader may not run are absent. |
+| `actionsInclude` | Array | `[]` | The action keys `actionsFrom` offers, in this order; empty offers all. |
 | `iconSize` | Number | `28` | Icon size in pixels |
 | `gridFloat` | Boolean | `true` | GridStack's `float` for the body grid (manifest `config.gridFloat`). False packs widgets upward, so a size-to-content widget ends at its content (DqHandhaving). |
 | `loadingLabel` | String | `'Loading...'` | Message shown below the spinner during loading |
@@ -381,6 +383,7 @@ The header carries the shared [CnActionsMenu](./cn-actions-menu.md) overflow (Re
 | `editSubtitle` | String | `''` | One line under the edit form's title, run through the host translate. Empty shows none. |
 | `editConfirmLabel` | String | `''` | The edit form's save button, run through the host translate (manifest `config.editConfirmLabel`), such as "Save changes". Empty keeps the form's own label. |
 | `editEyebrow` | String | `''` | One short line over the edit form's title (PqTicketBewerken "Bewerken · PQ-2026-0417"), run through the host translate. Like the title and subtitle it may name the record with `{field}` tokens. Empty shows none. |
+| `editFootnote` | String | `''` | A note the record edit form closes on, under its fields (PqTicketBewerken "De status wijzig je hier niet: ..."), run through the host translate (manifest `config.editFootnote`). Empty shows none. |
 | `draftAppId` | String | `''` | The app a form draft belongs to, forwarded to every form this page opens as CnFormDialog's `draftAppId`, so what a user typed and did not save is kept and offered back under this app's key (manifest `config.draftAppId`). |
 | `allowDraft` | Boolean | `false` | Offer "Save draft" on the create form, forwarded as CnFormDialog's `allowDraft`. On an edit form it is offered only while the record is still a draft (manifest `config.allowDraft`). |
 | `draftField` | String | `'isDraft'` | The boolean property that marks a record as a draft, CnFormDialog's `draftField` (manifest `config.draftField`). |
@@ -535,6 +538,10 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 
 `favourite` and `follow` (Boolean, default `null` = automatic): the star and the Follow toggle beside the title render when the object carries `@self.favourite` / `@self.watching`; `false` (manifest `config.favourite: false` / `config.follow: false`) removes them. `followNotifies` (Boolean, default `true`): `false` when the register sends no change notifications, so the Follow tooltip says so. `extend` (Array, default `[]`): extra `_extend[]` values for the object read; `@self.can` is added while the Follow toggle can render.
 
+### Record rights
+
+`permissions` (Boolean, default `false`, manifest `config.permissions: true`): the object read asks for `@self.can`, also with `follow: false`. While `can.update` is `false` the page's Edit button, the header actions with `role` `edit` or `update`, and the inline editors of the data and map widgets are off. A record without `can` keeps every control. The rights reach the widgets as `cnRecordCan` and `cnRecordEdit.denied`, and the `actions` slot as `can`. A widget can show on them with `visibleWhen`, for example `{ "field": "@self.can.update", "op": "eq", "value": false }`.
+
 ### Read state
 
 `markRead` (Boolean, default `true`): send `PUT .../read-state` once after an unread object has rendered; `false` (manifest `config.markRead: false`) sends nothing. `markUnreadNavigatesBack` (Boolean, default `false`): go back after Mark as unread. Event `marked-unread` after the Actions-menu entry Mark as unread.
@@ -542,3 +549,7 @@ When the schema-driven fetch answers 404 the page shows a not-found state whose 
 ### The board look
 
 `look` (String, default `''`): `nextcloud` or `board`; empty takes the app's look. `headerMeta` (String): the meta line on row 2 of the board header, a field template such as `via {channel}` (manifest `config.headerMeta`). `headerMetaCounts` (Object): lists the meta line counts as `{count:<name>}`, a register list `{ register, schema, filter? }` or a named source `{ entitySource }` (manifest `config.headerMetaCounts`). `headerMetaLastChange` (Boolean): read the record's newest create or update audit entry into the meta line as `{_lastChange.userName}` and `{_lastChange.created|date}` (manifest `config.headerMetaLastChange`). `tabsLabel` (String): the accessible name of the tab list (manifest `config.tabsLabel`). `identifierField` (String): the field named in the last line of the History side card (manifest `config.identifierField`). `titleField` (String): the record field the header names the record by, such as an invoice number (manifest `config.titleField`); an empty value falls back to the display name. `titleTemplate` (String): a line built from the record's fields that the header names it by, such as `Shift {floatAt|date}, {drawer}`, in the host's translation (manifest `config.titleTemplate`); a template with an empty field falls back to `titleField`. See `docs/components/cn-detail-page.md`.
+
+## A record that is read-only by a condition (`readOnlyWhen`)
+
+`readOnlyWhen` (manifest `config.readOnlyWhen`) is a condition on the record in the `visibleWhen` grammar. While it holds, the page treats the record as one this reader may not update, as with `can.update` `false`: no Edit button, no header actions with `role` `edit` or `update`, no inline editors. `{ "field": "mergedInto", "op": "notEmpty" }` keeps a merged record from being edited. See the props table in `docs/components/cn-detail-page.md`.

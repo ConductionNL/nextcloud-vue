@@ -21,6 +21,15 @@
 				{{ blockingText }} {{ blockingItems.map((item) => item.label).join(', ') }}
 			</NcNoteCard>
 
+			<div v-if="summaryText || verdictText"
+				class="cn-readiness-checklist__head"
+				data-testid="cn-readiness-checklist-head">
+				<span v-if="summaryText" data-testid="cn-readiness-checklist-summary">{{ summaryText }}</span>
+				<span v-if="verdictText" role="status" data-testid="cn-readiness-checklist-verdict">
+					<CnStatusBadge :label="verdictText" :variant="allMet ? 'success' : 'warning'" />
+				</span>
+			</div>
+
 			<p v-if="shownItems.length === 0" class="cn-readiness-checklist__empty" data-testid="cn-readiness-checklist-empty">
 				{{ emptyText || t('nextcloud-vue', 'Nothing to check.') }}
 			</p>
@@ -58,6 +67,22 @@
 					</li>
 				</ul>
 			</section>
+
+			<p v-if="note" class="cn-readiness-checklist__note" data-testid="cn-readiness-checklist-note">
+				{{ text(note) }}
+			</p>
+
+			<div v-if="confirmLabel || $slots.actions" class="cn-readiness-checklist__actions">
+				<NcButton v-if="confirmLabel"
+					variant="primary"
+					:disabled="!allMet"
+					data-testid="cn-readiness-checklist-confirm"
+					@click="$emit('confirm')">
+					{{ text(confirmLabel) }}
+				</NcButton>
+				<!-- @slot actions Further buttons beside the confirm. -->
+				<slot name="actions" />
+			</div>
 		</template>
 	</div>
 </template>
@@ -66,9 +91,10 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import innerHeading from '../../mixins/innerHeading.js'
 import { readPath } from '../../utils/readPath.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
  * The fields an item is read from by default.
@@ -90,6 +116,10 @@ const DEFAULT_FIELDS = Object.freeze({
  * CnReadinessChecklist: a list of things an instance needs, each with its
  * state in words (met, open, unknown), an explanation and a link to the
  * screen that fixes it. Reported, never gated: nothing here blocks the app.
+ * A host that does gate a step on the list adds `summary`, `verdict` and
+ * `confirmLabel`: the count, the verdict in words, and a button that stays off
+ * until every item is met (board DqZaakDocumenten "Volledigheid van de
+ * aanvraag").
  *
  * Items come from `items`, or are read from an app endpoint (`source`, an app
  * path resolved with `generateUrl`, the list at `itemsPath`) and re-read when
@@ -102,7 +132,7 @@ const DEFAULT_FIELDS = Object.freeze({
 export default {
 	name: 'CnReadinessChecklist',
 
-	components: { NcLoadingIcon, NcNoteCard },
+	components: { CnStatusBadge, NcButton, NcLoadingIcon, NcNoteCard },
 
 	mixins: [innerHeading],
 
@@ -132,9 +162,17 @@ export default {
 		errorText: { type: String, default: '' },
 		/** Said before the unmet items marked `blocking` ("Cannot run until this is installed:"). */
 		blockingText: { type: String, default: '' },
+		/** The count above the list, a template with `{met}`, `{open}` and `{total}`. */
+		summary: { type: String, default: '' },
+		/** The verdict beside the count: `{ met, unmet }`. */
+		verdict: { type: Object, default: null },
+		/** A line under the list. */
+		note: { type: String, default: '' },
+		/** Label of a button under the list that stays off until every item is met; emits `confirm`. */
+		confirmLabel: { type: String, default: '' },
 	},
 
-	emits: ['loaded'],
+	emits: ['loaded', 'confirm'],
 
 	data() {
 		return {
@@ -163,6 +201,24 @@ export default {
 					blocking: read('blocking') === true,
 				}
 			})
+		},
+
+		/** @return {boolean} Whether there are items and each is met. */
+		allMet() {
+			return this.shownItems.length > 0 && this.shownItems.every((item) => item.met === true)
+		},
+
+		/** @return {string} The `summary` with its counts filled in. */
+		summaryText() {
+			const total = this.shownItems.length
+			const met = this.shownItems.filter((item) => item.met === true).length
+			const counts = { met, open: total - met, total }
+			return this.text(this.summary).replace(/\{(met|open|total)\}/g, (match, key) => String(counts[key]))
+		},
+
+		/** @return {string} The verdict in words, '' when none is declared for this state. */
+		verdictText() {
+			return this.text(this.verdict?.[this.allMet ? 'met' : 'unmet'] ?? '')
 		},
 
 		/** @return {Array<object>} The unmet blocking items. */
@@ -284,6 +340,27 @@ export default {
 .cn-readiness-checklist__empty {
 	color: var(--color-text-maxcontrast);
 	margin: 0 0 12px;
+}
+
+.cn-readiness-checklist__head {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.cn-readiness-checklist__note {
+	color: var(--color-text-maxcontrast);
+	margin: 12px 0 0;
+}
+
+.cn-readiness-checklist__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
 }
 
 .cn-readiness-checklist__group-title {

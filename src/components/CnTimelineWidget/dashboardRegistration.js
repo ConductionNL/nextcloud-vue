@@ -12,11 +12,13 @@
  * @spec openspec/changes/timeline-widget/specs/timeline-widget/spec.md#requirement-a-timeline-widget-shows-an-objects-dated-events-in-order
  */
 
-import CnTimelineWidget from './CnTimelineWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnTimelineWidget = lazyComponent(() => import('./CnTimelineWidget.vue'), 'CnTimelineWidget')
+
 registerDashboardWidget('timeline', {
-	renderer: CnTimelineWidget,
+	renderer: LazyCnTimelineWidget,
 	form: null,
 	defaultContent: {
 		title: '',

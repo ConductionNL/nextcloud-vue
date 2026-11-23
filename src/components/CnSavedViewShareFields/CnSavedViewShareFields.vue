@@ -92,6 +92,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcSelect } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { searchUserAndGroupSharees } from '../../utils/searchGroupSharees.js'
+import { loadCurrentUserGroups } from '../../utils/userGroupsPeek.js'
 
 /**
  * CnSavedViewShareFields — the sharing section of a saved view: pick people
@@ -130,6 +131,19 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/**
+		 * Which groups the picker offers. `all` (default) offers every group
+		 * the sharee API answers; `mine` only the groups the current user is
+		 * in; an array of group ids only those groups. People are offered
+		 * either way. Groups already on the view stay listed.
+		 *
+		 * @type {'all'|'mine'|string[]}
+		 */
+		shareGroups: {
+			type: [String, Array],
+			default: 'all',
+		},
 	},
 
 	emits: ['update:modelValue'],
@@ -141,6 +155,7 @@ export default {
 			loading: false,
 			/** False until the first search came back with at least one sharee. */
 			available: false,
+			searchSeq: 0,
 		}
 	},
 
@@ -190,17 +205,51 @@ export default {
 			return this.known[key] || (key.startsWith('user:') ? key.slice(5) : key)
 		},
 
+		/**
+		 * Search the sharees. Only the newest search draws its answer: typing
+		 * sends one per key, and they can come back out of order.
+		 *
+		 * @param {string} query The typed term.
+		 * @return {Promise<void>}
+		 * @spec exclude drops a stale search answer; the race guard has no spec of its own
+		 */
 		async onSearch(query) {
+			const seq = ++this.searchSeq
 			this.loading = true
 			const found = await searchUserAndGroupSharees(query || '')
+			if (seq !== this.searchSeq) {
+				return
+			}
+			const allowed = await this.allowedGroups()
+			if (seq !== this.searchSeq) {
+				return
+			}
 			this.loading = false
-			this.options = found.map((s) => ({ id: s.kind === 'user' ? `user:${s.id}` : s.id, label: s.label, kind: s.kind === 'user' ? 'user' : 'group' }))
+			this.options = found
+				.filter((s) => s.kind === 'user' || allowed === null || allowed.includes(s.id))
+				.map((s) => ({ id: s.kind === 'user' ? `user:${s.id}` : s.id, label: s.label, kind: s.kind === 'user' ? 'user' : 'group' }))
 			this.options.forEach((o) => {
 				this.known = { ...this.known, [o.id]: o.label }
 			})
-			if (found.length > 0) {
+			if (this.options.length > 0) {
 				this.available = true
 			}
+		},
+
+		/**
+		 * The group ids `shareGroups` allows, or null when every group is allowed.
+		 *
+		 * @return {Promise<string[]|null>}
+		 * @spec openspec/changes/saved-view-share-groups/tasks.md#task-1
+		 */
+		async allowedGroups() {
+			if (Array.isArray(this.shareGroups)) {
+				return this.shareGroups.map(String)
+			}
+			if (this.shareGroups === 'mine') {
+				return loadCurrentUserGroups()
+			}
+			return null
 		},
 
 		/**

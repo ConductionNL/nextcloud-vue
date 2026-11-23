@@ -2,8 +2,9 @@
 
 ### Props
 
-| Name   | Type     | Required | Default | Description                                                                                       |
-| ------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------- |
-| `name` | `string` |          | `null`  | Icon identifier — a registry key, a `/`-/`http`-prefixed URL, or null/empty for the default icon. |
-| `size` | `number` |          | `20`    | Square pixel size applied to the MDI component or the `&lt;img&gt;`.                              |
-| `alt`  | `string` |          | `null`  | Alt text for `&lt;img&gt;` inputs; falls back to `'icon'` for a11y.                               |
+| Name       | Type     | Required | Default               | Description                                                                                       |
+| ---------- | -------- | -------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| `name`     | `string` |          | `null`                | Icon identifier — a registry key, a `/`-/`http`-prefixed URL, or null/empty for the default icon. |
+| `size`     | `number` |          | `20`                  | Square pixel size applied to the MDI component or the `&lt;img&gt;`.                              |
+| `fallback` | `string` |          | `'HelpCircleOutline'` | Icon drawn when `name` is empty or resolves to nothing, resolved the way CnIcon resolves a name.  |
+| `alt`      | `string` |          | `null`                | Alt text for `&lt;img&gt;` inputs; falls back to `'icon'` for a11y.                               |

@@ -55,7 +55,7 @@ async function mountStore(props = {}, body = {}) {
 describe('CnStorePage board shell', () => {
 	it('heads the page with an h1, the registry count, buildiq and Publish', async () => {
 		const w = await mountStore()
-		expect(w.find('h1').text()).toBe('Store')
+		expect(w.find('h1').text()).toBe('Marketplace')
 		expect(w.find('[data-testid="cn-page-description"]').text()).toBe('Templates and connectors, 5 in the registry')
 		expect(w.find('[data-testid="buildiq"]').exists()).toBe(true)
 		expect(w.find('[data-testid="store-publish"]').exists()).toBe(true)

@@ -15,8 +15,9 @@
  *   isStatsBlock branch; the entry powers the picker + cog form)
  */
 
-import { mount, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
+import { loadLazyComponent } from '../../../src/utils/lazyComponent.js'
 
 jest.mock('../../../src/store/useObjectStore.js', () => ({
 	useObjectStore: jest.fn(() => ({ objectTypeRegistry: {}, errors: {}, registerObjectType: jest.fn() })),
@@ -45,7 +46,7 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(Array.isArray(content.columns)).toBe(true)
 	})
 
-	it('the registered renderer mounts CnWidgetObjectTable with hideWrapper (no double chrome)', () => {
+	it('the registered renderer mounts CnWidgetObjectTable with hideWrapper (no double chrome)', async () => {
 		const entry = getWidgetTypeEntry('object-table')
 		const content = { register: 'pipelinq', schema: 'case', columns: [{ key: 'title', label: 'Title' }] }
 		// Mirror CnDashboardPage's registry branch: :content + v-bind="content".
@@ -55,6 +56,7 @@ describe('object-table dashboard registration (issue #89)', () => {
 			data: () => ({ content }),
 		}
 		const wrapper = mount(Host)
+		await flushPromises()
 		const widget = wrapper.findComponent(CnWidgetObjectTable)
 		expect(widget.exists()).toBe(true)
 		expect(widget.props('hideWrapper')).toBe(true)
@@ -192,10 +194,10 @@ describe('object-table dashboard registration (issue #89)', () => {
 		expect(table.props('fetchParams').client).toBe('client-7')
 	})
 
-	it('stats-block stays registered (renderer + form for the picker/cog)', () => {
+	it('stats-block stays registered (renderer + form for the picker/cog)', async () => {
 		const entry = getWidgetTypeEntry('stats-block')
 		expect(entry).not.toBeNull()
-		expect(entry.renderer && entry.renderer.name).toBe('CnStatsBlockWidget')
+		expect((await loadLazyComponent(entry.renderer)).name).toBe('CnStatsBlockWidget')
 		expect(entry.form).toBeDefined()
 		expect(getDefaultContent('stats-block').dataSource).toBeDefined()
 	})

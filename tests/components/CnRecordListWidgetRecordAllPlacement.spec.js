@@ -158,6 +158,14 @@ describe('record-all placement', () => {
 		const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8')
 		expect(css).toMatch(/\.cn-record-notes__all--placed[^{]*\{[^}]*border-top: 1px solid/)
 		expect(css).toMatch(/\.cn-record-notes__all-sentence--placed \{[^}]*padding: 0 24px 20px;/)
-		expect(css).toMatch(/:has\(> \.cn-record-notes__all-sentence--placed\) > \.cn-text-widget \{[^}]*display: none;/)
+		expect(css).toMatch(/:has\(> \.cn-record-notes__all-sentence--placed\) > \.cn-text-widget \{[^}]*display: none !important;/)
+	})
+
+	it('hides a card text that draws its display inline', () => {
+		// CnTextWidget sets `display: flex` in its style attribute, which only
+		// an important declaration outranks (DqDagAfsluiten r44 drew both texts).
+		const text = fs.readFileSync(path.join(__dirname, '../../src/components/CnTextWidget/CnTextWidget.vue'), 'utf8')
+		expect(text).toMatch(/:style="wrapperStyle"/)
+		expect(text).toMatch(/display: 'flex'/)
 	})
 })

@@ -5,7 +5,7 @@
 ### Requirement: A board avatar cell draws the initials chip
 
 In the board look an avatar cell SHALL draw the person's initials chip, never the Nextcloud avatar picture, sized by
-`widgetProps.size` and toned light primary, or grey with `widgetProps.tone: "neutral"`. A grey chip of 28px or less
+`widgetProps.size` and toned light primary, or grey with `widgetProps.tone: "neutral"`. A grey chip of 32px or less
 SHALL set its initials at 12px, a larger one at 13px. The Nextcloud look SHALL keep the avatar picture.
 
 #### Scenario: DqTaken

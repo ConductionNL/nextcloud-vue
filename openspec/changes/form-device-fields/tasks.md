@@ -1,0 +1,2 @@
+- [x] 1 `signature`, `audio`, `location` in cnFormFieldRenderer and CnFormPage; CnAudioCapture (tests/components/CnFormDeviceFields.spec.js)
+- [x] 2 `showUserLocation` and `centerOnUser` on CnMapPage (same spec); docs

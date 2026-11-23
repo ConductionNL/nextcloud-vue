@@ -15,6 +15,6 @@ When the app is `publishable`, Publish MUST open a dialog. It MUST offer the app
 
 #### Scenario: no registry
 
-- GIVEN the app has no store registry
+- GIVEN the app has no marketplace registry
 - WHEN the user publishes
 - THEN the dialog says that an administrator connects one under Administration settings

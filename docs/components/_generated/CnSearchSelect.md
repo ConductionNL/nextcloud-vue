@@ -23,8 +23,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                              | Payload | Description                                      |
-| ----------------------------------------------------------------- | ------- | ------------------------------------------------ |
-| `update:modelValue`                                               | —       |                                                  |
-| `search`                                                          | —       | The typed text, for a host that searches itself. |
-| `update:modelValue The picked option's id, or null when cleared.` | —       |                                                  |
+| Name                | Payload | Description                                      |
+| ------------------- | ------- | ------------------------------------------------ |
+| `update:modelValue` | —       | The picked option's id, or null when cleared.    |
+| `search`            | —       | The typed text, for a host that searches itself. |

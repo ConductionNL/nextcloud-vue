@@ -109,6 +109,7 @@ export default {
 | `flush` | Boolean | `false` | Remove content padding so content goes edge-to-edge |
 | `chromeless` | Boolean | `false` | Draw no card at all: no border, no background, no content padding, no title row, no header divider. For a surface that already drew the card and named it, a tab panel above all. Implies `borderless` and `flush`, and overrides `showTitle`. Controls in the `actions` slot keep their header, because a control is not chrome. The wrapper element still renders: `CnObjectDataWidget` measures its overflow against `.cn-widget-wrapper__content`, and the table and detail-page CSS size their content areas through it. |
 | `chrome` | String | `'default'` | Card chrome variant — `'default'` (library card) or `'nc-dashboard'` (native Nextcloud Dashboard panel look) |
+| `headerWrap` | Boolean | `false` | Let the header actions drop under a title block that fills the row, instead of squeezing the title |
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu renders; set `false` on compact surfaces to free header width |
 | `iconUrl` | String | `null` | URL of an image icon shown left of the title |
 | `iconClass` | String | `null` | CSS class for a Nextcloud icon shown left of the title |
@@ -193,3 +194,11 @@ Subtitle: `subtitle` is a muted line under the title, the counterpart of `eyebro
 ### Header buttons from a host (`headerActions`)
 
 `headerActions` takes resolved buttons, `[{ key, label, icon, variant, run }]`, for the title row. A host that draws several cards and so cannot provide them per card passes them as this prop (CnDashboardPage, from each widget's manifest `headerActions`). A list a detail host provides wins over the prop.
+
+## Card notices
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `notices` | Array | `[]` | State banners drawn at the top of the card body; a detail host's provided notices come after these: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](../../../docs/components/cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
+
+The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).

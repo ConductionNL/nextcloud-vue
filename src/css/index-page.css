@@ -37,6 +37,10 @@
     margin-bottom: calc(4 * var(--default-grid-baseline));
 }
 
+.cn-index-page__counters {
+	margin-block-end: 12px;
+}
+
 /* A below-header wrapper whose slot renders nothing on this route (e.g. an
    empty breadcrumb trail at the root) must not leave its margin as a blank
    band above the actions bar. Vue leaves only comment placeholders for
@@ -615,6 +619,18 @@
 	cursor: pointer;
 }
 
+/* The server's `button:not(.button-vue,[class^=vs__]):not(.app-navigation-entry-button)`
+   rule (0,2,1) adds a 3px right margin the rule above cannot take back, so
+   the pills stood 11px apart where the board draws 8px. The active pill is
+   ink on ink and the board draws it without an edge. */
+.cn-index-page .cn-index-page__filter-strip > .cn-index-page__filter-strip-pill {
+	margin: 0;
+}
+
+.cn-index-page .cn-index-page__filter-strip > .cn-index-page__filter-strip-pill--active {
+	border-width: 0;
+}
+
 .cn-index-page .cn-index-page__filter-strip-pill:hover {
 	border-color: var(--color-main-text);
 	background: var(--color-main-background);
@@ -744,4 +760,15 @@
 	font-weight: 600;
 	line-height: 20px;
 	text-align: center;
+}
+
+/* The page's state banners (R1), above the list card. */
+.cn-index-page__notices {
+	margin-bottom: 12px;
+}
+
+/* The muted line closing an Export menu (`headerButtons[].note`). */
+.cn-index-header-menu__note {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
 }

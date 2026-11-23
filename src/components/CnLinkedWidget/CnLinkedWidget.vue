@@ -400,6 +400,13 @@ button.cn-linked-widget__link {
 	text-decoration: underline;
 }
 
+/* The class twice: Nextcloud's `button:not(.button-vue, ...)` rule (0,2,1)
+   gives every button a 3px margin that a single scoped class cannot take back. */
+button.cn-linked-widget__link.cn-linked-widget__link,
+.cn-linked-widget__action.cn-linked-widget__action {
+	margin: 0;
+}
+
 .cn-linked-widget__empty {
 	color: var(--color-text-maxcontrast);
 	font-size: 13px;

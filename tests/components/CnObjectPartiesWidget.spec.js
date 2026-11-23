@@ -20,6 +20,7 @@ jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (url, par
 
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnObjectPartiesWidget/index.js'
 
@@ -96,8 +97,8 @@ beforeEach(() => {
 })
 
 describe('CnObjectPartiesWidget', () => {
-	it('registers the parties type for detail pages', () => {
-		expect(getWidgetTypeEntry('parties').renderer).toBe(CnObjectPartiesWidget)
+	it('registers the parties type for detail pages', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('parties').renderer)).toBe(CnObjectPartiesWidget)
 	})
 
 	it('puts the primary party and its role first, in the app\'s words', async () => {
@@ -484,8 +485,21 @@ describe('CnObjectPartiesWidget in the board look (DqZaakBetrokkenen "Rollen")',
 		serve({ '/apps/openregister/api/objects/x/item/r-1/parties': noted })
 		const w = await mountParties(CONTENT, 'board')
 		const meta = w.find('[data-party="p-mr"] [data-testid="cn-object-parties-meta"]').text()
-		expect(meta).toBe('Requester · namens Jan Jansen, Awb 2:1')
+		expect(meta).toBe('Requester namens Jan Jansen, Awb 2:1')
 		expect(meta).not.toContain('Person')
+	})
+
+	it('reads the role record\'s field instead of the link note when the content says so (DqZaakBetrokkenen "Rollen" against "Partijen")', async () => {
+		const noted = { ...LISTING, byRole: { ...LISTING.byRole, applicant: [{ partyUuid: 'p-mr', displayName: 'Mr. Advocaat', note: 'Machtiging namens Jan Jansen' }, { partyUuid: 'p-jan', displayName: 'Jan Jansen', note: 'Lindelaan 14' }], interested: [{ partyUuid: 'p-council', displayName: 'Gemeente Utrecht', note: 'Partijen words' }] } }
+		serve({
+			'/apps/openregister/api/objects/x/item/r-1/parties': noted,
+			'/apps/openregister/api/objects/x/role': { results: [{ participant: 'p-mr', representedParty: 'p-jan', description: 'namens Jan Jansen · Awb 2:1' }, { participant: 'p-council', description: 'KvK 30214877' }] },
+		})
+		const content = { ...CONTENT, extraLines: [], correspondence: undefined, note: { from: 'roles', field: 'description' } }
+		const w = await mountParties(content, 'board')
+		expect(w.find('[data-party="p-mr"] [data-testid="cn-object-parties-meta"]').text()).toBe('Requester namens Jan Jansen · Awb 2:1')
+		expect(w.find('[data-party="p-council"] [data-testid="cn-object-parties-meta"]').text()).toBe('Interested party · KvK 30214877')
+		expect(w.find('[data-party="p-jan"] [data-testid="cn-object-parties-meta"]').text()).toBe('Primary party · requester')
 	})
 
 	it('says a primary person without the secrecy indicator has none, and draws a warning indicator in the info tone with the app\'s words', async () => {

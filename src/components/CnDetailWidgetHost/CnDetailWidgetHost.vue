@@ -66,6 +66,7 @@
 		     rather than printing a heading the tab already carries. -->
 		<CnWidgetWrapper
 			v-if="missingApp"
+			:headerWrap="widget.headerWrap === true"
 			:title="widgetTitle"
 			:subtitle="widgetSubtitle"
 			:chromeless="isBare"
@@ -103,7 +104,7 @@
 			:collapsedFields="content.collapsedFields ?? null"
 			:footnote="content.footnote || ''"
 			:fieldLook="content.fieldLook || ''"
-			:editable="content.editable !== false" />
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)" />
 
 		<!-- `type: 'related'` — resolves this object's relations and links into
 		     integrations. Honours bare mode via its own `bare` prop. -->
@@ -146,7 +147,7 @@
 			:objectData="object"
 			:register="register"
 			:schema="schema"
-			:editable="content.editable !== false"
+			:editable="content.editable !== false && !(cnRecordEdit && cnRecordEdit.denied)"
 			:addressSearch="content.addressSearch === true"
 			:basemap="content.basemap || 'standard'"
 			:allowBasemapSwitch="content.allowBasemapSwitch === true"
@@ -175,6 +176,7 @@
 		     mount prop and renders only its rows. -->
 		<CnWidgetWrapper
 			v-else-if="wrapsMountLeaf"
+			:headerWrap="widget.headerWrap === true"
 			:title="leafCardTitle"
 			:showTitle="leafCardTitle !== ''"
 			titleIconPosition="left"
@@ -228,6 +230,7 @@
 		     widget titles, instead of the provider's compact count card. -->
 		<CnWidgetWrapper
 			v-else-if="wrapsLeafTab"
+			:headerWrap="widget.headerWrap === true"
 			:title="leafCardTitle"
 			:showTitle="leafCardTitle !== ''"
 			:subtitle="widgetSubtitle"
@@ -288,6 +291,7 @@
 		     component would be a silent visual regression across the fleet. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isContentOnly && !isBare"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			titleIconPosition="left"
@@ -414,6 +418,7 @@
 		     the title of a narrow tile. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && isCard && !isBare"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || content.title || ''"
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
@@ -452,6 +457,7 @@
 		     bare. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsChart"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
 			:subtitle="widgetSubtitle"
 			titleIconPosition="left"
@@ -479,6 +485,7 @@
 		     bare. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsConsumerWidget"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title || ''"
 			:subtitle="rendererHeader.subtitle || widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
@@ -542,6 +549,7 @@
 		     every section a card of its own, so both stay as they are. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsSections"
+			:headerWrap="widget.headerWrap === true"
 			:title="widget.title"
 			:subtitle="widgetSubtitle"
 			:showTitle="effectiveShowCardTitle"
@@ -598,6 +606,7 @@
 		     on a card surface, so it does not float bare in a tab stack. -->
 		<CnWidgetWrapper
 			v-else-if="renderer && wrapsSelfTitledWidget"
+			:headerWrap="widget.headerWrap === true"
 			:showTitle="false"
 			:showActions="false"
 			:showRefresh="false"
@@ -635,6 +644,7 @@
 </template>
 
 <script>
+import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcButton } from '@nextcloud/vue'
 import { computed } from 'vue'
@@ -654,11 +664,13 @@ import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry
 import { normalizeLook } from '../../composables/useLook.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { normalizeNotice, PAGE_NOTICE_CHANNEL, WIDGET_NOTICES } from '../../utils/cardNotices.js'
 import { pickConditionalText } from '../../utils/conditionalText.js'
 import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
+import { resolveLazyComponent } from '../../utils/lazyComponent.js'
 import { createActionState, listAddActions, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
@@ -764,6 +776,8 @@ export default {
 		cnDispatchAction: { default: null },
 		/** The detail page's record edit form (`{ available, open }`), for an `edit-record` header action. */
 		cnRecordEdit: { default: null },
+		/** The page's object sidebar (`{ open, requestedTab }`), for an `open-sidebar-tab` header action. */
+		objectSidebarState: { default: null },
 		/** The records the detail page reads beside the record (`@context.<name>`), for a subtitle that depends on them. */
 		cnDetailVisibilityRows: { default: null },
 		/**
@@ -786,6 +800,7 @@ export default {
 	 * injection resolves to null instead of finding a channel that goes nowhere.
 	 *
 	 * @return {object} The narrowed sink, or null.
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
 	 */
 	provide() {
 		const sink = this.panelActionSink
@@ -798,6 +813,9 @@ export default {
 			// The widget's manifest `bodyActions`, for a leaf that draws its
 			// own button row in the body (the contacts tab).
 			[WIDGET_BODY_ACTIONS]: computed(() => this.declaredBodyActions),
+			// The card's notices, and the dispatcher that can add to them.
+			[WIDGET_NOTICES]: computed(() => this.widgetNotices),
+			cnDispatchAction: this.dispatchFromCard,
 			// The hosted widget's id, read at call time, so a list can publish its
 			// rows under it for a card that follows them (side-card-follows-row).
 			[HOST_WIDGET_ID]: () => (this.widget && this.widget.id) || '',
@@ -1011,6 +1029,8 @@ export default {
 			 * with the list's total already filled in.
 			 */
 			rendererHeader: { link: null, note: '', subtitle: '', actions: [], pill: null, count: null, empty: null, menuActions: [] },
+			/** The notices this card's actions answered, newest last. */
+			runtimeNotices: [],
 		}
 	},
 
@@ -1259,7 +1279,7 @@ export default {
 			if (!this.wrapsSelfTitledWidget || !this.renderer) {
 				return false
 			}
-			const declared = this.renderer.props
+			const declared = resolveLazyComponent(this.renderer)?.props
 			return Array.isArray(declared) ? declared.includes('headerActions') : Boolean(declared && Object.hasOwn(declared, 'headerActions'))
 		},
 
@@ -1422,6 +1442,7 @@ export default {
 		 * What a header or body action resolves and dispatches with.
 		 *
 		 * @return {object} `{ object, objectId, translate, dispatch }`.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
 		 */
 		actionContext() {
 			return {
@@ -1429,9 +1450,27 @@ export default {
 				objectId: this.objectId,
 				translate: (key) => this.translateLabel(key),
 				recordEdit: this.cnRecordEdit,
-				dispatch: (action, extra = {}) => (typeof this.cnDispatchAction === 'function'
-					? this.cnDispatchAction(action, extra)
-					: dispatchAction(action, { router: this.$router || null, ...extra })),
+				sidebar: this.objectSidebarState,
+				dispatch: (action, extra = {}) => this.dispatchFromCard(action, extra),
+			}
+		},
+
+		/**
+		 * The card's notices: the manifest's `notices` (each with its own
+		 * `visibleWhen`), then what this card's actions answered.
+		 *
+		 * @return {{list: Array<object>, object: object, objectId: string|number, dismiss: Function}} What the card draws.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		widgetNotices() {
+			const declared = this.widget && Array.isArray(this.widget.notices) ? this.widget.notices : []
+			return {
+				list: [...declared, ...this.runtimeNotices],
+				object: this.object || {},
+				objectId: this.objectId,
+				dismiss: (notice) => {
+					this.runtimeNotices = this.runtimeNotices.filter((entry) => entry !== notice)
+				},
 			}
 		},
 
@@ -1608,11 +1647,13 @@ export default {
 		},
 
 		/**
-		 * An integration widget's `labels` (prop name to text), translated in
-		 * the host's language: a leaf cannot translate the host app's words.
+		 * An integration widget's `labels` (prop name to text, or to a map of
+		 * texts), translated in the host's language: a leaf cannot translate
+		 * the host app's words.
 		 *
-		 * @return {object} Prop name to translated text.
+		 * @return {object} Prop name to translated text or map.
 		 * @spec openspec/changes/leaf-labels-in-the-host-language/specs/leaf-labels-in-the-host-language/spec.md#requirement-an-integration-widget-gives-its-leaf-labels-in-the-hosts-language
+		 * @spec openspec/changes/parties-role-line-from-the-role-record/specs/record-widgets/spec.md#requirement-a-board-contact-row-can-lead-with-the-word-for-its-kind
 		 */
 		leafLabels() {
 			const labels = this.widget?.labels
@@ -1623,6 +1664,10 @@ export default {
 			for (const [prop, text] of Object.entries(labels)) {
 				if (typeof text === 'string') {
 					out[prop] = this.translateLabel(text)
+				} else if (text && typeof text === 'object' && !Array.isArray(text)) {
+					out[prop] = Object.fromEntries(Object.entries(text)
+						.filter(([, word]) => typeof word === 'string')
+						.map(([key, word]) => [key, this.translateLabel(word)]))
 				}
 			}
 			return out
@@ -1802,7 +1847,7 @@ export default {
 			}
 			// Only a renderer that takes a `title` prop: on any other the value
 			// would land on its root element as a tooltip.
-			const declared = this.renderer && this.renderer.props
+			const declared = resolveLazyComponent(this.renderer)?.props
 			const takesTitle = Array.isArray(declared) ? declared.includes('title') : Boolean(declared && Object.hasOwn(declared, 'title'))
 			if (!takesTitle) {
 				return ''
@@ -1975,11 +2020,19 @@ export default {
 		},
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+	 */
 	mounted() {
 		this.publishOwnPanelActions()
+		subscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 	},
 
+	/**
+	 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+	 */
 	beforeUnmount() {
+		unsubscribe(PAGE_NOTICE_CHANNEL, this.onPageNoticeEvent)
 		// A closed tab's panel can be torn down while the strip lives on, and an
 		// item whose host is gone would call into nothing.
 		if (this.panelActionSink) {
@@ -1988,6 +2041,45 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A notice raised on the page channel for this card (`widgetId`).
+		 *
+		 * @param {{notice?: object, widgetId?: string}} payload The event.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-detail-widget-declares-its-notices
+		 */
+		onPageNoticeEvent(payload) {
+			const notice = payload && payload.widgetId && this.widget && payload.widgetId === this.widget.id
+				? normalizeNotice(payload.notice, 'info')
+				: null
+			if (notice) {
+				this.runtimeNotices = [notice]
+			}
+		},
+
+		/**
+		 * Dispatch an action run from this card, through the page dispatcher,
+		 * with `showNotice` so an answer that asks for a notice lands in this
+		 * card. The card's earlier answer goes when the next action runs.
+		 *
+		 * @param {object} action The action.
+		 * @param {object} [extra] Extra dispatch context.
+		 * @return {unknown} The dispatch result.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-an-action-answer-becomes-a-notice-in-its-card
+		 */
+		dispatchFromCard(action, extra = {}) {
+			this.runtimeNotices = []
+			const context = {
+				showNotice: (notice) => {
+					this.runtimeNotices = [...this.runtimeNotices, notice]
+				},
+
+				...extra,
+			}
+			return typeof this.cnDispatchAction === 'function'
+				? this.cnDispatchAction(action, context)
+				: dispatchAction(action, { router: this.$router || null, ...context })
+		},
+
 		/**
 		 * The available widgets with the given ids, in that order, those whose
 		 * `visibleWhen` holds against the record and its page context.
@@ -2189,12 +2281,6 @@ export default {
 	min-width: 20px;
 	padding: 0 6px;
 	text-align: center;
-}
-
-.cn-detail-page__catalog-note {
-	color: var(--color-text-maxcontrast);
-	font-size: 14px;
-	white-space: nowrap;
 }
 
 .cn-detail-widget-host,

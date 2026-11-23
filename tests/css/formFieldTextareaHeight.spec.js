@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: EUPL-1.2
  *
  * A board form's text area is three lines tall on the normal leading
- * (DqNieuweZaak Omschrijving 76px). Read from the stylesheet text.
+ * (DqNieuweZaak Omschrijving 76px), or as many lines as its field's `rows`
+ * (PqTicketBewerken "Bericht aan de klant" two). Read from the stylesheet text.
  */
 const fs = require('fs')
 const path = require('path')
@@ -15,7 +16,7 @@ describe('form-field.css: board text area height', () => {
 		const m = css.match(/\.cn-look-board \.cn-form-dialog__field \.cn-form-dialog__textarea\s*\{([^}]*)\}/)
 		expect(m).not.toBeNull()
 		expect(m[1]).toContain('min-height: 0;')
-		expect(m[1]).toContain('height: calc(3 * 1.2em + 22px);')
+		expect(m[1]).toContain('height: calc(var(--cn-textarea-rows, 3) * 1.2em + 22px);')
 		expect(m[1]).toContain('margin: 0;')
 	})
 })

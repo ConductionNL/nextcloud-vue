@@ -2,9 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 4 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 125 files reached through imports.
 
-Through: `CnActionsMenu`.
+Through: `CnActionDialog`, `CnActionsMenu`, `CnAnalyticsReportPicker`, `CnAssignDialog`, `CnAuditTrailCard`, `CnBookmarkPicker`, `CnBulkJobProgress`, `CnCalendarEventCreate`, `CnCalendarEventPicker`, `CnCellRenderer`, `CnChildRecordsField`, `CnCollectivePageCreate`, `CnCollectivePagePicker`, `CnContactPicker`, `CnCospendCreate`, `CnCospendPicker`, `CnDataTable`, `CnDeckCardCreate`, `CnDeckCardPicker`, `CnEmailPicker`, `CnFilesBrowser`, `CnFilesCard`, `CnFkResolveCell`, `CnFlowOperationPicker`, `CnFormDialog`, `CnIndexPage`, `CnMapPoiPicker`, `CnNoteComposer`, `CnNotesCard`, `CnObjectSidebar`, `CnOpenProjectCreate`, `CnOpenProjectPicker`, `CnPartyPicker`, `CnPhotoAlbumPicker`, `CnPollPicker`, `CnResourceSelect`, `CnTagsCard`, `CnTalkRoomPicker`, `CnTasksCard`, `CnTimeTrackerCreate`, `CnTimeTrackerPicker`, `CnVersionHistory`, `CnXwikiPageCreate`, `CnXwikiPagePicker`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 

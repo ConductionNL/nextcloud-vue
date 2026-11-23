@@ -16,8 +16,19 @@
 			:subtitle="subtitle"
 			:noClose="noClose"
 			@close="onClosing()" />
+		<!-- @slot notice The dialog's state banners (R1), under the header or, with `noticesPlacement: 'bottom'`, above the footer. -->
+		<div v-for="place in noticeBlocks('top')" :key="place" class="cn-dialog__notices cn-dialog__notices--top">
+			<slot name="notice">
+				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+			</slot>
+		</div>
 		<!-- @slot default The dialog body, below the board header. -->
 		<slot />
+		<div v-for="place in noticeBlocks('bottom')" :key="place" class="cn-dialog__notices cn-dialog__notices--bottom">
+			<slot name="notice">
+				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+			</slot>
+		</div>
 		<template v-if="$slots.actions" #actions>
 			<!-- @slot actions The dialog footer buttons. -->
 			<slot name="actions" />
@@ -27,6 +38,7 @@
 
 <script>
 import { NcDialog } from '@nextcloud/vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnDialogHeader from '../CnDialogHeader/CnDialogHeader.vue'
 import { useLook } from '../../composables/useLook.js'
 import { resolveDialogWidth } from '../../utils/dialogWidths.js'
@@ -55,7 +67,7 @@ import { resolveDialogWidth } from '../../utils/dialogWidths.js'
 export default {
 	name: 'CnDialog',
 
-	components: { NcDialog, CnDialogHeader },
+	components: { NcDialog, CnCardNotices, CnDialogHeader },
 
 	props: {
 		/** Dialog title; also the accessible name. */
@@ -79,9 +91,19 @@ export default {
 		 * button (CnUserSettingsDialog). `name` stays the accessible name.
 		 */
 		headless: { type: Boolean, default: false },
+		/**
+		 * The dialog's state banners (R1): each a `notice` content
+		 * (`{ variant, role?, layout?, title?, text, actions?, dismissible? }`),
+		 * such as the refusal a save answered.
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: { type: Array, default: () => [] },
+		/** Where the notices go: `top` (under the header) or `bottom` (above the footer buttons). */
+		noticesPlacement: { type: String, default: 'top' },
 	},
 
-	emits: ['closing'],
+	emits: ['closing', 'notice-action', 'notice-dismiss'],
 
 	setup(props) {
 		const { isBoard, lookClass } = useLook(props)
@@ -89,6 +111,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether the `notices` prop holds any. */
+		hasNotices() {
+			return Array.isArray(this.notices) && this.notices.length > 0
+		},
+
 		resolvedWidth() {
 			return resolveDialogWidth(this.width, this.defaultWidth)
 		},
@@ -105,6 +132,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The notice block to draw at one place: one entry when the notices go
+		 * there, else none. A list rather than `v-if`, so a dialog without
+		 * notices renders no placeholder and keeps its markup.
+		 *
+		 * @param {string} place `top` or `bottom`.
+		 * @return {string[]} `[place]` or `[]`.
+		 * @spec openspec/changes/card-state-notices/specs/card-state-notices/spec.md#requirement-a-card-draws-its-notices-at-the-top
+		 */
+		noticeBlocks(place) {
+			const at = this.noticesPlacement === 'bottom' ? 'bottom' : 'top'
+			return at === place && (this.$slots.notice || this.hasNotices) ? [place] : []
+		},
+
 		/**
 		 * Forward a close request.
 		 *

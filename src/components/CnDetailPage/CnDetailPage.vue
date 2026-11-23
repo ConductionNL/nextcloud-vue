@@ -350,6 +350,7 @@
 					@binding {object} store The effective object store.
 					@binding {Function} openEditForm Opens this page's own record edit form. Lets an actions component put Edit inside ITS action cluster instead of leaving the page's button beside it — the page renders no button of its own once `showEditAction` is false, but this still opens the same dialog.
 					@binding {boolean} canEditRecord Whether the page would render its own Edit button (`showEditAction` plus a record and schema to edit).
+					@binding {object|null} can The record's rights (`@self.can`) on a page with `permissions`, else null.
 				-->
 				<slot
 					name="actions"
@@ -359,7 +360,8 @@
 					:objectType="resolvedObjectType"
 					:store="effectiveObjectStore"
 					:openEditForm="openEditForm"
-					:canEditRecord="canEditRecord" />
+					:canEditRecord="canEditRecord"
+					:can="recordCan" />
 				<!-- Record edit (ADR-062): the detail page's own way to change the
 				     record it is showing. Without it a `type:"detail"` page is
 				     read-only and the ONLY edit surface is the modal launched
@@ -523,8 +525,14 @@
 					:rootText="breadcrumbCrumbs[0].icon === undefined"
 					:separator="breadcrumbSeparator || '/'"
 					data-testid="cn-detail-page-breadcrumbs" />
+				<CnDetailHeaderChips
+					v-if="headerFields.length > 0"
+					:fields="headerFields"
+					:object="resolvedObject"
+					:schema="currentSchema"
+					:register="register" />
 				<span
-					v-if="breadcrumbCrumbs.length > 0 && hasHeaderMeta"
+					v-if="(breadcrumbCrumbs.length > 0 || headerFields.length > 0) && headerMetaText"
 					class="cn-detail-page__header-dot"
 					aria-hidden="true"
 					data-testid="cn-detail-page-header-dot">&middot;</span>
@@ -532,12 +540,6 @@
 					v-if="headerMetaText"
 					class="cn-detail-page__header-meta"
 					data-testid="cn-detail-page-header-meta">{{ headerMetaText }}</span>
-				<CnDetailHeaderChips
-					v-if="headerFields.length > 0"
-					:fields="headerFields"
-					:object="resolvedObject"
-					:schema="currentSchema"
-					:register="register" />
 			</div>
 			<!-- Row 3 of the board look's header: the Follow control under the
 			     breadcrumb, clear of the title row and its actions (DqZaak
@@ -1341,6 +1343,7 @@
 				:eyebrow="editFormEyebrow"
 				:subtitle="editFormSubtitle"
 				:confirmLabel="editFormConfirmLabel"
+				:footnote="editFormFootnote"
 				:excludeFields="excludeFields"
 				:includeFields="includeFields"
 				:fieldOverrides="fieldOverrides"
@@ -1387,7 +1390,7 @@
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { getLanguage, translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionCaption, NcActionLink, NcActionSeparator, NcButton, NcEmptyContent, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { computed, markRaw, provide, ref, watch } from 'vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
@@ -1428,6 +1431,7 @@ import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { actionLabelText, fetchObjectActions } from '../../composables/useObjectActions.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
@@ -1455,7 +1459,7 @@ import {
 } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
-import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
@@ -1463,6 +1467,7 @@ import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
+import { parentCrumb } from '../../utils/parentCrumb.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
 import { setReadState } from '../../utils/recordInteractions.js'
 import { saveEdited } from '../../utils/saveEdited.js'
@@ -1556,6 +1561,17 @@ function isDefaultColumnOpts(opts) {
  * and an app's own dialog emits it after a successful write.
  */
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
+
+/** Header-action roles that change the record, off while the record refuses updates. */
+const EDIT_ROLES = ['edit', 'update']
+
+/**
+ * @param {object} action A header action.
+ * @return {boolean} Whether it edits the record.
+ */
+function isEditRole(action) {
+	return Boolean(action) && EDIT_ROLES.includes(action.role)
+}
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
@@ -1783,6 +1799,8 @@ export default {
 		const canCheckItems = computed(() => this.recordCanCheckItems)
 		const sideAvailable = computed(() => this.showsSideColumn)
 		const canEditRecord = computed(() => this.canEditRecord)
+		const updateDenied = computed(() => this.recordUpdateDenied)
+		const recordCan = computed(() => this.recordCan)
 		const lastChange = computed(() => this.lastChange)
 		return {
 			// The page's own record edit form, for a widget header button whose
@@ -1792,8 +1810,16 @@ export default {
 					return canEditRecord.value
 				},
 
+				// The record refuses this reader's updates, so inline editors stay off.
+				get denied() {
+					return updateDenied.value
+				},
+
 				open: () => this.openEditForm(),
 			},
+
+			// The record's rights (`@self.can`) on a page with `permissions`, else null.
+			cnRecordCan: recordCan,
 
 			// The record's newest create or update entry, for a widget that names
 			// who changed it last (`recordLastChange`); null until read.
@@ -2341,6 +2367,25 @@ export default {
 		},
 
 		/**
+		 * `openregister` offers, in the header's Actions, every action
+		 * OpenRegister lists for the record (`GET .../{id}/actions`) whose
+		 * `surfaces` hold `header` or `detail-menu`: a declared action runs with
+		 * a dialog over its inputs, an unavailable one is disabled with the
+		 * reason, and actions the reader may not run are absent
+		 * (object-actions-declared-and-run). Manifest `config.actionsFrom`.
+		 */
+		actionsFrom: {
+			type: String,
+			default: '',
+		},
+
+		/** The action keys `actionsFrom` offers, in this order; empty offers all (`config.actionsInclude`). */
+		actionsInclude: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Deprecated and ignored: the star is gone, a favourite is a follow with
 		 * notifications off (OpenRegister `merge-follow-and-favourites`). Kept so a
 		 * manifest that still sets `config.favourite` stays valid; use `follow`.
@@ -2411,6 +2456,35 @@ export default {
 		extend: {
 			type: Array,
 			default: () => [],
+		},
+
+		/**
+		 * Read the record's rights (manifest `config.permissions`): the object
+		 * read asks for `@self.can`, and while `can.update` is false the edit
+		 * form, the header actions with role `edit` or `update` and the inline
+		 * editors are off. A record without `can` keeps today's controls.
+		 */
+		permissions: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * A condition on the record, in the `visibleWhen` grammar (manifest
+		 * `config.readOnlyWhen`): while it holds, the page treats the record
+		 * as one it may not update, as with `can.update` false. The Edit
+		 * button, the header actions with role `edit` or `update` and the
+		 * inline editors are off. `{ field: "mergedInto", op: "notEmpty" }`
+		 * keeps a record merged into another from being edited. It is decided
+		 * on the page (no `endpoint` or `source`) and may read the
+		 * `visibilityContext` records as `@context.<name>.<path>`. Null
+		 * (the default) changes nothing.
+		 *
+		 * @spec openspec/changes/detail-read-only-when/specs/detail-page/spec.md#requirement-a-detail-page-can-make-a-record-read-only-by-a-condition
+		 */
+		readOnlyWhen: {
+			type: Object,
+			default: null,
 		},
 
 		/**
@@ -2549,6 +2623,18 @@ export default {
 
 		/** The edit form's save button, run through the host translate. Empty keeps the form's own label. */
 		editConfirmLabel: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * A note the record edit form closes on, under its fields
+		 * (PqTicketBewerken "De status wijzig je hier niet: ..."), run through
+		 * the host translate. Empty shows none.
+		 *
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		editFootnote: {
 			type: String,
 			default: '',
 		},
@@ -2986,8 +3072,12 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-3/specs/zuiddrecht-pixel-gaps-3/spec.md#requirement-a-breadcrumb-can-name-the-record-by-a-field-and-use-a-text-separator
 		 * A list of such crumbs draws a deeper trail ("Settings / Case types /"
 		 * and then the record); `currentField` and `separator` may sit on any
-		 * of them.
+		 * of them. A crumb with `parent` (a `visibilityContext` name) instead
+		 * of `label` is the record's parent: its `labelField` value (else its
+		 * name), linked by `route` + `param` (default `id`) or `href` with
+		 * `{id}`; it drops out when the record has no parent.
 		 *
+		 * @spec openspec/changes/detail-parent-crumb/specs/detail-page/spec.md#requirement-a-sub-record-trail-can-show-its-parent-record
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
 		 * @type {{label: string, route?: string, params?: object, href?: string, icon?: string, currentField?: string, separator?: string}|Array<object>|null}
 		 */
@@ -3611,6 +3701,8 @@ export default {
 			 * on a lock that is already gone.
 			 */
 			releasingLock: false,
+			/** The actions OpenRegister lists for the record (`actionsFrom`). */
+			objectActions: [],
 			/**
 			 * The manifest `headerActions[]` flattened into menu items by the
 			 * `display: "menu"` CnActionButtons instance, which keeps owning
@@ -3682,6 +3774,47 @@ export default {
 	},
 
 	computed: {
+		/** @return {string} What the listed actions depend on; a change reads them again. */
+		objectActionsKey() {
+			if (this.actionsFrom !== 'openregister') {
+				return ''
+			}
+			const updated = this.resolvedObject && this.resolvedObject['@self'] ? (this.resolvedObject['@self'].updated || '') : ''
+			return [this.register, this.schema, this.objectId, updated].join('|')
+		},
+
+		/**
+		 * The actions `actionsFrom: "openregister"` lists for the record, as
+		 * header action entries of type `object-action`.
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		objectActionEntries() {
+			if (this.actionsFrom !== 'openregister') {
+				return []
+			}
+			const language = String(getLanguage() || '').replace('_', '-')
+			const include = Array.isArray(this.actionsInclude) ? this.actionsInclude : []
+			const listed = this.objectActions.filter((action) => {
+				const surfaces = Array.isArray(action.surfaces) ? action.surfaces : ['header', 'row']
+				return (surfaces.includes('header') || surfaces.includes('detail-menu')) && (include.length === 0 || include.includes(action.key))
+			})
+			const ordered = include.length > 0 ? include.map((key) => listed.find((action) => action.key === key)).filter(Boolean) : listed
+			return ordered.map((action) => ({
+				id: `or-action-${action.key}`,
+				type: 'object-action',
+				action: action.key,
+				label: actionLabelText(action.label, language) || action.key,
+				...(action.icon ? { icon: action.icon } : {}),
+				inputsSchema: action.inputs || null,
+				available: action.available !== false,
+				disabledReason: actionLabelText(action.reason, language),
+				...(action.confirm ? { confirm: true, confirmMessage: actionLabelText(action.confirm, language) } : {}),
+				...(action.mode === 'async' ? { successMessage: '' } : {}),
+			}))
+		},
+
 		// ── The board look (screens-detail-page-parity) ─────────────────
 
 		/**
@@ -3801,7 +3934,7 @@ export default {
 		},
 
 		/**
-		 * Whether row 2 has a meta line or header chips to draw after the
+		 * Whether row 2 has a meta line or header chips to draw beside the
 		 * breadcrumb.
 		 *
 		 * @return {boolean} True with meta or chips.
@@ -5000,7 +5133,8 @@ export default {
 		 * @return {Array<object>} The action descriptors.
 		 */
 		effectiveHeaderActions() {
-			const authored = Array.isArray(this.headerActions) ? this.headerActions : []
+			const headerDeclared = Array.isArray(this.headerActions) ? this.headerActions : []
+			const authored = this.objectActionEntries.length > 0 ? [...headerDeclared, ...this.objectActionEntries] : headerDeclared
 			// Inline pinned actions (a stage's primary action, a quick action
 			// written out in place) join the list CnActionButtons dispatches,
 			// so they get the same dialogs, toasts and `visibleWhen` gating as
@@ -5014,7 +5148,8 @@ export default {
 			const combined = inline.length > 0 ? [...authored, ...inline] : authored
 			// An entry (or child) with `href` becomes a link CnActionButtons renders as an anchor.
 			const linked = combined.map((action) => headerActionAsLink(action, this.headerLinkTokenCtx))
-			const declared = linked.some((action, index) => action !== combined[index]) ? linked : combined
+			const shown = linked.some((action, index) => action !== combined[index]) ? linked : combined
+			const declared = this.recordUpdateDenied ? shown.filter((action) => !isEditRole(action)) : shown
 			if (!(this.foldsEditIntoActions && this.canEditRecord)) {
 				return declared
 			}
@@ -5031,12 +5166,20 @@ export default {
 			]
 		},
 
+		/**
+		 * Whether the page offers its own record edit form: asked for, a record
+		 * and schema to edit, no lock held by somebody else, and updates allowed.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
+		 */
 		canEditRecord() {
 			return this.showEditAction
 				&& !this.isCreateMode
 				&& this.hasSchemaDrivenFetch
 				&& Boolean(this.currentSchema)
 				&& !this.editLockedByOther
+				&& !this.recordUpdateDenied
 		},
 
 		/**
@@ -5086,6 +5229,14 @@ export default {
 		/** @return {string} The edit form's save button, translated; empty keeps the form's own label. */
 		editFormConfirmLabel() {
 			return this.editConfirmLabel ? this.effectiveTranslate(this.editConfirmLabel) : ''
+		},
+
+		/**
+		 * @return {string} The edit form's closing note, translated; empty when none is configured.
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		editFormFootnote() {
+			return this.editFootnote ? this.effectiveTranslate(this.editFootnote) : ''
 		},
 
 		/**
@@ -5504,10 +5655,48 @@ export default {
 		 */
 		readExtend() {
 			const out = [...this.extend]
-			if (this.follow !== false && !out.includes('@self.can')) {
+			if ((this.follow !== false || this.permissions === true) && !out.includes('@self.can')) {
 				out.push('@self.can')
 			}
 			return out
+		},
+
+		/**
+		 * The record's rights (`@self.can`) on a page that asks for them, else null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-a-detail-page-can-read-the-records-rights
+		 */
+		recordCan() {
+			const can = this.resolvedSelf.can
+			return this.permissions === true && can && typeof can === 'object' && !Array.isArray(can) ? can : null
+		},
+
+		/**
+		 * Whether the record refuses this reader's updates (`can.update === false`),
+		 * or the page's `readOnlyWhen` holds for it.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-page-record-rights/specs/detail-page-record-rights/spec.md#requirement-edit-controls-follow-the-records-update-right
+		 */
+		recordUpdateDenied() {
+			return Boolean(this.recordCan && this.recordCan.update === false) || this.readOnlyByCondition
+		},
+
+		/**
+		 * Whether the page's `readOnlyWhen` holds for the record (and its
+		 * `visibilityContext` records). False without the option, and while
+		 * the record or those records are still on their way.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/detail-read-only-when/specs/detail-page/spec.md#requirement-a-detail-page-can-make-a-record-read-only-by-a-condition
+		 */
+		readOnlyByCondition() {
+			const when = this.readOnlyWhen
+			if (!when || typeof when !== 'object' || !this.widgetVisibilityData || this.visibilityRowsPending) {
+				return false
+			}
+			return detailWidgetVisible({ visibleWhen: when }, this.widgetVisibilityData)
 		},
 
 		/**
@@ -5572,7 +5761,7 @@ export default {
 		 */
 		declaredCrumbs() {
 			const list = Array.isArray(this.breadcrumb) ? this.breadcrumb : (this.breadcrumb ? [this.breadcrumb] : [])
-			return list.filter((crumb) => crumb && typeof crumb.label === 'string' && crumb.label !== ''
+			return list.filter((crumb) => crumb && ((typeof crumb.label === 'string' && crumb.label !== '') || (typeof crumb.parent === 'string' && crumb.parent !== ''))
 				&& (!crumb.visibleWhen || detailWidgetVisible({ visibleWhen: crumb.visibleWhen }, this.widgetVisibilityData)))
 		},
 
@@ -5580,11 +5769,14 @@ export default {
 		 * The breadcrumb trail: the declared crumbs (each a router target from
 		 * `route` + `params`, or an `href`), then the record's display name
 		 * as the current crumb. Empty without a declared crumb. A crumb
-		 * carries `icon` only when the manifest declares one.
+		 * carries `icon` only when the manifest declares one. A crumb with
+		 * `parent` is the record's parent (see `parentCrumb`) and drops out
+		 * when the record has none.
 		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-a-detail-page-drops-its-eyebrow-and-shows-a-breadcrumb
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-declared-breadcrumb-label-shows-as-text
 		 * @spec openspec/changes/detail-breadcrumb-trail/specs/detail-page/spec.md#requirement-a-record-page-breadcrumb-can-name-more-than-one-level
+		 * @spec openspec/changes/detail-parent-crumb/specs/detail-page/spec.md#requirement-a-sub-record-trail-can-show-its-parent-record
 		 * @return {Array<{label: string, to?: object, href?: string, icon?: string}>}
 		 */
 		breadcrumbCrumbs() {
@@ -5592,6 +5784,9 @@ export default {
 				return []
 			}
 			const crumbs = this.declaredCrumbs.map((crumb) => {
+				if (typeof crumb.parent === 'string' && crumb.parent !== '') {
+					return parentCrumb(crumb, this.visibilityRefs, this.visibilityRows, this.effectiveTranslate)
+				}
 				const entry = { label: this.effectiveTranslate(crumb.label) }
 				if (typeof crumb.icon === 'string' && crumb.icon !== '') {
 					entry.icon = crumb.icon
@@ -5602,7 +5797,10 @@ export default {
 					entry.href = crumb.href
 				}
 				return entry
-			})
+			}).filter((crumb) => crumb !== null)
+			if (crumbs.length === 0) {
+				return []
+			}
 			return [...crumbs, { label: this.breadcrumbCurrentLabel }]
 		},
 
@@ -6002,6 +6200,13 @@ export default {
 	},
 
 	watch: {
+		objectActionsKey: {
+			immediate: true,
+			handler() {
+				this.loadObjectActions()
+			},
+		},
+
 		headerMetaCountKey: {
 			immediate: true,
 			handler() {
@@ -6289,6 +6494,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the actions OpenRegister lists for the record (`actionsFrom`).
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-actions/specs/object-actions/spec.md#requirement-a-page-offers-the-actions-openregister-lists-for-an-object
+		 */
+		async loadObjectActions() {
+			if (this.actionsFrom !== 'openregister' || !this.register || !this.schema || !this.objectId || this.isCreateMode) {
+				this.objectActions = []
+				return
+			}
+			this.objectActions = await fetchObjectActions({ register: this.register, schema: this.schema, id: String(this.objectId) })
+		},
+
 		/**
 		 * A configured edit form title, subtitle or eyebrow, translated, with its
 		 * `{field}` tokens filled from the record as the header line fills them
@@ -6771,11 +6990,12 @@ export default {
 		},
 
 		/**
-		 * Read the totals `headerMetaCounts` names: a register list through
-		 * one list request, a named source by loading it and counting its
-		 * rows. A failed count is null and leaves the line out.
+		 * Read the totals `headerMetaCounts` names: the register lists all in
+		 * one batch count request, a named source by loading it and counting
+		 * its rows. A failed count is null and leaves the line out.
 		 *
 		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 * @return {Promise<void>}
 		 */
 		async loadHeaderMetaCounts() {
@@ -6786,35 +7006,39 @@ export default {
 			}
 			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
 			const values = {}
-			await Promise.all(JSON.parse(key)[0].map(async ([name, from]) => {
+			const entries = JSON.parse(key)[0]
+			const lists = entries.filter(([, from]) => !from.entitySource)
+			const totals = fetchListTotals(lists.map(([, from]) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
+			await Promise.all(entries.filter(([, from]) => from.entitySource).map(async ([name, from]) => {
 				try {
-					if (from.entitySource) {
-						const source = resolveIndexSource(from.entitySource)
-						if (!source) {
-							values[name] = null
-							return
-						}
-						await source.load()
-						values[name] = source.rows().length
+					const source = resolveIndexSource(from.entitySource)
+					if (!source) {
+						values[name] = null
 						return
 					}
-					values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx)
+					await source.load()
+					values[name] = source.rows().length
 				} catch {
 					values[name] = null
 				}
 			}))
+			const listTotals = await totals
+			lists.forEach(([name], index) => {
+				values[name] = listTotals[index]
+			})
 			if (key === this.headerMetaCountKey) {
 				this.headerMetaCountValues = values
 			}
 		},
 
 		/**
-		 * Count the lists behind the header's count pills (`countFrom`): one
-		 * list request each (`_limit=1`, the `total`). A failed count, or a
-		 * record without an id yet, shows no pill.
+		 * Count the lists behind the header's count pills (`countFrom`), all in
+		 * one batch count request. A failed count, or a record without an id
+		 * yet, shows no pill.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async refreshPillCounts() {
 			const pills = [['type', this.typePill], ['status', this.statusPill]]
@@ -6826,10 +7050,11 @@ export default {
 				return
 			}
 			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const totals = await fetchListTotals(pills.map(([, source]) => ({ register: source.register, schema: source.schema, filter: source.filter })), ctx)
 			const counts = {}
-			await Promise.all(pills.map(async ([key, source]) => {
-				counts[key] = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
-			}))
+			pills.forEach(([key], index) => {
+				counts[key] = totals[index]
+			})
 			if (seq === this.pillCountSeq) {
 				this.pillCounts = counts
 			}

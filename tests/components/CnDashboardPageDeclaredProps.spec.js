@@ -7,7 +7,7 @@
  * as an attribute onto the widget's root component, where it could override
  * a value the widget computes (the CnInteractionFormWidget submitLabel bug).
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
 import CnStatWidget from '../../src/components/CnStatWidget/CnStatWidget.vue'
@@ -105,6 +105,7 @@ describe('CnDashboardPage binds only declared content keys', () => {
 
 	it('keeps a tabs widget\'s ariaLabel off its root element and on its tab strip', async () => {
 		const w = mountPage([{ id: 't', type: 'tabs', title: 'T', content: { ariaLabel: 'Bank', tabs: [{ label: 'One' }] } }])
+		await flushPromises()
 		await nextTick()
 		const root = w.find('.cn-tabs-widget')
 		expect(root.exists()).toBe(true)
@@ -126,6 +127,7 @@ describe('CnDashboardPage binds only declared content keys', () => {
 	it('passes a widget that reads everything from `content` its whole content', async () => {
 		const content = { label: 'Open', valueField: 'count', source: { register: 'r', schema: 's' } }
 		const w = mountPage([{ id: 's', type: 'stat', title: 'S', content }])
+		await flushPromises()
 		await nextTick()
 		expect(w.findComponent(CnStatWidget).props('content')).toEqual(content)
 	})

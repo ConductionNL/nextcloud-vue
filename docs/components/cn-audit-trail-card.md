@@ -56,13 +56,21 @@ Pass pre-translated labels when your app handles i18n:
 |------|------|---------|-------------|
 | `source` | Object | `null` | `{ kind: 'flow-task', id }` reads `{apiBase}/flow-tasks/{id}/audit`, the task engine's own trail. `id` may be left out or written `@objectId`. |
 | `actionLabels` | Object | `null` | What happened, in words: by action (`claim`) or by action and the state it led to (`complete:completed`, tried first). `{actor}`, `{state}` and `{changed.<key>}` (a value the entry recorded, in the words of `valueLabels`) are filled in, and a label that names the actor leaves it off the line under it. An action without a label shows as written, with its state in brackets. DqTaak: `{ "claim": "Task picked up by {actor}" }`. |
-| `changeLabels` | Array | `[]` | Words for an entry by what it changed: `[{ action?, field, to?, label }]`, the first whose `field` the entry changed (to `to`, when given) wins over `actionLabels`. A label fills the same tokens, plus `{object.<path>}` from `object` ("Version {object.version} published" for `isDraft` set to false). |
+| `changeLabels` | Array | `[]` | Words for an entry by what it changed: `[{ action?, field, to?, label, values?, note? }]`, the first whose `field` the entry changed (to `to`, when given) wins over `actionLabels`. A label fills the same tokens, plus `{object.<path>}` from `object` ("Version \{object.version\} published" for `isDraft` set to false). |
 | `valueLabels` | Object | `null` | Words for the values a label quotes as `{changed.<key>}`: `{ "purpose": { "handling": "Handling" } }`. A value without words shows as written. |
 | `relatedSources` | Array | `[]` | Records beside the object whose events join its history: `[{ as, register, schema, filter, limit? }]`. The card lists the objects matching `filter` (`@objectId` is this object, at most `limit`, default 5), reads their trails and merges the entries with the object's own, newest first; a related entry is labelled by `actionLabels["<as>.<action>"]` first. A related read that fails leaves only its entries out. DqSociaalDomein: `{ as: "consent", schema: "toestemming", filter: { caseId: "@objectId" } }`. |
 | `endpoint` | String | `''` | A trail URL of its own; `{id}` is filled with the source's id or `objectId`. |
 | `order` | String | `''` | `newest` or `oldest` first. Empty reads a source oldest first and an object newest first. |
 
 A row shows the action with the state it led to (`stateAfter`), the actor, the kind of performer when it is not a person (`performerType`), on whose behalf (`onBehalfOf`), "(refused)" for `authorized: false`, and the entry's `reason`. A failed read says so instead of showing an empty trail.
+
+A change rule can also say from what to what. `{from}` and `{to}` in its label are the old and new value of the rule's `field`, in `valueLabels` words; with `values: "user"` or `"group"` they are the display name of the recorded id (the id while the name loads). `note` names a recorded key whose new value shows under the entry, such as the reason given with a handover:
+
+```json
+{ "field": "assignee", "values": "user", "note": "handoverNote", "label": "Passed to {to} by {actor}" }
+```
+
+The timeline widget fills `{from}` and `{to}` the same way.
 
 ## Reference
 

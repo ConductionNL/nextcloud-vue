@@ -6,11 +6,14 @@
  * - Dispatching an open-modal action reaches cnOpenModal inject
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 // Vue 3 has no default export — `nextTick` is a named import.
 import { nextTick as vueNextTick } from 'vue'
 
 const CnPageRenderer = require('../../src/components/CnPageRenderer/CnPageRenderer.vue').default
+
+// The renderer loads the export dialog on demand; a named stub with its props stands in for it.
+const EXPORT_DIALOG_STUB = { name: 'CnMassExportDialog', props: require('../../src/components/CnMassExportDialog/CnMassExportDialog.vue').default.props, template: '<div />' }
 
 const v2Manifest = {
 	$schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json',
@@ -85,6 +88,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		return shallowMount(CnPageRenderer, {
 			propsData: { manifest: { ...v2Manifest, actions } },
 			mocks: { $route: { name: 'home', params: {} } },
+			global: { stubs: { CnMassExportDialog: EXPORT_DIALOG_STUB } },
 		})
 	}
 
@@ -92,7 +96,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const wrapper = mountRenderer()
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
 		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
+		await flushPromises()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		expect(dialog.exists()).toBe(true)
 		expect(dialog.props('entities')).toEqual(exportAction.entities)
@@ -107,7 +111,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 	it('falls back to the dialog default formats when the action declares none', async () => {
 		const wrapper = mountRenderer()
 		wrapper.vm.$.provides.cnDispatchAction({ ...exportAction, formats: undefined })
-		await vueNextTick()
+		await flushPromises()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		// undefined → CnMassExportDialog's own Excel/CSV defaults apply.
 		expect(dialog.props('formats').map((f) => f.id)).toEqual(['excel', 'csv'])
@@ -191,9 +195,10 @@ describe('CnPageRenderer v2 — export action over OpenRegister objects (pl4-exp
 		const wrapper = shallowMount(CnPageRenderer, {
 			propsData: { manifest: v2Manifest },
 			mocks: { $route: { name: 'home', params: {} } },
+			global: { stubs: { CnMassExportDialog: EXPORT_DIALOG_STUB } },
 		})
 		wrapper.vm.$.provides.cnDispatchAction(action)
-		await vueNextTick()
+		await flushPromises()
 		const setResult = jest.fn()
 		wrapper.vm.$.refs.exportDialog = { setResult }
 		return { wrapper, setResult }

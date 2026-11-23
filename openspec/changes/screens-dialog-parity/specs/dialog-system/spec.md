@@ -42,11 +42,13 @@ container, because the container is teleported out of CnAppRoot.
 - **WHEN** a dialog is opened with `look="nextcloud"`
 - **THEN** that dialog renders the Nextcloud look
 
-### Requirement: A dialog takes one of three widths
+### Requirement: A dialog takes one of four widths
 
 In the board look every `Cn*` dialog SHALL take `width` (`"confirm"`,
-`"form"` or `"wizard"`) and SHALL render 560px, 640px or 720px wide
-respectively, capped at the viewport minus 32px. When `width` is unset the
+`"form"`, `"wizard"` or `"browse"`) and SHALL render 560px, 640px, 720px or
+1120px wide respectively, capped at the viewport minus 32px. `browse` is the
+search-and-pick dialog with a filter column beside its results, as the board
+learniq/LqOpenLesmateriaal draws it. When `width` is unset the
 dialog SHALL use its component default (confirm for single delete, copy,
 mass delete and save view; form for form, rich submit, mass copy, mass
 export and support; wizard for tabbed, advanced and schema forms, mass

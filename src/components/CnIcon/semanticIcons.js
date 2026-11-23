@@ -29,7 +29,7 @@
  * Each icon is imported individually (no wildcard / barrel) so the bundle
  * stays tree-shake-friendly.
  *
- * @spec openspec/architecture/adr-077-semantic-icon-vocabulary.md
+ * @spec exclude the vocabulary decision (ADR-077) has no spec in this repository
  */
 
 import AccountArrowRightOutlineIcon from 'vue-material-design-icons/AccountArrowRightOutline.vue'
@@ -128,6 +128,7 @@ import HandHeartOutlineIcon from 'vue-material-design-icons/HandHeartOutline.vue
 import HandshakeOutlineIcon from 'vue-material-design-icons/HandshakeOutline.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import ImageOutlineIcon from 'vue-material-design-icons/ImageOutline.vue'
+import InboxOutlineIcon from 'vue-material-design-icons/InboxOutline.vue'
 import InformationOutlineIcon from 'vue-material-design-icons/InformationOutline.vue'
 import KeyOutlineIcon from 'vue-material-design-icons/KeyOutline.vue'
 import LayersOutlineIcon from 'vue-material-design-icons/LayersOutline.vue'
@@ -205,7 +206,7 @@ export const SEMANTIC_ICONS_TIER_A = Object.freeze({
 	notifications: 'BellOutline',
 	activity: 'Pulse',
 	'audit-trail': 'History',
-	'my-work': 'ClipboardAccountOutline',
+	'my-work': 'InboxOutline',
 })
 
 /**
@@ -494,6 +495,7 @@ export const SEMANTIC_ICON_COMPONENTS = Object.freeze({
 	HandshakeOutline: HandshakeOutlineIcon,
 	History: HistoryIcon,
 	ImageOutline: ImageOutlineIcon,
+	InboxOutline: InboxOutlineIcon,
 	InformationOutline: InformationOutlineIcon,
 	KeyOutline: KeyOutlineIcon,
 	LayersOutline: LayersOutlineIcon,

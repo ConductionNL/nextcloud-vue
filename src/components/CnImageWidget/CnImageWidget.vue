@@ -11,7 +11,8 @@
 		:style="wrapperStyle"
 		:href="hasLink ? safeHref(link) : null"
 		:target="hasLink ? '_blank' : null"
-		:rel="hasLink ? 'noopener noreferrer' : null">
+		:rel="hasLink ? 'noopener noreferrer' : null"
+		@click="onClick">
 		<img
 			v-if="showImage"
 			class="cn-image-widget__img"
@@ -20,7 +21,7 @@
 			:style="imgStyle"
 			@error="onImageError">
 		<div v-else class="cn-image-widget__placeholder" :style="placeholderStyle">
-			<CnIcon name="Camera" :size="48" />
+			<CameraIcon :size="48" />
 			<span class="cn-image-widget__placeholder-label">{{ placeholderLabel }}</span>
 		</div>
 	</component>
@@ -28,7 +29,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import CnIcon from '../CnIcon/CnIcon.vue'
+import CameraIcon from 'vue-material-design-icons/Camera.vue'
 import { resolveImageUrl } from '../../utils/resolveImageUrl.js'
 import { safeHref } from '../../utils/safeHref.js'
 
@@ -46,7 +47,8 @@ const DEFAULT_FIT = 'cover'
  *
  * Click-through: when `link` is non-empty the cell is an `<a target="_blank"
  * rel="noopener noreferrer">` to it, so it can also be middle-clicked or
- * copied. An empty `link` renders a plain `<div>`.
+ * copied; a plain click calls `window.open(link, '_blank',
+ * 'noopener,noreferrer')`. An empty `link` renders a plain `<div>`.
  *
  * Registered as the `image` dashboard widget type via the renderer's
  * `index.js`.
@@ -55,7 +57,7 @@ export default {
 	name: 'CnImageWidget',
 
 	components: {
-		CnIcon,
+		CameraIcon,
 	},
 
 	props: {
@@ -217,6 +219,24 @@ export default {
 		 */
 		onImageError() {
 			this.loadFailed = true
+		},
+
+		/**
+		 * Open the link of a linked cell in a new tab, without an opener.
+		 * Modified clicks keep the anchor's own behaviour.
+		 *
+		 * @param {MouseEvent} event the click event.
+		 * @return {void}
+		 */
+		onClick(event) {
+			if (!this.hasLink || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+				return
+			}
+			event.preventDefault()
+			const href = safeHref(this.link)
+			if (href !== '#') {
+				window.open(href, '_blank', 'noopener,noreferrer')
+			}
 		},
 	},
 }

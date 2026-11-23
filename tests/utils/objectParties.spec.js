@@ -7,7 +7,7 @@
  *
  * @spec openspec/changes/dq-abstract-record-widgets/specs/record-widgets/spec.md#requirement-a-record-shows-its-parties-by-role
  */
-import { boardMetaLine, documentsOfParty, indicatorsOf, indicatorVerdict, newPartyRecord, partiesInOrder, representedByMap, roleLabel, rolesInOrder, savedUuid, showsNoSecrecy, untilPillOf } from '../../src/utils/objectParties.js'
+import { boardMetaLine, documentsOfParty, indicatorsOf, indicatorVerdict, newPartyRecord, partiesInOrder, partyNoteOf, representedByMap, roleLabel, roleRowsByParticipant, rolesInOrder, savedUuid, showsNoSecrecy, untilPillOf } from '../../src/utils/objectParties.js'
 
 const LISTING = {
 	results: [],
@@ -117,7 +117,9 @@ describe('the board row after design-system #811', () => {
 		expect(boardMetaLine({ primary: 'Primaire partij', role: 'Verzoeker', note: '', extras: ['Schrijftaal: Nederlands.'] }))
 			.toBe('Primaire partij · verzoeker · Schrijftaal: Nederlands.')
 		expect(boardMetaLine({ primary: '', role: 'Gemachtigde', note: 'namens Van Wijk B.V. · Awb 2:1', extras: [] }))
-			.toBe('Gemachtigde · namens Van Wijk B.V. · Awb 2:1')
+			.toBe('Gemachtigde namens Van Wijk B.V. · Awb 2:1')
+		expect(boardMetaLine({ primary: '', role: 'Belanghebbende', note: 'KvK 00001005', extras: ['Schrijftaal: Nederlands.'] }))
+			.toBe('Belanghebbende · KvK 00001005 · Schrijftaal: Nederlands.')
 		expect(boardMetaLine({ primary: 'Main', role: 'KCC', note: '', extras: [] })).toBe('Main · KCC')
 	})
 
@@ -148,5 +150,31 @@ describe('untilPillOf', () => {
 		expect(untilPillOf({ validUntil: '2026-12-31' }, '', NOW, 'en-GB')).toBe('')
 		expect(untilPillOf({ validUntil: '2026-12-31' }, undefined, NOW, 'en-GB')).toBe('')
 		expect(untilPillOf({ validUntil: null }, WORDS, NOW, 'en-GB')).toBe('')
+	})
+})
+
+describe('the note a board row prints', () => {
+	const rows = roleRowsByParticipant([
+		{ participant: 'p-jw', description: 'namens Van Wijk B.V. · Awb 2:1' },
+		{ participant: 'p-sv', description: '' },
+		{ participant: '', description: 'nobody' },
+	])
+
+	it('keys the role rows by their participant', () => {
+		expect(Object.keys(rows)).toEqual(['p-jw', 'p-sv'])
+		expect(roleRowsByParticipant(null)).toEqual({})
+	})
+
+	it('reads the link note unless the content names a role field', () => {
+		expect(partyNoteOf({ partyUuid: 'p-jw', note: 'Machtiging namens Van Wijk B.V.' }, rows, undefined)).toBe('Machtiging namens Van Wijk B.V.')
+		expect(partyNoteOf({ partyUuid: 'p-jw', note: 7 }, rows, undefined)).toBe('')
+	})
+
+	it('reads the role row\'s field when the content asks for it, and nothing when the party has no row', () => {
+		const spec = { from: 'roles', field: 'description' }
+		expect(partyNoteOf({ partyUuid: 'p-jw', note: 'Link words' }, rows, spec)).toBe('namens Van Wijk B.V. · Awb 2:1')
+		expect(partyNoteOf({ partyUuid: 'p-sv', note: 'Lindelaan 14' }, rows, spec)).toBe('')
+		expect(partyNoteOf({ contactUid: 'p-jw' }, rows, spec)).toBe('namens Van Wijk B.V. · Awb 2:1')
+		expect(partyNoteOf({ partyUuid: 'p-lk', note: 'Mobiliteit en verkeer' }, rows, spec)).toBe('')
 	})
 })

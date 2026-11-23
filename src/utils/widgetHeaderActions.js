@@ -40,15 +40,20 @@ export const WIDGET_BODY_ACTIONS = 'cnWidgetBodyActions'
  * through `context.recordEdit` instead, and is left out where that form is
  * not available. An `open-tab` action (`{ type: 'open-tab', tab }`) opens
  * that tab of the page through the `#<tab>` anchor the tab strip follows.
+ * An `open-sidebar-tab` action (`{ type: 'open-sidebar-tab', tab }`) opens
+ * the page's object sidebar on that tab through `context.sidebar`, and is
+ * left out where the page has no object sidebar.
  *
  * @param {object|null} widget The widget definition.
- * @param {object} context `{ object, objectId, workspace?, translate?, dispatch, recordEdit? }`; `recordEdit` is
- *   `{ available, open }` from the detail page, `workspace` the page filters a
+ * @param {object} context `{ object, objectId, workspace?, translate?, dispatch, recordEdit?, sidebar? }`; `recordEdit` is
+ *   `{ available, open }` from the detail page, `sidebar` the page's
+ *   `objectSidebarState` (`{ open, requestedTab }`), `workspace` the page filters a
  *   dashboard resolves `@workspace.<key>` tokens from.
  * @param {string} [key] The list to read: `headerActions` (default) or `bodyActions`.
  * @return {WidgetHeaderAction[]} The buttons, in manifest order.
  * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
  * @spec openspec/changes/widget-header-action-tonal/specs/widget-header-action-tonal/spec.md#requirement-a-dashboard-card-header-action-reads-the-page-filters
+ * @spec openspec/changes/widget-header-open-sidebar-tab/specs/widget-header-actions/spec.md#requirement-a-widget-header-button-can-open-a-sidebar-tab
  */
 export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerActions') {
 	const list = widget && Array.isArray(widget[key]) ? widget[key] : []
@@ -58,6 +63,7 @@ export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerAc
 	return list
 		.filter((entry) => entry && typeof entry.label === 'string' && entry.label !== '' && entry.action && typeof entry.action === 'object')
 		.filter((entry) => entry.action.type !== 'edit-record' || context.recordEdit?.available === true)
+		.filter((entry) => entry.action.type !== 'open-sidebar-tab' || (context.sidebar !== null && typeof context.sidebar === 'object'))
 		.filter((entry) => {
 			if (!entry.visibleWhen) {
 				return true
@@ -72,6 +78,11 @@ export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerAc
 			run: () => {
 				if (entry.action.type === 'edit-record') {
 					return context.recordEdit.open()
+				}
+				if (entry.action.type === 'open-sidebar-tab') {
+					context.sidebar.open = true
+					context.sidebar.requestedTab = String(entry.action.tab || '') || null
+					return undefined
 				}
 				if (entry.action.type === 'open-tab') {
 					window.location.hash = encodeURIComponent(String(entry.action.tab || ''))

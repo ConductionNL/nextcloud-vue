@@ -21,7 +21,7 @@
   SPDX-License-Identifier: EUPL-1.2
 -->
 <template>
-	<div class="cn-flow-detail" :class="{ 'cn-flow-detail--card-nodes': !!nodeBadge, 'cn-flow-detail--quiet-lines': !!nodeBadge && !store.inRunView }">
+	<div class="cn-flow-detail" :class="{ 'cn-flow-detail--card-nodes': !!nodeBadge, 'cn-flow-detail--quiet-lines': !!nodeBadge && !store.inRunView, 'cn-flow-detail--list': inList }">
 		<!-- The editor's controls, ON the canvas: the actions that concern the
 		     graph live with the graph, the way every flow tool draws it. -->
 		<div class="cn-flow-detail__toolbar" role="toolbar" :aria-label="toolbarLabel">
@@ -60,7 +60,7 @@
 					several seconds later. Pressing this produces an immediate
 					message beside the graph it is about.
 				-->
-				<NcButton v-if="addStep && editingShown"
+				<NcButton v-if="addStep && editingShown && !inList"
 					data-testid="flow-add-step"
 					@click="stepPickerOpen = true">
 					<template #icon>
@@ -106,7 +106,7 @@
 					</template>
 					{{ t('nextcloud-vue', 'Check') }}
 				</NcButton>
-				<NcButton v-if="editingShown"
+				<NcButton v-if="editingShown && !inList"
 					variant="tertiary"
 					:disabled="!store.nodes.length"
 					:aria-label="t('nextcloud-vue', 'Arrange steps automatically')"
@@ -140,7 +140,7 @@
 				{{ t('nextcloud-vue', 'Opening the run') }}
 			</span>
 
-			<div class="cn-flow-detail__toolbar-group">
+			<div v-if="!inList" class="cn-flow-detail__toolbar-group">
 				<NcButton variant="tertiary"
 					:disabled="zoom <= minZoom"
 					:aria-label="t('nextcloud-vue', 'Zoom out')"
@@ -203,7 +203,13 @@
 		     existing `edges` prop: Vue Flow applies an edge's `class` to the
 		     line it draws, so the canvas itself stays a geometry-only renderer
 		     with no status concept (ADR-065). -->
+		<CnFlowStepList v-if="inList"
+			:readonlySteps="readonlySteps"
+			:stepState="listStepState"
+			@add="stepPickerOpen = true"
+			@edit="onListEdit" />
 		<CnGraphCanvas
+			v-else
 			ref="canvas"
 			:nodes="canvasNodes"
 			:edges="canvasEdgesWithRunState"
@@ -245,6 +251,11 @@
 							:variant="node.data.badge.variant || 'default'"
 							size="small" />
 					</template>
+					<template v-else-if="node.data.named">
+						<span class="cn-flow-detail__node-kind">{{ typeLabel(node.data.stepType) }}</span>
+						<span class="cn-flow-detail__node-type">{{ node.data.label }}</span>
+						<span v-if="node.data.summary" class="cn-flow-detail__node-label">{{ node.data.summary }}</span>
+					</template>
 					<template v-else>
 						<span class="cn-flow-detail__node-type">{{ typeLabel(node.data.stepType) }}</span>
 						<span class="cn-flow-detail__node-label">{{ node.data.label }}</span>
@@ -267,6 +278,14 @@
 					     the colours apart (WCAG 1.4.1), so every coloured node
 					     also says what it is. -->
 					<span
+						v-if="runLinesOf(node.id)"
+						class="cn-flow-detail__node-count"
+						:class="`cn-flow-detail__node-count--${runStateOf(node.id)}`"
+						:aria-label="runLinesLabel(node.id)"
+						data-testid="flow-node-log-count">
+						{{ runLinesOf(node.id) }}
+					</span>
+					<span
 						v-if="runStateOf(node.id)"
 						class="cn-flow-detail__node-run"
 						:class="`cn-flow-detail__node-run--${runStateOf(node.id)}`">
@@ -275,14 +294,15 @@
 				</div>
 			</template>
 
-			<!-- A connection's own name, on the connection.
+			<!-- A connection's own name, on the connection, else its condition in
+			     words when the host asks for that (`edgeConditions`).
 
-			     Rendered only when the author gave the line one: CnFlowEdge
-			     gates the label control on what this slot RENDERS, not on
-			     whether it exists, so an unnamed line draws no empty chip. -->
+			     Rendered only when there is text: CnFlowEdge gates the label
+			     control on what this slot RENDERS, not on whether it exists, so
+			     an unnamed line draws no empty chip. -->
 			<template #edge-label="{ edge }">
-				<template v-if="edge.data && edge.data.label">
-					{{ edge.data.label }}
+				<template v-if="edgeText(edge)">
+					{{ edgeText(edge) }}
 				</template>
 			</template>
 		</CnGraphCanvas>
@@ -332,7 +352,7 @@
 			</template>
 		</NcEmptyContent>
 		<NcEmptyContent
-			v-else-if="store.nodes.length === 0"
+			v-else-if="store.nodes.length === 0 && !inList"
 			class="cn-flow-detail__empty"
 			data-testid="flow-canvas-empty"
 			:name="t('nextcloud-vue', 'No steps yet')"
@@ -341,13 +361,13 @@
 				<Sitemap :size="20" />
 			</template>
 		</NcEmptyContent>
-		<CnFlowStepPickerModal v-if="stepPickerOpen" @close="stepPickerOpen = false" />
+		<CnFlowStepPickerModal v-if="stepPickerOpen" :append="inList" @close="stepPickerOpen = false" />
 	</div>
 </template>
 
 <script>
 import axios from '@nextcloud/axios'
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CheckDecagram from 'vue-material-design-icons/CheckDecagram.vue'
@@ -369,10 +389,13 @@ import CnFlowStepPickerModal from '../../dialogs/CnFlowStepPickerModal.vue'
 import CnContextMenu from '../CnContextMenu/CnContextMenu.vue'
 import CnGraphCanvas from '../CnGraphCanvas/CnGraphCanvas.vue'
 import CnFlowCanvasMessages from './CnFlowCanvasMessages.vue'
+import CnFlowStepList from './CnFlowStepList.vue'
 import { useContextMenu } from '../../composables/useContextMenu.js'
 import { DEFAULT_EDGE_LINE_TYPE, EDGE_LINE_TYPES } from '../../composables/useFlowEdgeStyles.js'
 import { resolveFlowNodeEditor } from '../../composables/useFlowNodeEditors.js'
 import { useFlowStore } from '../../composables/useFlowStore.js'
+import { flowRunPicture } from '../../utils/flowRunPicture.js'
+import { isFlowEndStop } from '../../utils/flowRunStatus.js'
 import { taskFormDrift } from '../../utils/taskFormDrift.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
@@ -411,6 +434,9 @@ const REPLAY_HOP_MIN_MS = 200
 const REPLAY_HOP_MAX_MS = 1500
 
 /** The canvas messages a quiet run keeps: what went wrong with the run itself. */
+/** The badge colour of a step's outcome in the list view. */
+const RUN_STATE_VARIANTS = { active: 'info', done: 'success', warning: 'warning', failed: 'error', hold: 'warning', skipped: 'default' }
+
 const QUIET_RUN_MESSAGES = ['flow-not-found', 'action-failed', 'run-graph-unsaved', 'run-graph-unreadable', 'run-skipped']
 
 export default {
@@ -421,6 +447,7 @@ export default {
 		CnFlowCanvasMessages,
 		CnFlowEdgeEditModal,
 		CnFlowNodeEditModal,
+		CnFlowStepList,
 		CnFlowStepPickerModal,
 		CnContextMenu,
 		CnGraphCanvas,
@@ -536,6 +563,41 @@ export default {
 			type: Boolean,
 			default: true,
 		},
+
+		/**
+		 * Write a line's condition on the line when it has no name of its own
+		 * ("amount is more than 1000"). Manifest key `config.edgeConditions`.
+		 */
+		edgeConditions: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * What edits the flow: `canvas` draws the graph, `list` the trigger and
+		 * the steps in order. Both edit the one flow in the store.
+		 */
+		view: {
+			type: String,
+			default: 'canvas',
+		},
+
+		/**
+		 * The host shows the selected step in a panel of its own, so Edit in
+		 * the list view selects the step instead of opening the step dialog.
+		 */
+		stepPanel: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The ids of the steps the viewer can only read, for the list view.
+		 */
+		readonlySteps: {
+			type: Array,
+			default: () => [],
+		},
 	},
 
 	emits: ['save', 'run'],
@@ -646,6 +708,13 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * @return {boolean} Whether the list view is on screen in place of the canvas.
+		 */
+		inList() {
+			return this.view === 'list'
+		},
+
 		/**
 		 * Whether a run named by the URL is still being opened.
 		 *
@@ -952,6 +1021,8 @@ export default {
 				data: {
 					stepType: node.type,
 					label: this.nodeLabel(node),
+					named: Boolean(this.nodeName(node)),
+					summary: this.nodeSummary(node),
 					badge: this.nodeBadge ? this.nodeBadge(node) : null,
 					ports: this.store.portsOfNode ? this.store.portsOfNode(node) : undefined,
 
@@ -1069,8 +1140,8 @@ export default {
 		 */
 		runNodeStates() {
 			const anim = this.runAnimation
-			if (anim.mode === null) {
-				return {}
+			if (this.runSettled) {
+				return this.runPicture ? this.runPicture.states : {}
 			}
 
 			const states = {}
@@ -1135,6 +1206,54 @@ export default {
 		},
 
 		/**
+		 * Whether nothing is playing on the canvas, so an open run shows as it
+		 * ended: no watch or replay, or a replay that played to its end.
+		 *
+		 * @return {boolean}
+		 */
+		runSettled() {
+			const anim = this.runAnimation
+
+			return anim.mode === null || (anim.mode === 'replay' && anim.timer === null && anim.queue.length === 0)
+		},
+
+		/**
+		 * The open run over the graph on screen. None over unsaved changes:
+		 * the log names the steps of the graph as it ran.
+		 *
+		 * @spec openspec/changes/flow-board-canvas-layout/specs/flow-board/spec.md#requirement-a-run-on-the-canvas-shows-each-steps-outcome
+		 * @return {object|null} The picture.
+		 */
+		runPicture() {
+			const run = this.store.runDetail
+			if (!this.store.inRunView || !run || this.store.dirty) {
+				return null
+			}
+
+			return flowRunPicture(run, this.store.nodes, this.store.canvasEdges)
+		},
+
+		/**
+		 * The canvas lines as the open run took them.
+		 *
+		 * @return {Array<object>} The lines.
+		 */
+		settledEdges() {
+			const picture = this.runPicture
+			if (!picture) {
+				return this.store.canvasEdges
+			}
+
+			return this.store.canvasEdges.map((line) => {
+				if (picture.taken.includes(line.id)) {
+					return { ...line, class: 'cn-flow-detail__edge--run-taken' }
+				}
+
+				return picture.notTaken.includes(line.id) ? { ...line, class: 'cn-flow-detail__edge--run-not-taken' } : line
+			})
+		},
+
+		/**
 		 * The canvas edges with the run's classes on them.
 		 *
 		 * Vue Flow applies an edge record's `class` to the `<g>` it draws, so
@@ -1146,8 +1265,8 @@ export default {
 		 */
 		canvasEdgesWithRunState() {
 			const anim = this.runAnimation
-			if (anim.mode === null) {
-				return this.store.canvasEdges
+			if (this.runSettled) {
+				return this.settledEdges
 			}
 
 			return this.store.canvasEdges.map((line) => {
@@ -2173,7 +2292,7 @@ export default {
 				if (anim.failedNodeIds.includes(nodeId) === false) {
 					anim.failedNodeIds.push(nodeId)
 				}
-			} else if (step.status === 'completed' || step.status === 'pinned') {
+			} else if (step.status === 'completed' || step.status === 'pinned' || isFlowEndStop(step)) {
 				if (anim.doneNodeIds.includes(nodeId) === false) {
 					anim.doneNodeIds.push(nodeId)
 				}
@@ -2246,6 +2365,22 @@ export default {
 		},
 
 		/**
+		 * @param {string} id The node id.
+		 * @return {number} How many log lines it wrote in the open run, while it shows as it ended.
+		 */
+		runLinesOf(id) {
+			return (this.runSettled && this.runPicture && this.runPicture.counts[id]) || 0
+		},
+
+		/**
+		 * @param {string} id The node id.
+		 * @return {string} Its count of log lines, in words.
+		 */
+		runLinesLabel(id) {
+			return n('nextcloud-vue', '%n log line', '%n log lines', this.runLinesOf(id))
+		},
+
+		/**
 		 * The run state in words, for the chip beside the colour.
 		 *
 		 * @param {string} state The run state.
@@ -2254,9 +2389,11 @@ export default {
 		runStateLabel(state) {
 			const labels = {
 				active: this.t('nextcloud-vue', 'Running'),
-				done: this.t('nextcloud-vue', 'Done'),
+				done: this.t('nextcloud-vue', 'Succeeded'),
+				warning: this.t('nextcloud-vue', 'Warning'),
 				failed: this.t('nextcloud-vue', 'Failed'),
 				hold: this.t('nextcloud-vue', 'Waiting'),
+				skipped: this.t('nextcloud-vue', 'Not run'),
 			}
 
 			return labels[state] || state
@@ -2309,6 +2446,37 @@ export default {
 		},
 
 		/**
+		 * @param {string} id A step.
+		 * @return {{label: string, variant: string}|null} Its outcome in the open run, for the list view.
+		 */
+		listStepState(id) {
+			const state = this.runStateOf(id)
+
+			return state ? { label: this.runStateLabel(state), variant: RUN_STATE_VARIANTS[state] || 'default' } : null
+		},
+
+		/**
+		 * @param {string} id The step to edit from the list view.
+		 * @return {void}
+		 */
+		onListEdit(id) {
+			this.store.selectedNodeId = id
+			if (!this.stepPanel) {
+				this.store.editingNodeId = id
+			}
+		},
+
+		/**
+		 * @param {object} edge A drawn line.
+		 * @return {string} What the line says: its name, else its condition when asked for.
+		 */
+		edgeText(edge) {
+			const data = edge.data || {}
+
+			return data.label || (this.edgeConditions ? data.conditionText : '') || ''
+		},
+
+		/**
 		 * Human label for a node type, from the catalogue.
 		 *
 		 * No local name table: a type the catalogue cannot explain is shown as
@@ -2349,19 +2517,14 @@ export default {
 		 * future, without the builder having to know any of them.
 		 *
 		 * @param {object} node The node.
-		 * @return {string} The label.
+		 * @return {string} The summary, or '' when nothing is set.
 		 */
-		nodeLabel(node) {
-			// A name the author gave the step beats a derived summary.
-			if (node.name) {
-				return node.name
-			}
-
+		nodeSummary(node) {
 			const config = (node.config || {})
 			const keys = Object.keys(config).filter((k) => config[k] !== '' && config[k] !== null)
 
 			if (!keys.length) {
-				return this.t('nextcloud-vue', 'not configured')
+				return ''
 			}
 
 			const first = keys[0]
@@ -2373,6 +2536,27 @@ export default {
 			}
 
 			return `${first}: ${shown} +${keys.length - 1}`
+		},
+
+		/**
+		 * The name the author gave a step. The editor writes `name`; a flow
+		 * authored as JSON or through the API carries `label`.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The name, or ''.
+		 */
+		nodeName(node) {
+			return node.name || node.label || ''
+		},
+
+		/**
+		 * What a step is called: its name, else what its configuration says.
+		 *
+		 * @param {object} node The node.
+		 * @return {string} The label.
+		 */
+		nodeLabel(node) {
+			return this.nodeName(node) || this.nodeSummary(node) || this.t('nextcloud-vue', 'not configured')
 		},
 	},
 }
@@ -2387,6 +2571,19 @@ export default {
 	   drag alignment visible without a snapping feature. */
 	background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
 	background-size: 20px 20px;
+}
+
+/* The list is not a canvas: no dotted grid under it, and its own scrolling. */
+.cn-flow-detail--list {
+	display: flex;
+	flex-direction: column;
+	background-image: none;
+}
+
+.cn-flow-detail--list .cn-flow-detail__toolbar {
+	position: static;
+	align-self: flex-start;
+	box-shadow: none;
 }
 
 /* The canvas paints an opaque main-background of its own, which sat exactly
@@ -2539,6 +2736,18 @@ export default {
 	text-overflow: ellipsis;
 }
 
+/* A named step: what kind of step it is, small, over its name. */
+.cn-flow-detail__node-kind {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.7em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .cn-flow-detail__node-label,
 .cn-flow-detail__node-warning {
 	font-size: 0.85em;
@@ -2634,6 +2843,17 @@ export default {
 	outline-offset: 1px;
 }
 
+/* Finished with a warning: the run went on past this step. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-warning)) {
+	outline: 3px solid var(--color-warning);
+	outline-offset: 1px;
+}
+
+/* A step the finished run did not reach steps back. */
+.cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-skipped)) {
+	opacity: 0.6;
+}
+
 /* Visibly WAITING: dashed (a different shape from executing and from failed,
    so the states differ by more than hue) and pulsing slowly. */
 .cn-flow-detail :deep(.cn-flow-node:has(.cn-flow-detail__node--run-hold)) {
@@ -2680,15 +2900,57 @@ export default {
 	color: var(--color-success-text, var(--color-success));
 }
 
+/* How many log lines the step wrote, on the node's corner. */
+.cn-flow-detail__node-count {
+	position: absolute;
+	inset-block-start: -10px;
+	inset-inline-end: 8px;
+	min-inline-size: 20px;
+	padding-inline: 6px;
+	border: 1px solid var(--color-success);
+	border-radius: var(--border-radius-pill, 100px);
+	background: var(--color-main-background);
+	color: var(--color-success-text, var(--color-success));
+	font-size: 0.75em;
+	font-weight: 600;
+	text-align: center;
+}
+
+.cn-flow-detail__node-count--failed {
+	border-color: var(--color-error);
+	color: var(--color-error-text, var(--color-error));
+}
+
+.cn-flow-detail__node-count--warning,
+.cn-flow-detail__node-count--hold {
+	border-color: var(--color-warning);
+	color: var(--color-warning-text, var(--color-warning));
+}
+
+.cn-flow-detail__node-run--skipped {
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-flow-detail__node-run--failed {
 	color: var(--color-error-text, var(--color-error));
 }
 
+.cn-flow-detail__node-run--warning,
 .cn-flow-detail__node-run--hold {
 	color: var(--color-warning-text, var(--color-warning));
 }
 
 /* ---- Run state on the edges ------------------------------------------- */
+
+/* An open run: the route it took stands out, the rest steps back. */
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-taken .vue-flow__edge-path) {
+	stroke: var(--color-success);
+	stroke-width: 3;
+}
+
+.cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-not-taken) {
+	opacity: 0.4;
+}
 
 /* Lines already walked keep a quiet success stroke for the rest of the run. */
 .cn-flow-detail :deep(.vue-flow__edge.cn-flow-detail__edge--run-traced .vue-flow__edge-path),
