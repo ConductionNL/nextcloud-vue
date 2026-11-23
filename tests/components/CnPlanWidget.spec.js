@@ -12,6 +12,7 @@ import { emit } from '@nextcloud/event-bus'
 import { flushPromises, mount } from '@vue/test-utils'
 import CnPlanWidget from '../../src/components/CnPlanWidget/CnPlanWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { offeredTransitions, planTree } from '../../src/utils/planTree.js'
 import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
@@ -59,7 +60,7 @@ describe('CnPlanWidget', () => {
 	})
 
 	it('is the plan detail widget and draws stages with their items in order', async () => {
-		expect(getWidgetTypeEntry('plan').renderer).toBe(CnPlanWidget)
+		expect(await loadLazyComponent(getWidgetTypeEntry('plan').renderer)).toBe(CnPlanWidget)
 		const w = await mountWidget()
 		expect(axios.get).toHaveBeenCalledWith('/nc/apps/openregister/api/cases/z-82')
 		const names = w.findAll('.cn-plan-row__name').map((n) => n.text())

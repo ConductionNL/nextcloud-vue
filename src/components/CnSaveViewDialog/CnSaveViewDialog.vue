@@ -52,7 +52,7 @@
 
 			<!-- Share with groups, read or write. Absent when the sharee API
 			     answers no groups for this user. -->
-			<CnSavedViewShareFields v-model="sharedWith" />
+			<CnSavedViewShareFields v-model="sharedWith" :shareGroups="shareGroups" />
 		</div>
 
 		<template #actions>
@@ -137,6 +137,15 @@ export default {
 		schema: {
 			type: Object,
 			default: null,
+		},
+
+		/**
+		 * Which groups the share picker offers: `all`, `mine` (the groups the
+		 * current user is in) or an array of group ids. See CnSavedViewShareFields.
+		 */
+		shareGroups: {
+			type: [String, Array],
+			default: 'all',
 		},
 	},
 

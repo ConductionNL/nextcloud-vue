@@ -15,6 +15,7 @@
  */
 
 import { formatDateForDisplay } from './dateDisplay.js'
+import { propertyTitle } from './propertyTitle.js'
 import { readPath } from './readPath.js'
 import { fieldsFromSchema } from './schema.js'
 
@@ -63,11 +64,60 @@ export function declaredOptions(options) {
 
 /**
  * The declared inputs, normalised. An input without a `field` is dropped.
+ * Inputs on a dotted field (`municipalityFeedback.masRoute`) become one
+ * object input on the parent field (`municipalityFeedback`), asking those
+ * sub-fields in their order, each required and labelled as its own input
+ * says; the object input takes the place of the first of them.
+ *
+ * @param {unknown} declared The declared `inputs`.
+ * @return {Array<object>} The inputs.
+ * @spec openspec/changes/transition-inputs-dotted-field/specs/transition-inputs/spec.md#requirement-an-input-can-name-a-sub-field-by-a-dotted-path
+ */
+export function normaliseInputs(declared) {
+	return groupDottedInputs(normaliseEachInput(declared))
+}
+
+/**
+ * Fold the inputs on a dotted field into one object input per parent field.
+ *
+ * @param {Array<object>} inputs The normalised inputs.
+ * @return {Array<object>} The inputs, dotted ones folded.
+ */
+function groupDottedInputs(inputs) {
+	const out = []
+	const groups = new Map()
+	for (const input of inputs) {
+		const dot = input.field.indexOf('.')
+		if (dot <= 0 || dot === input.field.length - 1) {
+			out.push(input)
+			continue
+		}
+		const parent = input.field.slice(0, dot)
+		const child = input.field.slice(dot + 1)
+		let group = groups.get(parent)
+		if (!group) {
+			group = { field: parent, required: false, picker: null, fields: [], label: null, options: null, widget: null, optionsSource: null, other: null, requiredFields: [], subLabels: {} }
+			groups.set(parent, group)
+			out.push(group)
+		}
+		group.fields.push(child)
+		if (input.required) {
+			group.requiredFields.push(child)
+		}
+		if (input.label) {
+			group.subLabels[child] = input.label
+		}
+	}
+	return out
+}
+
+/**
+ * Each declared input normalised on its own.
  *
  * @param {unknown} declared The declared `inputs`.
  * @return {Array<object>} The inputs.
  */
-export function normaliseInputs(declared) {
+function normaliseEachInput(declared) {
 	if (!Array.isArray(declared)) {
 		return []
 	}
@@ -149,14 +199,16 @@ function objectField(input, prop) {
 	const only = subs.length === 1
 	return {
 		key: input.field,
-		label: prop.title || input.field,
+		label: propertyTitle(prop, input.field),
 		description: prop.description || '',
 		widget: 'object',
 		required: input.required,
 		subFields: subs.map((sub) => ({
 			...sub,
+			label: (input.subLabels && input.subLabels[sub.key]) || sub.label,
 			widget: clampWidget(sub.widget),
-			required: (input.fields ? required.includes(sub.key) : sub.required === true) || (input.required && only),
+			required: (input.fields ? required.includes(sub.key) : sub.required === true) || (input.required && only)
+				|| (Array.isArray(input.requiredFields) && input.requiredFields.includes(sub.key)),
 		})),
 	}
 }

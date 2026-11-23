@@ -9,6 +9,7 @@
 			<NcButton
 				v-if="!disabled"
 				ref="addButton"
+				:disabled="full"
 				data-testid="cn-sub-objects-add"
 				@click="openAdd">
 				{{ addLabel }}
@@ -27,7 +28,7 @@
 					<NcActionButton @click="openEdit(row.__index)">
 						{{ t('nextcloud-vue', 'Edit') }}
 					</NcActionButton>
-					<NcActionButton @click="duplicateRow(row.__index)">
+					<NcActionButton :disabled="full" @click="duplicateRow(row.__index)">
 						{{ t('nextcloud-vue', 'Duplicate') }}
 					</NcActionButton>
 					<NcActionButton :disabled="row.__index === 0" @click="moveRow(row.__index, -1)">
@@ -42,6 +43,9 @@
 				</NcActions>
 			</template>
 		</CnDataTable>
+		<p v-if="full && !disabled" class="cn-sub-objects-field__limit" data-testid="cn-sub-objects-limit">
+			{{ t('nextcloud-vue', 'At most {max} rows.', { max: maxItems }) }}
+		</p>
 		<p v-if="error" class="cn-sub-objects-field__error" role="alert">
 			{{ error }}
 		</p>
@@ -63,6 +67,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcButton } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 
 /**
  * CnSubObjectsField — edits an array of objects embedded in one object as a
@@ -168,6 +173,17 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * The most rows the field takes; 0 for no limit. At the limit Add and
+		 * Duplicate are disabled and a line says so.
+		 *
+		 * @spec openspec/changes/form-page-sub-objects/specs/form-page-sub-objects/spec.md#requirement-a-form-page-can-ask-for-a-list-of-objects
+		 */
+		maxItems: {
+			type: Number,
+			default: 0,
+		},
 	},
 
 	emits: ['update:modelValue'],
@@ -177,6 +193,11 @@ export default {
 	},
 
 	computed: {
+		/** @return {boolean} Whether the rows reached `maxItems`. */
+		full() {
+			return this.maxItems > 0 && this.list.length >= this.maxItems
+		},
+
 		list() {
 			return Array.isArray(this.modelValue) ? this.modelValue : []
 		},
@@ -187,7 +208,7 @@ export default {
 
 		columns() {
 			const props = (this.items && this.items.properties) || {}
-			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: props[key].title || key }))
+			return this.propertyKeys.slice(0, this.maxColumns).map((key) => ({ key, label: propertyTitle(props[key], key) }))
 		},
 
 		tableRows() {
@@ -302,6 +323,11 @@ export default {
 
 .cn-sub-objects-field__label {
 	font-weight: bold;
+}
+
+.cn-sub-objects-field__limit {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
 }
 
 .cn-sub-objects-field__error {

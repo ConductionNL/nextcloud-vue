@@ -6,7 +6,7 @@
  *
  * @spec openspec/changes/leaf-labels-in-the-host-language/specs/leaf-labels-in-the-host-language/spec.md#requirement-an-integration-widget-gives-its-leaf-labels-in-the-hosts-language
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { contactsIntegration } from '../../src/integrations/builtin/contacts.js'
 import { integrations } from '../../src/integrations/registry.js'
@@ -40,8 +40,9 @@ describe('CnDetailWidgetHost: a leaf gets labels in the host language', () => {
 	beforeEach(() => integrations.register({ ...contactsIntegration, requiredApp: null }))
 	afterEach(() => integrations.__resetForTests())
 
-	it('translates each label and hands it to a component leaf and a mount-mode leaf', () => {
+	it('translates each label and hands it to a component leaf and a mount-mode leaf', async () => {
 		const w = mountHost({ labels: { createLabel: 'Create a proposal for this ticket', ignored: 3 } })
+		await flushPromises()
 		expect(w.findComponent({ name: 'CnContactsCard' }).props('createLabel')).toBe('Voorstel maken voor dit ticket')
 		expect(w.vm.integrationMountProps.createLabel).toBe('Voorstel maken voor dit ticket')
 		expect(w.vm.integrationMountProps).not.toHaveProperty('ignored')

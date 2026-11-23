@@ -8,10 +8,11 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name         | Type                                                                | Required | Default | Description                                                                                    |
-| ------------ | ------------------------------------------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `modelValue` | `Array<{group?: string, user?: string, mode: 'read'&#124;'write'}>` |          | `[]`    | The chosen audience, `[{ group, mode }]` and `[{ user, mode }]` with `mode` `read` or `write`. |
-| `disabled`   | `boolean`                                                           |          | `false` | Disable the fields.                                                                            |
+| Name          | Type                                                                | Required | Default | Description                                                                                                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `modelValue`  | `Array<{group?: string, user?: string, mode: 'read'&#124;'write'}>` |          | `[]`    | The chosen audience, `[{ group, mode }]` and `[{ user, mode }]` with `mode` `read` or `write`.                                                                                                                                                            |
+| `disabled`    | `boolean`                                                           |          | `false` | Disable the fields.                                                                                                                                                                                                                                       |
+| `shareGroups` | `'all'&#124;'mine'&#124;string[]`                                   |          | `'all'` | Which groups the picker offers. `all` (default) offers every group the sharee API answers; `mine` only the groups the current user is in; an array of group ids only those groups. People are offered either way. Groups already on the view stay listed. |
 
 ### Events
 

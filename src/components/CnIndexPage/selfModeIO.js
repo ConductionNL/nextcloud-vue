@@ -1,17 +1,31 @@
 import { buildHeaders, buildQueryString, prefixUrl } from '../../utils/headers.js'
 
 /**
+ * The field values a page's `copy.overrides` gives every copy, as a plain
+ * object; `{}` for anything else.
+ *
+ * @param {unknown} overrides The page's `copy.overrides`.
+ * @return {object} The values.
+ * @spec openspec/changes/index-copy-overrides/specs/index-copy-overrides/spec.md#requirement-a-copy-can-start-with-field-values-of-its-own
+ */
+export function copyOverrideValues(overrides) {
+	return overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? { ...overrides } : {}
+}
+
+/**
  * Build a copy-ready payload from a source object — strips identity so the
- * store treats the save as a create, then writes `newName` into `nameField`.
+ * store treats the save as a create, applies the page's copy `overrides`,
+ * then writes `newName` into `nameField`.
  *
  * @param {object} source Row to copy from.
  * @param {string} newName Name to set on the copy.
  * @param {string} nameField Property on the object holding its name.
+ * @param {object} [overrides] Field values the copy starts with (`copy.overrides`).
  * @return {object}
  */
-export function cloneObjectForCopy(source, newName, nameField) {
+export function cloneObjectForCopy(source, newName, nameField, overrides = {}) {
 	const { id, uuid, '@self': _self, ...rest } = source
-	const clone = JSON.parse(JSON.stringify(rest))
+	const clone = { ...JSON.parse(JSON.stringify(rest)), ...copyOverrideValues(overrides) }
 	if (nameField) {
 		clone[nameField] = newName
 	}

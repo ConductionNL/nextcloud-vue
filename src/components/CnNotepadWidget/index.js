@@ -6,13 +6,15 @@
  * the shared dashboardWidgetRegistry at module load.
  */
 
-import CnNotepadWidgetForm from '../CnNotepadWidgetForm/CnNotepadWidgetForm.vue'
-import CnNotepadWidget from './CnNotepadWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnNotepadWidgetForm = lazyComponent(() => import('../CnNotepadWidgetForm/CnNotepadWidgetForm.vue'), 'CnNotepadWidgetForm')
+const LazyCnNotepadWidget = lazyComponent(() => import('./CnNotepadWidget.vue'), 'CnNotepadWidget')
+
 registerDashboardWidget('notepad', {
-	renderer: CnNotepadWidget,
-	form: CnNotepadWidgetForm,
+	renderer: LazyCnNotepadWidget,
+	form: LazyCnNotepadWidgetForm,
 	// The note is NOT in the placement: it is stored in the reader's preferences.
 	defaultContent: { title: '', height: '' },
 	displayName: 'Notepad',
@@ -20,5 +22,5 @@ registerDashboardWidget('notepad', {
 	userAddable: true,
 })
 
-export { CnNotepadWidget }
-export default CnNotepadWidget
+export { default as CnNotepadWidget } from './CnNotepadWidget.vue'
+export { default } from './CnNotepadWidget.vue'

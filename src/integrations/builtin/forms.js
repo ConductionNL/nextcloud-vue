@@ -31,8 +31,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFormsCard from './forms/CnFormsCard.vue'
-import CnFormsTab from './forms/CnFormsTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnFormsCard = lazyComponent(() => import('./forms/CnFormsCard.vue'), 'CnFormsCard')
+const CnFormsTab = lazyComponent(() => import('./forms/CnFormsTab.vue'), 'CnFormsTab')
 
 /**
  * `forms` integration descriptor.

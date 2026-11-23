@@ -1,0 +1,2 @@
+- [x] 1 `disabledWhen` / `disabledReason` in CnActionButtons, CnIndexPage header actions and CnActionsBar (tests/components/CnActionDisabledWhen.spec.js)
+- [x] 2 Manifest schema 2.184.0; docs/components/cn-action-buttons.md, cn-index-page.md

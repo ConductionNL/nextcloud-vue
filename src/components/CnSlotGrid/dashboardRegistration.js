@@ -7,11 +7,13 @@
  * `sideEffects` allowlist, so a bundler does not drop the registration.
  */
 
-import CnSlotGrid from './CnSlotGrid.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnSlotGrid = lazyComponent(() => import('./CnSlotGrid.vue'), 'CnSlotGrid')
+
 registerDashboardWidget('slot-grid', {
-	renderer: CnSlotGrid,
+	renderer: LazyCnSlotGrid,
 	form: null,
 	defaultContent: {
 		source: { register: '', schema: '' },

@@ -136,6 +136,7 @@ import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
 import { describeRowProblem, useChildRecords, validateChildRows } from '../../composables/useChildRecords.js'
 import { computeRow, computeTotals, rowFromSource, storeComputed } from '../../utils/childRecordTotals.js'
 import { formatMetricValue, normalizeMetricFormat } from '../../utils/formatMetric.js'
+import { propertyTitle } from '../../utils/propertyTitle.js'
 
 /**
  * CnChildRecordsField — edits the records of another schema that point at this
@@ -307,7 +308,7 @@ export default {
 			const plain = keys.filter((k) => k !== this.config.parentField && !computedKeys.includes(k)).map((key) => {
 				const type = props[key]?.type || 'string'
 				const inline = ['string', 'number', 'integer'].includes(type) && !props[key]?.enum && !props[key]?.$ref
-				return { key, label: props[key]?.title || key, inline, numeric: type === 'number' || type === 'integer' }
+				return { key, label: propertyTitle(props[key], key), inline, numeric: type === 'number' || type === 'integer' }
 			})
 			const computed = this.computedColumns.map((c) => ({
 				key: c.key,

@@ -202,7 +202,7 @@ export function buildViewCreatePayload({ name, description, isPublic, isDefault,
 		isDefault: !!isDefault,
 		query,
 	}
-	if (presentation && typeof presentation === 'object' && (presentation.viewType === 'kanban' || presentation.viewType === 'calendar')) {
+	if (presentation && typeof presentation === 'object' && ['kanban', 'calendar', 'gallery'].includes(presentation.viewType)) {
 		body.presentation = presentation
 	}
 	const audience = normalizeSharedWith(sharedWith)

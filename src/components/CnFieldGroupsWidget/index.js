@@ -8,11 +8,13 @@
  * load. Renderer only: declared in the manifest.
  */
 
-import CnFieldGroupsWidget from './CnFieldGroupsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnFieldGroupsWidget = lazyComponent(() => import('./CnFieldGroupsWidget.vue'), 'CnFieldGroupsWidget')
+
 registerDashboardWidget('field-groups', {
-	renderer: CnFieldGroupsWidget,
+	renderer: LazyCnFieldGroupsWidget,
 	form: null,
 	defaultContent: {
 		groups: [],
@@ -23,5 +25,5 @@ registerDashboardWidget('field-groups', {
 	surfaces: ['detail-page'],
 })
 
-export { CnFieldGroupsWidget }
-export default CnFieldGroupsWidget
+export { default as CnFieldGroupsWidget } from './CnFieldGroupsWidget.vue'
+export { default } from './CnFieldGroupsWidget.vue'

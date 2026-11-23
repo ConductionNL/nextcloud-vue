@@ -67,6 +67,20 @@ describe('CnFlowStepOutcomes', () => {
 		expect(wrapper.find('[data-testid="flow-step-outcome-rateLimited"]').exists()).toBe(false)
 	})
 
+	it('keeps a zero-count bucket when hideZero is false', () => {
+		// A sync step's own tally (e.g. `report.sweep`): zero swept is the
+		// answer, not a blank row — unlike messaging, where a long mostly-zero
+		// outcome list would be noise.
+		const report = { created: { count: 0 }, updated: { count: 3 } }
+
+		const hidden = mountOutcomes({ report })
+		expect(hidden.find('[data-testid="flow-step-outcome-created"]').exists()).toBe(false)
+
+		const shown = mountOutcomes({ report, hideZero: false })
+		expect(shown.find('[data-testid="flow-step-outcome-created"] dd').text()).toContain('0')
+		expect(shown.find('[data-testid="flow-step-outcome-updated"] dd').text()).toContain('3')
+	})
+
 	it('says why an address was refused', () => {
 		const wrapper = mountOutcomes({ report: REPORT })
 
@@ -93,6 +107,56 @@ describe('CnFlowStepOutcomes', () => {
 		expect(mountOutcomes({ report: null }).find('dl').exists()).toBe(false)
 		expect(mountOutcomes({ report: { recipients: 0 } }).find('dl').exists()).toBe(false)
 	})
+
+	it('does not render NaN for a bucket missing count when hideZero is false', () => {
+		// Before this fix: `Number(undefined) > 0` was false, so the bucket was
+		// dropped. With hideZero false it passed the filter, and the count
+		// itself rendered `Number(undefined)` → NaN.
+		const wrapper = mountOutcomes({ report: { swept: {} }, hideZero: false })
+
+		expect(wrapper.find('[data-testid="flow-step-outcome-swept"] dd').text()).toContain('0')
+		expect(wrapper.find('[data-testid="flow-step-outcome-swept"] dd').text()).not.toContain('NaN')
+	})
+
+	it('names a sync step’s own buckets, invalid marked as a warning', () => {
+		const report = {
+			fetched: { count: 10 },
+			created: { count: 2 },
+			updated: { count: 3 },
+			skipped: { count: 4 },
+			invalid: { count: 1 },
+			swept: { count: 0 },
+		}
+		const wrapper = mountOutcomes({ report, hideZero: false })
+
+		expect(wrapper.find('[data-testid="flow-step-outcome-fetched"] dt').text()).toBe('Fetched')
+		expect(wrapper.find('[data-testid="flow-step-outcome-created"] dt').text()).toBe('Created')
+		expect(wrapper.find('[data-testid="flow-step-outcome-updated"] dt').text()).toBe('Updated')
+		expect(wrapper.find('[data-testid="flow-step-outcome-skipped"] dt').text()).toBe('Skipped')
+		expect(wrapper.find('[data-testid="flow-step-outcome-invalid"] dt').text()).toBe('Invalid')
+		expect(wrapper.find('[data-testid="flow-step-outcome-swept"] dt').text()).toBe('Swept')
+		expect(wrapper.find('[data-testid="flow-step-outcome-invalid"]').classes())
+			.toContain('cn-flow-step-outcomes__row--warning')
+	})
+})
+
+describe('CnFlowStepOutcomes label', () => {
+	it('keeps the default accessible name and no caption when label is unset', () => {
+		const wrapper = mountOutcomes({ report: REPORT })
+
+		expect(wrapper.find('dl').attributes('aria-label')).toBe('Who this step reached')
+		expect(wrapper.find('[data-testid="flow-step-outcomes-title"]').exists()).toBe(false)
+	})
+
+	it('uses label as both the visible caption and the accessible name', () => {
+		// Every block sits in a dl with the same aria-label by default, so two
+		// sibling blocks on one step (fetch + write) were indistinguishable —
+		// to a screen reader, and visually, since the block key is not shown.
+		const wrapper = mountOutcomes({ report: { created: { count: 1 } }, hideZero: false, label: 'Write' })
+
+		expect(wrapper.find('[data-testid="flow-step-outcomes-title"]').text()).toBe('Write')
+		expect(wrapper.find('dl').attributes('aria-label')).toBe('Write')
+	})
 })
 
 describe('CnFlowStepOutcomes translations', () => {
@@ -111,6 +175,12 @@ describe('CnFlowStepOutcomes translations', () => {
 			'Refused by the step’s address rule',
 			'Not a known user or group',
 			'Failed',
+			'Fetched',
+			'Created',
+			'Updated',
+			'Skipped',
+			'Invalid',
+			'Swept',
 			'external recipients are off',
 			'not on the item',
 			'not a valid address',
