@@ -15,6 +15,7 @@
 				</p>
 			</div>
 			<div v-if="$slots['header-actions'] || resolvedAddUrl" class="cn-connection-registry__actions">
+				<!-- @slot header-actions Extra buttons in the page header, before the primary "Add integration" button. -->
 				<slot name="header-actions" />
 				<NcButton
 					v-if="resolvedAddUrl"

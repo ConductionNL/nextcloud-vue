@@ -257,7 +257,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 255,
+			"transitive": 256,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -282,6 +282,7 @@
 				"CnCollectivePagePicker",
 				"CnCommandPalette",
 				"CnConflictResolveCard",
+				"CnConnectionRegistry",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",
@@ -880,6 +881,13 @@
 			"tier": "medium",
 			"via": [],
 			"page": "cn-conflict-resolve-card"
+		},
+		"CnConnectionRegistry": {
+			"direct": 1,
+			"transitive": 1,
+			"tier": "light",
+			"via": [],
+			"page": "cn-connection-registry"
 		},
 		"CnConnectionsPanel": {
 			"direct": 0,
@@ -4041,7 +4049,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 248,
+			"transitive": 249,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4064,6 +4072,7 @@
 				"CnCollectivePageCreate",
 				"CnCollectivePagePicker",
 				"CnConflictResolveCard",
+				"CnConnectionRegistry",
 				"CnContactPicker",
 				"CnCospendCreate",
 				"CnCospendPicker",

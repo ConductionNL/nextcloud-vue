@@ -20,5 +20,5 @@ A new page type `connections` mounts `CnConnectionRegistry`:
 ## Scope
 
 - `src/components/CnConnectionRegistry/` (new), `src/components/CnPageRenderer/pageTypes.js`, the barrels, `src/types/manifest.d.ts`.
-- Schema 2.113.0: page type `connections` and its config.
+- Schema 2.189.0: page type `connections` and its config.
 - `l10n/en.json`, `l10n/nl.json`.

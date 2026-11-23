@@ -24,6 +24,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name             | Bindings | Description |
-| ---------------- | -------- | ----------- |
-| `header-actions` | —        |             |
+| Name             | Bindings | Description                                                                                   |
+| ---------------- | -------- | --------------------------------------------------------------------------------------------- |
+| `header-actions` | —        | header-actions Extra buttons in the page header, before the primary "Add integration" button. |
