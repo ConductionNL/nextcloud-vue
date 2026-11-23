@@ -264,10 +264,13 @@ function dueText(due, overdue) {
 
 .cn-status-list__title {
 	overflow: hidden;
-	color: var(--color-main-text);
 	font-weight: 600;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	/* A theme that underlines and colours every link with !important (NL
+	   Design) drew linked titles underlined in link blue. */
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
 }
 
 a.cn-status-list__title:hover,

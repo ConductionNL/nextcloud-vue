@@ -393,10 +393,11 @@ export default {
 	align-items: center;
 	gap: 8px;
 	color: var(--color-main-text);
-	text-decoration: none;
 	border-radius: var(--border-radius, 4px);
 	padding: 6px 8px;
 	transition: background-color 0.12s ease;
+	/* Kept against a theme that underlines every link with !important. */
+	text-decoration: none !important;
 }
 
 .cn-links-widget__link:hover,

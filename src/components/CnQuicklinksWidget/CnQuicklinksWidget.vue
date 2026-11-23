@@ -552,13 +552,15 @@ export default {
 	box-sizing: border-box;
 	margin: 0 auto;
 	max-width: calc(var(--cn-quicklinks-icon-size) * 2);
-	color: var(--color-main-text);
-	text-decoration: none;
 	border-radius: var(--border-radius, 4px);
 	transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.15s ease,
 		outline 0.1s ease;
 	position: relative;
 	cursor: pointer;
+	/* Kept against a theme that underlines and colours every link with
+	   !important. */
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
 }
 
 .cn-quicklinks-widget__link:focus-visible {
