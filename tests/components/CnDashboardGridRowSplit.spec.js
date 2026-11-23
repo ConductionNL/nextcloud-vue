@@ -59,10 +59,10 @@ describe('CnDashboardGrid: a size-to-content cell ends at its content', () => {
 		const wrapper = mount(CnDashboardGrid, { propsData: { layout: [fit, below], float: false } })
 		const grid = wrapper.vm.grid
 		const el = wrapper.find('[gs-id="below"]').element
-		grid.engine.nodes.push({ id: 'below', x: 0, y: 24, w: 12, h: 16, el })
+		grid.engine.nodes.push({ id: 'below', x: 0, y: 24, w: 12, h: 160, el })
 		await wrapper.setProps({ layout: [fit, { ...below, gridY: 4 }] })
 		await wrapper.vm.$nextTick()
-		expect(grid.update).toHaveBeenCalledWith(el, { x: 0, y: 320 })
+		expect(grid.update).toHaveBeenCalledWith(el, { x: 0, y: 320, w: 12, h: 160 })
 	})
 
 	it('rebuilds on whole rows for edit mode, and reports changes there in layout rows', async () => {

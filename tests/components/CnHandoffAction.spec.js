@@ -39,6 +39,7 @@ jest.mock('@nextcloud/dialogs', () => ({
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { invalidateEndpointSourceCache } from '../../src/composables/useEndpointSource.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnHandoffAction/index.js'
 
@@ -111,8 +112,8 @@ beforeEach(() => {
 })
 
 describe('CnHandoffAction', () => {
-	it('is registered as the handoff widget', () => {
-		expect(getWidgetTypeEntry('handoff').renderer).toBe(CnHandoffAction)
+	it('is registered as the handoff widget', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('handoff').renderer)).toBe(CnHandoffAction)
 	})
 
 	it('renders nothing when the action is not offered', async () => {

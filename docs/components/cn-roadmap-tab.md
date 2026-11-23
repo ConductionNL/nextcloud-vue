@@ -28,3 +28,13 @@ The `labels` filter is hardcoded per design D23 in the openregister change.
 - Spec: `openspec/changes/add-features-roadmap-menu/specs/features-roadmap-component/spec.md`
   → Requirement "CnRoadmapTab"
 - Implementation: [src/components/CnRoadmapTab/CnRoadmapTab.vue](../../src/components/CnRoadmapTab/CnRoadmapTab.vue)
+
+## Columns
+
+`layout: "columns"` draws the issues as three columns with their counts: **Planned** (open issues), **In development** (open issues with one of `inProgressLabels`, by default "in progress", "in-progress" and "in development", case-insensitive) and **Available** (closed issues whose `state_reason` is `completed`; other closed issues are left out). The tab then asks the proxy for `state: all`, so closed issues come along. The default `grid` layout and its open-only request are unchanged.
+
+```vue
+<CnRoadmapTab repo="ConductionNL/larpinq" layout="columns" :inProgressLabels="['in progress']" />
+```
+
+On a manifest `type: "roadmap"` page set `config.roadmapLayout: "columns"` (and `config.roadmapInProgressLabels`); CnFeaturesAndRoadmapPage hands them to the tab in both looks.

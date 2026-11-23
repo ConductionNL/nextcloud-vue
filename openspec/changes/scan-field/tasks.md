@@ -1,0 +1,1 @@
+- [x] 1 CnScanField, `utils/barcodeScan.js`, the `scan` form field type (tests/components/CnScanField.spec.js); docs

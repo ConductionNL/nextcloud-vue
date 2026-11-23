@@ -31,6 +31,7 @@ jest.mock('@nextcloud/router', () => ({
 
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnFieldListWidget/index.js'
@@ -102,9 +103,9 @@ describe('CnFieldListWidget', () => {
 		mockPost.mockReset()
 	})
 
-	it('registers as a renderer-only, content-only detail type', () => {
+	it('registers as a renderer-only, content-only detail type', async () => {
 		const entry = getWidgetTypeEntry('field-list')
-		expect(entry.renderer).toBe(CnFieldListWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnFieldListWidget)
 		expect(entry.form).toBeNull()
 		expect(isContentOnlyWidgetDef({ type: 'field-list' })).toBe(true)
 	})

@@ -6,13 +6,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnVideoWidgetForm from '../CnVideoWidgetForm/CnVideoWidgetForm.vue'
-import CnVideoWidget from './CnVideoWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnVideoWidgetForm = lazyComponent(() => import('../CnVideoWidgetForm/CnVideoWidgetForm.vue'), 'CnVideoWidgetForm')
+const LazyCnVideoWidget = lazyComponent(() => import('./CnVideoWidget.vue'), 'CnVideoWidget')
+
 registerDashboardWidget('video', {
-	renderer: CnVideoWidget,
-	form: CnVideoWidgetForm,
+	renderer: LazyCnVideoWidget,
+	form: LazyCnVideoWidgetForm,
 	defaultContent: {
 		sourceType: null,
 		videoUrl: '',
@@ -28,5 +30,5 @@ registerDashboardWidget('video', {
 	icon: 'Video',
 })
 
-export { CnVideoWidget }
-export default CnVideoWidget
+export { default as CnVideoWidget } from './CnVideoWidget.vue'
+export { default } from './CnVideoWidget.vue'

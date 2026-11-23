@@ -125,8 +125,14 @@
 					max="6"
 					:value="columns"
 					class="cn-links-form__input cn-links-form__input--narrow"
-					@input="updateOption('columns', clampColumns($event.target.value))">
+					@input="onColumnsInput($event)">
 			</label>
+			<p
+				v-if="columnsNotice"
+				class="cn-links-form__notice"
+				role="alert">
+				{{ columnsNotice }}
+			</p>
 
 			<label class="cn-links-form__option">
 				<span>{{ t('nextcloud-vue', 'Layout') }}</span>
@@ -188,6 +194,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import { isPrototypeKey } from '../../utils/prototypeKeys.js'
+import { isSafeRelativePath } from '../../utils/widgetUrl.js'
 
 const VALID_LAYOUTS = Object.freeze(['card', 'inline', 'icon-only'])
 const VALID_SIZES = Object.freeze(['small', 'medium', 'large'])
@@ -212,16 +219,17 @@ function makeEmptyLink() {
 }
 
 /**
- * Build an empty section with one link.
+ * Build an empty section with no links; the user adds rows with Add link.
  *
  * @return {{title: string, links: object[]}} the empty section.
  */
 function makeEmptySection() {
-	return { title: '', links: [makeEmptyLink()] }
+	return { title: '', links: [] }
 }
 
 /**
- * URL sanitiser — accepts http(s) and root-relative URLs (without `..`).
+ * URL sanitiser — accepts http(s) URLs and safe relative paths: root-relative
+ * without `..`, or a single leading `../` step.
  *
  * @param {string} url the candidate URL.
  * @return {string|null} an error message, or `null` when valid.
@@ -231,10 +239,7 @@ function validateUrl(url) {
 		return t('nextcloud-vue', 'Link URL is required')
 	}
 	const trimmed = url.trim()
-	if (trimmed.startsWith('/')) {
-		if (trimmed.includes('..')) {
-			return t('nextcloud-vue', 'Invalid URL — use HTTP(S) or relative paths.')
-		}
+	if (isSafeRelativePath(trimmed)) {
 		return null
 	}
 	if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
@@ -305,6 +310,7 @@ export default {
 			showLinkDescriptions: initial.showLinkDescriptions === undefined ? DEFAULT_CONTENT.showLinkDescriptions : Boolean(initial.showLinkDescriptions),
 			linkErrors: [],
 			firstError: '',
+			columnsNotice: '',
 		}
 	},
 
@@ -360,6 +366,29 @@ export default {
 				return DEFAULT_CONTENT.columns
 			}
 			return Math.max(1, Math.min(6, Math.round(num)))
+		},
+
+		/**
+		 * Columns input handler: an out-of-range number is clamped to 1–6, the
+		 * field shows the clamped value and a notice says what changed. An
+		 * empty field waits for the user to type a number.
+		 *
+		 * @param {InputEvent} event the input event.
+		 * @return {void}
+		 */
+		onColumnsInput(event) {
+			const raw = String(event.target.value ?? '').trim()
+			if (raw === '') {
+				return
+			}
+			const clamped = this.clampColumns(raw)
+			if (Number(raw) === clamped) {
+				this.columnsNotice = ''
+			} else {
+				this.columnsNotice = t('nextcloud-vue', 'Columns run from 1 to 6, so {typed} became {clamped}.', { typed: raw, clamped })
+				event.target.value = String(clamped)
+			}
+			this.updateOption('columns', clamped)
 		},
 
 		/**
@@ -556,6 +585,12 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
+}
+
+.cn-links-form__notice {
+	margin: 0;
+	color: var(--color-warning-text, var(--color-main-text));
+	font-size: 13px;
 }
 
 .cn-links-form__sections {

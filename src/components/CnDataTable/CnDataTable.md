@@ -180,6 +180,7 @@ export default {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
+| `stackOnPhone` | Boolean | `false` | Under 600px draw every row as a stacked block, one line per cell with its column name; wider screens keep the table. |
 | `schema` | Object | `null` | JSON Schema with `properties` — enables schema-driven column generation |
 | `columnOverrides` | Object | `{}` | Per-key column overrides when using `schema` mode: `{ key: { width, label, sortable, … } }` |
 | `excludeColumns` | Array | `[]` | Column keys to exclude in schema mode |

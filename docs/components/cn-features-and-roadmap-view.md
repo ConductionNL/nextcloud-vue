@@ -28,6 +28,8 @@ opens the corresponding issue in a new tab.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
+| `roadmapLayout` | String | No | `grid` (default) or `columns`, handed to the Roadmap tab. |
+| `roadmapInProgressLabels` | Array | No | Labels that put an open issue under In development. |
 | `repo` | String | Yes | `<owner>/<repo>` slug of the app's repository on the forge. Passed through to `CnRoadmapTab` and used to build the Suggest CTA's feature-request form link. |
 | `forge` | Object | No | `{ type, baseUrl? }` target forge the feature-request deep-links are built against (the Suggest CTA and the support dialog's feature-request URL). |
 | `features` | Array | Yes | Build-time feature manifest — array of `{slug, title, summary, docsUrl}` objects rendered by `CnFeaturesTab`. |

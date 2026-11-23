@@ -7,11 +7,13 @@
  * version) into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnConflictResolveCard from './CnConflictResolveCard.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnConflictResolveCard = lazyComponent(() => import('./CnConflictResolveCard.vue'), 'CnConflictResolveCard')
+
 registerDashboardWidget('conflict-resolve', {
-	renderer: CnConflictResolveCard,
+	renderer: LazyCnConflictResolveCard,
 	form: null,
 	defaultContent: {
 		source: { register: '', schema: '', filter: { resolution: { isnull: true } } },
@@ -22,5 +24,5 @@ registerDashboardWidget('conflict-resolve', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnConflictResolveCard }
-export default CnConflictResolveCard
+export { default as CnConflictResolveCard } from './CnConflictResolveCard.vue'
+export { default } from './CnConflictResolveCard.vue'

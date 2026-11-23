@@ -217,3 +217,7 @@ Static-manifest apps use `useAppManifest('myapp', bundledManifest)`, which fetch
 ### Without a navigation (`hideMenu`)
 
 `hideMenu` (default `false`) renders neither the default CnAppNav nor the `#menu` slot, so the content starts at the left edge.
+
+### On the page ground (`pageGround`)
+
+`pageGround` (default `false`) paints the content area with the page ground (`--nldesign-component-content-surface-background-color`, falling back to `--color-background-hover`) instead of the main-background panel. For a dashboard app whose canvas is the page. Components inside the pages keep their own surfaces.

@@ -8,11 +8,13 @@
  * are declared in the manifest.
  */
 
-import CnLinkedWidget from './CnLinkedWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnLinkedWidget = lazyComponent(() => import('./CnLinkedWidget.vue'), 'CnLinkedWidget')
+
 registerDashboardWidget('linked', {
-	renderer: CnLinkedWidget,
+	renderer: LazyCnLinkedWidget,
 	form: null,
 	defaultContent: {
 		leaves: [],
@@ -22,5 +24,5 @@ registerDashboardWidget('linked', {
 	surfaces: ['detail-page'],
 })
 
-export { CnLinkedWidget }
-export default CnLinkedWidget
+export { default as CnLinkedWidget } from './CnLinkedWidget.vue'
+export { default } from './CnLinkedWidget.vue'

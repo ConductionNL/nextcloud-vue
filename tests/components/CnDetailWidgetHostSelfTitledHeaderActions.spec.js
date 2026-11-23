@@ -8,7 +8,7 @@
  *
  * @spec openspec/changes/self-titled-widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-self-titled-widget-draws-its-header-actions-beside-its-title
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
@@ -37,8 +37,9 @@ const ACTIVITY = {
 }
 
 describe('CnDetailWidgetHost: header actions of a self-titled widget', () => {
-	it('stand in the widget\'s title row, beside the title', () => {
+	it('stand in the widget\'s title row, beside the title', async () => {
 		const w = mountHost(ACTIVITY)
+		await flushPromises()
 		const header = w.find('[data-testid="cn-timeline-widget-header"]')
 		expect(header.exists()).toBe(true)
 		expect(header.find('.cn-timeline-widget__title').text()).toBe('Activity')

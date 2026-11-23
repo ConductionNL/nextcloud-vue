@@ -6,13 +6,15 @@
  * shared dashboardWidgetRegistry at module load.
  */
 
-import CnMenuWidgetForm from '../CnMenuWidgetForm/CnMenuWidgetForm.vue'
-import CnMenuWidget from './CnMenuWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnMenuWidgetForm = lazyComponent(() => import('../CnMenuWidgetForm/CnMenuWidgetForm.vue'), 'CnMenuWidgetForm')
+const LazyCnMenuWidget = lazyComponent(() => import('./CnMenuWidget.vue'), 'CnMenuWidget')
+
 registerDashboardWidget('menu', {
-	renderer: CnMenuWidget,
-	form: CnMenuWidgetForm,
+	renderer: LazyCnMenuWidget,
+	form: LazyCnMenuWidgetForm,
 	defaultContent: {
 		items: [],
 		style: 'dropdown',
@@ -25,5 +27,5 @@ registerDashboardWidget('menu', {
 	icon: 'ViewDashboard',
 })
 
-export { CnMenuWidget }
-export default CnMenuWidget
+export { default as CnMenuWidget } from './CnMenuWidget.vue'
+export { default } from './CnMenuWidget.vue'

@@ -319,6 +319,7 @@
 					<NcActionButton
 						v-else
 						:disabled="Boolean(entry.disabled)"
+						:description="entry.disabled && entry.disabledReason ? entry.disabledReason : undefined"
 						@click="$emit('header-action', { action: entry.id, id: entry.id })">
 						<template #icon>
 							<CnIcon v-if="entry.icon && isMdiIconName(entry.icon)" :name="entry.icon" :size="20" />

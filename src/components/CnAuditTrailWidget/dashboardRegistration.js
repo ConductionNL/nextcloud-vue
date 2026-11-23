@@ -10,13 +10,15 @@
  * from the component so importing it doesn't force the registration.
  */
 
-import CnAuditTrailWidgetForm from '../CnAuditTrailWidgetForm/CnAuditTrailWidgetForm.vue'
-import CnAuditTrailWidget from './CnAuditTrailWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnAuditTrailWidgetForm = lazyComponent(() => import('../CnAuditTrailWidgetForm/CnAuditTrailWidgetForm.vue'), 'CnAuditTrailWidgetForm')
+const LazyCnAuditTrailWidget = lazyComponent(() => import('./CnAuditTrailWidget.vue'), 'CnAuditTrailWidget')
+
 registerDashboardWidget('audit-trail', {
-	renderer: CnAuditTrailWidget,
-	form: CnAuditTrailWidgetForm,
+	renderer: LazyCnAuditTrailWidget,
+	form: LazyCnAuditTrailWidgetForm,
 	defaultContent: {
 		title: '',
 		maxDisplay: 5,

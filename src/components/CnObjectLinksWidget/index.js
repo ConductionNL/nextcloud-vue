@@ -8,11 +8,13 @@
  * Renderer only: declared in the manifest.
  */
 
-import CnObjectLinksWidget from './CnObjectLinksWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnObjectLinksWidget = lazyComponent(() => import('./CnObjectLinksWidget.vue'), 'CnObjectLinksWidget')
+
 registerDashboardWidget('object-links', {
-	renderer: CnObjectLinksWidget,
+	renderer: LazyCnObjectLinksWidget,
 	form: null,
 	defaultContent: {
 		types: [],
@@ -24,5 +26,5 @@ registerDashboardWidget('object-links', {
 	surfaces: ['detail-page'],
 })
 
-export { CnObjectLinksWidget }
-export default CnObjectLinksWidget
+export { default as CnObjectLinksWidget } from './CnObjectLinksWidget.vue'
+export { default } from './CnObjectLinksWidget.vue'

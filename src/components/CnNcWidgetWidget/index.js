@@ -11,11 +11,13 @@
  * picker via `listWidgetTypes()`). When the form lands, wire it in here.
  */
 
-import CnNcWidgetWidget from './CnNcWidgetWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnNcWidgetWidget = lazyComponent(() => import('./CnNcWidgetWidget.vue'), 'CnNcWidgetWidget')
+
 registerDashboardWidget('nc-widget', {
-	renderer: CnNcWidgetWidget,
+	renderer: LazyCnNcWidgetWidget,
 	form: null,
 	defaultContent: {
 		widgetId: '',
@@ -25,5 +27,5 @@ registerDashboardWidget('nc-widget', {
 	icon: 'ViewDashboard',
 })
 
-export { CnNcWidgetWidget }
-export default CnNcWidgetWidget
+export { default as CnNcWidgetWidget } from './CnNcWidgetWidget.vue'
+export { default } from './CnNcWidgetWidget.vue'

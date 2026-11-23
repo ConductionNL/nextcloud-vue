@@ -27,8 +27,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnAnalyticsCard from './analytics/CnAnalyticsCard.vue'
-import CnAnalyticsTab from './analytics/CnAnalyticsTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnAnalyticsCard = lazyComponent(() => import('./analytics/CnAnalyticsCard.vue'), 'CnAnalyticsCard')
+const CnAnalyticsTab = lazyComponent(() => import('./analytics/CnAnalyticsTab.vue'), 'CnAnalyticsTab')
 
 /**
  * `analytics` integration descriptor.
