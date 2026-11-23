@@ -273,6 +273,7 @@ export default {
 		 * no line under it reads as broken. '' while a leaf is still reading.
 		 *
 		 * @return {string}
+		 * @spec openspec/changes/linked-integrations-card/specs/linked-integrations-card/spec.md#requirement-one-card-lists-the-linked-integrations-of-a-record
 		 */
 		nothingLine() {
 			const text = this.content && this.content.emptyText
