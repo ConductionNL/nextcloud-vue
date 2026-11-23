@@ -2835,6 +2835,7 @@
     "Color by calendar": "Color by calendar",
     "At least one calendar source is required": "At least one calendar source is required",
     "External ICS URLs must start with https://": "External ICS URLs must start with https://",
+    "Folder {name}": "Folder {name}",
     "Folder breadcrumb": "Folder breadcrumb",
     "Root": "Root",
     "Search this folder": "Search this folder",
