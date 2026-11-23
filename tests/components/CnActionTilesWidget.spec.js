@@ -10,6 +10,7 @@
 import { mount } from '@vue/test-utils'
 import { CnActionTilesWidget } from '../../src/components/CnActionTilesWidget/index.js'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { DASHBOARD_CATALOG_WIDGET_KEYS } from '../../src/utils/libraryWidgetKeys.js'
 
 const callback = {
@@ -47,8 +48,8 @@ function mountTiles(tiles, workspace, dispatch = null) {
 }
 
 describe('CnActionTilesWidget', () => {
-	it('is registered as the action-tiles widget type', () => {
-		expect(getWidgetTypeEntry('action-tiles')?.renderer).toBe(CnActionTilesWidget)
+	it('is registered as the action-tiles widget type', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('action-tiles')?.renderer)).toBe(CnActionTilesWidget)
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('action-tiles')
 	})
 

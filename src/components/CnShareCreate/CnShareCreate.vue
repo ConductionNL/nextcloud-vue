@@ -21,7 +21,7 @@
   On submit, emits `create` with
   `{ fileId, shareType, shareWith, permissions, password?, expiration? }`.
   The parent (CnSharesTab) POSTs to
-  `/api/objects/{register}/{schema}/{id}/shares`.
+  `/api/objects/{register}/{schema}/{id}/file-shares`.
 
   ADR-004: lives in its own .vue file under `src/components/CnShareCreate/`.
 

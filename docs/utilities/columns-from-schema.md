@@ -72,3 +72,7 @@ Columns are sorted by:
 - [filtersFromSchema](./filters-from-schema.md) — Same pattern, for `CnFilterBar`/`CnFacetSidebar`.
 - [fieldsFromSchema](./fields-from-schema.md) — Same pattern, for form dialogs.
 - [formatValue](./format-value.md) — Typical companion for rendering a column's cells.
+
+## Names in the reader's language
+
+A property can carry `titles`, its name per language (`{ "nl": "Postcode", "pt-BR": "CEP" }`), beside `title` (OpenRegister keeps both). The label is `titles[<reader's language>]`, then the base language (`nl` for `nl-BE`), then `title`, then the key. Table columns, form fields, filters, cards, the info widget, sub-object and child-record tables, transition inputs and the presentation picker all name a field this way.

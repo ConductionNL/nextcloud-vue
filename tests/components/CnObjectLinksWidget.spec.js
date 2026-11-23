@@ -36,6 +36,7 @@ const { isContentOnlyWidgetDef } = require('../../src/utils/widgetDispatch.js')
 require('../../src/components/CnObjectLinksWidget/index.js')
 
 const CnObjectLinksWidget = require('../../src/components/CnObjectLinksWidget/CnObjectLinksWidget.vue').default
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 
 async function flush() {
 	for (let i = 0; i < 6; i++) {
@@ -138,9 +139,9 @@ describe('CnObjectLinksWidget', () => {
 		mockDelete.mockReset()
 	})
 
-	it('registers as a renderer-only, content-only detail type in the library vocabulary', () => {
+	it('registers as a renderer-only, content-only detail type in the library vocabulary', async () => {
 		const entry = getWidgetTypeEntry('object-links')
-		expect(entry.renderer).toBe(CnObjectLinksWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnObjectLinksWidget)
 		expect(entry.form).toBeNull()
 		expect(isContentOnlyWidgetDef({ type: 'object-links' })).toBe(true)
 		expect(DASHBOARD_CATALOG_WIDGET_KEYS).toContain('object-links')

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Conduction B.V.
 
-import CnObjectPresenceWidget from './CnObjectPresenceWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
+
+const LazyCnObjectPresenceWidget = lazyComponent(() => import('./CnObjectPresenceWidget.vue'), 'CnObjectPresenceWidget')
 
 // 🔑 `surfaces: ['detail-page']` AND NO FORM, DELIBERATELY. Presence is about
 // the record a page is showing, so it means nothing on an app dashboard, and it
@@ -10,7 +12,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 // entry is excluded from the Add-widget picker by `listWidgetTypes()`, which is
 // right — it is placed by a manifest, not chosen from a menu.
 registerDashboardWidget('presence', {
-	renderer: CnObjectPresenceWidget,
+	renderer: LazyCnObjectPresenceWidget,
 	form: null,
 	defaultContent: {},
 	displayName: 'Who else is here',
@@ -18,5 +20,5 @@ registerDashboardWidget('presence', {
 	surfaces: ['detail-page'],
 })
 
-export default CnObjectPresenceWidget
-export { CnObjectPresenceWidget }
+export { default } from './CnObjectPresenceWidget.vue'
+export { default as CnObjectPresenceWidget } from './CnObjectPresenceWidget.vue'

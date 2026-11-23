@@ -21,6 +21,7 @@ jest.mock('../../src/composables/useDataSource.js', () => ({
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
+import { loadApexCharts } from '../../src/components/CnChartWidget/apexChartsLoader.js'
 
 const lineProps = {
 	type: 'line',
@@ -40,6 +41,9 @@ async function mountChart(props, provide = {}) {
 	await nextTick()
 	return wrapper
 }
+
+// The chart component loads on demand; load it once so mounts render it at once.
+beforeAll(() => loadApexCharts())
 
 describe('CnChartWidget footnote on ApexCharts types', () => {
 	it.each(['line', 'area', 'bar'])('draws the footnote under a %s chart', async (type) => {

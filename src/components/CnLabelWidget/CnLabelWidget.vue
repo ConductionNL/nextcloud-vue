@@ -4,7 +4,12 @@
 -->
 
 <template>
-	<div class="cn-label-widget" :style="wrapperStyle">
+	<div v-if="groupHeading" class="cn-label-widget cn-label-widget--group">
+		<h2 class="cn-label-widget__group" data-testid="cn-label-widget-group">
+			{{ displayText }}
+		</h2>
+	</div>
+	<div v-else class="cn-label-widget" :style="wrapperStyle">
 		<span class="cn-label-widget__text" :style="spanStyle">{{ displayText }}</span>
 	</div>
 </template>
@@ -21,6 +26,10 @@ import { translate as t } from '@nextcloud/l10n'
  * Persisted shape: `{text, fontSize, color, backgroundColor, fontWeight,
  * textAlign}`. Defaults: `fontSize='16px'`, `color='var(--color-main-text)'`,
  * `backgroundColor='transparent'`, `fontWeight='bold'`, `textAlign='center'`.
+ *
+ * With `groupHeading: true` the label is the heading of a group of tiles
+ * ("Mijn apps"): a small uppercase heading on the page ground, start-aligned
+ * at the bottom of its cell, and the style keys are ignored.
  *
  * Registered as the `label` dashboard widget type via the renderer's
  * `index.js`.
@@ -46,6 +55,11 @@ export default {
 		/** The label text, or '' when absent / non-string. */
 		text() {
 			return typeof this.content?.text === 'string' ? this.content.text : ''
+		},
+
+		/** Whether the label is the heading of a group of tiles. */
+		groupHeading() {
+			return this.content?.groupHeading === true
 		},
 
 		/** Whether the label has any non-whitespace text. */
@@ -114,6 +128,22 @@ export default {
 .cn-label-widget {
 	width: 100%;
 	height: 100%;
+}
+
+.cn-label-widget--group {
+	display: flex;
+	align-items: flex-end;
+	box-sizing: border-box;
+	padding: 0 4px 4px;
+}
+
+.cn-label-widget__group {
+	margin: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: var(--font-size-small, 13px);
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
 }
 
 .cn-label-widget__text {

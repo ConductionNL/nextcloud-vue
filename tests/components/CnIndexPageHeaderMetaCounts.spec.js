@@ -8,10 +8,15 @@
  * breadcrumb already carries a count the board leaves out its own
  * "{shown} of {total}" line.
  */
-jest.mock('../../src/utils/fetchFilterCounts.js', () => ({
-	fetchFilterCounts: jest.fn(),
-	fetchListTotal: jest.fn(),
-}))
+jest.mock('../../src/utils/fetchFilterCounts.js', () => {
+	const fetchListTotal = jest.fn()
+	return {
+		fetchFilterCounts: jest.fn(),
+		fetchListTotal,
+		// Each list through the mocked single count, as the batch's fallback does.
+		fetchListTotals: (lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve().then(() => fetchListTotal(register, schema, filter, ctx)).catch(() => null))),
+	}
+})
 
 const { fetchListTotal } = require('../../src/utils/fetchFilterCounts.js')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default

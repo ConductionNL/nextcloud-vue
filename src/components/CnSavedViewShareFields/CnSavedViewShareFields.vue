@@ -92,6 +92,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcAvatar, NcButton, NcSelect } from '@nextcloud/vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import { searchUserAndGroupSharees } from '../../utils/searchGroupSharees.js'
+import { loadCurrentUserGroups } from '../../utils/userGroupsPeek.js'
 
 /**
  * CnSavedViewShareFields — the sharing section of a saved view: pick people
@@ -129,6 +130,19 @@ export default {
 		disabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Which groups the picker offers. `all` (default) offers every group
+		 * the sharee API answers; `mine` only the groups the current user is
+		 * in; an array of group ids only those groups. People are offered
+		 * either way. Groups already on the view stay listed.
+		 *
+		 * @type {'all'|'mine'|string[]}
+		 */
+		shareGroups: {
+			type: [String, Array],
+			default: 'all',
 		},
 	},
 
@@ -206,14 +220,36 @@ export default {
 			if (seq !== this.searchSeq) {
 				return
 			}
+			const allowed = await this.allowedGroups()
+			if (seq !== this.searchSeq) {
+				return
+			}
 			this.loading = false
-			this.options = found.map((s) => ({ id: s.kind === 'user' ? `user:${s.id}` : s.id, label: s.label, kind: s.kind === 'user' ? 'user' : 'group' }))
+			this.options = found
+				.filter((s) => s.kind === 'user' || allowed === null || allowed.includes(s.id))
+				.map((s) => ({ id: s.kind === 'user' ? `user:${s.id}` : s.id, label: s.label, kind: s.kind === 'user' ? 'user' : 'group' }))
 			this.options.forEach((o) => {
 				this.known = { ...this.known, [o.id]: o.label }
 			})
-			if (found.length > 0) {
+			if (this.options.length > 0) {
 				this.available = true
 			}
+		},
+
+		/**
+		 * The group ids `shareGroups` allows, or null when every group is allowed.
+		 *
+		 * @return {Promise<string[]|null>}
+		 * @spec openspec/changes/saved-view-share-groups/tasks.md#task-1
+		 */
+		async allowedGroups() {
+			if (Array.isArray(this.shareGroups)) {
+				return this.shareGroups.map(String)
+			}
+			if (this.shareGroups === 'mine') {
+				return loadCurrentUserGroups()
+			}
+			return null
 		},
 
 		/**

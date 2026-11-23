@@ -9,13 +9,15 @@
  * `CnAddWidgetModal` create flow and the cog `CnWidgetStyleEditorModal`.
  */
 
-import CnStatWidgetForm from '../CnStatWidgetForm/CnStatWidgetForm.vue'
-import CnStatWidget from './CnStatWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnStatWidgetForm = lazyComponent(() => import('../CnStatWidgetForm/CnStatWidgetForm.vue'), 'CnStatWidgetForm')
+const LazyCnStatWidget = lazyComponent(() => import('./CnStatWidget.vue'), 'CnStatWidget')
+
 registerDashboardWidget('stat', {
-	renderer: CnStatWidget,
-	form: CnStatWidgetForm,
+	renderer: LazyCnStatWidget,
+	form: LazyCnStatWidgetForm,
 	defaultContent: {
 		label: '',
 		icon: 'Cash',
@@ -32,5 +34,5 @@ registerDashboardWidget('stat', {
 	card: true,
 })
 
-export { CnStatWidget }
-export default CnStatWidget
+export { default as CnStatWidget } from './CnStatWidget.vue'
+export { default } from './CnStatWidget.vue'

@@ -62,7 +62,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--page-ground': pageGround }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -714,30 +714,20 @@ import { loadState } from '@nextcloud/initial-state'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
-import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnBrandBar from '../CnBrandBar/CnBrandBar.vue'
-import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
-import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
-import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
-import CnSavedViewMenuSettings from '../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue'
-import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
-import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
-import CnUserSettingsDialog from '../CnUserSettingsDialog/CnUserSettingsDialog.vue'
-import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
@@ -766,6 +756,7 @@ import { appShownName } from '../../utils/appShownName.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
+import { setFeatureFlags } from '../../utils/featureFlags.js'
 import { DEFAULT_FORGE, resolveForge } from '../../utils/forge.js'
 import { BUILT_IN_KB_PROVIDERS } from '../../utils/kbSearchProviders.js'
 import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTranslate.js'
@@ -778,6 +769,17 @@ import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
+
+const CnAiCompanion = defineAsyncComponent(() => import('../CnAiCompanion/CnAiCompanion.vue').then((m) => m.default))
+const CnCommandPalette = defineAsyncComponent(() => import('../CnCommandPalette/CnCommandPalette.vue').then((m) => m.default))
+const CnCredentials = defineAsyncComponent(() => import('../CnCredentials/CnCredentials.vue').then((m) => m.default))
+const CnNotificationPreferences = defineAsyncComponent(() => import('../CnNotificationPreferences/CnNotificationPreferences.vue').then((m) => m.default))
+const CnObjectSidebar = defineAsyncComponent(() => import('../CnObjectSidebar/CnObjectSidebar.vue').then((m) => m.default))
+const CnSavedViewMenuSettings = defineAsyncComponent(() => import('../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue').then((m) => m.default))
+const CnSetupWizard = defineAsyncComponent(() => import('../CnSetupWizard/CnSetupWizard.vue').then((m) => m.default))
+const CnSupportDialog = defineAsyncComponent(() => import('../CnSupportDialog/CnSupportDialog.vue').then((m) => m.default))
+const CnUserSettingsDialog = defineAsyncComponent(() => import('../CnUserSettingsDialog/CnUserSettingsDialog.vue').then((m) => m.default))
+const CnWalkthrough = defineAsyncComponent(() => import('../CnWalkthrough/CnWalkthrough.vue').then((m) => m.default))
 
 /**
  * Recognised registry kinds and their required metadata fields.
@@ -837,6 +839,23 @@ const OR_STORE_LINK = '/index.php/settings/apps/integration/openregister'
  * stands for the app's own slot content.
  */
 const USER_SETTINGS_SECTIONS = ['app', 'views', 'notifications', 'credentials', 'walkthrough', 'integrations']
+
+/**
+ * The server's merged feature map for the app (initial state `features`), or null.
+ *
+ * @param {string} appId The app id.
+ * @return {object|null}
+ */
+function readFeatureState(appId) {
+	if (!appId) {
+		return null
+	}
+	try {
+		return loadState(appId, 'features', null)
+	} catch {
+		return null
+	}
+}
 
 export default {
 	name: 'CnAppRoot',
@@ -1334,6 +1353,19 @@ export default {
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-an-app-root-can-hide-its-menu
 		 */
 		hideMenu: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Paint the content area with the page ground (the NL Design System
+		 * content-surface token, or Nextcloud's hover background) instead of
+		 * the main-background panel. For a dashboard app whose canvas is the
+		 * page; widgets keep their own surfaces. Off by default.
+		 *
+		 * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
+		 */
+		pageGround: {
 			type: Boolean,
 			default: false,
 		},
@@ -3408,6 +3440,8 @@ export default {
 
 	created() {
 		this.syncDiagnostics()
+		// Feature toggles: the manifest's declarations and the server's merged map (initial state `features`).
+		setFeatureFlags({ declarations: this.manifest && this.manifest.features, values: readFeatureState(this.appId) })
 	},
 
 	mounted() {
@@ -4636,6 +4670,14 @@ export default {
 </script>
 
 <style>
+/* pageGround: the content area paints the page ground, the token the boards
+   draw as the page background (NL Design System content surface, or
+   Nextcloud's hover background), instead of the main-background panel.
+   NcAppContent's id outranks its scoped rule. */
+.cn-app-root--page-ground #app-content-vue {
+	background-color: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+}
+
 /* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
 .cn-app-root--with-environment {
 	position: relative;

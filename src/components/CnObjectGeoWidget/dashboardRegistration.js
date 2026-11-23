@@ -13,13 +13,15 @@
  * public barrel export) so importing the component doesn't force registration.
  */
 
-import CnObjectGeoWidgetForm from '../CnObjectGeoWidgetForm/CnObjectGeoWidgetForm.vue'
-import CnObjectGeoWidget from './CnObjectGeoWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnObjectGeoWidgetForm = lazyComponent(() => import('../CnObjectGeoWidgetForm/CnObjectGeoWidgetForm.vue'), 'CnObjectGeoWidgetForm')
+const LazyCnObjectGeoWidget = lazyComponent(() => import('./CnObjectGeoWidget.vue'), 'CnObjectGeoWidget')
+
 registerDashboardWidget('object-geo', {
-	renderer: CnObjectGeoWidget,
-	form: CnObjectGeoWidgetForm,
+	renderer: LazyCnObjectGeoWidget,
+	form: LazyCnObjectGeoWidgetForm,
 	defaultContent: {
 		title: '',
 		editable: true,
