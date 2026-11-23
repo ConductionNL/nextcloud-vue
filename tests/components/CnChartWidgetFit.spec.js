@@ -34,6 +34,7 @@ jest.mock('../../src/composables/useDataSource.js', () => ({
 import { mount } from '@vue/test-utils'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
 import CnDashboardPage from '../../src/components/CnDashboardPage/CnDashboardPage.vue'
+import { loadApexCharts } from '../../src/components/CnChartWidget/apexChartsLoader.js'
 
 const barProps = {
 	type: 'bar',
@@ -85,6 +86,9 @@ function mountDashboard(widgets) {
 	})
 }
 
+// The chart component loads on demand; load it once so mounts render it at once.
+beforeAll(() => loadApexCharts())
+
 describe('CnChartWidget — container fitting', () => {
 	it('keeps the pinned-height rendering by default (regression)', () => {
 		const wrapper = mountChart(barProps)
@@ -117,7 +121,8 @@ describe('CnChartWidget — container fitting', () => {
 		const wrapper = mountChart({ ...barProps, height: '100%' })
 		const canvas = wrapper.find('.cn-chart-widget__canvas')
 		expect(canvas.exists()).toBe(true)
-		expect(canvas.find('.vue-apexcharts-stub').exists()).toBe(true)
+		// The chart is drawn inside the box's shadow root.
+		expect(canvas.element.shadowRoot.querySelector('.cn-chart-widget__chart .vue-apexcharts-stub')).not.toBeNull()
 	})
 })
 

@@ -15,6 +15,7 @@ import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnNoticeWidget from '../../src/components/CnNoticeWidget/CnNoticeWidget.vue'
 import { BUILT_IN_WIDGETS } from '../../src/components/CnWidgetGrid/builtInWidgets.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { resolveRegistryRenderer } from '../../src/utils/widgetDispatch.js'
 
 const mockFetchJson = jest.fn()
@@ -60,16 +61,17 @@ describe('CnNoticeWidget', () => {
 		expect(mountNotice({ variant: 'warning' }).find('.cn-notice-widget').exists()).toBe(false)
 	})
 
-	it('is the built-in widget type notice', () => {
-		expect(BUILT_IN_WIDGETS.notice).toBe(CnNoticeWidget)
-		expect(resolveRegistryRenderer({ type: 'notice' }, {})).toBe(CnNoticeWidget)
+	it('is the built-in widget type notice', async () => {
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.notice)).toBe(CnNoticeWidget)
+		expect(await loadLazyComponent(resolveRegistryRenderer({ type: 'notice' }, {}))).toBe(CnNoticeWidget)
 	})
 
-	it('renders through the detail widget host the side column uses', () => {
+	it('renders through the detail widget host the side column uses', async () => {
 		const w = mount(CnDetailWidgetHost, {
 			props: { widget: { id: 'special', type: 'notice', content: CONTENT }, chrome: 'card', showCardTitle: true },
 			global: { provide: { cnTranslate: (key) => NL[key] ?? key } },
 		})
+		await flushPromises()
 		expect(w.find('[data-testid="cn-notice-widget"]').text()).toContain('Elke inzage wordt gelogd met het doel.')
 	})
 })

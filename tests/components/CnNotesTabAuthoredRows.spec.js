@@ -102,10 +102,11 @@ describe('CnNotesTab authored rows on OpenRegister notes', () => {
 })
 
 describe('notes integration', () => {
-	it('forwards noteRows to the notes tab', () => {
+	it('forwards noteRows to the notes tab', async () => {
 		const wrapper = mount(notesIntegration.widget, {
 			propsData: { ...DEFAULT_PROPS, mentionUrl: '/apps/app/api/mention', noteRows: 'authored' },
 		})
+		await flushPromises()
 
 		expect(wrapper.findComponent(CnNotesTab).props('noteRows')).toBe('authored')
 	})

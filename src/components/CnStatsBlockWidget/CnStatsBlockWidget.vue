@@ -122,6 +122,7 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import CnStatWidget from '../CnStatWidget/CnStatWidget.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
+import widgetData from '../../mixins/widgetData.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
@@ -202,6 +203,8 @@ export default {
 	name: 'CnStatsBlockWidget',
 
 	components: { CnStatsBlock, CnStatWidget },
+
+	mixins: [widgetData],
 
 	inject: {
 		/**
@@ -666,6 +669,23 @@ export default {
 				field: (entry && entry.field) || '',
 				filter: this.resolvedEntryFilter(entry),
 			})))
+		},
+
+		/**
+		 * What the widget shows, for the `data` event: the count of a single
+		 * source, or every entry's count; null until a count is known.
+		 *
+		 * @return {{count: number}|{counts: Array<number|null>}|null}
+		 * @spec openspec/changes/widget-data-event/specs/widget-data-event/spec.md#requirement-a-self-fetching-widget-tells-its-host-what-it-shows
+		 */
+		widgetData() {
+			if (this.hasEntries) {
+				return this.entryFetching.some(Boolean) || this.entryCounts.length === 0 ? null : { counts: [...this.entryCounts] }
+			}
+			if (typeof this.restCount === 'number' || this.dsData?.count !== undefined) {
+				return { count: this.resolvedCount }
+			}
+			return null
 		},
 
 		resolvedCount() {

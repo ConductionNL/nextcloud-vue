@@ -14,6 +14,7 @@ import { generateOcsUrl } from '@nextcloud/router'
  */
 
 let pending = null
+let pendingCounts = null
 
 /**
  * The entries of Nextcloud's navigation, read once per page load.
@@ -78,4 +79,32 @@ export function navigationApps(axios) {
  */
 export function clearAppDisplayNames() {
 	pending = null
+	pendingCounts = null
+}
+
+/**
+ * The reader's notifications counted per app, read once per page load from
+ * the Notifications app. Without that app, or on a failed read, every count
+ * is absent.
+ *
+ * @param {object} axios The axios instance.
+ * @return {Promise<Record<string, number>>} The counts by app id.
+ */
+export function notificationCountsByApp(axios) {
+	if (!pendingCounts) {
+		pendingCounts = axios.get(generateOcsUrl('apps/notifications/api/v2/notifications'), { params: { format: 'json' }, headers: { 'OCS-APIRequest': 'true' } })
+			.then((res) => {
+				const entries = (res && res.data && res.data.ocs && res.data.ocs.data) || []
+				const counts = {}
+				for (const entry of Array.isArray(entries) ? entries : []) {
+					const app = entry && entry.app ? String(entry.app) : ''
+					if (app !== '') {
+						counts[app] = (counts[app] || 0) + 1
+					}
+				}
+				return counts
+			})
+			.catch(() => ({}))
+	}
+	return pendingCounts
 }

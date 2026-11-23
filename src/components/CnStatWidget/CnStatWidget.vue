@@ -136,6 +136,12 @@
 						<component :is="trendIcon" :size="14" />
 						{{ formattedTrend }}
 					</span>
+					<span
+						v-else-if="noPreviousText"
+						class="cn-stat-widget__trend cn-stat-widget__trend--none"
+						data-testid="cn-stat-widget-no-previous">
+						{{ noPreviousText }}
+					</span>
 				</template>
 				<span
 					v-if="!isStacked && !displayLoading && !displayError && resolvedCaption"
@@ -336,6 +342,7 @@ function calendarDay(value) {
  *   previousField: 'previousPeriod.revenue',   // → trend sublabel (arrow + % vs previous)
  *   // deltaField: 'revenueDeltaPct',          // OR a server-computed delta percent
  *   goodDirection: 'up',                       // tints the trend good/bad (default 'up')
+ *   noPreviousText: 'No earlier period to compare with', // when the previous value is missing or 0
  *   variantWhen: [                             // first-match threshold styling
  *     { op: 'gte', value: 100000, variant: 'success' },
  *     { op: 'lt', value: 10000, variant: 'warning', icon: 'AlertOutline' },
@@ -497,6 +504,8 @@ export default {
 		 * payload; `previousField` (previous-period value) or `deltaField`
 		 * (server-computed percent) renders the trend sublabel (arrow +
 		 * percent-vs-previous, tinted by `goodDirection`, default `'up'`);
+		 * `noPreviousText` replaces that sublabel when `previousField` is set
+		 * but the previous value is missing, not numeric or 0;
 		 * `variantWhen` (`[{ op, value, variant, icon? }]`, first match wins)
 		 * re-tints the value/icon by threshold.
 		 *
@@ -544,7 +553,7 @@ export default {
 		 * counted between LOCAL CALENDAR DAYS, not as elapsed milliseconds, so
 		 * the time of day on a deadline never moves the answer.
 		 *
-		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
+		 * @type {{label?: string, icon?: string, iconColor?: string, valueColor?: string, caption?: string, route?: (object|string), clickRoute?: (object|string), link?: string, format?: {style?: string, currency?: string, decimals?: number, prefix?: string, suffix?: string}, source?: {kind?: string, register?: string, schema?: string, metric?: string, field?: string, filter?: object, url?: string, path?: string, params?: object}, endpointSource?: {url: string, method?: string, params?: object, responsePath?: string}, valueField?: string, limitField?: string, limit?: number, dateRange?: {presets?: Array<{id: string, label?: string, from?: string, to?: string}>, default?: string}, previousField?: string, deltaField?: string, goodDirection?: ('up'|'down'), noPreviousText?: string, variant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), variantWhen?: Array<{op: string, value: unknown, variant: string, icon?: string}>, objectField?: (string|{field: string, resolve?: {register: string, schema: string, labelField?: string, variantField?: string, variantMap?: {[key: string]: string}}}), display?: ('text'|'badge'|'countdown'), countdown?: {unit?: 'days', warnAt?: number, dangerAt?: number, futureLabel?: string, todayLabel?: string, pastLabel?: string, emptyText?: string}, emptyText?: string, captionVariant?: ('default'|'primary'|'success'|'warning'|'error'|'danger'), captionVariantWhen?: Array<{op: string, value: unknown, variant: string}>, captionSource?: {kind?: 'ratio', register?: string, schema?: string, metric?: string, field?: string, filter?: object, via?: string, zeroText?: string, numerator?: {metric?: string, field?: string, filter?: object, via?: string}, denominator?: {metric?: string, field?: string, filter?: object, via?: string}, decimals?: number}, overrides?: Array<{when: {field: string, op?: string, value?: unknown}, label?: string, variant?: string, icon?: string, caption?: string, captionVariant?: string}>}}
 		 */
 		content: {
 			type: Object,
@@ -1387,6 +1396,24 @@ export default {
 				return null
 			}
 			return ((cur - prev) / Math.abs(prev)) * 100
+		},
+
+		/**
+		 * The translated `content.noPreviousText` when `previousField` is set
+		 * and the previous value is missing, not numeric or 0, else ''.
+		 *
+		 * @return {string}
+		 */
+		noPreviousText() {
+			const text = this.content.noPreviousText
+			if (typeof text !== 'string' || text === '' || !this.endpointMode || !this.content.previousField || this.content.deltaField) {
+				return ''
+			}
+			if (this.displayLoading || this.displayError || !this.epData) {
+				return ''
+			}
+			const prev = this.previousValue
+			return prev === null || prev === 0 ? this.effectiveTranslate(text) : ''
 		},
 
 		/** The signed trend percent, e.g. "+12.3%". */
@@ -2507,6 +2534,11 @@ export default {
 	gap: 2px;
 	font-size: var(--cn-kpi-label-size, 13px);
 	font-weight: var(--cn-kpi-title-weight, 600);
+}
+
+.cn-stat-widget__trend--none {
+	color: var(--color-text-maxcontrast);
+	font-weight: normal;
 }
 
 /* The dash shown when the number could not be fetched. It stands where the

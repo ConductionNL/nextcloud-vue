@@ -8,9 +8,10 @@
  * - card-grid: resolves; renders CnObjectCard per object
  */
 
-import { mount, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
 // We test the built-in registry directly
 const { BUILT_IN_WIDGETS } = require('../../src/components/CnWidgetGrid/builtInWidgets.js')
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 describe('builtInWidgets registry', () => {
 	it('registers object-table key', () => {
@@ -26,55 +27,55 @@ describe('builtInWidgets registry', () => {
 		expect(BUILT_IN_WIDGETS['card-grid']).toBeDefined()
 	})
 
-	it('object-table is CnWidgetObjectTable component', () => {
+	it('object-table is CnWidgetObjectTable component', async () => {
 		const CnWidgetObjectTable = require('../../src/components/CnWidgetObjectTable/CnWidgetObjectTable.vue').default
-		expect(BUILT_IN_WIDGETS['object-table']).toBe(CnWidgetObjectTable)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['object-table'])).toBe(CnWidgetObjectTable)
 	})
-	it('form-renderer is CnWidgetFormRenderer component', () => {
+	it('form-renderer is CnWidgetFormRenderer component', async () => {
 		const CnWidgetFormRenderer = require('../../src/components/CnWidgetFormRenderer/CnWidgetFormRenderer.vue').default
-		expect(BUILT_IN_WIDGETS['form-renderer']).toBe(CnWidgetFormRenderer)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['form-renderer'])).toBe(CnWidgetFormRenderer)
 	})
-	it('map-viewer is CnWidgetMapViewer component', () => {
+	it('map-viewer is CnWidgetMapViewer component', async () => {
 		const CnWidgetMapViewer = require('../../src/components/CnWidgetMapViewer/CnWidgetMapViewer.vue').default
-		expect(BUILT_IN_WIDGETS['map-viewer']).toBe(CnWidgetMapViewer)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['map-viewer'])).toBe(CnWidgetMapViewer)
 	})
-	it('card-grid is CnWidgetCardGrid component', () => {
+	it('card-grid is CnWidgetCardGrid component', async () => {
 		const CnWidgetCardGrid = require('../../src/components/CnWidgetCardGrid/CnWidgetCardGrid.vue').default
-		expect(BUILT_IN_WIDGETS['card-grid']).toBe(CnWidgetCardGrid)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['card-grid'])).toBe(CnWidgetCardGrid)
 	})
 
 	it('registers nav-card-grid key', () => {
 		expect(BUILT_IN_WIDGETS['nav-card-grid']).toBeDefined()
 	})
 
-	it('nav-card-grid is CnNavCardGrid component', () => {
+	it('nav-card-grid is CnNavCardGrid component', async () => {
 		const CnNavCardGrid = require('../../src/components/CnNavCardGrid/CnNavCardGrid.vue').default
-		expect(BUILT_IN_WIDGETS['nav-card-grid']).toBe(CnNavCardGrid)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['nav-card-grid'])).toBe(CnNavCardGrid)
 	})
 
-	it('registers the Wave-1 keys: banner + audit-trail', () => {
+	it('registers the Wave-1 keys: banner + audit-trail', async () => {
 		const CnBannerWidget = require('../../src/components/CnBannerWidget/CnBannerWidget.vue').default
 		const CnAuditTrailWidget = require('../../src/components/CnAuditTrailWidget/CnAuditTrailWidget.vue').default
-		expect(BUILT_IN_WIDGETS.banner).toBe(CnBannerWidget)
-		expect(BUILT_IN_WIDGETS['audit-trail']).toBe(CnAuditTrailWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.banner)).toBe(CnBannerWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS['audit-trail'])).toBe(CnAuditTrailWidget)
 	})
 
-	it('ports header / text / divider to the v2 grid (same content-only components as the dashboard catalog)', () => {
+	it('ports header / text / divider to the v2 grid (same content-only components as the dashboard catalog)', async () => {
 		const CnHeaderWidget = require('../../src/components/CnHeaderWidget/CnHeaderWidget.vue').default
 		const CnTextWidget = require('../../src/components/CnTextWidget/CnTextWidget.vue').default
 		const CnDividerWidget = require('../../src/components/CnDividerWidget/CnDividerWidget.vue').default
-		expect(BUILT_IN_WIDGETS.header).toBe(CnHeaderWidget)
-		expect(BUILT_IN_WIDGETS.text).toBe(CnTextWidget)
-		expect(BUILT_IN_WIDGETS.divider).toBe(CnDividerWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.header)).toBe(CnHeaderWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.text)).toBe(CnTextWidget)
+		expect(await loadLazyComponent(BUILT_IN_WIDGETS.divider)).toBe(CnDividerWidget)
 		// Identity with the dashboard registry renderers — one component, two surfaces.
 		require('../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 		const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
-		expect(getWidgetTypeEntry('header').renderer).toBe(CnHeaderWidget)
-		expect(getWidgetTypeEntry('text').renderer).toBe(CnTextWidget)
-		expect(getWidgetTypeEntry('divider').renderer).toBe(CnDividerWidget)
+		expect(await loadLazyComponent(getWidgetTypeEntry('header').renderer)).toBe(CnHeaderWidget)
+		expect(await loadLazyComponent(getWidgetTypeEntry('text').renderer)).toBe(CnTextWidget)
+		expect(await loadLazyComponent(getWidgetTypeEntry('divider').renderer)).toBe(CnDividerWidget)
 	})
 
-	it('a v2 widgets[] entry with widgetKey "header" renders CnHeaderWidget content-only', () => {
+	it('a v2 widgets[] entry with widgetKey "header" renders CnHeaderWidget content-only', async () => {
 		const CnWidgetGrid = require('../../src/components/CnWidgetGrid/CnWidgetGrid.vue').default
 		const wrapper = shallowMount(CnWidgetGrid, {
 			propsData: {
@@ -89,7 +90,10 @@ describe('builtInWidgets registry', () => {
 					props: { content: { title: 'Welcome' } },
 				}],
 			},
+			// Render the lazy registry wrapper so the stubbed header appears inside it.
+			global: { stubs: { LazyCnHeaderWidget: false } },
 		})
+		await flushPromises()
 		const header = wrapper.findComponent({ name: 'CnHeaderWidget' })
 		expect(header.exists()).toBe(true)
 		expect(header.props('content')).toEqual({ title: 'Welcome' })
@@ -181,7 +185,7 @@ describe('CnWidgetCardGrid', () => {
 // documented capability that renders nowhere) — it passes, using ONLY
 // library code (real CnWidgetGrid, real BUILT_IN_WIDGETS, real CnNavCardGrid).
 describe('nav-card-grid — manifest-only render (no consumer registry, no consumer Vue file)', () => {
-	it('a v2 widgets[] entry with widgetKey "nav-card-grid" renders CnNavCardGrid with its manifest entries', () => {
+	it('a v2 widgets[] entry with widgetKey "nav-card-grid" renders CnNavCardGrid with its manifest entries', async () => {
 		const CnWidgetGrid = require('../../src/components/CnWidgetGrid/CnWidgetGrid.vue').default
 		const wrapper = mount(CnWidgetGrid, {
 			propsData: {
@@ -206,6 +210,7 @@ describe('nav-card-grid — manifest-only render (no consumer registry, no consu
 				}],
 			},
 		})
+		await flushPromises()
 		const navCardGrid = wrapper.findComponent({ name: 'CnNavCardGrid' })
 		expect(navCardGrid.exists()).toBe(true)
 		expect(navCardGrid.props('title')).toBe('Progress')

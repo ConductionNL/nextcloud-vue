@@ -7,11 +7,13 @@
  * fields) into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnSettingsFormWidget from './CnSettingsFormWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnSettingsFormWidget = lazyComponent(() => import('./CnSettingsFormWidget.vue'), 'CnSettingsFormWidget')
+
 registerDashboardWidget('settings-form', {
-	renderer: CnSettingsFormWidget,
+	renderer: LazyCnSettingsFormWidget,
 	form: null,
 	defaultContent: {
 		fields: [],
@@ -22,5 +24,5 @@ registerDashboardWidget('settings-form', {
 	surfaces: ['detail-page'],
 })
 
-export { CnSettingsFormWidget }
-export default CnSettingsFormWidget
+export { default as CnSettingsFormWidget } from './CnSettingsFormWidget.vue'
+export { default } from './CnSettingsFormWidget.vue'
