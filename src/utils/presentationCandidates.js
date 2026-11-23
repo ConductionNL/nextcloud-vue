@@ -9,6 +9,7 @@
  * @spec openspec/changes/view-presentation-picker/tasks.md#task-1
  */
 import { translate as t } from '@nextcloud/l10n'
+import { propertyTitle } from './propertyTitle.js'
 
 const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean']
 
@@ -22,13 +23,16 @@ export const MAX_CARD_FIELDS = 4
  *   lifecycle (`x-openregister-lifecycle.field`) names as its state, or a
  *   relation to one object (`$ref`);
  * - card fields: any scalar property (the picker caps the choice at four);
- * - date fields: a property with `format` `date` or `date-time`.
+ * - date fields: a property with `format` `date` or `date-time`;
+ * - gallery cover: a file, a list of files or a string of `format: image`;
+ * - gallery title: a string property.
  *
  * A type whose required role has no candidate carries a reason, so the picker
  * can show it disabled and say why. The server stays the authority.
  *
  * @param {object|null} schema A JSON Schema with `properties`.
- * @return {{group: Array<{key: string, label: string, values: (string[]|null)}>, card: Array<{key: string, label: string}>, date: Array<{key: string, label: string}>, reasons: {kanban: string, calendar: string}}} The candidates.
+ * @return {{group: Array<{key: string, label: string, values: (string[]|null)}>, card: Array<{key: string, label: string}>, date: Array<{key: string, label: string}>, cover: Array<{key: string, label: string}>, title: Array<{key: string, label: string}>, reasons: {kanban: string, calendar: string, gallery: string}}} The candidates.
+ * @spec openspec/changes/presentation-picker-gallery/specs/presentation-picker-gallery/spec.md#requirement-a-saved-view-can-be-chosen-to-show-as-a-gallery
  */
 export function presentationCandidates(schema) {
 	const properties = (schema && typeof schema === 'object' && schema.properties && typeof schema.properties === 'object') ? schema.properties : {}
@@ -38,11 +42,13 @@ export function presentationCandidates(schema) {
 	const group = []
 	const card = []
 	const date = []
+	const cover = []
+	const title = []
 	for (const [key, prop] of Object.entries(properties)) {
 		if (!prop || typeof prop !== 'object') {
 			continue
 		}
-		const label = prop.title || key
+		const label = propertyTitle(prop, key)
 		const isEnum = prop.type === 'string' && Array.isArray(prop.enum) && prop.enum.length > 0
 		const isRelation = typeof prop.$ref === 'string' && prop.$ref !== '' && prop.type !== 'array'
 		if (isEnum || key === lifecycleField || isRelation) {
@@ -54,14 +60,23 @@ export function presentationCandidates(schema) {
 		if (prop.format === 'date' || prop.format === 'date-time') {
 			date.push({ key, label })
 		}
+		const isFile = prop.type === 'file' || (prop.type === 'array' && prop.items && prop.items.type === 'file')
+		if (isFile || (prop.type === 'string' && prop.format === 'image')) {
+			cover.push({ key, label })
+		} else if (prop.type === 'string' && !prop.format) {
+			title.push({ key, label })
+		}
 	}
 	return {
 		group,
 		card,
 		date,
+		cover,
+		title,
 		reasons: {
 			kanban: group.length === 0 ? t('nextcloud-vue', 'This schema has no status or choice field to group by') : '',
 			calendar: date.length === 0 ? t('nextcloud-vue', 'This schema has no date field') : '',
+			gallery: title.length === 0 ? t('nextcloud-vue', 'This schema has no text field to title a card') : '',
 		},
 	}
 }
@@ -83,6 +98,9 @@ export function isPresentationComplete(presentation) {
 	if (presentation.viewType === 'calendar') {
 		return !!(presentation.calendar && presentation.calendar.dateField)
 	}
+	if (presentation.viewType === 'gallery') {
+		return !!(presentation.gallery && presentation.gallery.titleField)
+	}
 	return false
 }
 
@@ -96,6 +114,6 @@ export function isPresentationComplete(presentation) {
  * @return {string} The path found in the message, or '' when none is named.
  */
 export function presentationErrorPath(message) {
-	const found = ['kanban.groupByField', 'calendar.endDateField', 'calendar.dateField'].find((path) => String(message || '').includes(path))
+	const found = ['kanban.groupByField', 'calendar.endDateField', 'calendar.dateField', 'gallery.titleField', 'gallery.coverField', 'gallery.cardFields', 'gallery.cardSize'].find((path) => String(message || '').includes(path))
 	return found || ''
 }

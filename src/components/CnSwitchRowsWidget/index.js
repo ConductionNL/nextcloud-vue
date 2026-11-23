@@ -7,11 +7,13 @@
  * current object and saved on toggle) into the shared dashboardWidgetRegistry.
  */
 
-import CnSwitchRowsWidget from './CnSwitchRowsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnSwitchRowsWidget = lazyComponent(() => import('./CnSwitchRowsWidget.vue'), 'CnSwitchRowsWidget')
+
 registerDashboardWidget('switch-rows', {
-	renderer: CnSwitchRowsWidget,
+	renderer: LazyCnSwitchRowsWidget,
 	form: null,
 	defaultContent: {
 		rows: [],
@@ -21,5 +23,5 @@ registerDashboardWidget('switch-rows', {
 	surfaces: ['detail-page'],
 })
 
-export { CnSwitchRowsWidget }
-export default CnSwitchRowsWidget
+export { default as CnSwitchRowsWidget } from './CnSwitchRowsWidget.vue'
+export { default } from './CnSwitchRowsWidget.vue'

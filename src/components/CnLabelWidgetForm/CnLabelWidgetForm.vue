@@ -12,13 +12,22 @@
 			required
 			@update:modelValue="updateField('text', $event)" />
 
+		<NcCheckboxRadioSwitch
+			:modelValue="groupHeading"
+			type="switch"
+			data-testid="cn-label-form-group-heading"
+			@update:modelValue="updateField('groupHeading', $event)">
+			{{ t('nextcloud-vue', 'Heading above a group of tiles') }}
+		</NcCheckboxRadioSwitch>
+
 		<NcTextField
+			v-if="!groupHeading"
 			:modelValue="fontSize"
 			:label="t('nextcloud-vue', 'Font size')"
 			placeholder="16px"
 			@update:modelValue="updateField('fontSize', $event)" />
 
-		<label class="cn-label-widget-form__color-label">
+		<label v-if="!groupHeading" class="cn-label-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Color') }}
 			<CnColorPicker
 				:value="color"
@@ -27,7 +36,7 @@
 				@clear="updateField('color', '')" />
 		</label>
 
-		<label class="cn-label-widget-form__color-label">
+		<label v-if="!groupHeading" class="cn-label-widget-form__color-label">
 			{{ t('nextcloud-vue', 'Background color') }}
 			<CnColorPicker
 				:value="backgroundColor"
@@ -37,6 +46,7 @@
 		</label>
 
 		<NcSelect
+			v-if="!groupHeading"
 			:modelValue="fontWeight"
 			:options="fontWeightOptions"
 			:inputLabel="t('nextcloud-vue', 'Font weight')"
@@ -44,6 +54,7 @@
 			@update:modelValue="updateField('fontWeight', $event)" />
 
 		<NcSelect
+			v-if="!groupHeading"
 			:modelValue="textAlign"
 			:options="textAlignOptions"
 			:inputLabel="t('nextcloud-vue', 'Alignment')"
@@ -54,7 +65,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcSelect, NcTextField } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 
 const DEFAULT_CONTENT = Object.freeze({
@@ -70,7 +81,7 @@ const DEFAULT_CONTENT = Object.freeze({
  * CnLabelWidgetForm — the `CnAddWidgetModal` sub-form for creating or editing
  * a `label` widget placement.
  *
- * Exposes six controls and a `validate()` method returning
+ * Exposes seven controls (the group heading switch hides the style ones) and a `validate()` method returning
  * `[t('nextcloud-vue', 'Label text is required')]` when text is
  * empty / whitespace. Emits `update:content` with the assembled content blob
  * on every change and exposes `assembledContent` for the modal to read on
@@ -80,6 +91,7 @@ export default {
 	name: 'CnLabelWidgetForm',
 
 	components: {
+		NcCheckboxRadioSwitch,
 		NcTextField,
 		NcSelect,
 		CnColorPicker,
@@ -128,6 +140,7 @@ export default {
 			backgroundColor: initial.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
 			fontWeight: initial.fontWeight ?? DEFAULT_CONTENT.fontWeight,
 			textAlign: initial.textAlign ?? DEFAULT_CONTENT.textAlign,
+			groupHeading: initial.groupHeading === true,
 		}
 	},
 
@@ -151,6 +164,7 @@ export default {
 				backgroundColor: this.backgroundColor,
 				fontWeight: this.fontWeight,
 				textAlign: this.textAlign,
+				groupHeading: this.groupHeading,
 			}
 		},
 	},
@@ -161,7 +175,7 @@ export default {
 		/**
 		 * Set a field and notify the parent via `update:content`.
 		 *
-		 * @param {string} field one of: text, fontSize, color, backgroundColor, fontWeight, textAlign.
+		 * @param {string} field one of: text, fontSize, color, backgroundColor, fontWeight, textAlign, groupHeading.
 		 * @param {string} value the new value.
 		 * @return {void}
 		 */

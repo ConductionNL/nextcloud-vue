@@ -12,6 +12,7 @@
  */
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnSectionsWidget/index.js'
 
@@ -47,9 +48,9 @@ async function mountSections(content, availableWidgets = []) {
 }
 
 describe('CnSectionsWidget', () => {
-	it('registers as a renderer-only container type for the detail page', () => {
+	it('registers as a renderer-only container type for the detail page', async () => {
 		const entry = getWidgetTypeEntry('sections')
-		expect(entry.renderer).toBe(CnSectionsWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnSectionsWidget)
 		expect(entry.form).toBeNull()
 		expect(entry.container).toBe(true)
 		expect(entry.surfaces).toEqual(['detail-page'])

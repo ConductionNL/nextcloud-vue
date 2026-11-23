@@ -1,0 +1,1 @@
+- [x] 1 Header action `visibleWhen` on CnIndexPage (tests/components/CnIndexPageHeaderActionVisibleWhen.spec.js); docs/components/cn-index-page.md

@@ -10,13 +10,15 @@
  * as `widgetKey: "banner"` (see CnWidgetGrid/builtInWidgets.js).
  */
 
-import CnBannerWidgetForm from '../CnBannerWidgetForm/CnBannerWidgetForm.vue'
-import CnBannerWidget from './CnBannerWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnBannerWidgetForm = lazyComponent(() => import('../CnBannerWidgetForm/CnBannerWidgetForm.vue'), 'CnBannerWidgetForm')
+const LazyCnBannerWidget = lazyComponent(() => import('./CnBannerWidget.vue'), 'CnBannerWidget')
+
 registerDashboardWidget('banner', {
-	renderer: CnBannerWidget,
-	form: CnBannerWidgetForm,
+	renderer: LazyCnBannerWidget,
+	form: LazyCnBannerWidgetForm,
 	defaultContent: {
 		text: '',
 		variant: 'info',
@@ -27,5 +29,5 @@ registerDashboardWidget('banner', {
 	icon: 'AlertCircleOutline',
 })
 
-export { CnBannerWidget }
-export default CnBannerWidget
+export { default as CnBannerWidget } from './CnBannerWidget.vue'
+export { default } from './CnBannerWidget.vue'

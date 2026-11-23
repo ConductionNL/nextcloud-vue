@@ -112,7 +112,7 @@
 			:class="{ 'cn-features-board__panel--tabbed': tabs }"
 			:role="tabs ? 'tabpanel' : null"
 			:aria-labelledby="tabs ? `${uid}-tab-${activeTab}` : null">
-			<CnRoadmapTab v-if="tabs && activeTab === 'roadmap'" :repo="repo" />
+			<CnRoadmapTab v-if="tabs && activeTab === 'roadmap'" :repo="repo" v-bind="roadmapTabOptions" />
 			<template v-else>
 				<div
 					class="cn-features-board__filter"
@@ -374,6 +374,18 @@ export default {
 			validator: (value) => ['cards', 'rows'].includes(value),
 		},
 
+		/** How the Roadmap tab draws its issues: `grid` or `columns`. See CnRoadmapTab. */
+		roadmapLayout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/** Labels that put an open issue under In development. */
+		roadmapInProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Show the Features and Roadmap folder tabs. */
 		tabs: { type: Boolean, default: true },
 		/** Show the Actions menu (suggest, buildiq, AI skills, support), in the header or the tab row; false draws none. */
@@ -437,6 +449,19 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The Roadmap tab's layout options, only those set away from their
+		 * defaults, so a page that sets none renders the tab as before.
+		 *
+		 * @return {object}
+		 */
+		roadmapTabOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { layout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { inProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
 		language() {
 			return readerLanguage()
 		},

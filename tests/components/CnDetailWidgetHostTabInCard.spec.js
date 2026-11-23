@@ -7,7 +7,7 @@
  * titled card, instead of the compact count card. DqZaakBetrokkenen draws
  * "Partijen" that way, with a muted line under the title.
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { contactsIntegration } from '../../src/integrations/builtin/contacts.js'
 import { integrations } from '../../src/integrations/registry.js'
@@ -39,8 +39,9 @@ describe('CnDetailWidgetHost: an integration tab inside a card', () => {
 	beforeEach(() => integrations.register({ ...contactsIntegration, requiredApp: null }))
 	afterEach(() => integrations.__resetForTests())
 
-	it('draws the leaf\'s tab in a card titled and subtitled by the widget', () => {
+	it('draws the leaf\'s tab in a card titled and subtitled by the widget', async () => {
 		const w = mountHost({ subtitle: 'Everyone involved in this case, by role', content: { view: 'tab' } })
+		await flushPromises()
 		const card = w.find('[data-testid="cn-detail-widget-tab-card"]')
 		expect(card.exists()).toBe(true)
 		expect(card.text()).toContain('Partijen')
@@ -52,8 +53,9 @@ describe('CnDetailWidgetHost: an integration tab inside a card', () => {
 		w.unmount()
 	})
 
-	it('keeps the compact card without the switch', () => {
+	it('keeps the compact card without the switch', async () => {
 		const w = mountHost({})
+		await flushPromises()
 		expect(w.find('[data-testid="cn-detail-widget-tab-card"]').exists()).toBe(false)
 		expect(w.findComponent({ name: 'CnContactsCard' }).exists()).toBe(true)
 		w.unmount()

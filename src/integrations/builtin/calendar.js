@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnCalendarCard from './calendar/CnCalendarCard.vue'
-import CnCalendarTab from './calendar/CnCalendarTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnCalendarCard = lazyComponent(() => import('./calendar/CnCalendarCard.vue'), 'CnCalendarCard')
+const CnCalendarTab = lazyComponent(() => import('./calendar/CnCalendarTab.vue'), 'CnCalendarTab')
 
 /**
  * `calendar` integration descriptor.

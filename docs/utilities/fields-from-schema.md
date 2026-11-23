@@ -118,3 +118,7 @@ Same as the other schema helpers: `prop.order` ascending, alphabetical tie-break
 ## Concept-scheme bindings
 
 A property with `conceptScheme` or `x-openregister-concepts` (or an array whose `items` carry one) gets widget `select` (`multiselect` for an array) and a `codeList` tag: `{ property, multiple, store, contextProperty }`. The function fetches nothing; `CnFormDialog` asks OpenRegister for the options. A property without a binding is derived as before.
+
+## Names in the reader's language
+
+A property can carry `titles`, its name per language (`{ "nl": "Postcode", "pt-BR": "CEP" }`), beside `title` (OpenRegister keeps both). The label is `titles[<reader's language>]`, then the base language (`nl` for `nl-BE`), then `title`, then the key. Table columns, form fields, filters, cards, the info widget, sub-object and child-record tables, transition inputs and the presentation picker all name a field this way.

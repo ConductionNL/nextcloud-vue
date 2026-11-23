@@ -14,6 +14,7 @@
 const fs = require('fs')
 const path = require('path')
 const root = require('../../src/index.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 
 const REGISTRAR = path.resolve(__dirname, '../../src/components/CnWidgetGrid/registerDashboardWidgets.js')
 
@@ -56,9 +57,9 @@ describe('registered dashboard widgets are exported from the package entry', () 
 		expect(NOT_EXPORTED_YET).toEqual([])
 	})
 
-	it('exports CnBannerWidget as the component the banner type renders', () => {
+	it('exports CnBannerWidget as the component the banner type renders', async () => {
 		const { getWidgetTypeEntry } = root
 		expect(root.CnBannerWidget).toBeDefined()
-		expect(getWidgetTypeEntry('banner').renderer).toBe(root.CnBannerWidget)
+		expect(await loadLazyComponent(getWidgetTypeEntry('banner').renderer)).toBe(root.CnBannerWidget)
 	})
 })

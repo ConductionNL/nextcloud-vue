@@ -7,11 +7,13 @@
  * into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnTaskFormWidget from './CnTaskFormWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnTaskFormWidget = lazyComponent(() => import('./CnTaskFormWidget.vue'), 'CnTaskFormWidget')
+
 registerDashboardWidget('task-form', {
-	renderer: CnTaskFormWidget,
+	renderer: LazyCnTaskFormWidget,
 	form: null,
 	defaultContent: {},
 	displayName: 'Task form',
@@ -19,5 +21,5 @@ registerDashboardWidget('task-form', {
 	surfaces: ['detail-page'],
 })
 
-export { CnTaskFormWidget }
-export default CnTaskFormWidget
+export { default as CnTaskFormWidget } from './CnTaskFormWidget.vue'
+export { default } from './CnTaskFormWidget.vue'

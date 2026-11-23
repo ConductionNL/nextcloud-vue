@@ -8,11 +8,13 @@
  * Renderer only: the list is declared in the manifest.
  */
 
-import CnRecordListWidget from './CnRecordListWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnRecordListWidget = lazyComponent(() => import('./CnRecordListWidget.vue'), 'CnRecordListWidget')
+
 registerDashboardWidget('record-list', {
-	renderer: CnRecordListWidget,
+	renderer: LazyCnRecordListWidget,
 	form: null,
 	defaultContent: {
 		register: '',
@@ -26,5 +28,5 @@ registerDashboardWidget('record-list', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnRecordListWidget }
-export default CnRecordListWidget
+export { default as CnRecordListWidget } from './CnRecordListWidget.vue'
+export { default } from './CnRecordListWidget.vue'

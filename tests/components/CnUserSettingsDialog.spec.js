@@ -10,7 +10,7 @@
  * @spec openspec/changes/user-settings-board-dialog/specs/user-settings-board-dialog/spec.md#requirement-the-user-settings-dialog-takes-the-board-look
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { h, inject, onMounted } from 'vue'
 import CnUserSettingsDialog from '../../src/components/CnUserSettingsDialog/CnUserSettingsDialog.vue'
 
@@ -109,6 +109,7 @@ describe('CnAppRoot: the user settings dialog by look', () => {
 		})
 		w.vm.userSettingsOpen = true
 		await w.vm.$nextTick()
+		await flushPromises()
 		return w
 	}
 

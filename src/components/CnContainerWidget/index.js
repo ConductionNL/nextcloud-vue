@@ -6,13 +6,15 @@
  * the shared dashboardWidgetRegistry at module load.
  */
 
-import CnContainerWidgetForm from '../CnContainerWidgetForm/CnContainerWidgetForm.vue'
-import CnContainerWidget from './CnContainerWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnContainerWidgetForm = lazyComponent(() => import('../CnContainerWidgetForm/CnContainerWidgetForm.vue'), 'CnContainerWidgetForm')
+const LazyCnContainerWidget = lazyComponent(() => import('./CnContainerWidget.vue'), 'CnContainerWidget')
+
 registerDashboardWidget('container', {
-	renderer: CnContainerWidget,
-	form: CnContainerWidgetForm,
+	renderer: LazyCnContainerWidget,
+	form: LazyCnContainerWidgetForm,
 	defaultContent: {
 		placements: [],
 		backgroundColor: 'transparent',
@@ -23,5 +25,5 @@ registerDashboardWidget('container', {
 	icon: 'ViewDashboard',
 })
 
-export { CnContainerWidget }
-export default CnContainerWidget
+export { default as CnContainerWidget } from './CnContainerWidget.vue'
+export { default } from './CnContainerWidget.vue'

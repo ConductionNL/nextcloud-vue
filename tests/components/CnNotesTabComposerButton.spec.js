@@ -9,7 +9,7 @@
  * @spec openspec/changes/notes-tab-composer-button/specs/notes-tab-composer-button/spec.md#requirement-the-notes-tab-can-keep-its-composer-behind-a-button
  */
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import fs from 'fs'
 import path from 'path'
 import CnNotesTab from '../../src/components/CnObjectSidebar/CnNotesTab.vue'
@@ -77,10 +77,11 @@ describe('CnNotesTab composer button', () => {
 })
 
 describe('notes integration', () => {
-	it('forwards composer to the notes tab it draws for mentions and note actions', () => {
+	it('forwards composer to the notes tab it draws for mentions and note actions', async () => {
 		const wrapper = mount(notesIntegration.widget, {
 			propsData: { ...DEFAULT_PROPS, mentionUrl: '/apps/app/api/mention', composer: 'button' },
 		})
+		await flushPromises()
 
 		expect(wrapper.findComponent(CnNotesTab).props('composer')).toBe('button')
 	})

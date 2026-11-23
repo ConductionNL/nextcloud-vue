@@ -20,6 +20,7 @@ jest.mock('@nextcloud/router', () => ({ __esModule: true, generateUrl: (url, par
 
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnObjectPartiesWidget/index.js'
 
@@ -96,8 +97,8 @@ beforeEach(() => {
 })
 
 describe('CnObjectPartiesWidget', () => {
-	it('registers the parties type for detail pages', () => {
-		expect(getWidgetTypeEntry('parties').renderer).toBe(CnObjectPartiesWidget)
+	it('registers the parties type for detail pages', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('parties').renderer)).toBe(CnObjectPartiesWidget)
 	})
 
 	it('puts the primary party and its role first, in the app\'s words', async () => {

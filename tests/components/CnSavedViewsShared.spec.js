@@ -12,6 +12,8 @@ jest.mock('@nextcloud/l10n', () => ({
 }))
 const mockSearch = jest.fn()
 jest.mock('../../src/utils/searchGroupSharees.js', () => ({ __esModule: true, searchGroupSharees: (...a) => mockSearch(...a), searchUserAndGroupSharees: (...a) => mockSearch(...a) }))
+const mockMyGroups = jest.fn()
+jest.mock('../../src/utils/userGroupsPeek.js', () => ({ __esModule: true, loadCurrentUserGroups: (...a) => mockMyGroups(...a), peekCurrentUserGroups: () => null, getCurrentUserId: () => 'alice' }))
 
 const { flushPromises, mount } = require('@vue/test-utils')
 const CnSavedViewShareFields = require('../../src/components/CnSavedViewShareFields/CnSavedViewShareFields.vue').default
@@ -57,6 +59,48 @@ describe('buildViewCreatePayload sharedWith', () => {
 		expect(normalizeSharedWith(null)).toEqual([])
 		expect(normalizeSharedWith([{ user: 'fatma', mode: 'write' }, { user: 'fatma', mode: 'read' }, { user: 'x', group: 'y', mode: 'read' }, { group: 'fatma', mode: 'read' }]))
 			.toEqual([{ user: 'fatma', mode: 'write' }, { group: 'fatma', mode: 'read' }])
+	})
+})
+
+describe('CnSavedViewShareFields shareGroups', () => {
+	const sharees = [{ id: 'fatma', kind: 'user', label: 'Fatma Yilmaz' }, { id: 'desk', kind: 'group', label: 'Handling desk' }, { id: 'legal', kind: 'group', label: 'Legal' }]
+
+	it('offers every group by default', async () => {
+		mockSearch.mockResolvedValue(sharees)
+		const w = mount(CnSavedViewShareFields)
+		await flushPromises()
+		expect(w.vm.options.map((o) => o.id)).toEqual(['user:fatma', 'desk', 'legal'])
+		expect(mockMyGroups).not.toHaveBeenCalled()
+	})
+
+	it('offers only the groups the current user is in with mine, and people beside them', async () => {
+		mockSearch.mockResolvedValue(sharees)
+		mockMyGroups.mockResolvedValue(['legal'])
+		const w = mount(CnSavedViewShareFields, { props: { shareGroups: 'mine' } })
+		await flushPromises()
+		expect(w.vm.options.map((o) => o.id)).toEqual(['user:fatma', 'legal'])
+	})
+
+	it('offers only the named groups with an array', async () => {
+		mockSearch.mockResolvedValue(sharees)
+		const w = mount(CnSavedViewShareFields, { props: { shareGroups: ['desk'] } })
+		await flushPromises()
+		expect(w.vm.options.map((o) => o.id)).toEqual(['user:fatma', 'desk'])
+	})
+
+	it('renders nothing when the limit leaves nobody to offer', async () => {
+		mockSearch.mockResolvedValue([{ id: 'desk', kind: 'group', label: 'Handling desk' }])
+		mockMyGroups.mockResolvedValue([])
+		const w = mount(CnSavedViewShareFields, { props: { shareGroups: 'mine' } })
+		await flushPromises()
+		expect(w.find('[data-testid="cn-saved-view-share"]').exists()).toBe(false)
+	})
+
+	it('passes the limit through the save dialog', async () => {
+		mockSearch.mockResolvedValue(sharees)
+		const w = mount(CnSaveViewDialog, { props: { shareGroups: ['legal'] } })
+		await flushPromises()
+		expect(w.findComponent(CnSavedViewShareFields).props('shareGroups')).toEqual(['legal'])
 	})
 })
 

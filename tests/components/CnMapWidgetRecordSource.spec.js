@@ -195,3 +195,18 @@ describe('CnMapWidget — the places of a record', () => {
 		w.unmount()
 	})
 })
+
+describe('CnMapWidget — a geo property', () => {
+	it('plots the line or area a property holds, and a point at (0, 0) only as a point', async () => {
+		const area = { type: 'Polygon', coordinates: [[[5, 52], [5.1, 52], [5.1, 52.1], [5, 52]]] }
+		mockGet.mockResolvedValue({ data: { results: [{ id: 'a', perceel: area }, { id: 'b', perceel: { lat: 0, lng: 0 } }, { id: 'c' }] } })
+		const w = mount(CnMapWidget, {
+			props: { content: { markers: { dataSource: { register: 'r', schema: 'percelen' }, geoProperty: 'perceel' } } },
+		})
+		await flush()
+		const plotted = leaflet().geoJSON.mock.calls.at(-1)[0].features
+		expect(plotted).toHaveLength(1)
+		expect(plotted[0].geometry).toEqual(area)
+		w.unmount()
+	})
+})

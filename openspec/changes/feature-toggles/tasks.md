@@ -1,0 +1,2 @@
+- [x] 1 `features` in the manifest schema (2.185.0)
+- [x] 2 `featureFlags.js`, CnAppRoot wiring, `visibleIf.feature`, `visibleWhen.feature` (tests/utils/featureFlags.spec.js); docs/utilities/feature-flags.md
