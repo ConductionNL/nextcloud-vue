@@ -43,8 +43,8 @@
 		</ul>
 		<!-- A div, not a p: a theme's paragraph rule would draw the muted
 		     13px line at body size. -->
-		<div v-if="emptyLine" class="cn-linked-widget__empty" data-testid="cn-linked-empty">
-			{{ emptyLine }}
+		<div v-if="emptyLine || nothingLine" class="cn-linked-widget__empty" data-testid="cn-linked-empty">
+			{{ emptyLine || nothingLine }}
 		</div>
 		<span v-if="emptyActions.length > 0" class="cn-linked-widget__actions">
 			<button
@@ -129,7 +129,7 @@ export default {
 	},
 
 	props: {
-		/** `{ leaves: Array<string|object> }`: integration ids or record leaves, in the order to list them. */
+		/** `{ leaves: Array<string|object>, emptyText?: string }`: integration ids or record leaves, in the order to list them, and the line for a card with nothing to list. */
 		content: {
 			type: Object,
 			default: () => ({}),
@@ -265,6 +265,22 @@ export default {
 			}
 			const list = joinList(nouns)
 			return t('nextcloud-vue', '{things}: nothing linked', { things: list.charAt(0).toUpperCase() + list.slice(1) })
+		},
+
+		/**
+		 * `content.emptyText` once every listed leaf has answered and none has
+		 * anything to say, also when no leaf's app is here: a titled card with
+		 * no line under it reads as broken. '' while a leaf is still reading.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/linked-integrations-card/specs/linked-integrations-card/spec.md#requirement-one-card-lists-the-linked-integrations-of-a-record
+		 */
+		nothingLine() {
+			const text = this.content && this.content.emptyText
+			if (typeof text !== 'string' || text === '' || this.linkedRows.length > 0 || this.emptyLine !== '' || this.emptyActions.length > 0) {
+				return ''
+			}
+			return this.reported.length === this.orderedIds.length ? this.cnTranslate(text) : ''
 		},
 
 		/** @return {object[]} The actions of the leaves with nothing linked. */

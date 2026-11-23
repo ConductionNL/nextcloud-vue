@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.190.0', () => {
+	it('the manifest schema version reads 2.191.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1464,7 +1464,15 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.188.0 lets an api-call or navigate action act on a looked-up record (action.resolve; screens-action-resolve).
 		// 2.189.0 adds config.layoutPanel on a dashboard, a side panel where the user arranges the page (dashboard-layout-panel).
 		// 2.190.0 adds the connections page type (CnConnectionRegistry; connection-registry-page).
-		expect(schema.version).toBe('2.190.0')
+		// 2.191.0 lets a bulk action sit under More in the band (action.menu; bulk-actions-more-menu).
+		expect(schema.version).toBe('2.191.0')
+	})
+
+	it('accepts menu on a bulk action, as a yes or no (2.191.0)', () => {
+		const index = (bulkActions) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', bulkActions } }] })
+		expect(validateManifestV2(index([{ id: 'export', label: 'Export', handler: 'exportSelection', menu: true }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ id: 'export', label: 'Export', handler: 'exportSelection', menu: false }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ id: 'export', label: 'Export', handler: 'exportSelection', menu: 'yes' }])).valid).toBe(false)
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
