@@ -27,7 +27,7 @@
  */
 export type TPageType =
 	| 'index' | 'detail' | 'dashboard' | 'logs' | 'settings' | 'chat'
-	| 'files' | 'form' | 'map' | 'roadmap' | 'reports' | 'links' | 'store' | 'search' | 'wiki'
+	| 'files' | 'form' | 'map' | 'roadmap' | 'reports' | 'links' | 'store' | 'search' | 'wiki' | 'redaction'
 	| 'flow'
 	/** @deprecated `flows` predates named index sources — use `index` with `config.source: 'flows'`. */
 	| 'flows'
@@ -378,6 +378,12 @@ export interface TManifest {
 	$schema?: string
 	version: string
 	dependencies?: string[]
+	/**
+	 * Feature toggles the app declares. A page, widget, menu item or action
+	 * naming a key in `visibleIf.feature` / `visibleWhen.feature` shows only
+	 * while the toggle is on (values from initial state `features`).
+	 */
+	features?: Array<{ key: string, label: string, description?: string, default?: boolean, failMode?: 'open' | 'closed' }>
 	nav?: TManifestNav
 	/**
 	 * App defaults for the per-user options `CnPersonalPreferences` renders,

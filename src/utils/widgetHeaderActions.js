@@ -1,0 +1,99 @@
+// SPDX-FileCopyrightText: 2026 Conduction B.V.
+// SPDX-License-Identifier: EUPL-1.2
+
+import { resolveDeepTokens } from './resolveFilterTokens.js'
+import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from './visibleWhen.js'
+
+/**
+ * The key under which a detail widget host provides its widget's header
+ * actions to the card (CnWidgetWrapper, CnDetailCard) that draws them.
+ */
+export const WIDGET_HEADER_ACTIONS = 'cnWidgetHeaderActions'
+
+/**
+ * The key under which a detail widget host provides its widget's body
+ * actions (`bodyActions`) to a leaf that draws its own button row in the
+ * card body, after its own buttons.
+ */
+export const WIDGET_BODY_ACTIONS = 'cnWidgetBodyActions'
+
+/**
+ * One drawn header button.
+ *
+ * @typedef {object} WidgetHeaderAction
+ * @property {string} key Stable identity for the list.
+ * @property {string} label The label, translated.
+ * @property {string} icon A `CnIcon` name, or ''.
+ * @property {'primary'|'secondary'|'link'|'tonal'} variant The button's weight; `link` reads as a text link, `tonal` as a pill.
+ * @property {() => unknown} run Dispatches the action.
+ */
+
+/**
+ * Resolve a widget's manifest `headerActions` into the buttons its card
+ * header draws: `[{ label, icon?, variant?, visibleWhen?, action }]`.
+ *
+ * An entry needs a label and an action object. `visibleWhen` is decided on
+ * the record; an entry whose condition the page cannot decide (it names an
+ * endpoint or a source) is left out rather than shown wrongly. `run`
+ * dispatches the action with `@objectId` and `@object.<field>` resolved.
+ * An `edit-record` action opens the detail page's own record edit form
+ * through `context.recordEdit` instead, and is left out where that form is
+ * not available. An `open-tab` action (`{ type: 'open-tab', tab }`) opens
+ * that tab of the page through the `#<tab>` anchor the tab strip follows.
+ * An `open-sidebar-tab` action (`{ type: 'open-sidebar-tab', tab }`) opens
+ * the page's object sidebar on that tab through `context.sidebar`, and is
+ * left out where the page has no object sidebar.
+ *
+ * @param {object|null} widget The widget definition.
+ * @param {object} context `{ object, objectId, workspace?, translate?, dispatch, recordEdit?, sidebar? }`; `recordEdit` is
+ *   `{ available, open }` from the detail page, `sidebar` the page's
+ *   `objectSidebarState` (`{ open, requestedTab }`), `workspace` the page filters a
+ *   dashboard resolves `@workspace.<key>` tokens from.
+ * @param {string} [key] The list to read: `headerActions` (default) or `bodyActions`.
+ * @return {WidgetHeaderAction[]} The buttons, in manifest order.
+ * @spec openspec/changes/widget-header-actions/specs/widget-header-actions/spec.md#requirement-a-widget-declares-buttons-for-its-card-header
+ * @spec openspec/changes/widget-header-action-tonal/specs/widget-header-action-tonal/spec.md#requirement-a-dashboard-card-header-action-reads-the-page-filters
+ * @spec openspec/changes/widget-header-open-sidebar-tab/specs/widget-header-actions/spec.md#requirement-a-widget-header-button-can-open-a-sidebar-tab
+ */
+export function resolveWidgetHeaderActions(widget, context = {}, key = 'headerActions') {
+	const list = widget && Array.isArray(widget[key]) ? widget[key] : []
+	const object = context.object || {}
+	const translate = typeof context.translate === 'function' ? context.translate : (key) => key
+	const tokenCtx = { objectId: context.objectId, object, workspace: context.workspace || {} }
+	return list
+		.filter((entry) => entry && typeof entry.label === 'string' && entry.label !== '' && entry.action && typeof entry.action === 'object')
+		.filter((entry) => entry.action.type !== 'edit-record' || context.recordEdit?.available === true)
+		.filter((entry) => entry.action.type !== 'open-sidebar-tab' || (context.sidebar !== null && typeof context.sidebar === 'object'))
+		.filter((entry) => {
+			if (!entry.visibleWhen) {
+				return true
+			}
+			return isLocallyDecidableVisibleWhen(entry.visibleWhen) && evaluateVisibleWhenLocal(entry.visibleWhen, object)
+		})
+		.map((entry, index) => ({
+			key: `${index}-${entry.label}`,
+			label: translate(entry.label),
+			icon: typeof entry.icon === 'string' ? entry.icon : '',
+			variant: ['primary', 'link', 'tonal'].includes(entry.variant) ? entry.variant : 'secondary',
+			run: () => {
+				if (entry.action.type === 'edit-record') {
+					return context.recordEdit.open()
+				}
+				if (entry.action.type === 'open-sidebar-tab') {
+					context.sidebar.open = true
+					context.sidebar.requestedTab = String(entry.action.tab || '') || null
+					return undefined
+				}
+				if (entry.action.type === 'open-tab') {
+					window.location.hash = encodeURIComponent(String(entry.action.tab || ''))
+					return undefined
+				}
+				if (typeof context.dispatch !== 'function') {
+					return undefined
+				}
+				// The token context goes along, so a url or target fills
+				// `@object.<field>` and `@workspace.<key>` inside the string.
+				return context.dispatch(resolveDeepTokens(entry.action, tokenCtx), { tokenCtx })
+			},
+		}))
+}

@@ -23,9 +23,24 @@
 			:label="t('nextcloud-vue', 'Popup field')"
 			@input="popupField = $event" />
 
+		<CnFieldPicker
+			v-if="source.register && source.schema"
+			:value="geoProperty"
+			:register="source.register"
+			:schema="source.schema"
+			:label="t('nextcloud-vue', 'Location field')"
+			@input="geoProperty = $event" />
+
 		<p v-if="source.register && source.schema" class="cn-map-widget-form__hint">
-			{{ t('nextcloud-vue', 'Objects are plotted from their location (@self.geo). Objects without one are skipped.') }}
+			{{ t('nextcloud-vue', 'Objects are plotted from the location field: a point, line or area. Without one, from their location (@self.geo). Objects without a location are skipped.') }}
 		</p>
+
+		<NcSelect
+			:modelValue="basemapOption"
+			:options="basemapOptions"
+			:inputLabel="t('nextcloud-vue', 'Base map')"
+			:clearable="false"
+			@update:modelValue="onBasemap($event)" />
 
 		<label class="cn-map-widget-form__field">
 			<span class="cn-map-widget-form__label">
@@ -80,9 +95,10 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcCheckboxRadioSwitch, NcTextField } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
+import { BASEMAP_PRESETS, basemapFromPreset, presetOf } from '../CnMapWidget/basemapPresets.js'
 
 // The Netherlands, roughly — a sane default centre for a Dutch-government library.
 // autoFit is on by default, so this only shows before any object is plotted.
@@ -90,14 +106,7 @@ const DEFAULT_CENTRE = [52.13, 5.29]
 
 // Without a basemap the widget renders a grey box: CnMapWidget's `basemaps` prop is
 // opt-in and empty by default. The Nextcloud CSP already allows *.tile.openstreetmap.org.
-const DEFAULT_BASEMAPS = [
-	{
-		name: 'OpenStreetMap',
-		url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-		attribution: '© OpenStreetMap contributors',
-		options: { maxZoom: 19 },
-	},
-]
+const DEFAULT_BASEMAPS = [basemapFromPreset('osm')]
 
 const DEFAULT_CONTENT = {
 	register: '',
@@ -123,7 +132,7 @@ const DEFAULT_CONTENT = {
 export default {
 	name: 'CnMapWidgetForm',
 
-	components: { NcTextField, NcCheckboxRadioSwitch, CnRegisterSchemaSelect, CnFieldPicker },
+	components: { NcTextField, NcCheckboxRadioSwitch, NcSelect, CnRegisterSchemaSelect, CnFieldPicker },
 
 	props: {
 		/**
@@ -173,11 +182,12 @@ export default {
 			zoom: Number.isFinite(initial.zoom) ? initial.zoom : 7,
 			height: initial.height || '400px',
 			popupField: initial.popupField ?? '',
+			geoProperty: initial.markers?.geoProperty ?? '',
 			clustering: initial.clustering === true,
 			autoFit: initial.autoFit !== false,
 			centerMarker: initial.markers?.centerMarker === true,
-			// Preserved verbatim: the form does not expose a basemap picker, and dropping
-			// it on save would turn the user's map into a grey box.
+			// Preserved verbatim unless a preset is chosen: dropping it on save would
+			// turn the user's map into a grey box, and a custom base map has no preset.
 			basemaps: Array.isArray(initial.basemaps) && initial.basemaps.length
 				? initial.basemaps
 				: DEFAULT_BASEMAPS,
@@ -185,6 +195,21 @@ export default {
 	},
 
 	computed: {
+		/** The base map choices: the presets, plus the stored one when it is custom. */
+		basemapOptions() {
+			const presets = BASEMAP_PRESETS.map((preset) => ({ id: preset.id, label: preset.name }))
+			if (presetOf(this.basemaps[0]) === null) {
+				return [{ id: 'custom', label: this.basemaps[0]?.name || t('nextcloud-vue', 'Custom base map') }, ...presets]
+			}
+			return presets
+		},
+
+		/** The option of the first stored base map. */
+		basemapOption() {
+			const id = presetOf(this.basemaps[0]) ?? 'custom'
+			return this.basemapOptions.find((option) => option.id === id) ?? null
+		},
+
 		/** The assembled content blob from the current field values. */
 		assembledContent() {
 			return {
@@ -202,6 +227,7 @@ export default {
 				markers: {
 					dataSource: { register: this.source.register, schema: this.source.schema },
 					popupField: this.popupField,
+					...(this.geoProperty ? { geoProperty: this.geoProperty } : {}),
 					clustering: this.clustering,
 					centerMarker: this.centerMarker,
 				},
@@ -235,6 +261,20 @@ export default {
 			if (key === 'register') {
 				this.source.schema = ''
 				this.popupField = ''
+				this.geoProperty = ''
+			}
+		},
+
+		/**
+		 * Store the chosen preset as the base map. Choosing the custom entry keeps
+		 * the stored base maps as they are.
+		 *
+		 * @param {{id: string}|null} option The chosen option.
+		 */
+		onBasemap(option) {
+			const basemap = option && basemapFromPreset(option.id)
+			if (basemap) {
+				this.basemaps = [basemap]
 			}
 		},
 

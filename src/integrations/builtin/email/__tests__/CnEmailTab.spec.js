@@ -205,4 +205,16 @@ describe('CnEmailTab', () => {
 		expect(global.fetch).not.toHaveBeenCalled()
 		wrapper.unmount()
 	})
+
+	it('leaves its buttons to a host with showActions false, which opens the picker', async () => {
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ results: [], total: 0 }) })
+		const wrapper = mount(CnEmailTab, {
+			propsData: { objectId: 'o1', register: 'r1', schema: 's1', showActions: false },
+		})
+		await flushPromises()
+		expect(wrapper.find('.cn-email-tab__actions').exists()).toBe(false)
+		wrapper.vm.openPicker()
+		expect(wrapper.vm.pickerOpen).toBe(true)
+		wrapper.unmount()
+	})
 })

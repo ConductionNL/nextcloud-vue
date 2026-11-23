@@ -1,10 +1,12 @@
-import CnLabelWidgetForm from '../CnLabelWidgetForm/CnLabelWidgetForm.vue'
-import CnLabelWidget from './CnLabelWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnLabelWidgetForm = lazyComponent(() => import('../CnLabelWidgetForm/CnLabelWidgetForm.vue'), 'CnLabelWidgetForm')
+const LazyCnLabelWidget = lazyComponent(() => import('./CnLabelWidget.vue'), 'CnLabelWidget')
+
 registerDashboardWidget('label', {
-	renderer: CnLabelWidget,
-	form: CnLabelWidgetForm,
+	renderer: LazyCnLabelWidget,
+	form: LazyCnLabelWidgetForm,
 	defaultContent: {
 		text: '',
 		fontSize: '16px',
@@ -17,5 +19,5 @@ registerDashboardWidget('label', {
 	icon: 'FormatTitle',
 })
 
-export { CnLabelWidget }
-export default CnLabelWidget
+export { default as CnLabelWidget } from './CnLabelWidget.vue'
+export { default } from './CnLabelWidget.vue'

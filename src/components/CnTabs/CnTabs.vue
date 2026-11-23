@@ -34,7 +34,11 @@
 						<component :is="tab.titleRender" /> <span
 							v-if="hasCount(tab)"
 							class="cn-tabs__count"
-							data-testid="cn-tabs-count">{{ tab.count }}</span>
+							:aria-hidden="tab.countLabel ? 'true' : null"
+							data-testid="cn-tabs-count">{{ tab.count }}</span><span
+								v-if="hasCount(tab) && tab.countLabel"
+								class="hidden-visually"
+								data-testid="cn-tabs-count-label">{{ tab.countLabel }}</span>
 					</button>
 				</div>
 				<!-- Mouse-only affordances: keyboard users already have the arrow
@@ -263,6 +267,21 @@ export default defineComponent({
 			default: '',
 		},
 
+		/**
+		 * Leave the `overflow` tabs to the host's `#nav-end` menu instead of a
+		 * "More" menu of the strip's own. The strip then draws only the tabs
+		 * that are not `overflow`, and an overflow tab that is selected joins
+		 * it just before the last of them (board DqZaakBesluiten: Overview,
+		 * Files, Contact, Tasks, Decisions, History). The host lists the
+		 * overflow tabs and selects one through its `CnTab`'s `active`.
+		 *
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-board-tabs-list-their-overflow-in-the-actions-menu
+		 */
+		overflowInNavEnd: {
+			type: Boolean,
+			default: false,
+		},
+
 		/** Name of the menu that lists the `overflow` tabs. */
 		moreLabel: {
 			type: String,
@@ -377,14 +396,36 @@ export default defineComponent({
 		 *
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 		 */
-		const visibleTabs = computed(() => tabs.filter((tab) => boardStrip.value || !tab.overflow || tab.uid === activeUid.value))
+		const visibleTabs = computed(() => {
+			if (props.overflowInNavEnd) {
+				return navEndStrip()
+			}
+			return tabs.filter((tab) => boardStrip.value || !tab.overflow || tab.uid === activeUid.value)
+		})
+
+		/**
+		 * The strip under `overflowInNavEnd`: the tabs that are not
+		 * `overflow`, with a selected overflow tab placed before the last.
+		 *
+		 * @return {object[]} The tabs to draw, in order.
+		 * @spec openspec/changes/board-tabs-overflow-in-actions/specs/board-tabs-overflow-in-actions/spec.md#requirement-an-opened-overflow-tab-joins-the-strip-before-the-last-tab
+		 */
+		function navEndStrip() {
+			const pinned = tabs.filter((tab) => !tab.overflow)
+			const opened = tabs.find((tab) => tab.overflow && tab.uid === activeUid.value)
+			if (!opened) {
+				return pinned
+			}
+			const at = Math.max(0, pinned.length - 1)
+			return [...pinned.slice(0, at), opened, ...pinned.slice(at)]
+		}
 
 		/**
 		 * The tabs listed under "More": overflow tabs that are not selected.
 		 *
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-tab-counts-and-overflow
 		 */
-		const overflowTabs = computed(() => (boardStrip.value ? [] : tabs.filter((tab) => tab.overflow && tab.uid !== activeUid.value)))
+		const overflowTabs = computed(() => (boardStrip.value || props.overflowInNavEnd ? [] : tabs.filter((tab) => tab.overflow && tab.uid !== activeUid.value)))
 
 		/**
 		 * Whether a tab declares a count. `0` is a count; null and '' are not.
@@ -910,7 +951,16 @@ export default defineComponent({
 	overflow: visible;
 }
 
+/* `margin: 0`: a tab is a <button>, and Nextcloud's core stylesheet gives
+   every plain button a 3px margin, which put the tabs 7px apart and 3px low
+   (DqInstellingen: 4px apart, on the strip's top). The nldesign theme sets a
+   button's weight, corner and border width with `!important` through its
+   button tokens, which drew every tab bold with a 1px underline; the tab
+   hands its own values to those tokens. */
 .cn-tabs--underline .cn-tabs__nav-item {
+	--nldesign-component-button-font-weight: 500;
+	--nldesign-component-button-border-radius: 0;
+	--nldesign-component-button-border-width: 0 0 3px;
 	background-color: transparent;
 	border: 0;
 	border-bottom: 3px solid transparent;
@@ -919,6 +969,7 @@ export default defineComponent({
 	font-size: 14px;
 	font-weight: 500;
 	gap: 8px;
+	margin: 0;
 	min-height: 44px;
 	padding: 0 9px;
 }
@@ -938,6 +989,7 @@ export default defineComponent({
 .cn-tabs--underline .cn-tabs__nav-item--active,
 .cn-tabs--underline .cn-tabs__nav-item--active:hover,
 .cn-tabs--underline .cn-tabs__nav-item--active:focus-visible {
+	--nldesign-component-button-font-weight: 700;
 	border-bottom: 3px solid var(--color-primary-element);
 	color: var(--color-main-text);
 	font-weight: 700;

@@ -6,11 +6,14 @@
  * - Dispatching an open-modal action reaches cnOpenModal inject
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 // Vue 3 has no default export — `nextTick` is a named import.
 import { nextTick as vueNextTick } from 'vue'
 
 const CnPageRenderer = require('../../src/components/CnPageRenderer/CnPageRenderer.vue').default
+
+// The renderer loads the export dialog on demand; a named stub with its props stands in for it.
+const EXPORT_DIALOG_STUB = { name: 'CnMassExportDialog', props: require('../../src/components/CnMassExportDialog/CnMassExportDialog.vue').default.props, template: '<div />' }
 
 const v2Manifest = {
 	$schema: 'https://conduction.nl/schemas/app-manifest-v2.schema.json',
@@ -85,6 +88,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		return shallowMount(CnPageRenderer, {
 			propsData: { manifest: { ...v2Manifest, actions } },
 			mocks: { $route: { name: 'home', params: {} } },
+			global: { stubs: { CnMassExportDialog: EXPORT_DIALOG_STUB } },
 		})
 	}
 
@@ -92,7 +96,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		const wrapper = mountRenderer()
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
 		wrapper.vm.$.provides.cnDispatchAction(exportAction)
-		await vueNextTick()
+		await flushPromises()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		expect(dialog.exists()).toBe(true)
 		expect(dialog.props('entities')).toEqual(exportAction.entities)
@@ -107,7 +111,7 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 	it('falls back to the dialog default formats when the action declares none', async () => {
 		const wrapper = mountRenderer()
 		wrapper.vm.$.provides.cnDispatchAction({ ...exportAction, formats: undefined })
-		await vueNextTick()
+		await flushPromises()
 		const dialog = wrapper.findComponent({ name: 'CnMassExportDialog' })
 		// undefined → CnMassExportDialog's own Excel/CSV defaults apply.
 		expect(dialog.props('formats').map((f) => f.id)).toEqual(['excel', 'csv'])
@@ -159,5 +163,77 @@ describe('CnPageRenderer v2 — export launcher (Wave 1)', () => {
 		wrapper.findComponent({ name: 'CnMassExportDialog' }).vm.$emit('close')
 		await vueNextTick()
 		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).exists()).toBe(false)
+	})
+})
+
+describe('CnPageRenderer v2 — export action over OpenRegister objects (pl4-export-action)', () => {
+	const { stubLocationMethod } = require('../support/stubLocation.js')
+	const objectExport = {
+		id: 'export-report',
+		label: 'Export',
+		type: 'export',
+		entities: [
+			{ id: 'leads', label: 'Leads', register: 'pipelinq', schema: 'lead' },
+			{ id: 'requests', label: 'Requests', register: 'pipelinq', schema: 'ticket', filter: { ticketType: 'request' } },
+		],
+		formats: ['excel', 'csv'],
+	}
+	let assignSpy
+
+	beforeEach(() => {
+		assignSpy = stubLocationMethod('assign')
+	})
+	afterEach(() => assignSpy.mockRestore())
+
+	/**
+	 * Mount, open the export dialog for an action, and stub its result setter.
+	 *
+	 * @param {object} action The export action.
+	 * @return {Promise<{wrapper: object, setResult: Function}>}
+	 */
+	async function openExport(action) {
+		const wrapper = shallowMount(CnPageRenderer, {
+			propsData: { manifest: v2Manifest },
+			mocks: { $route: { name: 'home', params: {} } },
+			global: { stubs: { CnMassExportDialog: EXPORT_DIALOG_STUB } },
+		})
+		wrapper.vm.$.provides.cnDispatchAction(action)
+		await flushPromises()
+		const setResult = jest.fn()
+		wrapper.vm.$.refs.exportDialog = { setResult }
+		return { wrapper, setResult }
+	}
+
+	it('downloads the chosen entity from OpenRegister when no handler is named', async () => {
+		const { wrapper, setResult } = await openExport(objectExport)
+		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'requests' })
+		const url = assignSpy.mock.calls[0][0]
+		expect(url).toContain('/apps/openregister/api/objects/pipelinq/ticket/export')
+		expect(url).toContain('format=csv')
+		expect(url).toContain('ticketType=request')
+		expect(setResult).toHaveBeenCalledWith({ success: true })
+	})
+
+	it('takes the action\'s own register and schema when it has no entity picker', async () => {
+		const { wrapper } = await openExport({ id: 'x', label: 'Export', type: 'export', register: 'pipelinq', schema: 'lead' })
+		await wrapper.vm.onExportConfirm({ format: 'excel' })
+		expect(assignSpy.mock.calls[0][0]).toContain('/apps/openregister/api/objects/pipelinq/lead/export?format=excel')
+	})
+
+	it('hands the dialog only id and label, translated', async () => {
+		const { wrapper } = await openExport(objectExport)
+		expect(wrapper.findComponent({ name: 'CnMassExportDialog' }).props('entities')).toEqual([
+			{ id: 'leads', label: 'Leads' },
+			{ id: 'requests', label: 'Requests' },
+		])
+	})
+
+	it('still reports an error when neither a handler nor an object source is named', async () => {
+		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+		const { wrapper, setResult } = await openExport({ id: 'x', label: 'Export', type: 'export', entities: [{ id: 'a', label: 'A' }] })
+		await wrapper.vm.onExportConfirm({ format: 'csv', entity: 'a' })
+		expect(assignSpy).not.toHaveBeenCalled()
+		expect(setResult).toHaveBeenCalledWith({ error: expect.any(String) })
+		warnSpy.mockRestore()
 	})
 })

@@ -1,5 +1,5 @@
 <template>
-	<div class="cn-features-and-roadmap-view">
+	<div class="cn-features-and-roadmap-view" :class="{ 'cn-features-and-roadmap-view--board': isBoardLook && !disabled }">
 		<div v-if="disabled" class="cn-features-and-roadmap-view__disabled">
 			<NcEmptyContent :name="disabledTitle" :description="disabledDescription">
 				<template #icon>
@@ -68,7 +68,7 @@
 				<CnCapabilityTable
 					v-else-if="activeView === 'capabilities'"
 					:comparison="capabilityComparison" />
-				<CnRoadmapTab v-else :repo="repo" />
+				<CnRoadmapTab v-else :repo="repo" v-bind="roadmapTabOptions" />
 			</main>
 		</template>
 		<CnSupportDialog
@@ -179,6 +179,21 @@ export default {
 
 	props: {
 		/**
+		 * How the Roadmap tab draws its issues (`config.roadmapLayout`): `grid`
+		 * (default) or `columns` (Planned, In development, Available). See CnRoadmapTab.
+		 */
+		roadmapLayout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/** Labels that put an open issue under In development (`config.roadmapInProgressLabels`). */
+		roadmapInProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * `<owner>/<repo>` of the app's repository on the forge.
 		 */
 		repo: {
@@ -222,9 +237,9 @@ export default {
 
 		/**
 		 * Board look options, passed to CnFeaturesBoard: `layout` (`cards` or
-		 * `rows`), `tabs`, `filter` (`chips` or `segmented`), `statusLabels`,
-		 * `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`
-		 * and `suggestButton`. Ignored in the default look.
+		 * `rows`), `tabs`, `filter` (`chips` or `segmented`), `statusLabels`, `statusVariants`,
+		 * `next`, `issueLabels`, `subtitle`, `notice`, `noticeLink`,
+		 * `summaries`, `documentationButton` and `suggestButton`. Ignored in the default look.
 		 *
 		 * @type {object}
 		 */
@@ -445,6 +460,31 @@ export default {
 
 	computed: {
 		/**
+		 * The roadmap options for the board, only those set away from their defaults.
+		 *
+		 * @return {object}
+		 */
+		roadmapBoardOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { roadmapLayout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { roadmapInProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
+		/**
+		 * The Roadmap tab's layout options, only those set away from their
+		 * defaults, so a page that sets none renders the tab as before.
+		 *
+		 * @return {object}
+		 */
+		roadmapTabOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { layout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { inProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
+		/**
 		 * Whether the page is drawn in the board look.
 		 *
 		 * @return {boolean}
@@ -460,14 +500,14 @@ export default {
 		 * @return {object}
 		 */
 		boardOptions() {
-			const keys = ['layout', 'tabs', 'filter', 'statusLabels', 'next', 'issueLabels', 'subtitle', 'notice', 'documentationButton', 'suggestButton']
+			const keys = ['layout', 'tabs', 'filter', 'filterLabel', 'statusLabels', 'statusVariants', 'next', 'issueLabels', 'subtitle', 'notice', 'noticeLink', 'summaries', 'documentationButton', 'suggestButton', 'actionsMenu']
 			const options = {}
 			for (const key of keys) {
 				if (this.board && this.board[key] !== undefined && this.board[key] !== null) {
 					options[key] = this.board[key]
 				}
 			}
-			return options
+			return { ...options, ...this.roadmapBoardOptions }
 		},
 
 		/**
@@ -696,6 +736,14 @@ export default {
 	max-width: 1200px;
 	margin: 0 auto;
 	padding: 24px 16px;
+}
+
+/* The board draws its own page padding; the view adds none around it, so
+   the title stands where every other board page puts it (DqFunctionaliteiten). */
+.cn-features-and-roadmap-view--board {
+	max-width: none;
+	margin: 0;
+	padding: 0;
 }
 
 .cn-features-and-roadmap-view__header {

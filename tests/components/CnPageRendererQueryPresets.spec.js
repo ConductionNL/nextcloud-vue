@@ -66,7 +66,7 @@ describe('matchQueryPreset and applyQueryPreset', () => {
 
 	it('replaces only the allowed keys and drops queryPresets', () => {
 		const out = applyQueryPreset({ register: 'dossiq', schema: 'case', columns: ['a'], queryPresets: [WOO] }, { ...WOO, register: 'other' })
-		expect(out).toEqual({ register: 'dossiq', schema: 'case', columns: WOO.columns, quickFilters: WOO.quickFilters })
+		expect(out).toEqual({ register: 'dossiq', schema: 'case', columns: WOO.columns, quickFilters: WOO.quickFilters, fixedFilters: WOO.match })
 		expect(applyQueryPreset({ columns: ['a'], queryPresets: [] }, null)).toEqual({ columns: ['a'] })
 	})
 })
@@ -92,6 +92,15 @@ describe('CnPageRenderer with a query preset', () => {
 
 	it('remounts the list when the preset changes', () => {
 		expect(mountOn({ caseType: 'uuid-woo' }).vm.pageRenderKey).not.toBe(mountOn({}).vm.pageRenderKey)
+	})
+
+	it('lets a preset hide the Add button, so a view whose own button adds something else offers no generic Add', () => {
+		const LOG = { match: { ticketType: 'interaction' }, showAdd: false }
+		expect(applyQueryPreset({ showAdd: true, queryPresets: [LOG] }, LOG).showAdd).toBe(false)
+		expect(applyQueryPreset({ showAdd: true, queryPresets: [LOG] }, null).showAdd).toBe(true)
+		const withHidden = JSON.parse(JSON.stringify(manifest))
+		withHidden.pages[0].config.queryPresets = [{ ...WOO, showAdd: false }]
+		expect(validateManifestV2(withHidden).valid).toBe(true)
 	})
 
 	it('validates as a manifest key and refuses a preset without match', () => {

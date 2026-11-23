@@ -1,0 +1,4 @@
+- [x] CnMailTab `templates.preselect` (first, only, field match), keeps a pick still in the list
+- [x] jest CnMailTab (red first)
+- [x] docs/components/cn-mail-tab.md
+- [ ] dossiq manifest: `"preselect": "first"` on the case E-mail tab's templates

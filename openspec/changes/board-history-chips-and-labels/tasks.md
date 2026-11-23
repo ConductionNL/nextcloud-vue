@@ -1,0 +1,1 @@
+- [x] 1.1 board CSS (tests/css/lookBoardHistoryChipsAndLabels.spec.js)

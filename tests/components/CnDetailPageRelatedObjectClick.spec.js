@@ -7,7 +7,7 @@
  * Every test here fires the child's event, so a listener typo in a template
  * turns it red.
  */
-import { mount, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
 import { h, nextTick } from 'vue'
 
 const CnDetailWidgetHost = require('../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue').default
@@ -97,10 +97,13 @@ describe('related-object click forwarding through the templates', () => {
 		wrapper.unmount()
 	})
 
-	it('CnWidgetGrid re-emits select-object from a related widget it renders (v2 pages)', () => {
+	it('CnWidgetGrid re-emits select-object from a related widget it renders (v2 pages)', async () => {
 		const wrapper = shallowMount(CnWidgetGrid, {
 			propsData: { slotName: 'body', widgets: [{ widgetKey: 'related', slot: 'body', gridX: 0, gridY: 0, gridWidth: 6, gridHeight: 2 }] },
+			// Render the lazy registry wrapper so the stubbed widget appears inside it.
+			global: { stubs: { LazyCnRelatedObjectsWidget: false } },
 		})
+		await flushPromises()
 		const related = wrapper.findComponent({ name: 'CnRelatedObjectsWidget' })
 		expect(related.exists()).toBe(true)
 		related.vm.$emit('select-object', raw)
@@ -141,7 +144,10 @@ describe('related-object click forwarding through the templates', () => {
 		const wrapper = shallowMount(CnPageRenderer, {
 			propsData: { manifest, pageTypes: { detail: { name: 'DetailStub', render: () => h('div') } } },
 			mocks: { $route: { name: 'ModuleDetail', params: { id: 'app-1' } }, $router: { push } },
+			// The renderer loads its grids on demand; a named stub with the grid's props stands in.
+			global: { stubs: { CnWidgetGrid: { name: 'CnWidgetGrid', props: ['slotName', 'widgets'], emits: ['select-object'], template: '<div />' } } },
 		})
+		await flushPromises()
 		const grids = wrapper.findAllComponents({ name: 'CnWidgetGrid' })
 		const tabGrid = grids.filter((g) => g.props('slotName') === 'tab:links')
 		expect(tabGrid.length).toBe(1)

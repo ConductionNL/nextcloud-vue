@@ -1,0 +1,3 @@
+- [x] 1. `CnDetailWidgetHost`: `consumerWidgetProps`, `consumerWidgetWaiting`.
+- [x] 2. `tests/components/CnDetailWidgetHostConsumerProps.spec.js`.
+- [x] 3. `docs/components/cn-detail-widget-host.md`.

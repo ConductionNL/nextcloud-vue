@@ -1,0 +1,2 @@
+- [x] table.css fitted wrap columns break-word
+- [x] tests/css/fitTableWrapByWord.spec.js

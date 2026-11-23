@@ -1,0 +1,2 @@
+- [x] CnMailTab actions group + OpenInNew icon
+- [x] jest CnMailTab (red first)

@@ -109,6 +109,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import CnMapWidget from '../CnMapWidget/CnMapWidget.vue'
 import CnPageHeader from '../CnPageHeader/CnPageHeader.vue'
+import { captureLocation } from '../../utils/captureLocation.js'
 
 /**
  * CnMapPage — manifest `type: "map"` renderer.
@@ -206,6 +207,22 @@ export default {
 		},
 
 		/**
+		 * Show the reader's position on the map (`config.showUserLocation`): a
+		 * dot with its accuracy circle. The browser asks for the location when
+		 * the map has loaded.
+		 */
+		showUserLocation: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Centre the map on the reader's position when the page opens (`config.centerOnUser`). */
+		centerOnUser: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Layer definitions. See CnMapWidget docs.
 		 *
 		 * @type {Array<object>}
@@ -276,15 +293,56 @@ export default {
 		},
 	},
 
-	emits: ['map-ready', 'marker-click', 'bounds-change', 'click'],
+	emits: ['map-ready', 'marker-click', 'bounds-change', 'click', 'user-location'],
 
 	methods: {
+		/**
+		 * Ask the device where it is when the page shows the reader's position
+		 * (`showUserLocation`) or centres on it (`centerOnUser`), then draw a
+		 * dot with its accuracy circle and centre the map. A refusal or a
+		 * timeout leaves the map as it was.
+		 *
+		 * @param {object} map The Leaflet map.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/form-device-fields/specs/form-device-fields/spec.md#requirement-a-map-page-can-show-and-centre-on-the-readers-position
+		 */
+		async showUserPosition(map) {
+			if (!map || (!this.showUserLocation && !this.centerOnUser)) {
+				return
+			}
+			const place = await captureLocation()
+			if (!place) {
+				return
+			}
+			if (this.showUserLocation) {
+				try {
+					const mod = await import('leaflet')
+					const L = mod.default || mod
+					L.circle([place.lat, place.lng], { radius: place.accuracy || 0, weight: 1, fillOpacity: 0.1 }).addTo(map)
+					L.circleMarker([place.lat, place.lng], { radius: 7, weight: 2, fillOpacity: 1 }).addTo(map)
+				} catch {
+					// Without Leaflet there is no map to draw on.
+				}
+			}
+			if (this.centerOnUser && typeof map.setView === 'function') {
+				map.setView([place.lat, place.lng], typeof map.getZoom === 'function' ? map.getZoom() : this.zoom)
+			}
+			/**
+			 * The reader's position was read (`showUserLocation` / `centerOnUser`).
+			 *
+			 * @event user-location
+			 * @type {{lat: number, lng: number, accuracy: number, at: string}}
+			 */
+			this.$emit('user-location', place)
+		},
+
 		/**
 		 * Forward CnMapWidget's `map-ready` to the page consumer.
 		 *
 		 * @param {{map: object}} payload Leaflet map instance.
 		 */
 		onMapReady(payload) {
+			this.showUserPosition(payload && payload.map)
 			/**
 			 * Map ready event. Fired once after Leaflet has loaded and the map is mounted. Pass-through from `CnMapWidget`.
 			 *

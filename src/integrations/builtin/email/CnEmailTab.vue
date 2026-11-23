@@ -17,7 +17,7 @@
 -->
 <template>
 	<div class="cn-sidebar-tab cn-email-tab">
-		<div class="cn-email-tab__actions">
+		<div v-if="showActions" class="cn-email-tab__actions">
 			<NcButton variant="secondary" @click="openPicker">
 				<template #icon>
 					<LinkVariant :size="18" />
@@ -57,6 +57,7 @@
 					<span class="cn-email-tab__unread-dot" :class="{ 'is-shown': row.unread }" />
 					<NcAvatar
 						class="cn-email-tab__avatar"
+						:class="{ 'cn-email-tab__avatar--outbound': row.outbound }"
 						:size="36"
 						:displayName="row.avatarName"
 						:user="row.avatarUser"
@@ -64,7 +65,7 @@
 					<div class="cn-email-tab__body">
 						<div class="cn-email-tab__line">
 							<span class="cn-email-tab__subject" :title="row.subject">{{ row.subject }}</span>
-							<span class="cn-email-tab__date">
+							<span v-if="!row.meta" class="cn-email-tab__date">
 								<NcDateTime
 									v-if="row.dateValid"
 									:timestamp="row.dateMs"
@@ -72,14 +73,41 @@
 								<template v-else>{{ row.dateRaw }}</template>
 							</span>
 						</div>
-						<div class="cn-email-tab__sender" :title="row.sender">
-							{{ row.sender }}
+						<div class="cn-email-tab__sender" :title="row.meta || row.sender">
+							{{ row.meta || row.sender }}
 						</div>
 						<div v-if="row.snippet" class="cn-email-tab__snippet" :title="row.snippet">
 							{{ row.snippet }}
 						</div>
 					</div>
 				</component>
+				<span
+					v-if="row.pill"
+					class="cn-email-tab__pill"
+					:class="{ 'cn-email-tab__pill--archived': row.archived }">
+					{{ row.pill }}
+				</span>
+				<NcActions
+					class="cn-email-tab__menu"
+					:ariaLabel="moreActionsLabel"
+					:forceMenu="true">
+					<NcActionLink
+						v-if="row.href"
+						:href="row.href"
+						target="_blank"
+						:closeAfterClick="true">
+						<template #icon>
+							<OpenInNew :size="20" />
+						</template>
+						{{ openInMailLabel }}
+					</NcActionLink>
+					<NcActionButton :closeAfterClick="true" @click="unlink(row)">
+						<template #icon>
+							<LinkVariantOff :size="20" />
+						</template>
+						{{ unlinkLabel }}
+					</NcActionButton>
+				</NcActions>
 			</li>
 		</ul>
 		<NcButton
@@ -104,12 +132,16 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
-import { NcAvatar, NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { NcActionButton, NcActionLink, NcActions, NcAvatar, NcButton, NcDateTime, NcLoadingIcon } from '@nextcloud/vue'
 import EmailEditOutline from 'vue-material-design-icons/EmailEditOutline.vue'
 import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import LinkVariantOff from 'vue-material-design-icons/LinkVariantOff.vue'
+import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import CnEmailPicker from '../../../components/CnEmailPicker/CnEmailPicker.vue'
+import { ageInDays, formatBoardDate, formatTimeOfDay } from '../../../utils/boardDate.js'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
+import { userDisplayName } from '../../../utils/userDisplayName.js'
 
 /**
  * CnEmailTab — sidebar tab rendering the full list of Nextcloud Mail
@@ -127,12 +159,17 @@ export default {
 	name: 'CnEmailTab',
 
 	components: {
+		NcActionButton,
+		NcActionLink,
+		NcActions,
 		NcAvatar,
 		NcButton,
 		NcDateTime,
 		NcLoadingIcon,
 		EmailEditOutline,
 		LinkVariant,
+		LinkVariantOff,
+		OpenInNew,
 		CnEmailPicker,
 	},
 
@@ -161,8 +198,20 @@ export default {
 		linkExistingLabel: { type: String, default: () => t('nextcloud-vue', 'Link existing email') },
 		/** Pre-translated compose-in-Mail CTA label. */
 		composeLabel: { type: String, default: () => t('nextcloud-vue', 'Compose in Mail') },
+		/** Pre-translated label of a mail's "more actions" menu. */
+		moreActionsLabel: { type: String, default: () => t('nextcloud-vue', 'More actions for this mail') },
+		/** Pre-translated label of the menu's open-in-Mail item. */
+		openInMailLabel: { type: String, default: () => t('nextcloud-vue', 'Open in Mail') },
+		/** Pre-translated label of the menu's unlink item. */
+		unlinkLabel: { type: String, default: () => t('nextcloud-vue', 'Unlink mail') },
 		/** Base path for the Mail app (for the compose deep-link). */
 		mailAppPath: { type: String, default: '/index.php/apps/mail' },
+		/**
+		 * Whether the tab draws its own "Link existing email" and "Compose in
+		 * Mail" buttons. Off when a host draws them (CnMailTab
+		 * `headerActions`) and opens the picker through `openPicker()`.
+		 */
+		showActions: { type: Boolean, default: true },
 	},
 
 	data() {
@@ -202,6 +251,7 @@ export default {
 		 * buble-compiled Vue 2 template stays free of `?.` / `??`.
 		 *
 		 * @return {object[]} One descriptor per message.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
 		 */
 		rows() {
 			return this.messages.map((message) => {
@@ -209,6 +259,8 @@ export default {
 				const d = dateRaw === '' ? null : new Date(dateRaw)
 				const dateValid = d !== null && Number.isNaN(d.getTime()) === false
 				const sender = this.formatSender(message)
+				const details = this.linkDetails(message)
+				const archivedAs = details === null ? '' : this.text(details.archivedAs)
 				return {
 					id: message.id,
 					message,
@@ -222,6 +274,10 @@ export default {
 					avatarName: sender,
 					avatarUser: this.senderEmail(message),
 					href: this.threadUrl(message),
+					meta: details === null ? '' : this.metaLine(message, details, dateValid ? d : null),
+					outbound: details !== null && details.direction === 'outbound',
+					pill: details === null ? '' : this.archiveLabel(archivedAs),
+					archived: archivedAs !== '',
 				}
 			})
 		},
@@ -237,6 +293,11 @@ export default {
 		 *
 		 * @return {string} The composer URL.
 		 */
+		/** @return {string} The record, register and schema the list is for. */
+		bindingKey() {
+			return [this.register, this.schema, this.objectId].join('/')
+		},
+
 		composeUrl() {
 			return (typeof OC !== 'undefined' && typeof OC.generateUrl === 'function')
 				? OC.generateUrl('/apps/mail/box/draft')
@@ -245,10 +306,15 @@ export default {
 	},
 
 	watch: {
-		objectId: {
+		/*
+		 * The record, its register and its schema together: on a detail page
+		 * the id is known first and the register and schema follow, and the
+		 * list loads once all three are there.
+		 */
+		bindingKey: {
 			immediate: true,
-			handler(id) {
-				if (id) {
+			handler() {
+				if (this.register && this.schema && this.objectId) {
 					this.reset()
 					this.fetchMessages()
 				}
@@ -389,6 +455,126 @@ export default {
 			return false
 		},
 
+		/**
+		 * The link's details (OpenRegister's EmailLink `details`), or null for
+		 * a link without them, which keeps the plain sender line.
+		 *
+		 * @param {object} message The message record.
+		 * @return {object|null} The details.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
+		 */
+		linkDetails(message) {
+			const details = message.details
+			if (details === null || typeof details !== 'object') {
+				return null
+			}
+			const filled = Object.keys(details).some((key) => details[key] !== null && details[key] !== undefined && details[key] !== '')
+			return filled ? details : null
+		},
+
+		/**
+		 * A trimmed string, or '' for anything that is not a filled string.
+		 *
+		 * @param {unknown} value The value.
+		 * @return {string} The text.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
+		 */
+		text(value) {
+			return typeof value === 'string' ? value.trim() : ''
+		},
+
+		/**
+		 * The line under the subject: who it is from or to, when, how many
+		 * attachments, and how it was linked, joined by middle dots.
+		 *
+		 * @param {object} message The message record.
+		 * @param {object} details The link details.
+		 * @param {Date|null} date The mail's moment, or null when unknown.
+		 * @return {string} The meta line.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
+		 */
+		metaLine(message, details, date) {
+			const parts = []
+			const recipient = this.text(details.recipientName)
+			if (details.direction === 'outbound' && recipient !== '') {
+				parts.push(t('nextcloud-vue', 'To {name}', { name: recipient }))
+			} else {
+				parts.push(t('nextcloud-vue', 'From {name}', { name: this.formatSender(message) }))
+			}
+			if (date !== null) {
+				parts.push(this.whenText(date))
+			}
+			const count = Number(details.attachmentCount)
+			if (Number.isInteger(count) && count > 0) {
+				parts.push(n('nextcloud-vue', '%n attachment', '%n attachments', count))
+			}
+			const linked = this.linkedText(message, details)
+			if (linked !== '') {
+				parts.push(linked)
+			}
+			return parts.join(' · ')
+		},
+
+		/**
+		 * The mail's date as the boards write it: "5 okt 09.15" in the last
+		 * week, "12 mrt" before that.
+		 *
+		 * @param {Date} date The mail's moment.
+		 * @return {string} The date.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
+		 */
+		whenText(date) {
+			const day = formatBoardDate(date)
+			const age = ageInDays(date)
+			if (age !== null && age >= 0 && age <= 7) {
+				return day + ' ' + formatTimeOfDay(date)
+			}
+			return day
+		},
+
+		/**
+		 * How the mail was linked: automatically through a shared mailbox, from
+		 * a saved mail file, or by a person.
+		 *
+		 * @param {object} message The message record.
+		 * @param {object} details The link details.
+		 * @return {string} The phrase, or '' when unknown.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
+		 */
+		linkedText(message, details) {
+			if (details.linkedVia === 'mailbox') {
+				const mailbox = this.text(details.mailboxName)
+				return mailbox === ''
+					? t('nextcloud-vue', 'linked automatically')
+					: t('nextcloud-vue', 'linked automatically via {mailbox}', { mailbox })
+			}
+			if (details.linkedVia === 'file') {
+				return t('nextcloud-vue', 'from a saved mail file')
+			}
+			if (details.linkedVia === 'manual') {
+				const name = userDisplayName(message.linkedBy)
+				return name === '' ? '' : t('nextcloud-vue', 'linked by {name}', { name })
+			}
+			return ''
+		},
+
+		/**
+		 * The pill beside a mail with details: its archive copy, or "Linked".
+		 *
+		 * @param {string} archivedAs The archive format, such as pdf, or ''.
+		 * @return {string} The pill text.
+		 * @spec openspec/changes/linked-mail-row-details/specs/linked-mail-row-details/spec.md#requirement-a-linked-mail-with-details-reads-as-the-boards-draw-it
+		 */
+		archiveLabel(archivedAs) {
+			if (archivedAs === '') {
+				return t('nextcloud-vue', 'Linked')
+			}
+			if (archivedAs.toLowerCase() === 'pdf') {
+				return t('nextcloud-vue', 'Archived as PDF')
+			}
+			return t('nextcloud-vue', 'Archived as {format}', { format: archivedAs })
+		},
+
 		rawWhen(message) {
 			const raw = message.mailDate || message.date || message.linkedAt
 			if (raw === undefined || raw === null || raw === '') {
@@ -411,6 +597,35 @@ export default {
 
 		openPicker() {
 			this.pickerOpen = true
+		},
+
+		/**
+		 * Remove a mail's link to the record (the mail stays in Mail), then
+		 * reload the list.
+		 *
+		 * @param {object} row A view row from `rows`.
+		 * @spec openspec/changes/board-linked-mail-rows/specs/board-linked-mail-rows/spec.md#requirement-every-linked-mail-carries-a-more-actions-menu
+		 */
+		async unlink(row) {
+			if (!this.register || !this.schema || !this.objectId) {
+				return
+			}
+			try {
+				const response = await fetch(
+					prefixUrl(`${this.apiBase}/objects/${this.register}/${this.schema}/${this.objectId}/emails/${encodeURIComponent(row.id)}`),
+					{ method: 'DELETE', headers: buildHeaders() },
+				)
+				if (response.ok === true) {
+					this.reset()
+					await this.fetchMessages()
+				} else {
+					this.errored = true
+				}
+			} catch (err) {
+				// eslint-disable-next-line no-console
+				console.error('[CnEmailTab] unlink failed', err)
+				this.errored = true
+			}
 		},
 
 		async onLinkPick(payload) {
@@ -488,7 +703,16 @@ export default {
 	flex-direction: column;
 }
 
+/* The row's link and its "more actions" menu, side by side. */
+.cn-email-tab__item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
 .cn-email-tab__row {
+	flex: 1 1 auto;
+	min-width: 0;
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
@@ -569,6 +793,21 @@ a.cn-email-tab__row:hover {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.cn-email-tab__pill {
+	flex: none;
+	padding: 2px 8px;
+	border-radius: var(--border-radius-pill, 12px);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
+.cn-email-tab__pill--archived {
+	background: var(--color-success);
+	color: var(--color-success-text);
 }
 
 .cn-email-tab__snippet {

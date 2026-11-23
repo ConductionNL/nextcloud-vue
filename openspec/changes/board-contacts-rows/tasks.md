@@ -1,0 +1,3 @@
+- [x] 1.1 board rows (src/integrations/builtin/contacts/__tests__/CnContactsTabBoardRows.spec.js)
+- [x] 1.2 board CSS (tests/css/lookBoardContactsRows.spec.js)
+- [x] 1.3 nl strings

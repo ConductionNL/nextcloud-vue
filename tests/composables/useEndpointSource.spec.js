@@ -394,6 +394,107 @@ describe('useEndpointSource — reactive binding', () => {
 		expect(data.value).toBeNull()
 	})
 
+	it('shows the server refusal sentence on a 403 and says it was refused', async () => {
+		const err = Object.assign(new Error('Request failed with status code 403'), {
+			response: { status: 403, data: { message: 'This report covers every case.' } },
+		})
+		axios.get.mockRejectedValue(err)
+		const { data, error, refused } = useEndpointSource({ url: '/api/report' })
+		await flush()
+		expect(error.value).toBe('This report covers every case.')
+		expect(refused.value).toBe(true)
+		expect(data.value).toBeNull()
+	})
+
+	it('keeps a failure apart from a refusal', async () => {
+		const err = Object.assign(new Error('Request failed with status code 500'), {
+			response: { status: 500, data: { message: 'Report generation failed' } },
+		})
+		axios.get.mockRejectedValue(err)
+		const { error, refused } = useEndpointSource({ url: '/api/report' })
+		await flush()
+		expect(error.value).toBe('Report generation failed')
+		expect(refused.value).toBe(false)
+	})
+
+	it('says the answer is short when the body declares truncated: true', async () => {
+		axios.get.mockResolvedValue({ data: { truncated: true, rows: [{ id: 1 }] } })
+		const { data, truncated } = useEndpointSource({ url: '/api/report', responsePath: 'rows' })
+		await flush()
+		expect(data.value).toEqual([{ id: 1 }])
+		expect(truncated.value).toBe(true)
+	})
+
+	it('reads nothing on mount with loadOn: request, and reads when asked', async () => {
+		axios.get.mockResolvedValue({ data: { rows: [{ id: 1 }] } })
+		const { data, awaitingRequest, request } = useEndpointSource({ url: '/api/recorded', responsePath: 'rows', loadOn: 'request' })
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(awaitingRequest.value).toBe(true)
+		expect(data.value).toBeNull()
+
+		await request()
+		expect(axios.get).toHaveBeenCalledTimes(1)
+		expect(awaitingRequest.value).toBe(false)
+		expect(data.value).toEqual([{ id: 1 }])
+	})
+
+	it('reads afresh on every request, past the shared cache', async () => {
+		axios.get.mockResolvedValue({ data: { rows: [] } })
+		const { request } = useEndpointSource({ url: '/api/recorded', responsePath: 'rows', loadOn: 'request' })
+		await request()
+		await request()
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('drops the answer and waits again when the request changes', async () => {
+		axios.get.mockResolvedValue({ data: { rows: [{ id: 1 }] } })
+		const ctx = ref({ workspace: { from: '2026-01-01' } })
+		const { data, awaitingRequest, request } = useEndpointSource(
+			{ url: '/api/recorded', params: { from: '@workspace.from' }, responsePath: 'rows', loadOn: 'request' },
+			{ ctx },
+		)
+		await request()
+		expect(data.value).toEqual([{ id: 1 }])
+
+		ctx.value = { workspace: { from: '2026-02-01' } }
+		await flush()
+		expect(awaitingRequest.value).toBe(true)
+		expect(data.value).toBeNull()
+		expect(axios.get).toHaveBeenCalledTimes(1)
+	})
+
+	it('keeps waiting, and says it is blocked, while a required token is unset', async () => {
+		const ctx = ref({ workspace: {} })
+		const { awaitingRequest, blocked, request } = useEndpointSource(
+			{ url: '/api/recorded', params: { from: '@workspace.from' }, loadOn: 'request' },
+			{ ctx },
+		)
+		await flush()
+		expect(blocked.value).toBe(true)
+		await request()
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(awaitingRequest.value).toBe(true)
+	})
+
+	it('ignores page and widget refreshes until asked', async () => {
+		axios.get.mockResolvedValue({ data: {} })
+		useEndpointSource({ url: '/api/recorded', loadOn: 'request' }, { widgetId: 'w1' })
+		await flush()
+		fireBus('cn:page:refresh', {})
+		fireBus('cn:widget:refresh', { widgetId: 'w1' })
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+	})
+
+	it('is not truncated for a body that does not say so', async () => {
+		axios.get.mockResolvedValue({ data: { rows: [] } })
+		const { truncated, refused } = useEndpointSource({ url: '/api/report', responsePath: 'rows' })
+		await flush()
+		expect(truncated.value).toBe(false)
+		expect(refused.value).toBe(false)
+	})
+
 	it('force-refetches past the cache on cn:page:refresh', async () => {
 		axios.get.mockResolvedValue({ data: { v: 1 } })
 		useEndpointSource({ url: '/api/x' })

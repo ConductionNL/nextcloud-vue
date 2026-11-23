@@ -1,0 +1,1 @@
+- [x] 1 Sub-objects field on form pages, `maxItems`, required arrays (tests/components/CnFormPageSubObjects.spec.js); docs

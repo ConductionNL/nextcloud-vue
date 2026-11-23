@@ -1,0 +1,229 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * Nextcloud groups and their members as an index page (index-groups-users-source,
+ * DqAfdelingen): the groups as the folder tree with member counts, the members
+ * as rows with function, roles, e-mail and whether they are in today.
+ *
+ * @spec openspec/changes/index-groups-users-source/specs/index-page/spec.md#requirement-an-index-page-can-list-nextcloud-groups-and-their-members
+ */
+import { flushPromises, shallowMount } from '@vue/test-utils'
+
+const mockGet = jest.fn()
+jest.mock('@nextcloud/axios', () => ({ __esModule: true, default: { get: (...a) => mockGet(...a) } }))
+jest.mock('@nextcloud/router', () => ({
+	generateUrl: (url) => `/index.php${url}`,
+	generateOcsUrl: (url, params = {}) => `/ocs/v2.php/${url.replace(/\{(\w+)\}/g, (m, k) => params[k])}`,
+}))
+
+import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import { resolveIndexSource } from '../../src/composables/indexSources.js'
+
+const ocs = (data) => ({ data: { ocs: { data } } })
+
+let mockAllUsersRefused = false
+
+beforeEach(() => {
+	mockAllUsersRefused = false
+	mockGet.mockReset()
+	mockGet.mockImplementation(async (url) => {
+		if (url.endsWith('cloud/groups/details')) {
+			return ocs({ groups: [{ id: 'vergunningen', displayname: 'Vergunningen', usercount: 18 }, { id: 'fysiek', displayname: 'Fysiek domein', usercount: 96 }, { id: 'admin', displayname: 'admin', usercount: 2 }] })
+		}
+		if (url.endsWith('cloud/groups/vergunningen/users/details')) {
+			return ocs({ users: {
+				lars: { id: 'lars', displayname: 'Lars de Koning', email: 'l.dekoning@zuiddrecht.nl', headline: 'Teamleider', role: 'Vergunningverlener, teamleider' },
+				sanne: { id: 'sanne', displayname: 'Sanne Bakker', email: 's.bakker@zuiddrecht.nl', headline: 'Vergunningverlener', role: 'Vergunningverlener' },
+				jamal: { id: 'jamal', displayname: 'Jamal Ouali', email: 'j.ouali@zuiddrecht.nl', headline: 'Toezichthouder', role: 'Toezichthouder' },
+			} })
+		}
+		if (url.endsWith('cloud/users/details')) {
+			if (mockAllUsersRefused) {
+				throw Object.assign(new Error('403'), { response: { status: 403 } })
+			}
+			return ocs({ users: {
+				lars: { id: 'lars', displayname: 'Lars de Koning' },
+				sanne: { id: 'sanne', displayname: 'Sanne Bakker' },
+				jamal: { id: 'jamal', displayname: 'Jamal Ouali' },
+				mehmet: { id: 'mehmet', displayname: 'Mehmet Yildiz' },
+			} })
+		}
+		if (url.endsWith('apps/user_status/api/v1/statuses')) {
+			return ocs([{ userId: 'lars', status: 'online' }, { userId: 'jamal', status: 'away', message: 'Buiten' }])
+		}
+		if (url.endsWith('outOfOffice/sanne/now')) {
+			return ocs({ endDate: '2026-10-14', shortMessage: 'Vakantie' })
+		}
+		if (url.includes('outOfOffice')) {
+			throw Object.assign(new Error('404'), { response: { status: 404 } })
+		}
+		throw new Error('unexpected ' + url)
+	})
+})
+
+describe('users index source', () => {
+	it('lists a group\'s members with function, roles, e-mail and today', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen' })
+		expect(source.rows().map((row) => [row.displayname, row.function, row.roles, row.today])).toEqual([
+			['Jamal Ouali', 'Toezichthouder', 'Toezichthouder', 'Buiten'],
+			['Lars de Koning', 'Teamleider', 'Vergunningverlener, teamleider', 'Present'],
+			['Sanne Bakker', 'Vergunningverlener', 'Vergunningverlener', expect.stringMatching(/^Absent until .*14/)],
+		])
+		expect(source.searchFields.group).toEqual({ param: 'group', single: true })
+	})
+
+	/**
+	 * @spec openspec/changes/users-presence-message-tone/specs/index-page/spec.md
+	 */
+	it('tones a status message as information and an absence as a warning, as the board does', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen' })
+		const today = source.columns.find((column) => column.key === 'today')
+		const absent = source.rows().find((row) => row.displayname === 'Sanne Bakker').today
+		expect(today.widgetProps.variant).toBe('info')
+		expect(today.widgetProps.colorMap.Buiten).toBeUndefined()
+		expect(today.widgetProps.colorMap[absent]).toBe('warning')
+		expect(today.widgetProps.colorMap.Present).toBe('success')
+	})
+
+	it('lists every user the reader may see on All, before a group is picked', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({})
+		expect(mockGet.mock.calls.some(([url]) => url.endsWith('cloud/users/details'))).toBe(true)
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali', 'Lars de Koning', 'Mehmet Yildiz', 'Sanne Bakker'])
+	})
+
+	it('lists nothing on All when the reader may not list users', async () => {
+		mockAllUsersRefused = true
+		const source = resolveIndexSource('users')
+		await expect(source.load({})).rejects.toThrow('403')
+		expect(source.rows()).toEqual([])
+		expect(source.loading()).toBe(false)
+	})
+})
+
+describe('CnIndexPage folderSidebar source groups', () => {
+	function mountPage(folderSidebar) {
+		return shallowMount(CnIndexPage, {
+			props: { title: 'Afdelingen', entitySource: 'users', folderSidebar },
+			global: { mocks: { $router: { push: jest.fn() }, $route: { query: {}, params: {}, name: 'Afdelingen' } } },
+		})
+	}
+
+	it('lists the groups with member counts, by name', async () => {
+		const w = mountPage({ source: 'groups', filterField: 'group' })
+		await flushPromises()
+		expect(w.vm.folderSidebarSource).toBe('custom')
+		expect(w.vm.folderSidebarFolders.map((f) => [f.name, f.count])).toEqual([['admin', 2], ['Fysiek domein', 96], ['Vergunningen', 18]])
+	})
+
+	it('picks, orders and nests the groups the config names', async () => {
+		const w = mountPage({ source: 'groups', filterField: 'group', groups: [{ id: 'fysiek' }, { id: 'vergunningen', parent: 'fysiek' }] })
+		await flushPromises()
+		expect(w.vm.folderSidebarFolders).toEqual([
+			{ id: 'fysiek', name: 'Fysiek domein', count: 96, parentId: null, record: null },
+			{ id: 'vergunningen', name: 'Vergunningen', count: 18, parentId: 'fysiek', record: null },
+		])
+	})
+})
+
+describe('users index source pages, searches and sorts', () => {
+	/**
+	 * @spec openspec/changes/users-source-pages/specs/index-page/spec.md#requirement-the-users-source-pages-searches-and-sorts-its-members
+	 */
+	it('declares a pager, a search argument and a sort argument', () => {
+		const source = resolveIndexSource('users')
+		expect(source.pages).toBe(true)
+		expect(source.searchParam).toBe('search')
+		expect(source.sortParam('email', 'desc')).toEqual({ sortKey: 'email', sortOrder: 'desc' })
+	})
+
+	it('gives one page and the total of the group', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 2, offset: 0 })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali', 'Lars de Koning'])
+		expect(source.total()).toBe(3)
+		await source.load({ group: 'vergunningen', limit: 2, offset: 2 })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Sanne Bakker'])
+	})
+
+	it('reads the group once while only the page, search or order change', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 2, offset: 0 })
+		const calls = mockGet.mock.calls.length
+		await source.load({ group: 'vergunningen', limit: 2, offset: 2 })
+		await source.load({ group: 'vergunningen', limit: 2, offset: 0, search: 'bakker' })
+		expect(mockGet.mock.calls.length).toBe(calls)
+	})
+
+	it('searches name, function, roles and e-mail, and counts what matches', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, search: 'toezicht' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali'])
+		expect(source.total()).toBe(1)
+	})
+
+	it('sorts on a column', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, sortKey: 'email', sortOrder: 'desc' })
+		expect(source.rows().map((row) => row.email)).toEqual(['s.bakker@zuiddrecht.nl', 'l.dekoning@zuiddrecht.nl', 'j.ouali@zuiddrecht.nl'])
+	})
+})
+
+/**
+ * @spec openspec/changes/users-source-header-filters/specs/index-page/spec.md#requirement-the-users-source-filters-from-its-table-heads
+ */
+describe('users index source header filters', () => {
+	it('asks for a filter button on every head and declares the arguments they send', () => {
+		const source = resolveIndexSource('users')
+		expect(source.headerFilters).toBe(true)
+		expect(source.searchFields['displayname[like]']).toEqual({ param: 'nameLike', single: true })
+		expect(source.searchFields['roles[like]']).toEqual({ param: 'rolesLike', single: true })
+		expect(source.searchFields['email[like]']).toEqual({ param: 'emailLike', single: true })
+		expect(source.searchFields.today).toEqual({ param: 'today' })
+	})
+
+	it('narrows the members it read, without reading them again', async () => {
+		const source = resolveIndexSource('users')
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0 })
+		const calls = mockGet.mock.calls.length
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, rolesLike: 'teamleider' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Lars de Koning'])
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, emailLike: 'BAKKER' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Sanne Bakker'])
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, today: ['Buiten'] })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali'])
+		await source.load({ group: 'vergunningen', limit: 20, offset: 0, nameLike: 'toezicht' })
+		expect(source.rows().map((row) => row.displayname)).toEqual(['Jamal Ouali'])
+		expect(mockGet.mock.calls.length).toBe(calls)
+	})
+})
+
+/**
+ * @spec openspec/changes/users-source-row-actions/specs/index-page/spec.md#requirement-a-members-row-menu-opens-their-profile-and-mails-them
+ */
+describe('users index source row menu', () => {
+	it('links a member to their profile, and to an e-mail when they have an address', () => {
+		const source = resolveIndexSource('users')
+		const [profile, mail] = source.rowActions
+		expect(profile.id).toBe('open-profile')
+		expect(profile.href({ id: 'lars' })).toBe('/index.php/u/lars')
+		expect(mail.href({ id: 'lars', email: 'l.dekoning@zuiddrecht.nl' })).toBe('mailto:l.dekoning@zuiddrecht.nl')
+		expect(mail.visible({ id: 'ada', email: '' })).toBe(false)
+		expect(mail.visible({ id: 'lars', email: 'l.dekoning@zuiddrecht.nl' })).toBe(true)
+	})
+})
+
+/**
+ * @spec openspec/changes/users-source-sortable-columns/specs/index-page/spec.md#requirement-a-members-list-sorts-on-every-column
+ */
+describe('users index source columns', () => {
+	it('sorts on every column, as the board draws a chevron on each head', () => {
+		const source = resolveIndexSource('users')
+		expect(source.columns.map((column) => column.sortable)).toEqual([true, true, true, true])
+		expect(source.columns[0].cellClass).toBe('cn-cell--lead')
+		expect(source.sortParam('email', 'desc')).toEqual({ sortKey: 'email', sortOrder: 'desc' })
+	})
+})

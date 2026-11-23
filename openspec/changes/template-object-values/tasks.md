@@ -1,0 +1,2 @@
+- [x] fillTemplate: `values` format
+- [x] tests/utils/fillTemplateValues.spec.js

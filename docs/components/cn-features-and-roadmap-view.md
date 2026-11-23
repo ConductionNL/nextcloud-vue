@@ -28,12 +28,14 @@ opens the corresponding issue in a new tab.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
+| `roadmapLayout` | String | No | `grid` (default) or `columns`, handed to the Roadmap tab. |
+| `roadmapInProgressLabels` | Array | No | Labels that put an open issue under In development. |
 | `repo` | String | Yes | `<owner>/<repo>` slug of the app's repository on the forge. Passed through to `CnRoadmapTab` and used to build the Suggest CTA's feature-request form link. |
 | `forge` | Object | No | `{ type, baseUrl? }` target forge the feature-request deep-links are built against (the Suggest CTA and the support dialog's feature-request URL). |
 | `features` | Array | Yes | Build-time feature manifest — array of `{slug, title, summary, docsUrl}` objects rendered by `CnFeaturesTab`. |
 | `disabled` | Boolean | No | When `true`, the view collapses to a single "disabled by your administrator" empty state. |
 | `categories` | Object | No | Feature category key to caption; the order of the groups in the board look. |
-| `board` | Object | No | Board look options for CnFeaturesBoard (`layout`, `tabs`, `filter`, `statusLabels`, `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`, `suggestButton`). See [CnFeaturesAndRoadmapPage](cn-features-and-roadmap-page.md#the-board-look). Ignored in the default look. |
+| `board` | Object | No | Board look options for CnFeaturesBoard (`layout`, `tabs`, `filter`, `filterLabel`, `statusLabels`, `statusVariants`, `next`, `issueLabels`, `subtitle`, `notice`, `documentationButton`, `suggestButton`). See [CnFeaturesAndRoadmapPage](cn-features-and-roadmap-page.md#the-board-look). Ignored in the default look. |
 | `title` | String | No | Page title in the board look. Empty reads "Features and roadmap". |
 | `appVersion` | String | No | The app version for `{appVersion}` in the board subtitle. |
 | `openbuiltUrl` | String | No | Override the OpenBuilt sidebar CTA target. Pass an absolute URL or a Nextcloud-relative path. Defaults to the in-instance OpenBuilt route at `/apps/openbuilt` (resolved via `generateUrl`). |

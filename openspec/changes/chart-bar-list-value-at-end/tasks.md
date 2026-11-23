@@ -1,0 +1,4 @@
+- [x] CnChartWidget barValueAtEnd + CSS
+- [x] CnDashboardPage passes barValueAtEnd
+- [x] board look 13px rows
+- [x] CnChartWidgetBarValueAtEnd spec

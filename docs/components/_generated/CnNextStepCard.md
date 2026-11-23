@@ -8,17 +8,18 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name             | Type      | Required | Default                                | Description                                                                                                                 |
-| ---------------- | --------- | -------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `title`          | `string`  |          | `''`                                   | Heading of the card, for example "What now? Step 2: handling".                                                              |
-| `titleTag`       | `string`  |          | `'h3'`                                 | Element the heading renders as. Pick the level that fits the page outline.                                                  |
-| `items`          | `array`   |          | `[]`                                   | The checklist: `{ label, done?, hint? }` per item. The first item that is not done is emphasised as the one to pick up now. |
-| `actionLabel`    | `string`  |          | `''`                                   | Label of the primary button. Empty renders no button.                                                                       |
-| `actionId`       | `string`  |          | `''`                                   | DOM id for the primary button, so a skip link can land on it.                                                               |
-| `actionDisabled` | `boolean` |          | `false`                                | Disable the primary button, for example while its request is in flight.                                                     |
-| `after`          | `string`  |          | `''`                                   | One line under the button saying what follows, for example "Then: step 3, decision".                                        |
-| `doneLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Done')`  | Text state of a done item, read by screen readers.                                                                          |
-| `todoLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'To do')` | Text state of an open item, read by screen readers.                                                                         |
+| Name             | Type      | Required | Default                                | Description                                                                                                                                                     |
+| ---------------- | --------- | -------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`          | `string`  |          | `''`                                   | Heading of the card, for example "What now? Step 2: handling".                                                                                                  |
+| `titleTag`       | `string`  |          | `'h3'`                                 | Element the heading renders as. Pick the level that fits the page outline.                                                                                      |
+| `items`          | `array`   |          | `[]`                                   | The checklist: `{ label, done?, hint? }` per item. The first item that is not done is emphasised as the one to pick up now.                                     |
+| `actionLabel`    | `string`  |          | `''`                                   | Label of the primary button. Empty renders no button.                                                                                                           |
+| `actionId`       | `string`  |          | `''`                                   | DOM id for the primary button, so a skip link can land on it.                                                                                                   |
+| `actionDisabled` | `boolean` |          | `false`                                | Disable the primary button, for example while its request is in flight.                                                                                         |
+| `after`          | `string`  |          | `''`                                   | One line under the button saying what follows, for example "Then: step 3, decision".                                                                            |
+| `afterTitle`     | `string`  |          | `''`                                   | A bold sentence above `after`, for a stage whose side has no button but a statement (PqContactmoment "Een contactmoment heeft geen klant om te beantwoorden."). |
+| `doneLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'Done')`  | Text state of a done item, read by screen readers.                                                                                                              |
+| `todoLabel`      | `string`  |          | `() =&gt; t('nextcloud-vue', 'To do')` | Text state of an open item, read by screen readers.                                                                                                             |
 
 ### Events
 

@@ -2,12 +2,12 @@
 	<CnDialog
 		:look="look"
 		:width="width"
-		defaultWidth="form"
+		:defaultWidth="columns === 2 ? 'wizard' : 'form'"
 		:eyebrow="eyebrow"
 		:subtitle="subtitle"
 		:name="resolvedTitle"
 		:size="size"
-		:noClose="loading"
+		:noClose="loading || noClose"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -63,6 +63,20 @@
 				</div>
 			</NcNoteCard>
 
+			<!-- `templateSource`: a create form can start from a saved record template. -->
+			<div v-if="isCreateMode && recordTemplates.length > 0" class="cn-form-dialog__templates" data-testid="cn-form-dialog-templates">
+				<NcSelect
+					:inputLabel="t('nextcloud-vue', 'Start from a template')"
+					:options="recordTemplates"
+					:modelValue="appliedTemplate"
+					label="name"
+					:clearable="false"
+					@update:modelValue="applyRecordTemplate" />
+				<p v-if="templateDropped.length > 0" class="cn-form-dialog__templates-note" data-testid="cn-form-dialog-template-dropped">
+					{{ t('nextcloud-vue', 'Not taken from the template, the form no longer has them: {fields}', { fields: templateDropped.join(', ') }) }}
+				</p>
+			</div>
+
 			<!-- Form-level error (e.g. server validation) — keeps the form visible so the user can fix the data -->
 			<NcNoteCard v-if="formError" type="error" data-testid="cn-form-dialog-error">
 				{{ formError }}
@@ -98,9 +112,23 @@
 						v-if="sectionStarts[field.key]"
 						class="cn-form-dialog__section"
 						data-testid="cn-form-dialog-section">
-						{{ sectionStarts[field.key] }}
+						<!-- A foldable section (`sectionCollapsed` on one of its fields)
+						     opens and closes from its heading. -->
+						<button
+							v-if="foldableSections.includes(field.section)"
+							type="button"
+							class="cn-form-dialog__section-toggle"
+							:aria-expanded="foldedSections.includes(field.section) ? 'false' : 'true'"
+							data-testid="cn-form-dialog-section-toggle"
+							@click="toggleSection(field.section)">
+							{{ sectionStarts[field.key] }}
+						</button>
+						<template v-else>
+							{{ sectionStarts[field.key] }}
+						</template>
 					</h3>
 					<div
+						v-if="!isInFoldedSection(field)"
 						:data-cn-field="field.key"
 						class="cn-form-dialog__field"
 						:class="{
@@ -131,6 +159,22 @@
 							:error="errors[field.key]"
 							:updateField="updateField" />
 
+						<!-- A `widget` naming a registered component (v2 registry or
+						     customComponents) mounts that component as the control.
+						     It gets `value`/`modelValue`, `field`, `error` and
+						     `disabled`, and writes back with `input` or
+						     `update:modelValue`. -->
+						<component
+							:is="resolveFieldComponent(field)"
+							v-else-if="resolveFieldComponent(field)"
+							:value="formData[field.key]"
+							:modelValue="formData[field.key]"
+							:field="field"
+							:error="errors[field.key] || ''"
+							:disabled="!!field.readOnly"
+							@input="value => updateField(field.key, value)"
+							@update:modelValue="value => updateField(field.key, value)" />
+
 						<!-- referenceType (AD-18): render the integration's
 						     single-entity widget instead of a plain input. -->
 						<component
@@ -147,7 +191,7 @@
 						     through the normal select branch below; only the
 						     unresolved/loading case lands here. -->
 						<div
-							v-else-if="field.referenceSemanticType && !isSemanticResolved(field)"
+							v-else-if="field.referenceSemanticType && field.widget !== 'party' && !isSemanticResolved(field)"
 							class="cn-form-dialog__semantic-unresolved"
 							:title="semanticUnavailableText(field)">
 							<NcTextField
@@ -162,10 +206,11 @@
 								:placeholder="field.description" />
 						</div>
 
-						<!-- Concept-scheme choice whose options could not be loaded: the
-						     plain text input it had before, with a line saying so. -->
+						<!-- A choice whose options could not be loaded (a concept scheme,
+						     or an `optionsFrom` source that failed or gave none): a plain
+						     text input, with a line saying so. -->
 						<div
-							v-else-if="field.codeList && codedFailed[field.key]"
+							v-else-if="(field.codeList && codedFailed[field.key]) || (field.optionsFrom && sourcedFailed[field.key])"
 							class="cn-form-dialog__coded-fallback">
 							<NcTextField
 								:id="fieldControlId(field)"
@@ -174,16 +219,71 @@
 								v-bind="fieldAria(field)"
 								:modelValue="codedFallbackText(field)"
 								:disabled="field.readOnly"
-								:helperText="t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')"
+								:helperText="codedFallbackHint(field)"
 								@update:modelValue="onCodedFallbackInput(field, $event)" />
 						</div>
 
 						<!-- Auto-generated field -->
 						<template v-else>
+							<!-- A party (widget: 'party'): CnPartyPicker over the field's
+							     `sources`; the form stores the chosen row's id only. -->
+							<div v-if="field.widget === 'party'" class="cn-form-dialog__party-wrapper">
+								<CnPartyPicker
+									:inputId="'cn-form-' + field.key"
+									:modelValue="formData[field.key] != null ? formData[field.key] : null"
+									:sources="field.sources || []"
+									:kindSwitch="field.kindSwitch || null"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="true"
+									:placeholder="field.placeholder || ''"
+									:clearable="!field.required"
+									:disabled="!!field.readOnly"
+									:data-testid="field.testid || undefined"
+									@update:modelValue="value => updateField(field.key, value)"
+									@select="choice => onPartySelect(field, choice)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
+							<!-- A scoped object pick (widget: 'resource'): CnResourceSelect
+							     over `field.resource` ({ register, schema, labelField,
+							     scope }), its scope value token-resolved against the page's
+							     object (`@object.<field>`). -->
+							<div v-else-if="field.widget === 'resource' && field.resource" class="cn-form-dialog__select-wrapper">
+								<CnResourceSelect
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:register="String(field.resource.register || '')"
+									:schema="String(field.resource.schema || '')"
+									:labelField="field.resource.labelField || 'name'"
+									:scope="resourceScope(field)"
+									:failedText="field.resource.failedText ? cnTranslate(field.resource.failedText) : ''"
+									:allowCreate="false"
+									:preload="true"
+									:placeholder="field.placeholder || ''"
+									:modelValue="formData[field.key] != null ? String(formData[field.key]) : ''"
+									:clearable="!field.required"
+									:disabled="!!field.readOnly"
+									@update:modelValue="value => updateField(field.key, value || null)" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
 							<!-- Text / Email / URL. The helper line lives outside the
 							     input (rather than on `helper-text`) so an over-long
 							     description can hang its info popover off it. -->
-							<template v-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
+							<template v-else-if="field.widget === 'text' || field.widget === 'email' || field.widget === 'url'">
 								<NcTextField
 									:id="fieldControlId(field)"
 									:label="fieldLabelText(field)"
@@ -227,6 +327,31 @@
 							</template>
 
 							<!-- Textarea -->
+							<!-- A list of strings, one per line (widget: 'lines'): lines are
+							     trimmed and empty ones dropped. -->
+							<div v-else-if="field.widget === 'lines'" class="cn-form-dialog__textarea-wrapper">
+								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
+									{{ field.label }}{{ requiredSuffix(field) }}
+								</label>
+								<textarea
+									:id="'cn-form-' + field.key"
+									class="cn-form-dialog__textarea"
+									v-bind="fieldAria(field)"
+									:value="Array.isArray(formData[field.key]) ? formData[field.key].join('\n') : ''"
+									:disabled="field.readOnly"
+									:placeholder="t('nextcloud-vue', 'One per line')"
+									:data-testid="'cn-form-lines-' + field.key"
+									rows="5"
+									@change="updateField(field.key, linesOf($event.target.value))" />
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label"
+									:error="helperError(field)" />
+							</div>
+
 							<div v-else-if="field.widget === 'textarea'" class="cn-form-dialog__textarea-wrapper">
 								<label v-if="!showsOuterLabel(field)" :for="'cn-form-' + field.key" class="cn-form-dialog__label">
 									{{ field.label }}{{ requiredSuffix(field) }}
@@ -238,7 +363,8 @@
 									:value="formData[field.key] || ''"
 									:disabled="field.readOnly"
 									:placeholder="fieldPlaceholder(field)"
-									rows="4"
+									:rows="textareaRows(field)"
+									:style="textareaRowsStyle(field)"
 									@input="updateField(field.key, $event.target.value)" />
 								<CnFieldHelper
 									:id="helpId(field)"
@@ -269,6 +395,7 @@
 									:clearable="!field.required || !!field.reference.multiple"
 									:disabled="field.readOnly"
 									:preload="true"
+									:filters="pickerFilters(field)"
 									:createHandler="term => openNestedCreate(field, term)"
 									@update:modelValue="value => onReferenceSelected(field, value)"
 									@create="obj => onReferenceCreated(field, obj)" />
@@ -283,6 +410,25 @@
 
 							<!-- Enum toggle (`widget: "switch"` on a 2-value enum):
 							     renders a switch mapping off→enum[0], on→last enum value. -->
+							<!-- An optional object (widget: 'object-switch'): on fills it with
+							     `defaults`, off writes null. Its keys are fields at dotted paths. -->
+							<div v-else-if="field.widget === 'object-switch'" class="cn-form-dialog__switch-wrapper">
+								<NcCheckboxRadioSwitch
+									:modelValue="isObjectOn(field)"
+									:disabled="field.readOnly"
+									type="switch"
+									:data-testid="'cn-form-object-switch-' + field.key"
+									@update:modelValue="value => setObjectOn(field, value)">
+									{{ field.label }}
+								</NcCheckboxRadioSwitch>
+								<CnFieldHelper
+									:id="helpId(field)"
+									:text="field.description"
+									:more="field.descriptionLong"
+									:help="field.help"
+									:label="field.label" />
+							</div>
+
 							<div v-else-if="field.widget === 'switch'" class="cn-form-dialog__switch-wrapper">
 								<NcCheckboxRadioSwitch
 									:modelValue="isSwitchOn(field)"
@@ -314,8 +460,26 @@
 								     plain select. NcSelectUsers wraps NcSelect and merges the
 								     rest of these bindings through, so the async load, search
 								     and select machinery is unchanged either way. -->
+								<!-- `look: "search"` (a `fieldOverrides` key): a search field
+								     with rows of icon or initials, name, a secondary line from
+								     `optionSecondary` and a check on the chosen one
+								     (DqOverdragen "Nieuw team"). -->
+								<CnSearchSelect
+									v-if="field.look === 'search' && !isUserField(field)"
+									:inputId="'cn-form-' + field.key"
+									:inputLabel="fieldLabelText(field)"
+									:labelOutside="isBoardLook"
+									:options="searchSelectOptions(field)"
+									:modelValue="getEffectiveSelectedOption(field)"
+									:clearable="!field.required"
+									:disabled="field.readOnly"
+									:loading="isFieldLoading(field)"
+									:filterable="!isAsyncEnum(field)"
+									@update:modelValue="onSearchSelectChange(field, $event)"
+									@search="isAsyncEnum(field) ? onAsyncSearch(field, $event) : undefined" />
 								<component
 									:is="isUserField(field) ? 'NcSelectUsers' : 'NcSelect'"
+									v-else
 									v-cn-select-aria="fieldAria(field)"
 									:inputId="'cn-form-' + field.key"
 									:inputLabel="fieldLabelText(field)"
@@ -344,7 +508,18 @@
 									<template
 										v-else-if="!isUserField(field)"
 										#option="optionProps">
-										<span class="cn-form-dialog__option">{{ optionText(optionProps) }}</span>
+										<span class="cn-form-dialog__option">
+											<!-- `optionSwatches` / `optionIcons`: a colour or an icon per
+											     value; a grouped source names the option's group. -->
+											<span
+												v-if="optionSwatch(field, optionProps)"
+												class="cn-form-dialog__option-swatch"
+												:style="{ background: optionSwatch(field, optionProps) }"
+												aria-hidden="true" />
+											<CnIcon v-else-if="optionIcon(field, optionProps)" :name="optionIcon(field, optionProps)" :size="16" />
+											<span v-if="optionProps.group" class="cn-form-dialog__option-group">{{ optionProps.group }} ·</span>
+											{{ optionText(optionProps) }}
+										</span>
 									</template>
 									<template
 										v-if="$slots['field-' + field.key + '-selected-option']"
@@ -352,6 +527,19 @@
 										<!-- @slot field-{key}-selected-option Render the chosen option of a select, multiselect or tags field. -->
 										<!-- @binding {object} option The selected option (`{ id, label }`). -->
 										<slot :name="'field-' + field.key + '-selected-option'" v-bind="optionProps" />
+									</template>
+									<template
+										v-else-if="!isUserField(field) && (field.optionSwatches || field.optionIcons)"
+										#selected-option="optionProps">
+										<span class="cn-form-dialog__option">
+											<span
+												v-if="optionSwatch(field, optionProps)"
+												class="cn-form-dialog__option-swatch"
+												:style="{ background: optionSwatch(field, optionProps) }"
+												aria-hidden="true" />
+											<CnIcon v-else-if="optionIcon(field, optionProps)" :name="optionIcon(field, optionProps)" :size="16" />
+											{{ optionText(optionProps) }}
+										</span>
 									</template>
 								</component>
 								<CnFieldHelper
@@ -559,6 +747,10 @@
 									:inputLabel="fieldLabelText(field)"
 									:disabled="field.readOnly"
 									:error="!!errors[field.key]"
+									:timer="field.timer === true"
+									:autoStart="field.autoStart === true"
+									:norm="field.norm || null"
+									:normLabel="field.normLabel || ''"
 									@update:modelValue="value => updateField(field.key, value)" />
 								<CnFieldHelper
 									:id="helpId(field)"
@@ -597,6 +789,11 @@
 									:inputLabel="fieldLabelText(field)"
 									:disabled="field.readOnly"
 									:error="errors[field.key] || ''"
+									:fieldOverrides="field.itemOverrides || {}"
+									:newItem="field.newItem || null"
+									:itemLabel="field.itemLabel ? cnTranslate(field.itemLabel) : ''"
+									:emptyText="field.emptyText ? cnTranslate(field.emptyText) : ''"
+									:addLabel="field.addLabel ? cnTranslate(field.addLabel) : undefined"
 									@update:modelValue="value => updateField(field.key, value)" />
 								<CnFieldHelper
 									:text="field.description"
@@ -678,6 +875,37 @@
 							</small>
 						</template>
 					</div>
+					<div
+						v-if="!isInFoldedSection(field) && ($slots['field-' + field.key + '-hint'] || resolveHintComponent(field))"
+						class="cn-form-dialog__field-hint"
+						:data-testid="'cn-form-hint-' + field.key">
+						<!-- @slot field-{key}-hint Content under one field, such as a hint that follows its value. -->
+						<!-- @binding {object} field The field definition. -->
+						<!-- @binding {*} value The field's current value. -->
+						<!-- @binding {object} formData Every value of the form. -->
+						<slot
+							v-if="$slots['field-' + field.key + '-hint']"
+							:name="'field-' + field.key + '-hint'"
+							:field="field"
+							:value="formData[field.key]"
+							:formData="formData" />
+						<!-- `hintWidget` names a registered component mounted under the field. -->
+						<component
+							:is="resolveHintComponent(field)"
+							v-else
+							:field="field"
+							:value="formData[field.key]"
+							:formData="formData" />
+					</div>
+					<!-- `warnWhen`: notes under the field that do not block the save. -->
+					<p
+						v-for="(warning, index) in (isInFoldedSection(field) ? [] : fieldWarnings(field))"
+						:key="field.key + '-warning-' + index"
+						class="cn-form-dialog__warning"
+						role="status"
+						:data-testid="'cn-form-warning-' + field.key">
+						{{ warning }}
+					</p>
 				</template>
 
 				<!-- The extra questions a chosen case type / product line asks
@@ -693,6 +921,12 @@
 
 				<!-- @slot after-fields Content below the last auto-generated field. -->
 				<slot name="after-fields" />
+
+				<!-- `footnote`: a note the form closes on, under its fields. -->
+				<p v-if="footnote" class="cn-form-dialog__footnote" data-testid="cn-form-dialog-footnote">
+					<InformationOutline :size="18" class="cn-form-dialog__footnote-icon" />
+					<span>{{ footnote }}</span>
+				</p>
 			</template>
 		</div>
 
@@ -715,6 +949,15 @@
 			data-testid="cn-form-dialog-nested-create"
 			@confirm="onNestedCreateConfirm"
 			@close="onNestedCreateClose" />
+
+		<!-- A field's own `createModal`, mounted here rather than through the
+		     app's single modal slot, so a form that is itself a registry modal
+		     stays open underneath it. -->
+		<component
+			:is="fieldCreate.component"
+			v-if="fieldCreate !== null"
+			v-bind="fieldCreate.props"
+			data-testid="cn-form-dialog-field-create" />
 
 		<CnReplaceValuesDialog
 			v-if="pendingReplace !== null"
@@ -750,6 +993,9 @@
 				aria-live="polite"
 				data-testid="cn-form-dialog-draft-state">{{ draftIndicatorLabel }}</span>
 			<NcButton @click="$emit('close')">
+				<template v-if="cancelIcon" #icon>
+					<CnIcon :name="cancelIcon" :size="20" data-testid="cn-form-dialog-cancel-icon" />
+				</template>
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton
@@ -786,6 +1032,7 @@ import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcLoadingIcon, NcNoteCard, NcSelect, NcSelectUsers, NcTextField } from '@nextcloud/vue'
 import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue'
+import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnReplaceValuesDialog from '../../dialogs/CnReplaceValuesDialog.vue'
 import CnChildRecordsField from '../CnChildRecordsField/CnChildRecordsField.vue'
@@ -797,10 +1044,13 @@ import CnFormField from '../CnFormField/CnFormField.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
 import CnJsonViewer from '../CnJsonViewer/CnJsonViewer.vue'
+import CnPartyPicker from '../CnPartyPicker/CnPartyPicker.vue'
 import CnPropertySourceField from '../CnPropertySourceField/CnPropertySourceField.vue'
 import CnResourceSelect from '../CnResourceSelect/CnResourceSelect.vue'
+import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
 import CnSubObjectsField from '../CnSubObjectsField/CnSubObjectsField.vue'
 import { describeRowProblem, useChildRecords } from '../../composables/useChildRecords.js'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { clearAnonymousDrafts, draftIndicatorText, draftKey, formDraftMixin, hasDraftChanges, readDraft, resolveDraftUserId } from '../../composables/useFormDraft.js'
 import { heldFromFailures, splitHeldFiles, uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -811,22 +1061,33 @@ import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveCreateOverrideHandler } from '../../utils/actionsDispatcher.js'
 import { loadCurrentUserProfile } from '../../utils/currentUserProfile.js'
+import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
+import { foldDottedFields, spreadDottedFields } from '../../utils/dottedFields.js'
 import {
+	answersByArrayKey,
 	definitionQueryParams,
 	DYNAMIC_KEY_PREFIX,
 	extendsFormDeclarations,
+	mergeValueArray,
 	prefillDeclarations,
 	prefillValues,
 	propertiesFromDefinitions,
 	splitDynamicFormData,
+	storedAnswersFor,
+	usesArrayValues,
 } from '../../utils/dynamicProperties.js'
-import { shouldShow } from '../../utils/fieldCondition.js'
+import { conditionHolds, shouldShow } from '../../utils/fieldCondition.js'
+import { fillTemplate } from '../../utils/fillTemplate.js'
 import { computeAssignments } from '../../utils/formAssign.js'
 import { resolveNextcloudGroup, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { durationSeconds } from '../../utils/isoDuration.js'
 import { objectDisplayName } from '../../utils/objectName.js'
+import { fieldWithOptionsFrom, filterOptions, formTokenKeys, isOptionsFrom, loadOptionsFrom, optionsFromAppMissing, resolveFormTokens } from '../../utils/optionsFrom.js'
 import { languageOptions, resolveDefaultToken, timezoneOptions } from '../../utils/pickerOptions.js'
 import { getDotted, planPropertySourceFill } from '../../utils/propertySourceFill.js'
+import { isPrototypeKey } from '../../utils/prototypeKeys.js'
+import { pruneRows } from '../../utils/pruneRows.js'
+import { readPath } from '../../utils/readPath.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
@@ -843,6 +1104,40 @@ import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAuto
  * @type {string[]}
  */
 const WIDE_WIDGETS = ['textarea', 'json', 'code']
+
+// The widget names the form draws itself; a registered component cannot take one over.
+const BUILT_IN_WIDGETS = new Set([
+	'text',
+	'email',
+	'url',
+	'number',
+	'textarea',
+	'lines',
+	'switch',
+	'select',
+	'user',
+	'group',
+	'multiselect',
+	'user-multiselect',
+	'group-multiselect',
+	'tags',
+	'checkbox',
+	'date',
+	'datetime',
+	'json',
+	'code',
+	'file',
+	'duration',
+	'child-records',
+	'sub-objects',
+	'object-switch',
+	'property-source',
+	'icon',
+	'language',
+	'timezone',
+	'party',
+	'resource',
+])
 
 /** Largest file carried inline in the saved payload; bigger ones upload after save. */
 const INLINE_FILE_CAP = 1024 * 1024
@@ -1024,6 +1319,36 @@ const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-imp
  * @event confirm Emitted when the user confirms the form. Payload: formData object (includes `id` in edit mode).
  * @event close Emitted when the dialog should be closed (cancel, close button, or auto-close after success).
  */
+
+/**
+ * Whether a template value still fits its property: the JSON type the
+ * property declares (an integer for `integer`), any value for a property
+ * that declares none.
+ *
+ * @param {unknown} value The template value.
+ * @param {object} [prop] The schema property.
+ * @return {boolean}
+ */
+function templateValueFits(value, prop) {
+	const type = prop && prop.type
+	if (!type || value === null) {
+		return true
+	}
+	const types = Array.isArray(type) ? type : [type]
+	return types.some((one) => {
+		if (one === 'array') {
+			return Array.isArray(value)
+		}
+		if (one === 'object') {
+			return typeof value === 'object' && !Array.isArray(value)
+		}
+		if (one === 'integer') {
+			return Number.isInteger(value)
+		}
+		return typeof value === one || (one === 'file' && typeof value === 'object')
+	})
+}
+
 export default {
 	name: 'CnFormDialog',
 
@@ -1033,6 +1358,7 @@ export default {
 		CnFileField,
 		CnDurationField,
 		CnPropertySourceField,
+		CnSearchSelect,
 		CnReplaceValuesDialog,
 		CnSubObjectsField,
 		CnChildRecordsField,
@@ -1049,10 +1375,12 @@ export default {
 		NcCheckboxRadioSwitch,
 		CnJsonViewer,
 		CnIconBrowser,
+		CnPartyPicker,
 		CnResourceSelect,
 		CnFieldHelper,
 		Plus,
 		ContentSaveOutline,
+		InformationOutline,
 	},
 
 	mixins: [dialogBoardMixin, formDraftMixin()],
@@ -1082,11 +1410,31 @@ export default {
 		 */
 		cnManifest: { default: null },
 		cnRegistry: { default: null },
+
+		/**
+		 * The page's object (a detail page, or a widget's object), so an
+		 * `optionsFrom` filter can say `@objectId` / `@object.<field>`.
+		 */
+		cnObjectContext: { default: null },
+		cnDetailObjectContext: { default: null },
 		cnCustomComponents: { default: null },
 		cnOpenModal: { default: null },
 	},
 
 	props: {
+		/**
+		 * Offer the record templates of this register and schema on a create
+		 * form (`{ register, schema }`, slugs): a "Start from a template"
+		 * picker fills the form, leaving out values that no longer fit.
+		 * Null offers none.
+		 *
+		 * @type {{register: string, schema: string}|null}
+		 */
+		templateSource: {
+			type: Object,
+			default: null,
+		},
+
 		/** Schema for auto-generating fields. Either schema or fields must be provided. */
 		schema: {
 			type: Object,
@@ -1318,6 +1666,18 @@ export default {
 			default: '',
 		},
 
+		/**
+		 * A note the form closes on, under its fields (PqTicketBewerken "De
+		 * status wijzig je hier niet: ..."). The host translates it. Empty
+		 * shows none.
+		 *
+		 * @spec openspec/changes/form-dialog-footnote/specs/form-dialog/spec.md#requirement-a-form-can-close-on-a-note
+		 */
+		footnote: {
+			type: String,
+			default: '',
+		},
+
 		/** MDI icon name on the Confirm button (`SwapHorizontal`, `Archive`, `Send`, `Gavel`). Defaults to Plus when creating, else a save icon. */
 		confirmIcon: {
 			type: String,
@@ -1328,6 +1688,23 @@ export default {
 		confirmDisabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Leave the dialog only through its buttons: no header close button,
+		 * and Escape or a backdrop click does nothing. For a host whose dialog
+		 * was an `NcDialog` with `no-close`. Off, the dialog blocks closing
+		 * only while it saves.
+		 */
+		noClose: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** MDI icon name on the Cancel / Close button (`Cancel`). Empty draws no icon, as before. */
+		cancelIcon: {
+			type: String,
+			default: '',
 		},
 	},
 
@@ -1369,6 +1746,10 @@ export default {
 			result: null,
 			/** Form-level error message (e.g. a server validation failure) shown above the fields without leaving the form phase. */
 			formError: null,
+			// Record templates of the form's register and schema (`templateSource`), the one applied, and the values it could not give.
+			recordTemplates: [],
+			appliedTemplate: null,
+			templateDropped: [],
 			closeTimeout: null,
 			/** Per-field async state: { [fieldKey]: { options: [], loading: false, searchTimeout: null } } */
 			asyncState: {},
@@ -1390,6 +1771,16 @@ export default {
 			referenceLabels: {},
 			/** Concept-scheme fields whose options request failed or came back empty. */
 			codedFailed: {},
+			// Options read through a field's `optionsFrom`, by field key, read once per dialog.
+			sourcedOptions: {},
+			// Whether a field's `optionsFrom` failed or gave no options, by field key: it falls back to text.
+			sourcedFailed: {},
+			// The resolved source each field's options were read from, by field key.
+			sourcedSignatures: {},
+			// Set while a save that passed its uniqueness check goes on.
+			uniqueChecked: false,
+			// The sections folded away (`sectionCollapsed` on one of their fields opens them folded).
+			foldedSections: [],
 			/** Scheme of each coded field, as OpenRegister reported it (for the notation route). */
 			codedSchemes: {},
 			/**
@@ -1445,6 +1836,8 @@ export default {
 			 * for the referenced schema.
 			 */
 			nestedCreate: null,
+			// The field `createModal` dialog that is open: `{ component, props }`.
+			fieldCreate: null,
 		}
 	},
 
@@ -1652,6 +2045,19 @@ export default {
 		 *
 		 * @return {Array<{key: string, drivers: string[]}>} Field key => the form keys it depends on.
 		 */
+		/**
+		 * A signature of the values every dependent-values table reads.
+		 *
+		 * @return {string} A change means some dependent field may hold a value it no longer allows.
+		 */
+		dependentValuesToken() {
+			return this.resolvedFields
+				.map((field) => this.dependentValuesOf(field))
+				.filter(Boolean)
+				.map((decl) => `${decl.controlledBy}=${JSON.stringify(this.formData[decl.controlledBy] ?? null)}`)
+				.join('&')
+		},
+
 		relationFilterDecls() {
 			const properties = (this.schema && this.schema.properties) || {}
 			const decls = []
@@ -1715,7 +2121,7 @@ export default {
 		resolvedFields() {
 			// Manual fields take priority
 			const base = this.fields
-				? this.fields
+				? this.fields.map(fieldWithOptionsFrom)
 				: fieldsFromSchema(this.schema, {
 						exclude: this.excludeFields,
 						include: this.includeFields,
@@ -1751,9 +2157,28 @@ export default {
 		visibleFields() {
 			return this.resolvedFields
 				.filter((field) => shouldShow(field, this.formData))
+				// `optionsFrom.hideWhenEmpty`: a select whose source gives nothing
+				// for the current values is left out (a type without formats).
+				.filter((field) => !(field.optionsFrom && field.optionsFrom.hideWhenEmpty === true && Array.isArray(this.sourcedOptions[field.key]) && this.sourcedOptions[field.key].length === 0))
+				// `requiredWhen`: required while its condition holds, so the
+				// asterisk, the board look's aria-required and validation follow.
+				.map((field) => (field.requiredWhen ? { ...field, required: conditionHolds(field.requiredWhen, this.formData, field.key) } : field))
 				.map((field) => this.applySemanticResolution(field))
 				.map((field) => this.degradeUnresolvableReference(field))
 				.map((field) => this.applyCodePicker(field))
+		},
+
+		/**
+		 * The sections a reader can fold: those with `sectionCollapsed` on one
+		 * of their fields (`true` opens them folded, `false` open).
+		 *
+		 * @return {Array<string>}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-section-can-be-folded
+		 */
+		foldableSections() {
+			return [...new Set(this.resolvedFields
+				.filter((field) => typeof field.section === 'string' && field.section !== '' && typeof field.sectionCollapsed === 'boolean')
+				.map((field) => field.section))]
 		},
 
 		/**
@@ -1799,6 +2224,31 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * A controlling field changed: clear what a dependent field holds
+		 * that its new table row does not allow (`x-openregister-dependent-values`).
+		 *
+		 * @spec openspec/changes/form-dependent-values/specs/form-dialog/spec.md#requirement-a-field-offers-only-the-values-its-controlling-field-allows
+		 */
+		dependentValuesToken() {
+			for (const field of this.resolvedFields) {
+				const allowed = this.dependentAllowed(field)
+				if (allowed === null) {
+					continue
+				}
+				const value = this.formData[field.key]
+				const plain = (v) => String(v && typeof v === 'object' ? (v.id ?? v.value) : v)
+				if (Array.isArray(value)) {
+					const kept = value.filter((v) => allowed.includes(plain(v)))
+					if (kept.length !== value.length) {
+						this.updateField(field.key, kept)
+					}
+				} else if (value !== null && value !== undefined && value !== '' && !allowed.includes(plain(value))) {
+					this.updateField(field.key, null)
+				}
+			}
+		},
+
 		/**
 		 * Keep the draft in step with what is typed.
 		 *
@@ -1868,15 +2318,6 @@ export default {
 			},
 		},
 
-		/**
-		 * When a field transitions from visible to hidden, clear its
-		 * form-data value so a stale (now-irrelevant) value isn't
-		 * carried into the submitted payload. We diff key lists rather
-		 * than mutating during the computed itself.
-		 *
-		 * @param {object[]} newFields The new visible field set.
-		 * @param {object[]} oldFields The previous visible field set.
-		 */
 		/**
 		 * Load the fields a newly-chosen driving value brings with it.
 		 *
@@ -2015,6 +2456,7 @@ export default {
 		// resolves, then re-render as a picker (resolved) or disabled+tooltip
 		// (unresolved).
 		this.resolveSemanticReferences()
+		this.loadRecordTemplates()
 	},
 
 	beforeUnmount() {
@@ -2029,6 +2471,111 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * A `resource` field's scope with its `value` token read against the
+		 * page's object: `@object.caseType` on a case's page is that case's type,
+		 * by id when it is a relation. An unreadable token leaves the value
+		 * empty, which offers every row rather than none.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} The scope for CnResourceSelect.
+		 */
+		resourceScope(field) {
+			const scope = field && field.resource && field.resource.scope
+			if (!scope || typeof scope !== 'object' || !scope.field) {
+				return null
+			}
+			const ctx = resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {}
+			let value = typeof scope.value === 'string' ? resolveFilterValue(scope.value, ctx) : scope.value
+			if (value && typeof value === 'object') {
+				value = value.id || (value['@self'] && value['@self'].id) || ''
+			}
+			value = typeof value === 'string' && !value.startsWith('@') ? value : (typeof value === 'number' ? String(value) : '')
+			return { ...scope, value }
+		},
+
+		/**
+		 * Resolve the registered component a field's `widget` names: the v2
+		 * registry (any entry with a `component`) first, then the legacy
+		 * customComponents map. Built-in widget names never resolve here.
+		 *
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveFieldComponent(field) {
+			const name = field && field.widget
+			if (typeof name !== 'string' || name === '' || BUILT_IN_WIDGETS.has(name)) {
+				return null
+			}
+			const entry = this.cnRegistry && this.cnRegistry[name]
+			if (entry && entry.component) {
+				return entry.component
+			}
+			const legacy = this.cnCustomComponents && this.cnCustomComponents[name]
+			// A bare function in the legacy map is a handler, not a component.
+			return legacy && typeof legacy === 'object' ? legacy : null
+		},
+
+		/**
+		 * The registered component a field shows under its control
+		 * (`hintWidget`), or null.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} Vue component, or null.
+		 */
+		resolveHintComponent(field) {
+			const name = field && field.hintWidget
+			return typeof name === 'string' && name !== '' ? this.resolveFieldComponent({ widget: name }) : null
+		},
+
+		/**
+		 * The filters a select-or-create picker scopes its options by
+		 * (`pickerFilter`), each `@answer.<key>` replaced by that form value.
+		 * The picker drops empty entries, so an unanswered field scopes to nothing.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object} The filters.
+		 */
+		pickerFilters(field) {
+			const filter = field && field.pickerFilter
+			return filter && typeof filter === 'object' && !Array.isArray(filter) ? resolveFormTokens(filter, this.formData) : {}
+		},
+
+		/**
+		 * The dialog a reference field creates its objects with: the component
+		 * of the `kind: 'modal'` registry entry its `createModal` names, or null.
+		 *
+		 * @spec openspec/changes/pl4-form-field-create-modal/specs/form-dialog/spec.md
+		 * @param {object} field A resolved field descriptor.
+		 * @return {object|null} The dialog component, or null.
+		 */
+		fieldCreateModal(field) {
+			const key = field && field.createModal
+			if (typeof key !== 'string' || key === '') {
+				return null
+			}
+			const entry = (this.cnRegistry || {})[key]
+			return entry && entry.kind === 'modal' && entry.component ? entry.component : null
+		},
+
+		/**
+		 * Mount a field's create dialog on top of this form. Its `created`
+		 * or `close` takes it down again.
+		 *
+		 * @param {object} component The dialog component.
+		 * @param {object} props Its props and `onCreated` / `onClose` listeners.
+		 * @return {void}
+		 */
+		mountFieldCreate(component, props) {
+			const done = (handler) => (...args) => {
+				this.fieldCreate = null
+				return handler(...args)
+			}
+			this.fieldCreate = { component, props: { ...props, onCreated: done(props.onCreated), onClose: done(props.onClose) } }
+		},
+
 		/**
 		 * Resolve a field's reference integration widget, if any.
 		 * Returns the integration's single-entity widget component
@@ -2207,7 +2754,9 @@ export default {
 		 * @return {object} The (possibly transformed) field.
 		 */
 		applySemanticResolution(field) {
-			if (!field || !field.referenceSemanticType) {
+			// A field the manifest draws as a party picker searches its own
+			// `sources`; the semantic provider does not replace it.
+			if (!field || !field.referenceSemanticType || field.widget === 'party') {
 				return field
 			}
 			const entry = this.semanticResolutions[field.referenceSemanticType]
@@ -2301,7 +2850,7 @@ export default {
 				// schema-valid value (the backend stores date-times
 				// space-separated without a timezone, which would otherwise
 				// fail the schema's `date-time` format on save).
-				this.formData = JSON.parse(JSON.stringify(item))
+				this.formData = spreadDottedFields(JSON.parse(JSON.stringify(item)), this.resolvedFields)
 				this.normalizePersistedDates()
 			} else {
 				// Create mode: initialize with field defaults
@@ -2361,6 +2910,14 @@ export default {
 			// What the form opened with. A draft is written only once a field
 			// a person edited differs from this (see the `formData` watcher).
 			// Not reactive: nothing renders from it.
+			// Sections that open folded, and the starting value of each field
+			// that is not stored (`stored: false`) from its `initialWhen`.
+			this.foldedSections = [...new Set(this.resolvedFields.filter((f) => f.sectionCollapsed === true && f.section).map((f) => f.section))]
+			for (const field of this.resolvedFields) {
+				if (field.stored === false && field.initialWhen) {
+					this.formData[field.key] = conditionHolds(field.initialWhen, this.formData, field.key)
+				}
+			}
 			this.draftBaseline = JSON.parse(JSON.stringify(this.formData || {}))
 		},
 
@@ -2427,6 +2984,57 @@ export default {
 					}
 				}
 			}
+		},
+
+		/**
+		 * The line under a choice drawn as a text input: the source's
+		 * `missingText` when its `requiresApp` is missing, else that the list
+		 * could not be loaded.
+		 *
+		 * @param {object} field The field.
+		 * @return {string} The hint.
+		 * @spec openspec/changes/options-from-requires-app/specs/form-dialog/spec.md#requirement-a-source-from-a-missing-app-falls-back-to-a-text-field
+		 */
+		codedFallbackHint(field) {
+			const from = field.optionsFrom
+			if (optionsFromAppMissing(from) && typeof from.missingText === 'string' && from.missingText !== '') {
+				return this.cnTranslate(from.missingText)
+			}
+			return t('nextcloud-vue', 'The list of choices could not be loaded. Enter the value by hand.')
+		},
+
+		/**
+		 * The options of an `optionsFrom` field whose label holds the query.
+		 * The source is read once per dialog, and every option's label is
+		 * cached so a held value shows by its label.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} query The search text.
+		 * @return {Promise<Array<{id: (string|number), label: string}>>} The options, in the source's order.
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		async fetchSourcedOptions(field, query) {
+			// A source that reads another field (`@answer.<key>`) is read again
+			// when that value changes: the cache is kept per resolved source.
+			const from = resolveFormTokens(field.optionsFrom, this.formData)
+			const signature = JSON.stringify(from)
+			let all = this.sourcedSignatures[field.key] === signature ? this.sourcedOptions[field.key] : null
+			if (!all) {
+				try {
+					all = await loadOptionsFrom(from, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {})
+				} catch {
+					all = []
+				}
+				this.sourcedSignatures = { ...this.sourcedSignatures, [field.key]: signature }
+				this.sourcedOptions = { ...this.sourcedOptions, [field.key]: all }
+				this.sourcedFailed = { ...this.sourcedFailed, [field.key]: all.length === 0 }
+				const labels = {}
+				for (const o of all) {
+					labels[o.id] = o.label
+				}
+				this.referenceLabels = { ...this.referenceLabels, ...labels }
+			}
+			return filterOptions(all, query)
 		},
 
 		/**
@@ -2526,7 +3134,7 @@ export default {
 		 * @param {string} text The typed text.
 		 */
 		onCodedFallbackInput(field, text) {
-			if (field.codeList.multiple) {
+			if (field.codeList ? field.codeList.multiple : field.type === 'array') {
 				this.updateField(field.key, text.split(',').map((x) => x.trim()).filter(Boolean))
 			} else {
 				this.updateField(field.key, text)
@@ -2674,6 +3282,20 @@ export default {
 			return true
 		},
 
+		/**
+		 * Keep a party field's whole choice under its `choiceKey`, for a host
+		 * that stores more than the id; the create override reads it there.
+		 *
+		 * @param {object} field The party field.
+		 * @param {object|null} choice The picker's `select` payload.
+		 * @spec openspec/changes/party-picker-kind-switch/specs/party-picker-kind-switch/spec.md#requirement-a-form-keeps-the-whole-choice
+		 */
+		onPartySelect(field, choice) {
+			if (field.choiceKey) {
+				this.formData[field.choiceKey] = choice
+			}
+		},
+
 		updateField(key, value) {
 			this.formData[key] = value
 			this.touchedFields[key] = true
@@ -2689,6 +3311,12 @@ export default {
 			// A hand edit ends this field's own rules; other fields may follow it.
 			delete this.assignedFrom[key]
 			this.runAssignments([key])
+			// A select whose source reads this field (`@answer.<key>`) reads it again.
+			for (const field of this.resolvedFields) {
+				if (isOptionsFrom(field.optionsFrom) && formTokenKeys(field.optionsFrom).includes(key)) {
+					this.loadAsyncOptions(field, '')
+				}
+			}
 		},
 
 		/**
@@ -3101,7 +3729,7 @@ export default {
 			if (!this.isBoardLook || this.$slots['field-' + field.key]) {
 				return false
 			}
-			if (['switch', 'checkbox', 'file', 'duration', 'child-records', 'sub-objects', 'property-source'].includes(field.widget)) {
+			if (['switch', 'object-switch', 'checkbox', 'file', 'duration', 'child-records', 'sub-objects', 'property-source'].includes(field.widget)) {
 				return false
 			}
 			return !this.resolveReferenceWidget(field)
@@ -3167,7 +3795,65 @@ export default {
 		 */
 		fieldPlaceholder(field) {
 			const description = field.description || ''
-			return this.helperError(field) ? description : ''
+			if (this.helperError(field)) {
+				return description
+			}
+			// `placeholderFrom`: another field's value, such as the status name
+			// standing in for an empty public label.
+			if (typeof field.placeholderFrom === 'string' && field.placeholderFrom !== '') {
+				const value = this.formData[field.placeholderFrom]
+				return value === null || value === undefined ? '' : String(value)
+			}
+			return ''
+		},
+
+		/**
+		 * The lines of a `lines` field as a list: trimmed, empty ones dropped.
+		 *
+		 * @param {string} text The textarea's text.
+		 * @return {Array<string>}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-list-of-strings-is-edited-one-per-line
+		 */
+		linesOf(text) {
+			return String(text || '').split('\n').map((line) => line.trim()).filter((line) => line !== '')
+		},
+
+		/**
+		 * The warnings of a field (`warnWhen`) whose condition holds now: notes
+		 * under the field that do not block the save.
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<string>} The warning texts, translated.
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-field-can-warn-without-blocking-the-save
+		 */
+		fieldWarnings(field) {
+			const list = Array.isArray(field.warnWhen) ? field.warnWhen : (field.warnWhen ? [field.warnWhen] : [])
+			return list
+				.filter((w) => w && typeof w.text === 'string' && w.when && conditionHolds(w.when, this.formData, field.key))
+				.map((w) => this.cnTranslate(w.text))
+		},
+
+		/**
+		 * Whether a field sits in a section the reader has folded away.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-a-section-can-be-folded
+		 */
+		isInFoldedSection(field) {
+			return typeof field.section === 'string' && field.section !== '' && this.foldedSections.includes(field.section)
+		},
+
+		/**
+		 * Fold a section away, or open it.
+		 *
+		 * @param {string} section The section's name.
+		 * @return {void}
+		 */
+		toggleSection(section) {
+			this.foldedSections = this.foldedSections.includes(section)
+				? this.foldedSections.filter((s) => s !== section)
+				: [...this.foldedSections, section]
 		},
 
 		/**
@@ -3195,6 +3881,35 @@ export default {
 				'aria-describedby': ids.length > 0 ? ids.join(' ') : undefined,
 				'aria-required': this.isBoardLook && field.required ? 'true' : undefined,
 			}
+		},
+
+		/**
+		 * The colour shown before an option (`optionSwatches`, value to CSS
+		 * colour), or ''.
+		 *
+		 * @param {object} field The field.
+		 * @param {object} option The option.
+		 * @return {string}
+		 * @spec openspec/changes/form-small-features/specs/form-dialog/spec.md#requirement-an-option-can-show-a-colour-or-an-icon
+		 */
+		optionSwatch(field, option) {
+			const map = field.optionSwatches && typeof field.optionSwatches === 'object' ? field.optionSwatches : null
+			const value = map && option ? map[String(option.id ?? option.value)] : ''
+			return typeof value === 'string' ? value : ''
+		},
+
+		/**
+		 * The icon shown before an option (`optionIcons`, value to icon
+		 * name), or ''.
+		 *
+		 * @param {object} field The field.
+		 * @param {object} option The option.
+		 * @return {string}
+		 */
+		optionIcon(field, option) {
+			const map = field.optionIcons && typeof field.optionIcons === 'object' ? field.optionIcons : null
+			const value = map && option ? map[String(option.id ?? option.value)] : ''
+			return typeof value === 'string' ? value : ''
 		},
 
 		optionText(option) {
@@ -3255,7 +3970,29 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerField(field) {
-			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field) || this.isCodedField(field)
+			return this.isReferenceField(field) || this.isUserField(field) || this.isGroupField(field) || this.isCodedField(field) || this.isSourcedField(field)
+		},
+
+		/**
+		 * A single choice whose options come from a source (`optionsFrom`).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		isSourcedField(field) {
+			return isOptionsFrom(field.optionsFrom) && field.type !== 'array'
+		},
+
+		/**
+		 * Several choices whose options come from a source (`optionsFrom`).
+		 *
+		 * @param {object} field The field definition
+		 * @return {boolean}
+		 * @spec openspec/changes/form-field-options-from/specs/form-dialog/spec.md#requirement-a-select-field-can-read-its-options-from-a-source
+		 */
+		isSourcedArrayField(field) {
+			return isOptionsFrom(field.optionsFrom) && field.type === 'array'
 		},
 
 		/**
@@ -3285,7 +4022,7 @@ export default {
 		 * @return {boolean}
 		 */
 		isIdPickerArrayField(field) {
-			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field) || this.isCodedArrayField(field)
+			return this.isReferenceArrayField(field) || this.isUserArrayField(field) || this.isGroupArrayField(field) || this.isCodedArrayField(field) || this.isSourcedArrayField(field)
 		},
 
 		/**
@@ -3449,6 +4186,11 @@ export default {
 				store.registerObjectType(slug, schemaRef, register)
 			}
 			const labelField = this.referenceLabelField(field)
+			const fieldModal = this.fieldCreateModal(field)
+			if (fieldModal) {
+				const props = resolveFormTokens(field.createModalProps || {}, this.formData)
+				return this.openAppCreateModal(fieldModal, store, slug, labelField, term, props, (component, all) => this.mountFieldCreate(component, all))
+			}
 			const loadSchema = async () => {
 				try {
 					return await store.fetchSchema(slug)
@@ -3593,14 +4335,16 @@ export default {
 		 * as it was. A reported id is fetched so the picker can label it.
 		 *
 		 * @spec openspec/changes/review-round-two/specs/schema-utilities/spec.md
-		 * @param {string} key The registry key of the modal.
+		 * @param {string|object} key The registry key of the modal, or the dialog component for `open`.
 		 * @param {object} store The object store.
 		 * @param {string} slug The object type slug.
 		 * @param {string} labelField The property the typed term belongs in.
 		 * @param {string} term The typed search term.
+		 * @param {object} [props] More props for the dialog (a field's `createModalProps`).
+		 * @param {(key: (string|object), props: object) => void} [open] Opens the dialog; the app's modal slot by default.
 		 * @return {Promise<object|null>} The created object, or null.
 		 */
-		openAppCreateModal(key, store, slug, labelField, term) {
+		openAppCreateModal(key, store, slug, labelField, term, props = {}, open = this.cnOpenModal) {
 			return new Promise((resolve) => {
 				let settled = false
 				let reported = false
@@ -3610,7 +4354,8 @@ export default {
 						resolve(value)
 					}
 				}
-				this.cnOpenModal(key, {
+				open(key, {
+					...props,
 					initialData: term ? { [labelField]: term } : {},
 					onCreated: async (created) => {
 						if (created && typeof created === 'object') {
@@ -3715,8 +4460,7 @@ export default {
 				return
 			}
 			const [head, ...rest] = key.split('.')
-			const unsafe = ['__proto__', 'constructor', 'prototype']
-			if (unsafe.includes(head) || rest.some((k) => unsafe.includes(k))) {
+			if (isPrototypeKey(head) || rest.some(isPrototypeKey)) {
 				return
 			}
 			const clone = JSON.parse(JSON.stringify(this.formData[head] ?? {}))
@@ -3825,6 +4569,40 @@ export default {
 				const value = obj[sourceKey]
 				if (value !== undefined && value !== null) {
 					this.updateField(formKey, value)
+				}
+			}
+		},
+
+		/**
+		 * Whether an optional object (`widget: 'object-switch'`) is on: it
+		 * holds an object rather than null.
+		 *
+		 * @param {object} field The field.
+		 * @return {boolean}
+		 * @spec openspec/changes/sub-objects-editor/specs/form-dialog/spec.md#requirement-an-optional-object-has-a-switch
+		 */
+		isObjectOn(field) {
+			const value = this.formData[field.key]
+			return value !== null && value !== undefined && typeof value === 'object'
+		},
+
+		/**
+		 * Turn an optional object on (its `defaults`) or off (null). Its fields
+		 * at dotted paths follow: on they take the defaults, off they clear.
+		 *
+		 * @param {object} field The field, with optional `defaults`.
+		 * @param {boolean} on Whether the object is wanted.
+		 * @return {void}
+		 * @spec openspec/changes/sub-objects-editor/specs/form-dialog/spec.md#requirement-an-optional-object-has-a-switch
+		 */
+		setObjectOn(field, on) {
+			const defaults = field.defaults && typeof field.defaults === 'object' ? field.defaults : {}
+			this.updateField(field.key, on ? { ...defaults } : null)
+			const prefix = field.key + '.'
+			for (const other of this.resolvedFields) {
+				if (other.key.startsWith(prefix)) {
+					const value = on ? readPath(defaults, other.key.slice(prefix.length)) : undefined
+					this.updateField(other.key, value === undefined ? null : value)
 				}
 			}
 		},
@@ -3998,7 +4776,61 @@ export default {
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
 			this.dynamicLoading = false
+			this.seedStoredAnswers(active, properties)
 			this.seedDynamicDefaults(properties)
+		},
+
+		/**
+		 * Fill the data-driven fields of a record being edited with the
+		 * answers it already stores, so the edit form shows them instead of
+		 * empty fields. Runs before the defaults, so a stored answer wins over
+		 * a definition default; a field that already holds a value keeps it.
+		 *
+		 * @param {Array<{key: string, config: object}>} declarations The declarations whose fields just loaded.
+		 * @param {object} properties The dynamic properties they produced.
+		 * @return {void}
+		 */
+		seedStoredAnswers(declarations, properties) {
+			if (!this.item) {
+				return
+			}
+			for (const { config } of declarations) {
+				for (const [key, value] of Object.entries(storedAnswersFor(this.item, config, properties))) {
+					if (this.formData[key] === undefined || this.formData[key] === null || this.formData[key] === '') {
+						this.formData[key] = value
+					}
+				}
+			}
+		},
+
+		/**
+		 * Put the answers of each declaration that stores them on the object
+		 * itself into the payload, merged over the array it already holds, so
+		 * any host that saves the payload saves the answers and an edit keeps
+		 * the stored answers it did not change.
+		 *
+		 * @param {object} base The object's own fields, mutated in place.
+		 * @param {Array<object>} answers The answers, with their `declarationKey`.
+		 * @return {void}
+		 */
+		foldStoredAnswers(base, answers) {
+			const declarations = this.extendsDeclarations
+			for (const { key, config } of declarations) {
+				if (!usesArrayValues(config)) {
+					continue
+				}
+				const mine = declarations.length === 1
+					? answers
+					: answers.filter((a) => a.declarationKey === key)
+				if (mine.length === 0) {
+					continue
+				}
+				// Each answer goes to the array its definition is routed to
+				// (`values.arrayKeyBy`), merged over what that array holds.
+				for (const [arrayKey, subset] of Object.entries(answersByArrayKey(mine, config, this.dynamicDefinitions))) {
+					base[arrayKey] = mergeValueArray(base[arrayKey], subset, config, this.dynamicDefinitions)
+				}
+			}
 		},
 
 		/**
@@ -4007,7 +4839,8 @@ export default {
 		 * A textarea or a JSON editor in a half-width column is worse than no
 		 * columns at all, and a checkbox pair reads as one control rather than
 		 * two. The list is deliberately about the WIDGET, not the field name,
-		 * so it needs no per-app configuration to behave.
+		 * so it needs no per-app configuration to behave. A field override may
+		 * still ask for the full width with `width: 'full'`.
 		 *
 		 * @param {object} field The resolved field.
 		 * @return {boolean} True when the field spans both columns.
@@ -4016,7 +4849,32 @@ export default {
 			if (this.columns !== 2 || !field) {
 				return false
 			}
-			return WIDE_WIDGETS.includes(field.widget)
+			return field.width === 'full' || WIDE_WIDGETS.includes(field.widget)
+		},
+
+		/**
+		 * How many rows a textarea field is high: its own `rows`, else 4.
+		 *
+		 * @param {object} field The field descriptor.
+		 * @return {number} The rows attribute.
+		 */
+		textareaRows(field) {
+			const rows = Number(field && field.rows)
+			return Number.isInteger(rows) && rows > 0 ? rows : 4
+		},
+
+		/**
+		 * The rows a textarea field's own `rows` asks for, as the
+		 * `--cn-textarea-rows` the board look sizes it by; none without them,
+		 * so the board look keeps its own three-line height.
+		 *
+		 * @param {object} field The field descriptor.
+		 * @return {object|null} The style binding.
+		 * @spec openspec/changes/form-textarea-follows-rows/specs/form-dialog/spec.md#requirement-a-board-text-area-is-as-many-lines-as-its-rows
+		 */
+		textareaRowsStyle(field) {
+			const rows = Number(field && field.rows)
+			return Number.isInteger(rows) && rows > 0 ? { '--cn-textarea-rows': String(rows) } : null
 		},
 
 		/**
@@ -4261,7 +5119,9 @@ export default {
 
 			try {
 				let results
-				if (this.isCodedField(field) || this.isCodedArrayField(field)) {
+				if (this.isSourcedField(field) || this.isSourcedArrayField(field)) {
+					results = await this.fetchSourcedOptions(field, query)
+				} else if (this.isCodedField(field) || this.isCodedArrayField(field)) {
 					// Options OpenRegister serves for the bound scheme: its order,
 					// its validity window, its labels in the user's language.
 					results = await this.fetchCodedOptions(field)
@@ -4337,12 +5197,102 @@ export default {
 		 * @param {object} field The field definition
 		 * @return {Array}
 		 */
+		/**
+		 * The options of a `look: "search"` field as CnSearchSelect rows: each
+		 * option's own `secondary` / `icon` / `avatar`, else the field's
+		 * `optionSecondary` template (filled from the option), `optionIcon` and
+		 * `optionAvatar`.
+		 *
+		 * @spec openspec/changes/search-select-look/specs/search-select/spec.md#requirement-a-single-picker-can-take-the-search-look
+		 * @param {object} field The field definition.
+		 * @return {Array<object>}
+		 */
+		searchSelectOptions(field) {
+			const template = typeof field.optionSecondary === 'string' ? field.optionSecondary : ''
+			return this.getEffectiveOptions(field).map((option) => ({
+				...option,
+				secondary: option.secondary || (template ? fillTemplate(template, option).trim() : ''),
+				icon: option.icon || field.optionIcon || '',
+				avatar: option.avatar ?? (field.optionAvatar === true),
+			}))
+		},
+
+		/**
+		 * Pick the option a CnSearchSelect field emitted by its id, and hand
+		 * it to the select change handler.
+		 *
+		 * @spec openspec/changes/search-select-look/specs/search-select/spec.md#requirement-a-single-picker-can-take-the-search-look
+		 * @param {object} field The field definition.
+		 * @param {string|number|null} id The chosen option's id.
+		 */
+		onSearchSelectChange(field, id) {
+			if (id === null || id === undefined) {
+				this.onEffectiveSelectChange(field, null)
+				return
+			}
+			const option = this.searchSelectOptions(field).find((o) => String(o.id ?? o.value) === String(id)) || { id, label: String(id) }
+			const { secondary, icon, avatar, ...plain } = option
+			this.onEffectiveSelectChange(field, plain)
+		},
+
 		getEffectiveOptions(field) {
 			if (this.isAsyncEnum(field)) {
 				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
 				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
 			}
-			return this.getEnumOptions(field)
+			return this.narrowToDependentValues(field, this.getEnumOptions(field))
+		},
+
+		/**
+		 * The `x-openregister-dependent-values` table of a field's property
+		 * (or of its items): `{ controlledBy, allowed }`, or null.
+		 *
+		 * @param {object} field The field.
+		 * @return {{controlledBy: string, allowed: object}|null}
+		 * @spec openspec/changes/form-dependent-values/specs/form-dialog/spec.md#requirement-a-field-offers-only-the-values-its-controlling-field-allows
+		 */
+		dependentValuesOf(field) {
+			const prop = (this.schema && this.schema.properties && this.schema.properties[field.key]) || null
+			const decl = prop && (prop['x-openregister-dependent-values'] || (prop.items && prop.items['x-openregister-dependent-values']))
+			if (!decl || typeof decl.controlledBy !== 'string' || decl.controlledBy === '' || !decl.allowed || typeof decl.allowed !== 'object') {
+				return null
+			}
+			return decl
+		},
+
+		/**
+		 * The values a dependent field may take now: the table row of the
+		 * controlling field's value, or null when the field is unconstrained
+		 * (no table, or a controlling value the table does not list).
+		 *
+		 * @param {object} field The field.
+		 * @return {Array<string>|null} The allowed values, or null for any.
+		 * @spec openspec/changes/form-dependent-values/specs/form-dialog/spec.md#requirement-a-field-offers-only-the-values-its-controlling-field-allows
+		 */
+		dependentAllowed(field) {
+			const decl = this.dependentValuesOf(field)
+			if (!decl) {
+				return null
+			}
+			const raw = this.formData[decl.controlledBy]
+			const controlling = raw && typeof raw === 'object' ? (raw.id ?? raw.value) : raw
+			if (controlling === null || controlling === undefined || controlling === '' || !Object.hasOwn(decl.allowed, String(controlling))) {
+				return null
+			}
+			const row = decl.allowed[String(controlling)]
+			return Array.isArray(row) ? row.map(String) : []
+		},
+
+		/**
+		 * Options narrowed to what the controlling field allows.
+		 *
+		 * @param {object} field The field.
+		 * @param {Array<object>} options The options.
+		 * @return {Array<object>} The allowed options, the same objects.
+		 */
+		narrowToDependentValues(field, options) {
+			const allowed = this.dependentAllowed(field)
+			return allowed === null ? options : options.filter((option) => allowed.includes(String(option.id ?? option.value)))
 		},
 
 		/**
@@ -4417,7 +5367,7 @@ export default {
 				// TODO: restore to `this.asyncState[field.key]?.options || []` once on Vue 3 (buble doesn't support optional chaining)
 				return (this.asyncState[field.key] && this.asyncState[field.key].options) || []
 			}
-			return this.getArrayEnumOptions(field)
+			return this.narrowToDependentValues(field, this.getArrayEnumOptions(field))
 		},
 
 		/**
@@ -4533,9 +5483,11 @@ export default {
 
 				// Sub-objects: every row must carry the row schema's required values.
 				if (field.widget === 'sub-objects' && Array.isArray(value) && field.items && Array.isArray(field.items.required)) {
-					for (let i = 0; i < value.length; i++) {
+					// Rows that `pruneWhen` drops on save are not checked.
+					const rows = pruneRows(value, field.items, field.pruneWhen)
+					for (let i = 0; i < rows.length; i++) {
 						const missing = field.items.required.find((k) => {
-							const cell = value[i] ? value[i][k] : undefined
+							const cell = rows[i] ? rows[i][k] : undefined
 							return cell === undefined || cell === null || cell === ''
 						})
 						if (missing !== undefined) {
@@ -4580,7 +5532,10 @@ export default {
 					} else if (v.pattern !== undefined && v.pattern !== null && touched) {
 						try {
 							if (!new RegExp(v.pattern).test(value)) {
-								newErrors[field.key] = 'Invalid format.'
+								// `validation.patternMessage` names what is wrong, in the app's words.
+								newErrors[field.key] = typeof v.patternMessage === 'string' && v.patternMessage !== ''
+									? this.cnTranslate(v.patternMessage)
+									: 'Invalid format.'
 							}
 						} catch {
 							// Ignore invalid regex patterns
@@ -4602,11 +5557,74 @@ export default {
 			return Object.keys(newErrors).length === 0
 		},
 
+		/**
+		 * Whether each field marked `unique` holds a value no other stored
+		 * object has (`unique: true`, or `{ filter }` to compare only among
+		 * the objects that filter matches, such as `{ caseType: '@objectId' }`
+		 * for the statuses of one case type). A clash is shown on the field.
+		 * A check that cannot be made does not block the save; the server is
+		 * the final word.
+		 *
+		 * @param {Array<object>} fields The fields to check.
+		 * @return {Promise<boolean>} Whether every value is free.
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-an-order-is-unique-among-its-siblings
+		 */
+		async checkUnique(fields) {
+			const register = this.register
+			const schema = this.schema && typeof this.schema === 'object' ? (this.schema.slug || this.schema.id) : this.schema
+			if (!register || !schema) {
+				return true
+			}
+			const ownId = this.item ? String(this.item.id ?? this.item['@self']?.id ?? this.item.uuid ?? '') : ''
+			const errors = { ...this.errors }
+			let free = true
+			for (const field of fields) {
+				const value = this.formData[field.key]
+				if (value === null || value === undefined || value === '') {
+					continue
+				}
+				const filter = field.unique && typeof field.unique === 'object' && field.unique.filter && typeof field.unique.filter === 'object' ? field.unique.filter : {}
+				try {
+					const rows = await fetchEndpointSource({
+						url: `/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(String(schema))}`,
+						params: { ...filter, [field.key]: value, _limit: 2 },
+						responsePath: 'results',
+					}, resolveObjectTokenContext(this.cnObjectContext, this.cnDetailObjectContext) || {}, { force: true })
+					const taken = (Array.isArray(rows) ? rows : []).some((row) => String(row.id ?? row['@self']?.id ?? '') !== ownId)
+					if (taken) {
+						errors[field.key] = t('nextcloud-vue', '{field} is already used; choose another value.', { field: field.label || field.key })
+						free = false
+					}
+				} catch {
+					// The check could not be made; the server decides on save.
+				}
+			}
+			this.errors = errors
+			return free
+		},
+
 		executeConfirm() {
 			if (!this.validate()) {
 				return
 			}
 			if (!this.jsonFieldsValid) {
+				return
+			}
+			// A field that must be unique is checked against the stored objects
+			// first; the save goes on once that answered.
+			const unique = this.visibleFields.filter((f) => f.unique)
+			if (unique.length > 0 && !this.uniqueChecked) {
+				this.checkUnique(unique).then((ok) => {
+					if (!ok) {
+						return
+					}
+					this.uniqueChecked = true
+					try {
+						this.executeConfirm()
+					} finally {
+						this.uniqueChecked = false
+					}
+				})
 				return
 			}
 
@@ -4629,6 +5647,7 @@ export default {
 				...answer,
 				declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',
 			}))
+			this.foldStoredAnswers(base, answers)
 			/**
 			 * @event confirm Emitted when the user confirms the form.
 			 * Payload: form data object. Includes `id` when editing. A second
@@ -4721,11 +5740,26 @@ export default {
 					delete payload[key]
 				}
 			}
+			// A field that is not stored only steers the form. A hidden field
+			// with `clearWhenHidden` is written empty: hiding a field drops it
+			// from the form data, and an edit sends only what it holds, so
+			// without this the stored value would stay behind.
+			const shown = new Set(this.visibleFields.map((f) => f.key))
+			for (const field of this.resolvedFields) {
+				if (field.stored === false) {
+					delete payload[field.key]
+				} else if (field.clearWhenHidden === true && !shown.has(field.key)) {
+					payload[field.key] = field.widget === 'lines' || field.type === 'array' ? [] : null
+				}
+			}
 			// Child records are saved as their own objects after the parent,
 			// never nested in the parent's payload.
 			for (const field of this.resolvedFields) {
 				if (field.widget === 'child-records') {
 					delete payload[field.key]
+				}
+				if (field.widget === 'sub-objects' && field.pruneWhen && Array.isArray(payload[field.key])) {
+					payload[field.key] = pruneRows(payload[field.key], field.items, field.pruneWhen)
 				}
 			}
 			for (const field of this.resolvedFields) {
@@ -4743,7 +5777,8 @@ export default {
 			const split = splitHeldFiles(payload, this.resolvedFields.filter((f) => f.widget === 'file').map((f) => f.key))
 			this.heldFiles = split.held
 			this.heldKept = split.kept
-			return split.payload
+			// A field at a dotted path goes back inside its object.
+			return foldDottedFields(split.payload, this.resolvedFields)
 		},
 
 		/**
@@ -4904,6 +5939,59 @@ export default {
 		},
 
 		/**
+		 * Read the record templates of `templateSource` (OpenRegister
+		 * `/api/record-templates`, filtered by register and schema), for a
+		 * create form only. A failed read offers none.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/form-start-from-template/specs/form-dialog/spec.md#requirement-a-create-form-can-start-from-a-saved-template
+		 */
+		async loadRecordTemplates() {
+			const source = this.templateSource
+			if (!this.isCreateMode || !source || !source.register || !source.schema) {
+				return
+			}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const { data } = await axios.get(generateUrl('/apps/openregister/api/record-templates'), { params: { register: source.register, schema: source.schema } })
+				const rows = Array.isArray(data) ? data : ((data && data.results) || [])
+				this.recordTemplates = rows.filter((row) => row && row.name && row.values && typeof row.values === 'object')
+			} catch {
+				this.recordTemplates = []
+			}
+		},
+
+		/**
+		 * Fill the form from a record template. A value whose field the form
+		 * no longer has, or whose type no longer matches the property, is
+		 * left out and named; a field the person already changed keeps what
+		 * they typed.
+		 *
+		 * @param {{name: string, values: object}|null} template The template.
+		 * @spec openspec/changes/form-start-from-template/specs/form-dialog/spec.md#requirement-a-create-form-can-start-from-a-saved-template
+		 */
+		applyRecordTemplate(template) {
+			if (!template || !template.values) {
+				return
+			}
+			const properties = (this.schema && this.schema.properties) || {}
+			const fields = new Map(this.resolvedFields.map((field) => [field.key, field]))
+			const dropped = []
+			for (const [key, value] of Object.entries(template.values)) {
+				const field = fields.get(key)
+				if (!field || !templateValueFits(value, properties[key])) {
+					dropped.push((field && field.label) || key)
+					continue
+				}
+				if (!this.touchedFields[key]) {
+					this.formData[key] = value
+				}
+			}
+			this.appliedTemplate = template
+			this.templateDropped = dropped
+		},
+
+		/**
 		 * Set validation errors from the server WITHOUT leaving the form phase,
 		 * so the user can correct the data. Call this from the parent (instead
 		 * of `setResult`) when the API returns a validation error.
@@ -4926,7 +6014,64 @@ export default {
 </script>
 
 <style scoped>
+.cn-form-dialog__templates {
+	margin-bottom: 12px;
+}
+
+.cn-form-dialog__templates-note {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+
 /* A select option breaks between words only, never inside one. */
+.cn-form-dialog__option-swatch {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	margin-inline-end: 6px;
+	border-radius: 50%;
+	vertical-align: middle;
+	box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.cn-form-dialog__option-group {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-form-dialog__warning {
+	grid-column: 1 / -1;
+	margin: 4px 0 0;
+	padding: 6px 10px;
+	border-inline-start: 3px solid var(--color-warning);
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
+.cn-form-dialog__field-hint {
+	grid-column: 1 / -1;
+	margin-top: 4px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-form-dialog__section-toggle {
+	all: unset;
+	cursor: pointer;
+	font: inherit;
+}
+
+.cn-form-dialog__section-toggle::after {
+	content: ' ▾';
+}
+
+.cn-form-dialog__section-toggle[aria-expanded='false']::after {
+	content: ' ▸';
+}
+
+.cn-form-dialog__section-toggle:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
 .cn-form-dialog__option {
 	display: block;
 	min-width: 0;
@@ -5074,6 +6219,25 @@ export default {
 	gap: 8px;
 	padding: 8px 0;
 	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-form-dialog__footnote {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin: 0;
+	padding: 12px 14px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-background-dark);
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--color-main-text);
+}
+
+.cn-form-dialog__footnote-icon {
+	flex: none;
+	margin-top: 1px;
 	color: var(--color-text-maxcontrast);
 }
 </style>

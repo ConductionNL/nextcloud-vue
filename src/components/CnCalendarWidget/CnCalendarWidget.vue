@@ -25,8 +25,15 @@
 		</header>
 
 		<div class="cn-calendar-widget__body">
-			<div v-if="loading" class="cn-calendar-widget__state">
+			<div v-if="loading && !slow" class="cn-calendar-widget__state">
 				{{ t('nextcloud-vue', 'Loading calendars…') }}
+			</div>
+
+			<div v-else-if="loading" class="cn-calendar-widget__state" role="status">
+				<p>{{ t('nextcloud-vue', 'The calendars are taking too long to load.') }}</p>
+				<button type="button" class="cn-calendar-widget__retry" @click="fetchEvents">
+					{{ t('nextcloud-vue', 'Retry') }}
+				</button>
 			</div>
 
 			<div v-else-if="error" class="cn-calendar-widget__state cn-calendar-widget__state--error">
@@ -41,99 +48,124 @@
 			</div>
 
 			<div v-else-if="hasNoCalendarChosen" class="cn-calendar-widget__state">
-				{{ t('nextcloud-vue', 'No calendar is selected yet. Choose one in this widget\u2019s settings.') }}
+				{{ t('nextcloud-vue', 'No calendar is selected yet. Choose one in this widget’s settings.') }}
 			</div>
 
-			<div v-else-if="events.length === 0 && activeMode === 'agenda'" class="cn-calendar-widget__state">
-				{{ emptyMessage }}
-			</div>
-
-			<!-- Month view: 7-column grid padded to whole weeks. -->
-			<div v-else-if="activeMode === 'month'" class="cn-calendar-widget__month">
+			<template v-else>
+				<!-- A source that failed is named, not hidden: small above the
+				     events, prominent when nothing could be shown at all. -->
 				<div
-					v-for="(weekday, idx) in weekdayHeaders"
-					:key="'wh-' + idx"
-					class="cn-calendar-widget__month-header">
-					{{ weekday }}
-				</div>
-				<div
-					v-for="day in monthGrid"
-					:key="day.iso"
-					class="cn-calendar-widget__month-cell"
-					:class="{ 'is-today': day.isToday, 'is-other-month': day.isOtherMonth }">
-					<span class="cn-calendar-widget__month-day">{{ day.dayNum }}</span>
-					<ul v-if="day.events.length" class="cn-calendar-widget__month-events">
-						<li
-							v-for="event in day.events.slice(0, 3)"
-							:key="event.uid + '-' + event.start"
-							class="cn-calendar-widget__month-event"
-							:title="event.title"
-							:style="eventStyle(event)">
-							{{ event.title }}
-						</li>
-						<li
-							v-if="day.events.length > 3"
-							class="cn-calendar-widget__month-overflow">
-							+{{ day.events.length - 3 }}
+					v-if="failures.length > 0"
+					class="cn-calendar-widget__notice"
+					:class="{ 'cn-calendar-widget__notice--prominent': events.length === 0 }"
+					:role="events.length === 0 ? 'alert' : 'status'">
+					<button
+						type="button"
+						class="cn-calendar-widget__notice-toggle"
+						:aria-expanded="showFailures ? 'true' : 'false'"
+						@click="showFailures = !showFailures">
+						{{ failureSummary }}
+					</button>
+					<ul v-if="showFailures" class="cn-calendar-widget__notice-list">
+						<li v-for="(failure, index) in failures" :key="index">
+							{{ failureLabel(failure) }}
 						</li>
 					</ul>
 				</div>
-			</div>
 
-			<!-- Week view: 7 day columns. -->
-			<div v-else-if="activeMode === 'week'" class="cn-calendar-widget__week">
-				<div
-					v-for="day in weekDays"
-					:key="day.iso"
-					class="cn-calendar-widget__week-col"
-					:class="{ 'is-today': day.isToday }">
-					<header class="cn-calendar-widget__week-day">
-						<span class="cn-calendar-widget__week-name">{{ day.weekday }}</span>
-						<span class="cn-calendar-widget__week-num">{{ day.dayNum }}</span>
-					</header>
-					<ul v-if="day.events.length" class="cn-calendar-widget__week-events">
-						<li
-							v-for="event in day.events"
-							:key="event.uid + '-' + event.start"
-							class="cn-calendar-widget__week-event"
-							:style="eventStyle(event)">
-							<span class="cn-calendar-widget__week-time">{{ formatTime(event) }}</span>
-							<span class="cn-calendar-widget__week-title">{{ event.title }}</span>
-						</li>
-					</ul>
-					<p v-else class="cn-calendar-widget__week-empty">
-						—
-					</p>
+				<div v-if="events.length === 0 && activeMode === 'agenda'" class="cn-calendar-widget__state">
+					{{ emptyMessage }}
 				</div>
-			</div>
 
-			<!-- Agenda view: chronological list grouped by day. -->
-			<ul v-else class="cn-calendar-widget__agenda">
-				<template v-for="group in agendaGroups" :key="group.iso">
-					<li class="cn-calendar-widget__agenda-header">
-						{{ group.label }}
-					</li>
-					<li
-						v-for="event in group.events"
-						:key="event.uid + '-' + event.start"
-						class="cn-calendar-widget__agenda-row"
-						:style="eventStyle(event)">
-						<span class="cn-calendar-widget__agenda-time">{{ formatTime(event) }}</span>
-						<span class="cn-calendar-widget__agenda-title">{{ event.title }}</span>
-						<span v-if="event.calendarName" class="cn-calendar-widget__agenda-cal">{{ event.calendarName }}</span>
-					</li>
-				</template>
-			</ul>
+				<!-- Month view: 7-column grid padded to whole weeks. -->
+				<div v-else-if="activeMode === 'month'" class="cn-calendar-widget__month">
+					<div
+						v-for="(weekday, idx) in weekdayHeaders"
+						:key="'wh-' + idx"
+						class="cn-calendar-widget__month-header">
+						{{ weekday }}
+					</div>
+					<div
+						v-for="day in monthGrid"
+						:key="day.iso"
+						class="cn-calendar-widget__month-cell"
+						:class="{ 'is-today': day.isToday, 'is-other-month': day.isOtherMonth }">
+						<span class="cn-calendar-widget__month-day">{{ day.dayNum }}</span>
+						<ul v-if="day.events.length" class="cn-calendar-widget__month-events">
+							<li
+								v-for="event in day.events.slice(0, 3)"
+								:key="event.uid + '-' + event.start"
+								class="cn-calendar-widget__month-event"
+								:title="event.title"
+								:style="eventStyle(event)">
+								{{ event.title }}
+							</li>
+							<li
+								v-if="day.events.length > 3"
+								class="cn-calendar-widget__month-overflow">
+								+{{ day.events.length - 3 }}
+							</li>
+						</ul>
+					</div>
+				</div>
+
+				<!-- Week view: 7 day columns. -->
+				<div v-else-if="activeMode === 'week'" class="cn-calendar-widget__week">
+					<div
+						v-for="day in weekDays"
+						:key="day.iso"
+						class="cn-calendar-widget__week-col"
+						:class="{ 'is-today': day.isToday }">
+						<header class="cn-calendar-widget__week-day">
+							<span class="cn-calendar-widget__week-name">{{ day.weekday }}</span>
+							<span class="cn-calendar-widget__week-num">{{ day.dayNum }}</span>
+						</header>
+						<ul v-if="day.events.length" class="cn-calendar-widget__week-events">
+							<li
+								v-for="event in day.events"
+								:key="event.uid + '-' + event.start"
+								class="cn-calendar-widget__week-event"
+								:style="eventStyle(event)">
+								<span class="cn-calendar-widget__week-time">{{ formatTime(event) }}</span>
+								<span class="cn-calendar-widget__week-title">{{ event.title }}</span>
+							</li>
+						</ul>
+						<p v-else class="cn-calendar-widget__week-empty">
+							—
+						</p>
+					</div>
+				</div>
+
+				<!-- Agenda view: chronological list grouped by day. -->
+				<ul v-else class="cn-calendar-widget__agenda">
+					<template v-for="group in agendaGroups" :key="group.iso">
+						<li class="cn-calendar-widget__agenda-header">
+							{{ group.label }}
+						</li>
+						<li
+							v-for="event in group.events"
+							:key="event.uid + '-' + event.start"
+							class="cn-calendar-widget__agenda-row"
+							:style="eventStyle(event)">
+							<span class="cn-calendar-widget__agenda-time">{{ formatTimeRange(event) }}</span>
+							<span class="cn-calendar-widget__agenda-title">{{ event.title }}</span>
+							<span v-if="event.calendarName" class="cn-calendar-widget__agenda-cal">{{ event.calendarName }}</span>
+						</li>
+					</template>
+				</ul>
+			</template>
 		</div>
 	</div>
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { userLocale } from '../../utils/userLocale.js'
 
 const VIEW_MODES = ['month', 'week', 'agenda']
 const DEFAULT_DAYS_AHEAD = 14
+// After this long a pending load says it is taking too long and offers Retry.
+const SLOW_AFTER_MS = 30000
 
 /**
  * CnCalendarWidget — renders aggregated upcoming events as a chronological,
@@ -199,6 +231,8 @@ export default {
 			events: [],
 			failures: [],
 			loading: false,
+			slow: false,
+			showFailures: false,
 			error: null,
 			today: new Date(),
 		}
@@ -315,6 +349,16 @@ export default {
 		 */
 		emptyMessage() {
 			return t('nextcloud-vue', 'No events in the next {n} days').replace('{n}', String(this.daysAhead))
+		},
+
+		/**
+		 * The failure notice's summary: how many sources could not be read.
+		 *
+		 * @return {string} the summary.
+		 */
+		failureSummary() {
+			const count = this.failures.length
+			return n('nextcloud-vue', '{count} calendar source unavailable', '{count} calendar sources unavailable', count, { count })
 		},
 
 		/**
@@ -467,6 +511,10 @@ export default {
 		this.fetchEvents()
 	},
 
+	beforeUnmount() {
+		clearTimeout(this.slowTimer)
+	},
+
 	methods: {
 		t,
 
@@ -538,20 +586,42 @@ export default {
 				return
 			}
 			const { from, to } = this.computeRange()
+			// Only the latest request may settle the widget: a Retry after a
+			// slow load must not be overwritten by the request it replaced.
+			const request = (this.requestId || 0) + 1
+			this.requestId = request
 			this.loading = true
+			this.slow = false
 			this.error = null
+			clearTimeout(this.slowTimer)
+			this.slowTimer = setTimeout(() => {
+				if (this.requestId === request && this.loading) {
+					this.slow = true
+				}
+			}, SLOW_AFTER_MS)
 			try {
 				const payload = await this.source.fetchEvents({
 					from: from.toISOString(),
 					to: to.toISOString(),
 				}) || {}
+				if (this.requestId !== request) {
+					return
+				}
 				this.events = Array.isArray(payload.events) ? payload.events : []
 				this.failures = Array.isArray(payload.failures) ? payload.failures : []
 			} catch (err) {
+				if (this.requestId !== request) {
+					return
+				}
 				this.error = err
 				this.events = []
+				this.failures = []
 			} finally {
-				this.loading = false
+				if (this.requestId === request) {
+					clearTimeout(this.slowTimer)
+					this.loading = false
+					this.slow = false
+				}
 			}
 		},
 
@@ -596,6 +666,47 @@ export default {
 			const hh = String(start.getHours()).padStart(2, '0')
 			const mm = String(start.getMinutes()).padStart(2, '0')
 			return `${hh}:${mm}`
+		},
+
+		/**
+		 * Format an event's start and end time, `09:00 – 10:00` (or "All day").
+		 * An event without a later end shows its start alone.
+		 *
+		 * @param {object} event the event.
+		 * @return {string} the time range label.
+		 */
+		formatTimeRange(event) {
+			const start = this.formatTime(event)
+			if (event.allDay || !event.end) {
+				return start
+			}
+			const begin = this.parseDate(event.start)
+			const end = new Date(event.end)
+			if (Number.isNaN(end.getTime()) || end <= begin) {
+				return start
+			}
+			const hh = String(end.getHours()).padStart(2, '0')
+			const mm = String(end.getMinutes()).padStart(2, '0')
+			return `${start} – ${hh}:${mm}`
+		},
+
+		/**
+		 * The text for one failed source: the host's string, or the source and
+		 * error an object names.
+		 *
+		 * @param {string|object} failure a failure from the source's payload.
+		 * @return {string} the label.
+		 */
+		failureLabel(failure) {
+			if (typeof failure === 'string') {
+				return failure
+			}
+			if (!failure || typeof failure !== 'object') {
+				return String(failure ?? '')
+			}
+			const source = failure.source || failure.url || failure.name || failure.calendar || ''
+			const reason = failure.error || failure.message || ''
+			return [source, reason].filter(Boolean).join(': ')
 		},
 
 		/**
@@ -669,7 +780,7 @@ export default {
 
 .cn-calendar-widget__mode-btn.is-active {
 	background: var(--color-primary-element-light, var(--color-primary-element));
-	color: var(--color-primary-element-text);
+	color: var(--color-primary-element-light-text, var(--color-primary-element-text));
 }
 
 .cn-calendar-widget__body {
@@ -687,6 +798,37 @@ export default {
 	padding: 16px;
 	text-align: center;
 	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-widget__notice {
+	margin-bottom: 8px;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-calendar-widget__notice--prominent {
+	padding: 8px 12px;
+	border: 1px solid var(--color-warning);
+	border-radius: var(--border-radius);
+	text-align: center;
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+.cn-calendar-widget__notice-toggle {
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.cn-calendar-widget__notice-list {
+	margin: 4px 0 0;
+	padding-inline-start: 16px;
+	text-align: start;
+	word-break: break-all;
 }
 
 .cn-calendar-widget__retry {

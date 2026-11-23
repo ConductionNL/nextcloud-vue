@@ -21,9 +21,13 @@ as read-only.
 
 ## The filter context
 
-`@me`, `@me.displayName`, `@me.email`, `@myGroups`, `@now`, `@today`,
+`@me`, `@me.displayName`, `@me.email`, `@myGroups`, `@myTeam`, `@now`, `@today`,
 `@today±Nd`, `@monthStart`, `@monthEnd`, `@nextMonthStart`, `@quarterStart` and
 `@yearStart`.
+
+The day count of `@today±Nd` may be an app setting: `@today-{@config.lead_stale_threshold_days}d`
+fills the value from the app config first, and stays as written while the config
+does not hold the key.
 
 `@monthEnd` is the last day of the current month. Use it with `lte` on a date
 field. On a date-time field `lte` stops at midnight of that day, so write
@@ -36,6 +40,13 @@ an IN list (`["@myGroups", "archive"]`) the ids are spread in place. The groups
 come from [`peekCurrentUserGroups`](./peek-current-user-groups.md): while they
 load, and when the user is in no group, the token stays unresolved and the
 caller waits instead of sending an empty list.
+
+`@myTeam` resolves to one group id: the current user's primary team, as the app
+answers it through `registerMyTeamSource(() => Promise<groupId|null>)`. While it
+is read the token stays unresolved (the caller waits); for a user in no team, or
+an app that registers no source, it becomes the optional `@myTeam?` and the
+caller drops the key, so a "my team" view shows no team filter rather than all
+of the user's groups. A saved view's filters are resolved when it is applied.
 
 ## See also
 

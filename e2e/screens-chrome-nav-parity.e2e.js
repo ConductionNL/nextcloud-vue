@@ -79,7 +79,11 @@ test.describe('the navigation against board AppZijbalk', () => {
 		expect(plain.fontWeight).toBe('500')
 		const active = await measure(link(page, 'dashboard'), ['fontWeight', 'backgroundColor'])
 		expect(active.fontWeight).toBe('600')
-		expect(active.backgroundColor).not.toBe(plain.backgroundColor)
+		// The link is transparent so a theme's wash on the entry shows; the
+		// entry carries the tonal primary.
+		expect(active.backgroundColor).toBe('rgba(0, 0, 0, 0)')
+		const entry = await measure(page.locator('[data-testid="cn-nav-entry-dashboard"] .app-navigation-entry').first(), ['backgroundColor'])
+		expect(entry.backgroundColor).not.toBe(plain.backgroundColor)
 		const tonal = await page.evaluate(() => {
 			const probe = document.createElement('div')
 			probe.style.background = 'var(--color-primary-element-light)'
@@ -88,7 +92,7 @@ test.describe('the navigation against board AppZijbalk', () => {
 			probe.remove()
 			return value
 		})
-		expect(active.backgroundColor).toBe(tonal)
+		expect(entry.backgroundColor).toBe(tonal)
 	})
 
 	test('the captions: 12px uppercase at 600 with 0.06em tracking, in the board order', async ({ page }) => {

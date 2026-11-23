@@ -138,6 +138,7 @@ export default {
 |---|---|---|---|
 | `maxMetadata` | `Number` | `4` | Maximum number of schema properties to show in the metadata section. Properties are sorted by their `order` value before slicing |
 | `accent` | `Object` | `null` | Status accent `{ variant, icon?, label? }`: a colored start border and, with `icon`, a colored icon before the title. `variant` is `success`, `warning`, `error`, `info` or `primary`; `label` is the icon's tooltip and accessible name |
+| `pillLooks` | `Object` | `{}` | The referenced records' colour and icon names, by field and id (`{ [field]: { [id]: { color, icon } } }`, read by CnIndexPage). A record layout pill with `resolve: { colorField?, iconField? }` takes its record's tone and icon from here. |
 
 ## Slots
 
@@ -155,3 +156,4 @@ export default {
 | `leading` | Object | `null` | Leading element: `{ initials }` in a circle or `{ icon }` on a tint |
 | `footerAction` | Object | `null` | `{ label, meta?, ariaLabel? }`, one footer action; emits `footer-action` |
 | `cardFields` | Array | `null` | Property keys of the facts list, in order |
+| `layout` | Object | `null` | Board look: the record layout, `{ headPill, number, title, meta, footerPill, footerDate }`; each part names a field and is left out while it is empty. A part whose field names a page column (`cardFieldColumns`) reads through that column's formatter, and a meta part through its widget, as the table cell does. A pill with `due` (`{ soonWithin }`) or `variantWhen` reads its date: overdue as error, soon (or the matching rule) as warning, labelled by `labels[variant]` or `labels.overdue` / `labels.soon` through the host's translate, else Overdue / Soon; any other date draws no pill. |

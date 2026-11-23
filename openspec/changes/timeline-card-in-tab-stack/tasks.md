@@ -1,0 +1,2 @@
+- [x] 1.1 `timeline` registry entry asks for `chrome: "card"` (tests/components/CnDetailWidgetHostSelfTitledCard.spec.js)
+- [x] 1.2 `composer: "only"` draws its own title row (tests/components/CnTimelineManageComposerCard.spec.js)

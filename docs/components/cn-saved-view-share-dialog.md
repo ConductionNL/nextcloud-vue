@@ -10,6 +10,7 @@ Two-phase like the other save dialogs: `confirm` carries the audience; the paren
 |------|------|---------|-------------|
 | `view` | Object | `{}` | The view being shared (its `sharedWith` seeds the fields). |
 | `dialogTitle` | String | `'Share view'` | Dialog title. |
+| `shareGroups` | String \| Array | `'all'` | Which groups the picker offers; see [`CnSavedViewShareFields`](./cn-saved-view-share-fields.md). |
 
 ## Events
 
@@ -17,3 +18,5 @@ Two-phase like the other save dialogs: `confirm` carries the audience; the paren
 |-------|---------|-------------|
 | `confirm` | `Array<{ group, mode }>` | Save clicked. `[]` stops sharing. |
 | `close` | — | Dialog dismissed. |
+
+The dialog renders through `CnDialog`: under the board look it is the board dialog (board header, round close button) and takes the shared dialog props `look`, `width`, `eyebrow` and `subtitle`.

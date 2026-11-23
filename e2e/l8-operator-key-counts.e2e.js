@@ -13,7 +13,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
-test('date lenses with the operator in the key count through the list endpoint, a plain lens still through an aggregate', async ({ page }) => {
+test('date lenses with the operator in the key count through the list endpoint, and a plain lens does too', async ({ page }) => {
 	const seen = { aggregate: [], list: [] }
 	await page.route('**/apps/openregister/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [], total: 0 }) }))
 	await page.route('**/apps/openregister/api/objects/aggregations/**', (route) => {
@@ -53,6 +53,10 @@ test('date lenses with the operator in the key count through the list endpoint, 
 	expect(upcoming).toBeTruthy()
 	expect(upcoming).not.toContain('@today')
 	expect(upcoming).toMatch(/_limit=1(&|$)/)
-	// The plain equality lens is still answered by the aggregation endpoint.
-	await expect.poll(() => seen.aggregate.some((u) => u.includes('lifecycle'))).toBe(true)
+	// The plain equality lens counts through the list endpoint too, so it
+	// equals the list's total (index-counts-read-the-list-endpoint): no lens
+	// of an index page goes to an aggregation endpoint.
+	await expect(host.getByRole('button', { name: /Afgerond/ })).toContainText('4')
+	expect(seen.list.some((u) => u.includes('lifecycle=closed') && /_limit=1(&|$)/.test(u))).toBe(true)
+	expect(seen.aggregate.some((u) => u.includes('lifecycle'))).toBe(false)
 })

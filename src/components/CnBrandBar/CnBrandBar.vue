@@ -1,8 +1,8 @@
 <!--
   CnBrandBar — the brand block in Nextcloud's own header (screens-brand-block-top-bar).
 
-  Draws the 237px brand block (emblem, organisation, app name, and a 1px
-  divider at its end) at the START of `#header`, before the app menu, under the
+  Draws the brand block (a 237px brand link with the emblem, organisation and
+  app name, then a 1px divider 12px on) at the START of `#header`, before the app menu, under the
   board look. CnAppRoot mounts it when a brand is declared and `#header` exists.
 
   `#header` is Nextcloud's and offers no extension point for apps, so this is
@@ -170,11 +170,12 @@ export default {
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	width: var(--cn-board-brand-width, 237px);
 }
 
+/* The brand link is 237px; the divider follows it, 12px on. */
 .cn-brand-bar__brand {
-	flex: 1 1 0;
+	flex: none;
+	width: var(--cn-board-brand-width, 237px);
 	box-sizing: border-box;
 	display: flex;
 	align-items: center;

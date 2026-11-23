@@ -95,3 +95,31 @@ describe('CnChoiceCards disabled options and columns (board DqVolgendeStap)', ()
 		expect(cells[1].find('.fields').exists()).toBe(false)
 	})
 })
+
+describe('CnChoiceCards rows side by side (board DqZaakSamenwerken)', () => {
+	it('sets the rows in a grid of `columns` equal columns', () => {
+		const wrapper = mount(CnChoiceCards, { propsData: { options: OPTIONS, layout: 'rows', columns: 2 }, stubs })
+		const style = wrapper.find('.cn-choice-cards__rows').attributes('style')
+		expect(style).toContain('display: grid')
+		expect(style).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))')
+	})
+
+	it('keeps one column without columns, or with 1', () => {
+		for (const columns of [0, 1]) {
+			const wrapper = mount(CnChoiceCards, { propsData: { options: OPTIONS, layout: 'rows', columns }, stubs })
+			expect(wrapper.find('.cn-choice-cards__rows').attributes('style')).toBeUndefined()
+		}
+	})
+
+	it('keeps a hidden legend for assistive tech with hideLabel', () => {
+		const wrapper = mount(CnChoiceCards, { propsData: { options: OPTIONS, layout: 'rows', label: 'What you do', hideLabel: true }, stubs })
+		const legend = wrapper.find('legend')
+		expect(legend.text()).toBe('What you do')
+		expect(legend.classes()).toContain('hidden-visually')
+	})
+
+	it('shows the legend by default', () => {
+		const wrapper = mount(CnChoiceCards, { propsData: { options: OPTIONS, layout: 'rows', label: 'What you do' }, stubs })
+		expect(wrapper.find('legend').classes()).not.toContain('hidden-visually')
+	})
+})

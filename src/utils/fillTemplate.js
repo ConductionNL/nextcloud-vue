@@ -1,13 +1,16 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { boardDateLocale, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatTimeOfDay } from './boardDate.js'
+import { translate as t } from '@nextcloud/l10n'
+import { boardDateLocale, formatAgo, formatBoardDate, formatBoardWeekday, formatRelativeDate, formatSoon, formatTimeOfDay, isoWeek } from './boardDate.js'
+import { BUILT_IN_FORMATTERS } from './builtInFormatters.js'
 import { parseDateValue } from './dateVariant.js'
-import { formatMoney } from './formatMetric.js'
+import { formatMoney, metricLocale } from './formatMetric.js'
+import { groupDisplayName, loadGroupDisplayName } from './groupAutocomplete.js'
 import { readPath } from './readPath.js'
 import { userDisplayName } from './userDisplayName.js'
 
-const TOKEN = /\{([^{}\s|]+)(?:\|([a-z]+)(?::([^{}\s]+))?)?\}/g
+const TOKEN = /\{([^{}\s|]+)(?:\|([A-Za-z]+)(?::([^{}\s]+))?)?\}/g
 
 /**
  * A moment in the board's short form with the time: "4 okt, 10:52", or
@@ -60,19 +63,91 @@ export function formatLongDate(value, now = new Date(), withYear = false) {
 }
 
 /**
+ * A date written out in full, the way a letter or an invitation does:
+ * "Donderdag 12 november 2026". The weekday is capitalised, because the
+ * line starts with it.
+ *
+ * @param {unknown} value A Date, a timestamp or an ISO string.
+ * @return {string} The text, or '' when the value is not a date.
+ * @spec openspec/changes/template-full-date/specs/detail-page-board-look/spec.md#requirement-a-template-can-write-a-date-in-full
+ */
+export function formatFullDate(value) {
+	const date = parseDateValue(value)
+	if (date === null) {
+		return ''
+	}
+	const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+	let text
+	try {
+		text = new Intl.DateTimeFormat(boardDateLocale(), options).format(date)
+	} catch {
+		text = new Intl.DateTimeFormat(undefined, options).format(date)
+	}
+	return text.charAt(0).toLocaleUpperCase() + text.slice(1)
+}
+
+/**
+ * How many entries a list holds; with a key, the entries of that list in each
+ * of its entries summed (`{sections|count:items}`: the questions of every
+ * section of a checklist).
+ *
+ * @param {Array} list The list.
+ * @param {string} key The key of each entry's own list, or '' to count the entries.
+ * @return {number} The count.
+ */
+function countEntries(list, key) {
+	if (key === '') {
+		return list.length
+	}
+	return list.reduce((sum, entry) => sum + (entry && Array.isArray(entry[key]) ? entry[key].length : 0), 0)
+}
+
+/**
+ * Whether a named formatter is the library's own `date` or `datetime`, which
+ * CnAppRoot puts in every page's formatters: the template's board date
+ * ("28 okt") wins over it, an app's own formatter of that name does not.
+ *
+ * @param {string} format The format name.
+ * @param {(value: unknown, row?: object) => unknown} formatter The formatter found under that name.
+ * @return {boolean} True for the built-in date formatters.
+ * @spec openspec/changes/template-date-not-shadowed/specs/template-date-not-shadowed/spec.md
+ */
+function isBuiltInDateFormatter(format, formatter) {
+	return (format === 'date' || format === 'datetime') && formatter === BUILT_IN_FORMATTERS[format]
+}
+
+/**
  * Format one token value.
  *
  * @param {unknown} value The raw value.
- * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `time`, `user`, `currency`, `relative`, `relativetime`, `days` or '' (as is).
+ * @param {string} format `date`, `datetime`, `weekday`, `longdate`, `fulldate`, `time`, `user`, `group`, `currency`, `relative`, `relativetime`, `ago`, `soon`, `week`, `days`, `lower`, `mailbox`, `values` or '' (as is).
  * @param {Date} now The reference moment.
  * @param {string} [arg] The format's argument (`currency:EUR`, or a row path holding the code).
  * @param {object|null} [object] The row, for a currency read from a field.
  * @param {object|null} [config] The app config map, for the reporting currency.
+ * @param {object|null} [formatters] The app's named formatters (`cnFormatters`), for any other format name.
  * @return {string} The text, '' when nothing can be shown.
+ * @spec openspec/changes/map-list-formatters/specs/map-list-formatters/spec.md#requirement-a-map-list-reads-display-names-through-the-apps-formatters
+ * @spec openspec/changes/template-object-values/specs/record-list-table/spec.md#requirement-a-template-can-write-the-values-of-a-map
  */
-function formatValue(value, format, now, arg = '', object = null, config = null) {
+function formatValue(value, format, now, arg = '', object = null, config = null, formatters = null) {
+	// `{list|count}`: how many entries a list holds, nothing for an empty one.
+	if (format === 'count') {
+		const count = Array.isArray(value) ? countEntries(value, arg) : Number(value)
+		return Number.isFinite(count) && count > 0 ? String(count) : ''
+	}
+	// `{map|values}`: the plain values of a map or list in one line.
+	if (format === 'values' && value !== null && typeof value === 'object') {
+		return Object.values(value)
+			.filter((entry) => (typeof entry === 'string' && entry !== '') || (typeof entry === 'number' && Number.isFinite(entry)))
+			.join(' · ')
+	}
 	if (value === null || value === undefined || value === '' || typeof value === 'object') {
 		return ''
+	}
+	if (format !== '' && formatters && typeof formatters[format] === 'function' && !isBuiltInDateFormatter(format, formatters[format])) {
+		const shown = formatters[format](value, object)
+		return shown === null || shown === undefined ? '' : String(shown)
 	}
 	if (format === 'date') {
 		return formatBoardDate(value, now)
@@ -83,11 +158,26 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
 	if (format === 'weekday') {
 		return formatBoardWeekday(value, now, { today: arg === 'today' })
 	}
+	if (format === 'week') {
+		const date = parseDateValue(value)
+		return date === null ? '' : t('nextcloud-vue', 'Week {week}', { week: isoWeek(date) })
+	}
 	if (format === 'longdate') {
 		return formatLongDate(value, now, arg === 'year')
 	}
+	if (format === 'fulldate') {
+		return formatFullDate(value)
+	}
 	if (format === 'user') {
 		return userDisplayName(value)
+	}
+	if (format === 'group') {
+		const name = groupDisplayName(value)
+		if (name === null) {
+			loadGroupDisplayName(value)
+			return ''
+		}
+		return name
 	}
 	if (format === 'time') {
 		const date = parseDateValue(value)
@@ -106,6 +196,32 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
 	if (format === 'relativetime') {
 		return formatRelativeDate(value, { now, withTime: true })
 	}
+	if (format === 'ago') {
+		return formatAgo(value, now)
+	}
+	if (format === 'soon') {
+		return formatSoon(value, now)
+	}
+	if (format === 'mailbox') {
+		// An address up to and with its @ ("gemeente@" from gemeente@zuiddrecht.nl).
+		const text = String(value)
+		const at = text.indexOf('@')
+		return at > 0 ? text.slice(0, at + 1) : text
+	}
+	if (format === 'lower') {
+		return String(value).toLocaleLowerCase()
+	}
+	// `{name|lowerfirst}`: a name inside a sentence, "Verenigingen in Zuiddrecht"
+	// read as "verenigingen in Zuiddrecht".
+	if (format === 'lowerfirst') {
+		const text = String(value)
+		return text.charAt(0).toLocaleLowerCase() + text.slice(1)
+	}
+	// `{count|number}`: grouped in the user's locale, "2.180" in Dutch.
+	if (format === 'number') {
+		const number = Number(value)
+		return Number.isFinite(number) ? new Intl.NumberFormat(metricLocale()).format(number) : String(value)
+	}
 	if (format === 'days') {
 		// Whole days from the date to now (0 for today; negative for a future date).
 		const date = parseDateValue(value)
@@ -122,22 +238,33 @@ function formatValue(value, format, now, arg = '', object = null, config = null)
  * `{path|datetime}` format it as the boards write dates, `{path|weekday}` adds
  * the short weekday ("wo 7 okt"; `{path|weekday:today}` reads "Vandaag, wo 7 okt"
  * for today), `{path|longdate}` writes the month out ("7 oktober";
- * `{path|longdate:year}` always adds the year), `{path|time}` is the time
+ * `{path|longdate:year}` always adds the year), `{path|fulldate}` writes the weekday and the year too ("Donderdag 12 november 2026"), `{path|time}` is the time
  * of day ("08:45"), `{path|user}` is a user id's display name (looked up
- * once, '' until it arrives), `{path|currency}`,
+ * once, '' until it arrives), `{path|group}` is a group id's display name
+ * (the same, through the group name cache), `{path|currency}`,
  * `{path|currency:EUR}` and `{path|currency:field}` write an amount in a
  * currency (a code, or the row field that holds it; without either, or when
  * the row field is empty, the app's reporting currency), `{path|relative}` and
  * `{path|relativetime}` say "today", "yesterday" and then the short date
- * ("vandaag, 09.42"), and `{path|days}` is the
- * whole days since that date ("has waited {createdAt|days} days"). A token without a
+ * ("vandaag, 09.42"), `{path|ago}` says how long ago it was ("10 min
+ * geleden", "vanochtend", "vrijdag"), `{path|soon}` says when a coming moment
+ * is due ("13.00" today, "morgen", "woensdag", then the short date), and `{path|days}` is the
+ * whole days since that date ("has waited {createdAt|days} days"),
+ * `{path|count}` is how many entries a list holds (nothing for an empty one;
+ * `{path|count:key}` sums the `key` list of each entry),
+ * `{path|values}` writes the text and number values of a map or list,
+ * joined by " · " (a variant's attributes: "Huishouden · grijze en blauwe containers"),
+ * `{path|lower}` writes the value in lower case ("Step 2: {statusLabel|lower}"
+ * reads "Step 2: in progress" mid-sentence), and any other name is one of
+ * the app's formatters, passed as `context.formatters` (`{id|caseAddress}`).
+ * A token without a
  * value empties the WHOLE template, because "Termijn " is worse than nothing.
  * A template without tokens is returned as written (a constant label).
  *
  * @param {string} template The template, already translated.
  * @param {object|null} object The object to read.
  * @param {Date} [now] The reference moment for dates.
- * @param {{config?: object}|null} [context] The app config map, for the reporting currency of a money token.
+ * @param {{config?: object, formatters?: object}|null} [context] The app config map, for the reporting currency of a money token, and the app's named formatters.
  * @return {string} The filled text, or ''.
  * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-record-list-shows-the-objects-that-point-at-this-record
  */
@@ -148,7 +275,7 @@ export function fillTemplate(template, object, now = new Date(), context = null)
 	let missing = false
 	const text = template.replace(TOKEN, (_match, path, format, arg) => {
 		const value = object && typeof object === 'object' ? readPath(object, path) : undefined
-		const shown = formatValue(value, format || '', now, arg || '', object, context && context.config ? context.config : null)
+		const shown = formatValue(value, format || '', now, arg || '', object, context && context.config ? context.config : null, context && context.formatters ? context.formatters : null)
 		if (shown === '') {
 			missing = true
 		}
@@ -185,6 +312,34 @@ export function firstFilled(templates, object, translate = (key) => key, now = n
 }
 
 /**
+ * Split a template into literal, field, literal, … as
+ * `template.split(/\{([^}]+)\}/)` does, in one linear pass.
+ *
+ * @param {string} template The template, with `{field}` placeholders.
+ * @return {string[]} The literals at even indexes, the field names at odd ones.
+ */
+function splitFields(template) {
+	const parts = []
+	let literalStart = 0
+	let open = template.indexOf('{')
+	while (open !== -1) {
+		const close = template.indexOf('}', open + 1)
+		if (close === -1) {
+			break
+		}
+		if (close === open + 1) {
+			open = template.indexOf('{', close + 1)
+			continue
+		}
+		parts.push(template.slice(literalStart, open), template.slice(open + 1, close))
+		literalStart = close + 1
+		open = template.indexOf('{', literalStart)
+	}
+	parts.push(template.slice(literalStart))
+	return parts
+}
+
+/**
  * Fill a template such as `"{identifier} · {requester}"` field by field
  * (a table column's `secondary` line, a detail page's meta line).
  *
@@ -201,8 +356,10 @@ export function firstFilled(templates, object, translate = (key) => key, now = n
  * @return {string} The filled template.
  */
 export function joinTemplateParts(template, valueOf) {
-	// split() with a capture group alternates literal, field, literal, …
-	const parts = template.split(/\{([^}]+)\}/)
+	const parts = splitFields(template)
+	if (parts.length === 1) {
+		return parts[0]
+	}
 	const lead = parts[0]
 	const tail = parts[parts.length - 1]
 	let body = ''

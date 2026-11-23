@@ -1,0 +1,3 @@
+- [x] CnIndexPage `routeState`: no address writes when false
+- [x] CnIndexListWidget + `index-list` registration, exported
+- [x] tests/components/CnIndexListWidget.spec.js

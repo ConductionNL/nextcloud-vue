@@ -5,8 +5,11 @@
 		:class="{
 			'cn-table-container--board': isBoardLook,
 			'cn-table-container--title-plain': isBoardLook && rowTitle === 'plain',
+			'cn-table-container--title-text': isBoardLook && rowTitle === 'text',
+			'cn-table-container--title-strong': isBoardLook && rowTitle === 'strong',
 			'cn-table-container--scrollable': scrollable,
 			'cn-table-container--borderless': borderless,
+			'cn-table-container--framed': framed,
 			'cn-table-container--fill': fillHeight,
 		}">
 		<!-- Optional card header (folded from the retired CnTableWidget): a title
@@ -21,9 +24,16 @@
 			</span>
 		</div>
 
+		<!-- @slot notice The table's state banners (R1), above the rows. -->
+		<div v-if="$slots.notice || (Array.isArray(notices) && notices.length > 0)" class="cn-data-table__notices">
+			<slot name="notice">
+				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+			</slot>
+		</div>
+
 		<!-- Active header filters, one removable chip each. -->
 		<ul
-			v-if="!isLoading && activeColumnFilterChips.length > 0"
+			v-if="filterChips && !isLoading && activeColumnFilterChips.length > 0"
 			class="cn-data-table__filter-chips"
 			:aria-label="activeFiltersLabel"
 			data-testid="cn-table-filter-chips">
@@ -97,13 +107,29 @@
 			:aria-label="isScrollable ? scrollRegionLabel : undefined">
 			<table
 				class="cn-data-table"
-				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth }"
+				:class="{ 'cn-data-table--fixed': fixedLayout, 'cn-data-table--fit': fitWidth, 'cn-data-table--stack': stackOnPhone }"
 				data-testid="cn-object-list-table">
-				<thead v-if="!hideHeader">
+				<!-- Without a drawn header row the columns are still named for a
+				     screen reader: plain header cells, collapsed and visually
+				     hidden, with no controls to land on. -->
+				<thead v-if="hideHeader" class="cn-data-table__hidden-head">
+					<tr>
+						<th v-if="selectable" scope="col" />
+						<th v-if="rowIcon" scope="col" />
+						<th v-for="col in effectiveColumns" :key="col.key" scope="col">
+							<span class="hidden-visually">{{ translateLabel(col.label) }}</span>
+						</th>
+						<th v-if="$slots['row-actions']" scope="col">
+							<span class="hidden-visually">{{ actionsColumnLabel }}</span>
+						</th>
+					</tr>
+				</thead>
+				<thead v-else>
 					<tr>
 						<!-- Checkbox column -->
 						<th
 							v-if="selectable"
+							scope="col"
 							class="cn-table-col--checkbox"
 							:class="pinClass(0)"
 							:style="pinStyle(0)">
@@ -117,6 +143,7 @@
 						<!-- Leading icon column (header is intentionally blank) -->
 						<th
 							v-if="rowIcon"
+							scope="col"
 							class="cn-table-col--icon"
 							:class="pinClass(selectable ? 1 : 0)"
 							:style="pinStyle(selectable ? 1 : 0)" />
@@ -125,12 +152,14 @@
 						<th
 							v-for="(col, colIndex) in effectiveColumns"
 							:key="col.key"
+							scope="col"
 							:class="[
 								col.sortable ? 'cn-table-header--sortable' : '',
 								col.class || '',
 								pinClass(leadingCount + colIndex),
 								isGrowColumn(col) ? 'cn-table-col--grow' : '',
-								colIndex === 0 ? 'cn-table-head--title' : '',
+								colIndex === titleColumnIndex ? 'cn-table-head--title' : '',
+								alignClass(col),
 							]"
 							:style="{ ...(col.width ? { width: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
 							:aria-sort="ariaSortFor(col)"
@@ -166,7 +195,7 @@
 									{{ sortBadgeFor(col.key) }}
 								</span>
 							</button>
-							<span v-else :class="col.description ? 'cn-table-header--described' : ''">
+							<span v-else :class="[col.description ? 'cn-table-header--described' : '', col.labelHidden ? 'hidden-visually' : '']">
 								{{ translateLabel(col.label) }}
 							</span>
 							<!-- Header filter: a real button, so it is reachable with Tab
@@ -192,7 +221,7 @@
 						</th>
 
 						<!-- Actions column -->
-						<th v-if="$slots['row-actions']" class="cn-table-col--actions">
+						<th v-if="$slots['row-actions']" scope="col" class="cn-table-col--actions">
 							<!-- The board look names the column for assistive tech; the menu buttons below it are the only thing drawn. -->
 							<span v-if="isBoardLook" class="hidden-visually">{{ actionsColumnLabel }}</span>
 							<!-- @slot Header cell content above the row-actions column (blank by default). -->
@@ -216,143 +245,202 @@
 					</tr>
 
 					<!-- Data rows -->
-					<tr
-						v-for="row in effectiveRows"
+					<template
+						v-for="(row, rowIndex) in effectiveRows"
 						v-else
-						:key="row[rowKey]"
-						class="cn-table-row"
-						data-testid="cn-object-row"
-						:data-testid-row-id="row[rowKey]"
-						:class="[
-							isSelected(row) ? 'cn-table-row--selected' : '',
-							rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
-							isUnreadRow(row) ? 'cn-table-row--unread' : '',
-							rowClass ? rowClass(row) : '',
-						]"
-						@mousedown="onRowMouseDown"
-						@click="onRowClick(row, $event)"
-						@auxclick="onRowAuxClick(row, $event)"
-						@contextmenu="onRowContextMenu(row, $event)">
-						<!-- Checkbox -->
-						<td v-if="selectable"
-							class="cn-table-col--checkbox"
-							:class="pinClass(0)"
-							:style="pinStyle(0)"
-							@click.stop
-							@auxclick.stop>
-							<NcCheckboxRadioSwitch
-								:modelValue="isSelected(row)"
-								:aria-label="selectRowLabel"
-								@update:modelValue="toggleSelect(row)" />
-						</td>
+						:key="row[rowKey]">
+						<tr
+							:draggable="reorderable ? 'true' : undefined"
+							class="cn-table-row"
+							data-testid="cn-object-row"
+							:data-testid-row-id="row[rowKey]"
+							:class="[
+								isSelected(row) ? 'cn-table-row--selected' : '',
+								rowLinks[String(row[rowKey])] ? 'cn-table-row--linked' : '',
+								isUnreadRow(row) ? 'cn-table-row--unread' : '',
+								rowClass ? rowClass(row) : '',
+								reorderable ? 'cn-table-row--reorderable' : '',
+								dragOverIndex === rowIndex ? 'cn-table-row--drop-target' : '',
+							]"
+							@dragstart="onRowDragStart(rowIndex, $event)"
+							@dragover="onRowDragOver(rowIndex, $event)"
+							@dragleave="onRowDragLeave(rowIndex)"
+							@drop="onRowDrop(row, rowIndex, $event)"
+							@dragend="onRowDragEnd"
+							@mousedown="onRowMouseDown"
+							@click="onRowClick(row, $event)"
+							@auxclick="onRowAuxClick(row, $event)"
+							@contextmenu="onRowContextMenu(row, $event)">
+							<!-- Checkbox -->
+							<td v-if="selectable"
+								class="cn-table-col--checkbox"
+								:class="pinClass(0)"
+								:style="pinStyle(0)"
+								@click.stop
+								@auxclick.stop>
+								<NcCheckboxRadioSwitch
+									:modelValue="isSelected(row)"
+									:aria-label="selectRowLabel"
+									@update:modelValue="toggleSelect(row)" />
+							</td>
 
-						<!-- Leading icon -->
-						<td
-							v-if="rowIcon"
-							class="cn-table-col--icon"
-							:class="pinClass(selectable ? 1 : 0)"
-							:style="pinStyle(selectable ? 1 : 0)">
-							<CnIcon :name="getRowIcon(row)" :size="20" />
-						</td>
+							<!-- Leading icon -->
+							<td
+								v-if="rowIcon"
+								class="cn-table-col--icon"
+								:class="[pinClass(selectable ? 1 : 0), 'cn-table-col--icon-' + rowIconToneOf(row)]"
+								:style="pinStyle(selectable ? 1 : 0)">
+								<CnIcon v-if="getRowIcon(row)" :name="getRowIcon(row)" :size="20" />
+							</td>
 
-						<!-- Data cells -->
-						<td
-							v-for="(col, colIndex) in effectiveColumns"
-							:key="col.key"
-							:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === 0 ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '']"
-							:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
-							@mouseenter="titleWhenClipped">
-							<!-- A row with a `rowClickRoute` is a real link: this anchor
-							     is stretched over the whole row by CSS, so hovering shows
-							     the URL, a middle or ctrl click opens a new tab natively,
-							     and the row is reachable with Tab. The row's own click
-							     handlers treat it as a nested control and leave it be. -->
-							<a v-if="colIndex === 0 && rowLinks[String(row[rowKey])]"
-								class="cn-table-row__link"
-								:href="rowLinks[String(row[rowKey])].href"
-								:aria-label="rowLinkLabel(row, col)"
-								draggable="false"
-								data-testid="cn-row-link"
-								@click="onRowLinkClick(row, $event)" />
-							<!-- The padlock rides the FIRST data cell, beside whatever
-							     names the row. Deliberately OUTSIDE the #column-<key>
-							     slot: a consumer overriding that column's rendering is
-							     customising their own data, not opting out of being told
-							     the record is locked. It renders nothing when unlocked,
-							     so an unlocked table is byte-for-byte what it was. -->
-							<CnUnreadMarker
-								v-if="colIndex === 0 && isUnreadRow(row)" />
-							<CnLockIndicator
-								v-if="colIndex === 0"
-								:object="row"
-								:size="16" />
-							<!-- Declared state indicators ride the first data cell
-							     beside the padlock. Each one renders as an icon WITH a
-							     text alternative and a tooltip, never as colour alone,
-							     and an indicator the page did not declare cannot appear
-							     however the record is shaped. Past the cap the rest move
-							     into the row menu, because a row of nine icons is not a
-							     row anyone can triage at a glance. -->
-							<span v-if="colIndex === 0 && indicatorsFor(row).shown.length > 0"
-								class="cn-table-row-indicators"
-								data-testid="cn-row-indicators">
-								<span v-for="indicator in indicatorsFor(row).shown"
-									:key="indicator.id || indicator.field"
-									class="cn-table-row-indicator"
-									:title="indicator.tooltip || indicator.text"
-									:data-testid="`cn-row-indicator-${indicator.id || indicator.field}`">
-									<CnIcon :name="indicator.icon || 'InformationOutline'" :size="16" />
-									<span class="hidden-visually">{{ indicator.text }}</span>
+							<!-- Data cells -->
+							<td
+								v-for="(col, colIndex) in effectiveColumns"
+								:key="col.key"
+								:class="[col.class || '', col.cellClass || '', cellClass ? cellClass(row, col) : '', pinClass(leadingCount + colIndex), colIndex === titleColumnIndex ? 'cn-table-col--title' : '', isGrowColumn(col) ? 'cn-table-col--grow' : '', alignClass(col)]"
+								:style="{ ...(col.width ? { maxWidth: col.width } : {}), ...pinStyle(leadingCount + colIndex) }"
+								:data-label="stackOnPhone ? translateLabel(col.label) : undefined"
+								@mouseenter="titleWhenClipped">
+								<!-- A row with a `rowClickRoute` is a real link: this anchor
+								     is stretched over the whole row by CSS, so hovering shows
+								     the URL, a middle or ctrl click opens a new tab natively,
+								     and the row is reachable with Tab. The row's own click
+								     handlers treat it as a nested control and leave it be. -->
+								<a v-if="colIndex === titleColumnIndex && rowLinks[String(row[rowKey])]"
+									class="cn-table-row__link"
+									:href="rowLinks[String(row[rowKey])].href"
+									:aria-label="rowLinkLabel(row, col)"
+									draggable="false"
+									data-testid="cn-row-link"
+									@mousemove="linkTitleAtPointer"
+									@click="onRowLinkClick(row, $event)" />
+								<!-- The padlock rides the FIRST data cell, beside whatever
+								     names the row. Deliberately OUTSIDE the #column-<key>
+								     slot: a consumer overriding that column's rendering is
+								     customising their own data, not opting out of being told
+								     the record is locked. It renders nothing when unlocked,
+								     so an unlocked table is byte-for-byte what it was. -->
+								<!-- A reorderable row shows where to take hold of it, before its name. -->
+								<span v-if="reorderable && colIndex === 0"
+									class="cn-table-row__handle"
+									aria-hidden="true"
+									data-testid="cn-row-reorder-handle">
+									<DragVertical :size="16" />
 								</span>
-							</span>
-							<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
-							<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
-								<!-- Every column renders through CnCellRenderer: it resolves
-							     col.formatter / col.widget against the injected registries
-							     (cnFormatters / cnCellWidgets), uses the schema property when
-							     one is available (else {}) for type-aware rendering, and
-							     falls back to formatValue(). Columns with `aggregate` get a
-							     count of related objects (see cellValue/loadAggregates). The
-							     #column-{key} slot still wins. -->
-								<CnCellRenderer
-									:value="cellValue(row, col)"
-									:property="columnProperty(col)"
-									:formatter="col.formatter || null"
-									:formatterOptions="col.formatterOptions || null"
-									:widget="col.widget || null"
-									:widgetProps="col.widgetProps || undefined"
-									:secondary="col.widget === 'avatar' ? secondaryValue(row, col) : ''"
-									:format="columnFormat(col)"
-									:row="row"
-									:rowKey="rowKey" />
-							</slot>
-							<!-- A second, muted line under the value, from `col.secondary`:
-							     a field key, a "{field} · {other}" template, or a function
-							     of the row. Lets one column read "title" over "number ·
-							     requester" without a custom cell. -->
-							<span
-								v-if="col.widget !== 'avatar' && secondaryValue(row, col)"
-								class="cn-table-cell__secondary"
-								data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
-							<!-- A row that entered a file-content search through an attached
-							     file names it (OpenRegister `@self.matchedFile`): plain text,
-							     file name only, under the first cell. -->
-							<span
-								v-if="colIndex === 0 && matchedFileOf(row)"
-								class="cn-table-cell__secondary cn-table-cell__matched-file"
-								data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
-						</td>
+								<CnUnreadMarker
+									v-if="colIndex === titleColumnIndex && isUnreadRow(row)" />
+								<CnLockIndicator
+									v-if="colIndex === titleColumnIndex"
+									:object="row"
+									:size="16" />
+								<!-- Declared state indicators ride the first data cell
+								     beside the padlock. Each one renders as an icon WITH a
+								     text alternative and a tooltip, never as colour alone,
+								     and an indicator the page did not declare cannot appear
+								     however the record is shaped. Past the cap the rest move
+								     into the row menu, because a row of nine icons is not a
+								     row anyone can triage at a glance. -->
+								<span v-if="colIndex === titleColumnIndex && indicatorsFor(row).shown.length > 0"
+									class="cn-table-row-indicators"
+									data-testid="cn-row-indicators">
+									<span v-for="indicator in indicatorsFor(row).shown"
+										:key="indicator.id || indicator.field"
+										class="cn-table-row-indicator"
+										:title="translateLabel(indicator.tooltip || indicator.text)"
+										:data-testid="`cn-row-indicator-${indicator.id || indicator.field}`">
+										<CnIcon :name="indicator.icon || 'InformationOutline'" :size="16" />
+										<span class="hidden-visually">{{ translateLabel(indicator.text) }}</span>
+									</span>
+								</span>
+								<!-- A muted line above the value, from `col.overline` or
+								     `col.overlineText` ("Zaken van" over the organisation). -->
+								<span
+									v-if="overlineValue(row, col)"
+									class="cn-table-cell__overline"
+									data-testid="cn-cell-overline">{{ overlineValue(row, col) }}</span>
+								<!-- @slot Per-column cell override (`#column-<key>`), scoped with { row, value }. Wins over CnCellRenderer. -->
+								<slot :name="'column-' + col.key" :row="row" :value="cellValue(row, col)">
+									<!-- Every column renders through CnCellRenderer: it resolves
+								     col.formatter / col.widget against the injected registries
+								     (cnFormatters / cnCellWidgets), uses the schema property when
+								     one is available (else {}) for type-aware rendering, and
+								     falls back to formatValue(). Columns with `aggregate` get a
+								     count of related objects (see cellValue/loadAggregates). The
+								     #column-{key} slot still wins. -->
+									<span
+										v-if="isTextZero(row, col)"
+										class="cn-table-cell__zero"
+										data-testid="cn-cell-zero">{{ cellValue(row, col) }}</span>
+									<span
+										v-else-if="emptyLabelFor(row, col) !== ''"
+										class="cn-table-cell__empty-label"
+										data-testid="cn-cell-empty-label">{{ emptyLabelFor(row, col) }}</span>
+									<CnCellRenderer
+										v-else
+										:value="cellValue(row, col)"
+										:property="columnProperty(col)"
+										:formatter="col.formatter || null"
+										:formatterOptions="col.formatterOptions || null"
+										:widget="col.widget || null"
+										:widgetProps="col.widgetProps || undefined"
+										:secondary="col.widget === 'avatar' ? secondaryValue(row, col) : ''"
+										:format="columnFormat(col)"
+										:row="row"
+										:rowKey="rowKey" />
+								</slot>
+								<!-- Pills beside the value, from `col.pills`: each one whose
+								     condition holds on the row ("Geheimhouding", DqContacten). -->
+								<span
+									v-if="cellPills(row, col).length > 0"
+									class="cn-table-cell__pills">
+									<CnStatusBadge
+										v-for="(pill, pillIndex) in cellPills(row, col)"
+										:key="pillIndex"
+										:label="pill.label"
+										:variant="pill.variant"
+										data-testid="cn-cell-pill" />
+								</span>
+								<!-- A second, muted line under the value, from `col.secondary`:
+								     a field key, a "{field} · {other}" template, or a function
+								     of the row. Lets one column read "title" over "number ·
+								     requester" without a custom cell. -->
+								<span
+									v-if="col.widget !== 'avatar' && secondaryValue(row, col)"
+									class="cn-table-cell__secondary"
+									data-testid="cn-cell-secondary">{{ secondaryValue(row, col) }}</span>
+								<!-- A row that entered a file-content search through an attached
+								     file names it (OpenRegister `@self.matchedFile`): plain text,
+								     file name only, under the first cell. -->
+								<span
+									v-if="colIndex === titleColumnIndex && matchedFileOf(row)"
+									class="cn-table-cell__secondary cn-table-cell__matched-file"
+									data-testid="cn-row-matched-file">{{ matchedFileLabel(row) }}</span>
+							</td>
 
-						<!-- Row actions -->
-						<td v-if="$slots['row-actions']"
-							class="cn-table-col--actions"
-							:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
-							@click.stop
-							@auxclick.stop>
-							<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
-							<slot name="row-actions" :row="row" />
-						</td>
-					</tr>
+							<!-- Row actions -->
+							<td v-if="$slots['row-actions']"
+								class="cn-table-col--actions"
+								:class="[cellClass ? cellClass(row, { key: 'actions' }) : '']"
+								@click.stop
+								@auxclick.stop>
+								<!-- @slot Per-row actions menu (e.g. a CnRowActions), scoped with { row }. Supplying it adds the trailing actions column. -->
+								<slot name="row-actions" :row="row" />
+							</td>
+						</tr>
+						<!-- A full-width row under each data row, for what belongs to
+						     that row (its child records). Not draggable and not a drop
+						     target: a reorder moves the data rows only. -->
+						<tr
+							v-if="$slots['row-detail']"
+							class="cn-table-row-detail"
+							data-testid="cn-row-detail"
+							:data-testid-row-id="row[rowKey]">
+							<td :colspan="totalColumns" class="cn-table-row-detail__cell">
+								<!-- @slot Content under a data row, across the full width (e.g. that row's child records), scoped with { row }. -->
+								<slot name="row-detail" :row="row" />
+							</td>
+						</tr>
+					</template>
 				</tbody>
 			</table>
 		</div>
@@ -389,6 +477,18 @@
 				</button>
 			</slot>
 		</div>
+		<!-- `pageSize`: the board's pager under the rows, "4 of 7" and the
+		     page buttons (DqCatalogus). -->
+		<CnPagination
+			v-if="pageSize > 0 && totalRowCount > pageSize"
+			variant="board"
+			class="cn-data-table__pager"
+			:currentPage="currentPage"
+			:totalPages="pageCount"
+			:totalItems="totalRowCount"
+			:currentPageSize="pageSize"
+			data-testid="cn-data-table-pager"
+			@pageChanged="currentPage = $event" />
 	</div>
 </template>
 
@@ -399,21 +499,31 @@ import { generateUrl } from '@nextcloud/router'
 import { NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
+import DragVertical from 'vue-material-design-icons/DragVertical.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
+import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
+import CnPagination from '../CnPagination/CnPagination.vue'
 import CnColumnFilterPopover from './CnColumnFilterPopover.vue'
 import { useClickDragGuard } from '../../composables/useClickDragGuard.js'
 import { normalizeLook } from '../../composables/useLook.js'
+import { isAppInstalled } from '../../utils/appInstalled.js'
 import { clearedColumnFilterParams, columnFilterDef, columnFilterParams, columnFilterState, isColumnFilterActive, isColumnSortable } from '../../utils/columnFilters.js'
-import { fillTemplate, joinTemplateParts } from '../../utils/fillTemplate.js'
+import { fillTemplate, firstFilled, joinTemplateParts } from '../../utils/fillTemplate.js'
+import { listText } from '../../utils/filterRangeLabel.js'
 import { lensUnavailableText, readLensReports } from '../../utils/lensAvailability.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
+import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
+import { cellsOf, fetchRowAggregate } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
-import { DEFAULT_ROW_INDICATOR_CAP, resolveRowIndicators } from '../../utils/rowIndicators.js'
+import { ruleHolds } from '../../utils/rowClassRules.js'
+import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
 import { columnsFromSchema } from '../../utils/schema.js'
+import { loadSecondaryRefs, rowWithRefs } from '../../utils/secondaryRefs.js'
 import { CnCellRenderer } from '../CnCellRenderer/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnLockIndicator } from '../CnLockIndicator/index.js'
+import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { CnUnreadMarker } from '../CnUnreadMarker/index.js'
 
 // CnDataTable has no scoped styles of its own — its entire look lives in the
@@ -480,18 +590,36 @@ import '../../css/table.css'
  */
 const SYSTEM_DATE_KEYS = ['@self.created', '@self.updated', '@self.published', '@self.depublished']
 
+/**
+ * Whether a column's aggregate is read from the host app's endpoint.
+ *
+ * @param {object} col The column.
+ * @return {boolean} True for `aggregate.endpoint` with `aggregate.key`.
+ */
+function isEndpointAggregate(col) {
+	const agg = col && col.aggregate
+	return !!agg && typeof agg.endpoint === 'string' && agg.endpoint !== '' && typeof agg.key === 'string' && agg.key !== ''
+}
+
+/** The tile tones the board look draws for a row's leading icon. */
+const ROW_ICON_TONES = ['primary', 'teal', 'neutral', 'warning']
+
 export default {
 	name: 'CnDataTable',
 
 	components: {
+		CnCardNotices,
 		NcLoadingIcon,
 		NcCheckboxRadioSwitch,
 		CnCellRenderer,
 		CnColumnFilterPopover,
 		CnIcon,
 		CnLockIndicator,
+		CnStatusBadge,
+		CnPagination,
 		CnUnreadMarker,
 		ChevronDown,
+		DragVertical,
 		ChevronUp,
 		FilterOutline,
 	},
@@ -514,6 +642,19 @@ export default {
 
 	props: {
 		/**
+		 * The table's state banners, above the rows (R1): each a `notice`
+		 * content (`{ variant, role?, layout?, title?, text, actions?,
+		 * dismissible?, visibleWhen? }`), such as a source that is down or
+		 * a bulk move that was partly done.
+		 *
+		 * @type {Array<object>}
+		 */
+		notices: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * Column definitions (manual mode).
 		 * Not required when `schema` is provided.
 		 * Each entry may be a full column object OR a bare string key; bare strings
@@ -526,13 +667,49 @@ export default {
 		 * reader is looking. `columnsFromSchema` fills it from the JSON Schema property
 		 * description automatically, so schema-driven tables get it for free.
 		 *
+		 * `labelHidden` keeps a column's name for a screen reader and draws no
+		 * header text, for a column that reads by itself (a status dot).
+		 *
 		 * `secondary` draws a second, muted line under the cell's value: a field
 		 * key (`"number"`), a template with `{field}` placeholders
 		 * (`"{number} · {requester}"`, dotted paths allowed; `{startAt|weekday}`
 		 * formats through `fillTemplate`), or a function of the row. Empty fields leave their placeholder blank; a line that
-		 * resolves to nothing is not drawn.
+		 * resolves to nothing is not drawn. `secondaryLabels` names a field's
+		 * values on that line, `{ field: { value: label, '*': label } }`
+		 * (i18n keys; `'*'` for any other value).
 		 *
-		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, class: string, cellClass: string, secondary: (string|((row: object) => string))}|string>}
+		 * A list field on that line (`surfaces: ['site', 'portal']`) names each
+		 * value through `secondaryLabels` and reads as a list in the page's
+		 * language ("website en Mijn Zuiddrecht").
+		 *
+		 * `valueWhen` (`[{ when, value }]`, `when` a row condition or a list of
+		 * them, as `rowClass` takes) names what the cell holds by the row's
+		 * fields: the first rule that holds gives the value, which the cell then
+		 * draws as any value (a `badge` maps it through `colorMap` and its
+		 * labels). No rule holding leaves the stored value.
+		 *
+		 * `secondary` may also list templates: the first whose fields all hold
+		 * a value is drawn. `secondaryRefs` (`{ alias: { field, register,
+		 * schema, counts } }`) reads the records a row points at, once per id,
+		 * so the line can name them (`{segment.name}`); `counts` adds, per
+		 * referenced record, a count aggregate of what points at it.
+		 *
+		 * `firstOf` (a list of fields, dotted paths allowed) shows the first that
+		 * holds a value, instead of the column's key.
+		 *
+		 * `link: true` makes that column the one that names the row: it carries
+		 * the row link and the title look. Without it the first column does.
+		 *
+		 * `align: 'right'` (or `'end'`) puts the column at the end of its cells,
+		 * header included, as `class: 'cn-table-col--end'` does.
+		 *
+		 * `emptyValueBy` (`{ field, values }`) names what an empty cell holds by
+		 * another field of the row, translated; it goes before `emptyValue`.
+		 * `emptyValue` is what a row without a value holds in that column, so a
+		 * `badge` column draws a pill on every row. `emptyLabel` is the words an
+		 * empty cell reads, translated, as plain text past the format.
+		 *
+		 * @type {Array<{key: string, label: string, description: string, sortable: boolean, width: string, align: ('left'|'right'|'end'), class: string, cellClass: string, link: boolean, secondary: (string|((row: object) => string)), secondaryLabels: object, emptyValue: unknown}|string>}
 		 */
 		columns: {
 			type: Array,
@@ -545,11 +722,26 @@ export default {
 		 * rows, or a function `(row) => iconName` to vary it per row. The icon is
 		 * resolved through the shared CnIcon registry. Unset = no icon column.
 		 *
-		 * @type {string | ((row: object) => string) | null}
+		 * An object `{ field, icons, tones?, icon? }` picks the icon by a field
+		 * of the row (`icons[value]`, else `icon`) and its tile tone by the same
+		 * value (`tones[value]`, else `rowIconTone`), as a manifest can declare.
+		 *
+		 * @type {string | ((row: object) => string) | {field: string, icons: object, tones?: object, icon?: string} | null}
 		 */
 		rowIcon: {
-			type: [String, Function],
+			type: [String, Function, Object],
 			default: null,
+		},
+
+		/**
+		 * The tone of the leading icon's tile in the board look: `primary`
+		 * (default), `teal` or `neutral` (DqOrganisaties draws a teal tile).
+		 *
+		 * @type {string}
+		 */
+		rowIconTone: {
+			type: String,
+			default: 'primary',
 		},
 
 		/**
@@ -743,18 +935,34 @@ export default {
 		},
 
 		/**
+		 * Draw an unread record (`@self.unread`) in bold with the unread dot.
+		 * Off, every row reads alike whatever its read state.
+		 *
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-unread-rows-are-marked-only-where-the-reader-asked-for-them
+		 */
+		showUnread: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * How the board look draws the title column: `link` (the default) is
 		 * the 15px weight 600 underlined title of the DqZaken board; `plain` is
 		 * the 15px bold title without an underline and a 13px muted secondary
-		 * line, as the PqTickets and OcPublicaties boards draw it. The row stays
-		 * clickable either way. The Nextcloud look ignores it.
+		 * line, as the PqTickets and OcPublicaties boards draw it; `text` is an
+		 * ordinary cell, for a log table whose first column is a date
+		 * (DqZaakContact); `strong` is the cell's own size at weight 600 in the
+		 * main ink without an underline, the name column of a card's list
+		 * (DqZaaktypeStatussen). The row stays clickable either way. The
+		 * Nextcloud look ignores it.
 		 *
 		 * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
 		 */
 		rowTitle: {
 			type: String,
 			default: 'link',
-			validator: (value) => ['link', 'plain'].includes(value),
+			validator: (value) => ['link', 'plain', 'text', 'strong'].includes(value),
 		},
 
 		/**
@@ -763,6 +971,19 @@ export default {
 		 * CnWidgetWrapper dashboard slot). Folded in from CnTableWidget.
 		 */
 		borderless: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Frame a table that sits straight in a card, as the Pipelinq POS boards
+		 * draw it (PqKassa "Aankoopgeschiedenis"): a 1px frame with an 8px
+		 * radius, 18px outer cell insets and a rule under the head and every row
+		 * but the last. Board look only; the Nextcloud look ignores it.
+		 *
+		 * @spec openspec/changes/data-table-framed/specs/data-table-framed/spec.md#requirement-a-data-table-in-a-card-can-be-framed
+		 */
+		framed: {
 			type: Boolean,
 			default: false,
 		},
@@ -788,6 +1009,15 @@ export default {
 		pinnedCount: {
 			type: Number,
 			default: 0,
+		},
+
+		/**
+		 * Let the reader drag rows into another order. A drop emits `row-move`
+		 * with the row and its old and new index; the host stores the order.
+		 */
+		reorderable: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -834,11 +1064,38 @@ export default {
 		},
 
 		/**
+		 * On a phone-width screen (up to 600px), draw every row as a stacked
+		 * block: one line per cell with its column name before the value, the
+		 * header row hidden, the row actions full width. Wider screens keep
+		 * the table. Off by default.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/data-table-stack-on-phone/specs/data-table-stack-on-phone/spec.md#requirement-a-table-can-stack-its-rows-on-a-phone
+		 */
+		stackOnPhone: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Max number of rows to display. When the total exceeds it, only the first
 		 * `limit` render and the "View all" footer appears (with `viewAllRoute`).
 		 * 0 = show all. Folded in from CnTableWidget.
 		 */
 		limit: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * Rows per page. Above 0 the table shows one page of its rows and the
+		 * board's pager under them ("4 of 7", page buttons, Next) once there is
+		 * more than one page. Pages the rows the table holds; 0 (the default)
+		 * shows them all, or the first `limit`.
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 */
+		pageSize: {
 			type: Number,
 			default: 0,
 		},
@@ -942,6 +1199,30 @@ export default {
 		},
 
 		/**
+		 * The schema the header filters read instead of `schema`: a page that
+		 * filters through other fields than the rows' own (a named source's
+		 * search fields) hands them here. Null: the header filters read `schema`.
+		 *
+		 * @spec openspec/changes/named-source-header-filters/specs/index-page/spec.md#requirement-a-named-source-can-filter-from-its-column-headers-through-its-search-fields
+		 */
+		filterSchema: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * Draw the active header filters as removable chips above the table.
+		 * A host that lists them itself (the index page's board Active line)
+		 * turns this off, so a filter is not shown twice.
+		 *
+		 * @spec openspec/changes/index-table-filter-chips-once/specs/cn-data-table/spec.md#requirement-a-host-that-lists-the-active-filters-itself-turns-the-table-chips-off
+		 */
+		filterChips: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
 		 * The active filter map, `{ paramKey: values[] }`: the same map the
 		 * facet sidebar writes, so a header filter and a sidebar filter on one
 		 * field show the same state.
@@ -956,9 +1237,23 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/**
+		 * Sort and filter the `rows` the table holds from its own headers, in
+		 * the browser: for a table that holds every row (a settings table read
+		 * from an app endpoint) and has no host keeping the state. `sort` and
+		 * `column-filter` still emit; `sortKey`, `sortKeys` and `activeFilters`
+		 * are not read.
+		 *
+		 * @spec openspec/changes/data-table-local-headers/specs/cn-data-table/spec.md#requirement-a-table-can-sort-and-filter-the-rows-it-holds
+		 */
+		localHeaders: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
-	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'select', 'select-all', 'sort', 'view-all', 'column-filter'],
+	emits: ['row-click', 'row-aux-click', 'row-context-menu', 'row-move', 'select', 'select-all', 'sort', 'view-all', 'column-filter', 'notice-action', 'notice-dismiss'],
 
 	setup() {
 		// Tell a deliberate row click apart from a text-selection drag.
@@ -967,6 +1262,10 @@ export default {
 
 	data() {
 		return {
+			/** Index of the row being dragged, or -1. */
+			dragFromIndex: -1,
+			/** Index of the row a drag is over, or -1. */
+			dragOverIndex: -1,
 			/** Left offsets (px) of the leading pinned cells, measured from the header. */
 			pinOffsets: [],
 			/** Key of the column whose filter panel is open, or ''. */
@@ -982,6 +1281,22 @@ export default {
 			 */
 			aggregateValues: {},
 			/**
+			 * Records the secondary lines reference, by column key, then alias,
+			 * then id. Populated by `loadSecondaryRefLines()`.
+			 *
+			 * @type {{[colKey: string]: {[alias: string]: {[id: string]: object}}}}
+			 */
+			secondaryRefValues: {},
+			/** Monotonic id of the latest `loadSecondaryRefLines()` batch. */
+			secondaryRefRequestId: 0,
+			/**
+			 * Columns whose endpoint aggregate answered `available: false`, by
+			 * column key; such a column is not drawn.
+			 *
+			 * @type {{[colKey: string]: boolean}}
+			 */
+			aggregateUnavailable: {},
+			/**
 			 * Whether the table currently overflows its scrollport horizontally.
 			 * Drives the keyboard tab stop on `.cn-data-table__scroll`; see the
 			 * comment on that element.
@@ -995,6 +1310,11 @@ export default {
 			aggregateRequestId: 0,
 			/** Rows fetched in self-fetch mode (register + schemaId). */
 			fetchedRows: [],
+			// localHeaders: the header sort keys and filter map the table keeps itself.
+			localSortKeys: [],
+			localFilters: {},
+			/** The page shown under `pageSize`. */
+			currentPage: 1,
 			/** Personal-lens reports (`@self.lenses`) of the latest self-fetch response. */
 			fetchedLenses: {},
 			/** True while a self-fetch request is in flight. */
@@ -1003,6 +1323,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The leading icon tile's tone, one the board look draws.
+		 *
+		 * @return {string} `primary`, `teal`, `neutral` or `warning`.
+		 * @spec openspec/changes/board-row-icon-tile/specs/data-table/spec.md#requirement-a-board-tables-leading-icon-sits-on-a-tile
+		 */
+		iconTone() {
+			return ROW_ICON_TONES.includes(this.rowIconTone) ? this.rowIconTone : 'primary'
+		},
+
 		/**
 		 * Whether the table is drawn as the board look's white card.
 		 *
@@ -1045,6 +1375,20 @@ export default {
 		 * @return {string|null} The column key, or null when not fitting.
 		 * @spec openspec/changes/narrow-object-table-widgets/specs/narrow-object-table-widgets/spec.md#requirement-a-narrow-object-table-keeps-its-trailing-columns-in-view
 		 */
+		/**
+		 * The column that names the row: it carries the row link, the title
+		 * look and the unread, lock and indicator marks. The first column with
+		 * `link: true`, else the first column (DqTeamwachtrij puts the waiting
+		 * time first and links the case title in the second).
+		 *
+		 * @return {number} The index in `effectiveColumns`.
+		 * @spec openspec/changes/screens-index-board-gaps/specs/index-list-board-look/spec.md#requirement-a-column-can-carry-the-row-link
+		 */
+		titleColumnIndex() {
+			const index = this.effectiveColumns.findIndex((c) => c && c.link === true)
+			return index === -1 ? 0 : index
+		},
+
 		growColumnKey() {
 			if (!this.fitWidth || this.effectiveColumns.length === 0) {
 				return null
@@ -1082,6 +1426,10 @@ export default {
 		 */
 		sourceRows() {
 			if (this.rows && this.rows.length > 0) {
+				if (this.localHeaders) {
+					const primary = this.localSortKeys[0]
+					return localHeaderRows(this.rows, primary ? { field: primary.key, dir: primary.order } : null, this.localFilters)
+				}
 				return this.rows
 			}
 			if (this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
@@ -1096,7 +1444,21 @@ export default {
 		 * @return {Array<object>}
 		 */
 		effectiveRows() {
+			if (this.pageSize > 0) {
+				const page = Math.min(this.currentPage, this.pageCount)
+				return this.sourceRows.slice((page - 1) * this.pageSize, page * this.pageSize)
+			}
 			return this.limit > 0 ? this.sourceRows.slice(0, this.limit) : this.sourceRows
+		},
+
+		/**
+		 * The number of pages under `pageSize` (at least 1).
+		 *
+		 * @spec openspec/changes/object-table-pager/specs/object-table/spec.md#requirement-an-object-table-can-page-its-rows
+		 * @return {number}
+		 */
+		pageCount() {
+			return this.pageSize > 0 ? Math.max(1, Math.ceil(this.sourceRows.length / this.pageSize)) : 1
 		},
 
 		/**
@@ -1143,6 +1505,16 @@ export default {
 		 * Schema columns take precedence when schema is provided and no manual columns given.
 		 */
 		effectiveColumns() {
+			return this.allColumns.filter((c) => !this.isAggregateHidden(c))
+		},
+
+		/**
+		 * Every column the table is configured with, before an endpoint
+		 * aggregate whose source is absent is left out (see `effectiveColumns`).
+		 *
+		 * @return {Array<object>} The columns.
+		 */
+		allColumns() {
 			const cols = (this.schema && this.columns.length === 0)
 				? columnsFromSchema(this.schema, {
 						exclude: this.excludeColumns,
@@ -1239,6 +1611,9 @@ export default {
 		},
 
 		effectiveSortKeys() {
+			if (this.localHeaders) {
+				return this.localSortKeys
+			}
 			if (this.sortKeys && this.sortKeys.length > 0) {
 				return this.sortKeys
 			}
@@ -1307,12 +1682,20 @@ export default {
 		rows: {
 			handler() {
 				this.loadAggregates()
+				this.loadSecondaryRefLines()
 			},
+		},
+
+		pageCount(count) {
+			if (this.currentPage > count) {
+				this.currentPage = count
+			}
 		},
 
 		effectiveColumns: {
 			handler() {
 				this.loadAggregates()
+				this.loadSecondaryRefLines()
 			},
 
 			deep: false,
@@ -1332,6 +1715,7 @@ export default {
 
 	mounted() {
 		this.loadAggregates()
+		this.loadSecondaryRefLines()
 		// Self-fetch mode: pull rows from OpenRegister when register + schemaId
 		// are given and no external rows were passed (folded from CnTableWidget).
 		if ((!this.rows || this.rows.length === 0) && this.register !== null && this.register !== undefined && this.schemaId !== null && this.schemaId !== undefined) {
@@ -1354,6 +1738,95 @@ export default {
 
 	methods: {
 		/**
+		 * The end class for a column whose `align` is `right` or `end`: the
+		 * header and the cells sit at the end, as a column of numbers does.
+		 *
+		 * @param {object} col The column.
+		 * @return {string} `cn-table-col--end`, or ''.
+		 * @spec openspec/changes/data-table-column-align/specs/data-table-column-align/spec.md#requirement-a-column-can-align-to-the-end
+		 */
+		alignClass(col) {
+			return col && (col.align === 'right' || col.align === 'end') ? 'cn-table-col--end' : ''
+		},
+
+		/**
+		 * Start dragging a row (`reorderable` only).
+		 *
+		 * @param {number} index The row's index.
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onRowDragStart(index, event) {
+			if (!this.reorderable) {
+				return
+			}
+			this.dragFromIndex = index
+			if (event && event.dataTransfer) {
+				event.dataTransfer.effectAllowed = 'move'
+				event.dataTransfer.setData('text/plain', String(index))
+			}
+		},
+
+		/**
+		 * Accept a dragged row over this one.
+		 *
+		 * @param {number} index The row's index.
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onRowDragOver(index, event) {
+			if (!this.reorderable || this.dragFromIndex < 0) {
+				return
+			}
+			event.preventDefault()
+			this.dragOverIndex = index
+		},
+
+		/**
+		 * The drag left this row.
+		 *
+		 * @param {number} index The row's index.
+		 * @return {void}
+		 */
+		onRowDragLeave(index) {
+			if (this.dragOverIndex === index) {
+				this.dragOverIndex = -1
+			}
+		},
+
+		/**
+		 * Drop the dragged row here.
+		 *
+		 * @param {object} row The row dropped on.
+		 * @param {number} index Its index.
+		 * @param {DragEvent} event The drag event.
+		 * @return {void}
+		 */
+		onRowDrop(row, index, event) {
+			if (!this.reorderable || this.dragFromIndex < 0) {
+				return
+			}
+			event.preventDefault()
+			const from = this.dragFromIndex
+			this.onRowDragEnd()
+			if (from !== index) {
+				/**
+				 * A row was dragged to another place (`reorderable`). Payload:
+				 * `{ row, from, to }`, the dragged row and its old and new index.
+				 *
+				 * @event row-move
+				 */
+				this.$emit('row-move', { row: this.effectiveRows[from], from, to: index })
+			}
+		},
+
+		/** End a drag. */
+		onRowDragEnd() {
+			this.dragFromIndex = -1
+			this.dragOverIndex = -1
+		},
+
+		/**
 		 * Whether a column is the one that takes the spare width (`fitWidth`).
 		 *
 		 * @param {object} col The column.
@@ -1365,13 +1838,14 @@ export default {
 
 		/**
 		 * Whether a row's record changed since the user last looked
-		 * (`@self.unread`). A row without the marker renders as it always did.
+		 * (`@self.unread`), when `showUnread` is on. A row without the marker
+		 * renders as it always did.
 		 *
 		 * @param {object} row The row.
 		 * @return {boolean} True when the row is unread.
 		 */
 		isUnreadRow(row) {
-			return !!(row && row['@self'] && row['@self'].unread === true)
+			return this.showUnread && !!(row && row['@self'] && row['@self'].unread === true)
 		},
 
 		/**
@@ -1405,6 +1879,29 @@ export default {
 		 */
 		indicatorsFor(row) {
 			return resolveRowIndicators(this.rowIndicators, row, this.rowIndicatorCap)
+		},
+
+		/**
+		 * A row link covers the whole row, so no cell sees the pointer. Give
+		 * the link the full text of the clipped cell under the pointer as its
+		 * title, the hover that `titleWhenClipped` gives an unlinked cell.
+		 *
+		 * @param {MouseEvent} event The move event on the row link.
+		 *
+		 * @return {void}
+		 */
+		linkTitleAtPointer(event) {
+			const link = event.currentTarget
+			const row = link?.closest?.('tr')
+			if (!row || typeof document.elementsFromPoint !== 'function') {
+				return
+			}
+			const cell = document.elementsFromPoint(event.clientX, event.clientY)
+				.find((el) => el.tagName === 'TD' && row.contains(el))
+			// An empty title, not none: the first cell's own clipped title would
+			// otherwise show over the whole row.
+			const clipped = cell && cell.scrollWidth - cell.clientWidth > 1
+			link.setAttribute('title', clipped ? (cell.textContent || '').trim() : '')
 		},
 
 		/**
@@ -1630,14 +2127,37 @@ export default {
 		},
 
 		/**
-		 * Resolve the leading-row icon name for a row. Returns the static
-		 * `rowIcon` string, or the result of the `rowIcon(row)` function.
+		 * Resolve the leading-row icon name for a row: the static `rowIcon`
+		 * string, the result of the `rowIcon(row)` function, or the icon a
+		 * `rowIcon` object names for the row's field value ('' for none).
 		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row
 		 * @param {object} row The row object.
 		 * @return {string} The MDI icon name (PascalCase).
 		 */
 		getRowIcon(row) {
-			return typeof this.rowIcon === 'function' ? this.rowIcon(row) : this.rowIcon
+			if (typeof this.rowIcon === 'function') {
+				return this.rowIcon(row)
+			}
+			if (this.rowIcon && typeof this.rowIcon === 'object') {
+				const value = this.getCellValue(row, this.rowIcon.field)
+				return this.rowIcon.icons?.[String(value)] || this.rowIcon.icon || ''
+			}
+			return this.rowIcon
+		},
+
+		/**
+		 * The tile tone of a row's leading icon: the tone a `rowIcon` object
+		 * names for the row's value, else the table's `rowIconTone`.
+		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-row-icon-can-follow-a-field-of-the-row
+		 * @param {object} row The row object.
+		 * @return {string} A tone the board look draws.
+		 */
+		rowIconToneOf(row) {
+			const tones = this.rowIcon && typeof this.rowIcon === 'object' ? this.rowIcon.tones : null
+			const tone = tones ? tones[String(this.getCellValue(row, this.rowIcon.field))] : undefined
+			return ROW_ICON_TONES.includes(tone) ? tone : this.iconTone
 		},
 
 		/**
@@ -1690,15 +2210,21 @@ export default {
 		 * branch: a column can't usefully declare labels without also
 		 * declaring the codes they label. A column `colorMap` (raw value to
 		 * badge variant) colours the enum pill from the manifest and wins over
-		 * the schema property's own `colorMap` / `x-color-map`.
+		 * the schema property's own `colorMap` / `x-color-map`. A column with
+		 * `valueField` takes that field's property. A column with a `template`
+		 * holds the filled line, which is text whatever the key's schema type.
 		 *
 		 * @param {object} col Column definition.
 		 * @spec openspec/changes/screens-table-footer-and-system-dates-parity/specs/index-list-board-look/spec.md#requirement-a-system-date-can-be-a-column
 		 * @return {object} Property definition for CnCellRenderer.
 		 * @spec openspec/changes/screens-cell-pill-parity/specs/cell-pill-tones/spec.md#requirement-a-manifest-column-colours-its-enum-pills
+		 * @spec openspec/changes/template-cell-is-text/specs/data-table/spec.md
 		 */
 		columnProperty(col) {
-			const base = this.getSchemaProperty(col.key)
+			if (col && typeof col.template === 'string' && col.template !== '') {
+				return { type: 'string' }
+			}
+			const base = this.getSchemaProperty(this.columnValueField(col))
 			// A system date (`@self.created`, `@self.updated`, ...) has no
 			// schema property behind it; it renders as a date-time.
 			if (Object.keys(base).length === 0 && SYSTEM_DATE_KEYS.includes(col.key) && !col.type && !col.format) {
@@ -1734,6 +2260,26 @@ export default {
 		},
 
 		/**
+		 * The pills a cell draws beside its value: each `col.pills` entry
+		 * (`{ field, equals | in | ..., label, variant? }`, the row-indicator
+		 * condition grammar) whose condition holds on the row, its label
+		 * translated.
+		 *
+		 * @param {object} row The row.
+		 * @param {object} col The column definition.
+		 * @return {Array<{label: string, variant: string}>} The pills, in declared order.
+		 * @spec openspec/changes/column-cell-pills/specs/data-table/spec.md#requirement-a-column-can-put-a-pill-beside-a-cells-value
+		 */
+		cellPills(row, col) {
+			if (!col || !Array.isArray(col.pills) || col.pills.length === 0) {
+				return []
+			}
+			return col.pills
+				.filter((pill) => pill && typeof pill.label === 'string' && pill.label !== '' && typeof pill.field === 'string' && indicatorApplies(pill, row || {}))
+				.map((pill) => ({ label: this.translateLabel(pill.label), variant: typeof pill.variant === 'string' ? pill.variant : 'default' }))
+		},
+
+		/**
 		 * The secondary line of a cell, from `col.secondary`: a function is
 		 * called with the row; a string with `{field}` placeholders is a
 		 * template filled from the row (dotted paths allowed), where a
@@ -1747,7 +2293,72 @@ export default {
 		 * @return {string} The secondary text, or ''.
 		 */
 		secondaryValue(row, col) {
-			const spec = col?.secondary
+			if (Array.isArray(col?.secondary) || (col?.secondaryRefs && typeof col.secondaryRefs === 'object')) {
+				const context = col.secondaryRefs
+					? rowWithRefs(row, col.secondaryRefs, this.secondaryRefValues[col.key], (r, path) => this.getCellValue(r, path))
+					: row
+				return firstFilled(col.secondary, context, (key) => this.translateLabel(key))
+			}
+			// A template is read in the host's translation, as `col.template` is.
+			const spec = typeof col?.secondary === 'string' && col.secondary.includes('{') ? this.translateLabel(col.secondary) : col?.secondary
+			return this.cellLineValue(row, spec, col)
+		},
+
+		/**
+		 * Read the records the columns' secondary lines reference
+		 * (`secondaryRefs`), once per id, into `secondaryRefValues`. A stale
+		 * answer (rows or columns changed meanwhile) is dropped.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/secondary-line-from-references/specs/data-table/spec.md
+		 */
+		async loadSecondaryRefLines() {
+			const cols = this.effectiveColumns.filter((c) => c && c.secondaryRefs && typeof c.secondaryRefs === 'object')
+			const id = ++this.secondaryRefRequestId
+			if (cols.length === 0) {
+				return
+			}
+			const next = {}
+			await Promise.all(cols.map(async (col) => {
+				next[col.key] = await loadSecondaryRefs(col.secondaryRefs, this.rows, (r, path) => this.getCellValue(r, path))
+			}))
+			if (id === this.secondaryRefRequestId) {
+				this.secondaryRefValues = next
+			}
+		},
+
+		/**
+		 * The muted line above a cell's value, from `col.overline` (read like
+		 * `secondary`) or else `col.overlineText`, a fixed text in the host's
+		 * translation (PtToegangsverzoeken "Zaken van"). Returns '' when there
+		 * is nothing to draw.
+		 *
+		 * @spec openspec/changes/table-cell-overline/specs/data-table/spec.md#requirement-a-table-column-can-carry-a-muted-line-above-its-value
+		 * @param {object} row The row.
+		 * @param {object} col The column definition.
+		 * @return {string} The overline text, or ''.
+		 */
+		overlineValue(row, col) {
+			const fromRow = this.cellLineValue(row, col?.overline, col)
+			if (fromRow !== '') {
+				return fromRow
+			}
+			return typeof col?.overlineText === 'string' && col.overlineText !== '' ? this.translateLabel(col.overlineText) : ''
+		},
+
+		/**
+		 * One extra line of a cell from its spec: a function is called with the
+		 * row; a string with `{field}` placeholders is a template filled from
+		 * the row; any other string is a field key. Shared by `secondary` and
+		 * `overline`.
+		 *
+		 * @spec openspec/changes/table-cell-overline/specs/data-table/spec.md#requirement-a-table-column-can-carry-a-muted-line-above-its-value
+		 * @param {object} row The row.
+		 * @param {Function|string|undefined} spec The line's spec.
+		 * @param {object} [col] The column, for its `secondaryLabels`.
+		 * @return {string} The text, or ''.
+		 */
+		cellLineValue(row, spec, col) {
 			if (typeof spec === 'function') {
 				const out = spec(row)
 				return out === null || out === undefined ? '' : String(out)
@@ -1758,29 +2369,41 @@ export default {
 			if (spec.includes('{')) {
 				const filled = joinTemplateParts(spec, (key) => (key.includes('|')
 					? fillTemplate(`{${key}}`, row)
-					: this.secondaryFieldText(row, key)))
+					: this.secondaryFieldText(row, key, col)))
 				// A template whose every field is empty leaves only separators:
 				// nothing worth a line.
 				return /[\p{L}\p{N}]/u.test(filled) ? filled.trim() : ''
 			}
-			return this.secondaryFieldText(row, spec)
+			return this.secondaryFieldText(row, spec, col)
 		},
 
 		/**
-		 * The text of one field on a secondary line. An enum field reads as its
-		 * label (`x-enum-labels`, in the user's language), as an enum cell
-		 * does, so "regular" reads "Gewone vergadering". Anything else is the
-		 * stored value as text.
+		 * The text of one field on a secondary line. A value the column's
+		 * `secondaryLabels[key]` names reads as that label, else as its `'*'`
+		 * label, translated. An enum field reads as its label (`x-enum-labels`,
+		 * in the user's language), as an enum cell does, so "regular" reads
+		 * "Gewone vergadering". Anything else is the stored value as text.
 		 *
 		 * @spec openspec/changes/screens-secondary-enum-label/specs/data-table/spec.md
 		 * @param {object} row The row.
 		 * @param {string} key The field key (dotted paths allowed).
+		 * @param {object} [col] The column, for its `secondaryLabels`.
 		 * @return {string} The text, or '' when the field is empty.
 		 */
-		secondaryFieldText(row, key) {
+		secondaryFieldText(row, key, col) {
 			const value = this.getCellValue(row, key)
 			if (value === null || value === undefined) {
 				return ''
+			}
+			const named = col?.secondaryLabels?.[key]
+			if (Array.isArray(value)) {
+				return this.secondaryListText(value, named)
+			}
+			if (named && typeof named === 'object' && typeof value !== 'object') {
+				const label = Object.hasOwn(named, String(value)) ? named[String(value)] : named['*']
+				if (typeof label === 'string' && label !== '') {
+					return this.translateLabel(label)
+				}
 			}
 			const property = this.getSchemaProperty(key)
 			if (typeof value !== 'object' && value !== '' && Array.isArray(property.enum) && property.enum.length > 0) {
@@ -1791,16 +2414,35 @@ export default {
 		},
 
 		/**
+		 * A list field on a secondary line: every value named by the column's
+		 * labels for that field (else kept as stored), translated, joined as a
+		 * list in the page's language ("website en Mijn Zuiddrecht").
+		 *
+		 * @spec openspec/changes/notice-list-in-a-tab/specs/data-table/spec.md#requirement-a-secondary-line-names-each-value-of-a-list-field
+		 * @param {Array} values The field's values.
+		 * @param {object} [named] The labels for the field, `{ value: label }`.
+		 * @return {string} The text, or '' when no value holds anything.
+		 */
+		secondaryListText(values, named) {
+			const labels = named && typeof named === 'object' ? named : {}
+			const names = values
+				.filter((v) => v !== null && v !== undefined && v !== '' && typeof v !== 'object')
+				.map((v) => (typeof labels[String(v)] === 'string' && labels[String(v)] !== '' ? this.translateLabel(labels[String(v)]) : String(v)))
+			return listText(names, document.documentElement.lang || undefined)
+		},
+
+		/**
 		 * Value to render in a cell. For a column that declares `aggregate`
 		 * (a count of related objects), returns the cached count once
 		 * `loadAggregates()` has resolved it (or `'…'` while pending, `'—'`
 		 * if it failed / there's nothing to count). A count of zero reads as
 		 * `aggregate.zeroLabel` when the column sets one ("None", which the
 		 * app's `cnTranslate` turns into "Geen" as the boards draw it); without
-		 * it the cell shows `0` as before. Otherwise the row's property value
-		 * via `getCellValue`.
+		 * it the cell shows `0` as before. Otherwise the row's value of the
+		 * column's `valueField` (else its key) via `getCellValue`.
 		 *
 		 * @spec openspec/changes/aggregate-zero-label/specs/aggregate-zero-label/spec.md#requirement-a-count-column-can-name-zero
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-column-can-show-one-field-and-sort-on-another
 		 * @param {object} row The row data.
 		 * @param {object} col The column definition.
 		 * @return {unknown} The value handed to the slot / CnCellRenderer.
@@ -1812,48 +2454,155 @@ export default {
 				if (v === undefined) {
 					return this.aggregateLoading ? '…' : '—'
 				}
+				if (v === null && !(typeof col.aggregate.zeroLabel === 'string' && col.aggregate.zeroLabel !== '')) {
+					return '—'
+				}
 				const zeroLabel = col.aggregate.zeroLabel
-				if ((v === 0 || v === '0') && typeof zeroLabel === 'string' && zeroLabel !== '') {
+				if ((v === 0 || v === '0' || v === null) && typeof zeroLabel === 'string' && zeroLabel !== '') {
 					return typeof this.cnTranslate === 'function' ? this.cnTranslate(zeroLabel) : zeroLabel
 				}
 				return v
 			}
-			return this.getCellValue(row, col.key)
-		},
-
-		/**
-		 * Interpolate a column's `aggregate.where` map for one row: any string
-		 * value of the form `"@self.<path>"` is replaced with
-		 * `getCellValue(row, path)`; everything else is passed through.
-		 *
-		 * @param {object} where The `aggregate.where` map (may be undefined).
-		 * @param {object} row The parent row.
-		 * @return {object} The resolved filter map.
-		 */
-		resolveAggregateWhere(where, row) {
-			const out = {}
-			for (const [k, v] of Object.entries(where || {})) {
-				if (typeof v === 'string' && v.startsWith('@self.')) {
-					out[k] = this.getCellValue(row, v.slice('@self.'.length))
-				} else {
-					out[k] = v
+			// `col.template`: the cell reads a line built from the row's fields
+			// ("Shift {floatAt|date}, {drawer}"), in the host's translation.
+			if (col && typeof col.template === 'string' && col.template !== '') {
+				return this.cellLineValue(row, this.translateLabel(col.template), col)
+			}
+			// `valueWhen`: the first rule that holds on the row names the value
+			// ("visible" for a published notice whose window runs).
+			const ruled = Array.isArray(col && col.valueWhen) ? col.valueWhen.find((rule) => rule && ruleHolds(rule.when, row)) : undefined
+			if (ruled) {
+				return ruled.value
+			}
+			const value = Array.isArray(col && col.firstOf) ? this.firstValueOf(row, col.firstOf) : this.getCellValue(row, this.columnValueField(col))
+			const empty = value === null || value === undefined || value === ''
+			// `emptyValueBy`: what an empty cell means depends on another field
+			// of the row (a retention period left empty on a result that is
+			// kept reads "Permanent", on one that is destroyed it stays empty).
+			if (empty && col && col.emptyValueBy && typeof col.emptyValueBy === 'object') {
+				const words = this.emptyValueFor(row, col.emptyValueBy)
+				if (words !== '') {
+					return words
 				}
 			}
-			return out
+			// `emptyValue`: what a row without a value holds, so a badge column draws one for every row.
+			if (empty && col && Object.hasOwn(col, 'emptyValue')) {
+				return col.emptyValue
+			}
+			return value
 		},
 
 		/**
-		 * For every column that declares `aggregate` (currently `op: "count"`),
-		 * issue one `_limit=0` count request per visible row against the related
-		 * OpenRegister collection and cache the totals in `aggregateValues`.
+		 * The words an empty cell reads (`col.emptyLabel`, translated), shown as
+		 * text past the column's format and widget; '' when the cell has a
+		 * value or the column has no label.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {string} The words, or ''.
+		 * @spec openspec/changes/column-empty-label/specs/data-table/spec.md
+		 */
+		emptyLabelFor(row, col) {
+			if (!col || typeof col.emptyLabel !== 'string' || col.emptyLabel === '') {
+				return ''
+			}
+			const value = this.cellValue(row, col)
+			if (value !== null && value !== undefined && value !== '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(col.emptyLabel) : col.emptyLabel
+		},
+
+		/**
+		 * The words an empty cell shows, picked by another field of the row:
+		 * `{ field, values: { <that field's value>: <words> } }`, translated.
+		 *
+		 * @param {object} row The row data.
+		 * @param {{field: string, values: object}} spec The column's `emptyValueBy`.
+		 * @return {string} The words, '' when the row's value has none.
+		 */
+		emptyValueFor(row, spec) {
+			const key = this.getCellValue(row, spec.field)
+			const values = spec.values && typeof spec.values === 'object' ? spec.values : {}
+			if (key === null || key === undefined || !Object.hasOwn(values, String(key))) {
+				return ''
+			}
+			const words = values[String(key)]
+			if (typeof words !== 'string' || words === '') {
+				return ''
+			}
+			return typeof this.cnTranslate === 'function' ? this.cnTranslate(words) : words
+		},
+
+		/**
+		 * Whether an aggregate cell shows its `zeroLabel` as muted text instead
+		 * of through the column's widget (`aggregate.zeroAs: "text"`): a count
+		 * of zero, or a max with nothing to read.
+		 *
+		 * @param {object} row The row data.
+		 * @param {object} col The column definition.
+		 * @return {boolean}
+		 * @spec openspec/changes/aggregate-zero-as-text/specs/index-page/spec.md#requirement-a-count-column-can-show-its-zero-label-as-text
+		 */
+		isTextZero(row, col) {
+			const aggregate = col && col.aggregate
+			if (!aggregate || aggregate.zeroAs !== 'text' || typeof aggregate.zeroLabel !== 'string' || aggregate.zeroLabel === '') {
+				return false
+			}
+			const cached = this.aggregateValues[String(row[this.rowKey])]
+			const v = cached ? cached[col.key] : undefined
+			return v === 0 || v === '0' || v === null
+		},
+
+		/**
+		 * The first of a column's `firstOf` fields (dotted paths allowed) that
+		 * holds a value other than an object: a line's own name, else its
+		 * linked product's name, else its description. Undefined when none does.
+		 *
+		 * @param {object} row The row data.
+		 * @param {Array<string>} paths The fields, in order.
+		 * @return {unknown} The value.
+		 * @spec openspec/changes/column-first-of/specs/data-table/spec.md#requirement-a-cell-shows-the-first-field-that-has-a-value
+		 */
+		firstValueOf(row, paths) {
+			for (const path of paths) {
+				const value = this.getCellValue(row, path)
+				if (value !== null && value !== undefined && value !== '' && typeof value !== 'object') {
+					return value
+				}
+			}
+			return undefined
+		},
+
+		/**
+		 * The row field a column's cell shows: `col.valueField` when set, else
+		 * `col.key`. The key stays what the header sorts and filters on, so a
+		 * column can sort on a stored order and show the word it orders.
+		 *
+		 * @param {object} col Column definition.
+		 * @return {string} The field to read.
+		 * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-column-can-show-one-field-and-sort-on-another
+		 */
+		columnValueField(col) {
+			return col && typeof col.valueField === 'string' && col.valueField !== '' ? col.valueField : col.key
+		},
+
+		/**
+		 * For every column that declares `aggregate`, issue one request per
+		 * visible row against the related OpenRegister collection and cache the
+		 * answer in `aggregateValues`: `op: "count"` asks `_limit=0` for the
+		 * total, `op: "max"` asks for the one object with the highest `field`
+		 * (`_limit=1`, sorted descending) and keeps that value, null when there
+		 * is none (shown as `zeroLabel`, else a dash).
 		 * Batched with `Promise.all`; a per-request failure degrades that one
 		 * cell to `'—'` (logged), never the page. A monotonic request id
 		 * discards a stale batch when `rows` / columns change mid-flight.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/masked-formatter-max-aggregate/specs/index-page/spec.md#requirement-a-column-aggregate-can-take-the-highest-value
 		 */
 		async loadAggregates() {
-			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && c.aggregate.op === 'count')
+			const aggCols = this.effectiveColumns.filter((c) => c && c.aggregate && (isEndpointAggregate(c) || c.aggregate.op === 'count' || (c.aggregate.op === 'max' && c.aggregate.field)))
 			if (aggCols.length === 0) {
 				if (Object.keys(this.aggregateValues).length > 0) {
 					this.aggregateValues = {}
@@ -1863,37 +2612,104 @@ export default {
 			}
 			const id = ++this.aggregateRequestId
 			this.aggregateLoading = true
-			const next = {}
+			const next = new Map()
 			const jobs = []
 			for (const row of this.rows) {
 				const rowKey = String(row[this.rowKey])
-				next[rowKey] = {}
+				const cells = cellsOf(next, rowKey)
 				for (const col of aggCols) {
 					const agg = col.aggregate
+					if (isEndpointAggregate(col)) {
+						continue
+					}
 					if (!agg.register || !agg.schema) {
 						continue
 					}
-					const where = this.resolveAggregateWhere(agg.where, row)
-					jobs.push(axios.get(generateUrl(`/apps/openregister/api/objects/${agg.register}/${agg.schema}`), {
-						params: { ...where, _limit: 0 },
-					})
-						.then((res) => {
-							const d = res && res.data
-							next[rowKey][col.key] = (d && (d.total ?? (Array.isArray(d.results) ? d.results.length : undefined))) ?? 0
+					// `max`: the highest `field` among the related objects, as the
+					// first of them sorted on it descending ("Laatste contact").
+					jobs.push(fetchRowAggregate(agg, row, (r, path) => this.getCellValue(r, path))
+						.then((value) => {
+							cells[col.key] = value
 						})
 						.catch((e) => {
 							// eslint-disable-next-line no-console
 							console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
-							next[rowKey][col.key] = undefined
+							cells[col.key] = undefined
 						}))
 				}
+			}
+			for (const col of aggCols.filter(isEndpointAggregate)) {
+				jobs.push(this.loadEndpointAggregate(col, next, id))
 			}
 			await Promise.all(jobs)
 			if (id !== this.aggregateRequestId) {
 				return
 			}
-			this.aggregateValues = next
+			this.aggregateValues = Object.fromEntries(next)
 			this.aggregateLoading = false
+		},
+
+		/**
+		 * Whether a column is left out: an aggregate whose `requiresApp` is
+		 * not installed, or whose endpoint answered `available: false`.
+		 *
+		 * @param {object} col The column.
+		 * @return {boolean} True when the column is not drawn.
+		 * @spec openspec/changes/aggregate-from-endpoint/specs/cn-data-table/spec.md
+		 */
+		isAggregateHidden(col) {
+			const agg = col && typeof col === 'object' ? col.aggregate : null
+			if (!agg) {
+				return false
+			}
+			if (typeof agg.requiresApp === 'string' && agg.requiresApp !== '' && !isAppInstalled(agg.requiresApp)) {
+				return true
+			}
+			return this.aggregateUnavailable[col.key] === true
+		},
+
+		/**
+		 * Read an endpoint aggregate for the visible rows in one request:
+		 * GET `aggregate.endpoint` with `keys` (the rows' `aggregate.key`
+		 * values), answered by `{ available, values: { key: value } }`. A row
+		 * the answer does not name, or with no key, counts 0. `available: false`
+		 * hides the column.
+		 *
+		 * @param {object} col The column.
+		 * @param {Map<string, object>} next The values being built, by row then column.
+		 * @param {number} id The batch id, to drop a stale answer.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/aggregate-from-endpoint/specs/cn-data-table/spec.md
+		 */
+		async loadEndpointAggregate(col, next, id) {
+			const agg = col.aggregate
+			const keyOf = (row) => {
+				const value = this.getCellValue(row, agg.key)
+				return value === undefined || value === null || value === '' ? '' : String(value)
+			}
+			const keys = [...new Set(this.rows.map(keyOf).filter((k) => k !== ''))]
+			let values = {}
+			if (keys.length > 0) {
+				try {
+					const res = await axios.get(generateUrl(agg.endpoint), { params: { keys } })
+					const body = (res && res.data) || {}
+					if (body.available === false) {
+						if (id === this.aggregateRequestId) {
+							this.aggregateUnavailable = { ...this.aggregateUnavailable, [col.key]: true }
+						}
+						return
+					}
+					values = body.values && typeof body.values === 'object' ? body.values : {}
+				} catch (e) {
+					// eslint-disable-next-line no-console
+					console.warn(`[CnDataTable] aggregate "${col.key}" endpoint failed`, e)
+					return
+				}
+			}
+			for (const row of this.rows) {
+				const k = keyOf(row)
+				cellsOf(next, String(row[this.rowKey]))[col.key] = k !== '' && values[k] !== undefined ? values[k] : 0
+			}
 		},
 
 		isSelected(row) {
@@ -2108,16 +2924,49 @@ export default {
 			if (!this.filterable || !col) {
 				return null
 			}
-			return columnFilterDef(col, this.schema)
+			return columnFilterDef(col, this.filterSchema || this.schema)
 		},
 
 		columnFilterStateFor(col) {
-			return columnFilterState(this.filterDefFor(col), this.activeFilters)
+			return columnFilterState(this.filterDefFor(col), this.headerFilters())
 		},
 
 		isColumnFiltered(col) {
 			const def = this.filterDefFor(col)
-			return !!def && isColumnFilterActive(def, this.activeFilters)
+			return !!def && isColumnFilterActive(def, this.headerFilters())
+		},
+
+		/**
+		 * The filter map the headers show: the table's own under `localHeaders`,
+		 * else the host's `activeFilters`.
+		 *
+		 * @return {object}
+		 */
+		headerFilters() {
+			return this.localHeaders ? this.localFilters : this.activeFilters
+		},
+
+		/**
+		 * Under `localHeaders`, lay a header filter's parameters over the
+		 * table's own filter map; an empty list clears its parameter.
+		 *
+		 * @param {object} params `{ paramKey: values[] }`.
+		 * @return {void}
+		 * @spec openspec/changes/data-table-local-headers/specs/cn-data-table/spec.md#requirement-a-table-can-sort-and-filter-the-rows-it-holds
+		 */
+		applyLocalFilter(params) {
+			if (!this.localHeaders) {
+				return
+			}
+			const next = { ...this.localFilters }
+			for (const [key, values] of Object.entries(params || {})) {
+				if (Array.isArray(values) && values.length > 0) {
+					next[key] = values
+				} else {
+					delete next[key]
+				}
+			}
+			this.localFilters = next
 		},
 
 		filterButtonLabel(col) {
@@ -2210,11 +3059,13 @@ export default {
 		applyColumnFilter(col, state) {
 			const def = this.filterDefFor(col)
 			if (def) {
+				const params = columnFilterParams(def, state)
+				this.applyLocalFilter(params)
 				/**
 				 * @event column-filter A header filter was applied or cleared.
 				 * @type {{ key: string, params: object }} `params` maps each query parameter the column owns to its values; an empty list clears it.
 				 */
-				this.$emit('column-filter', { key: col.key, params: columnFilterParams(def, state) })
+				this.$emit('column-filter', { key: col.key, params })
 			}
 			this.closeColumnFilter()
 		},
@@ -2222,7 +3073,9 @@ export default {
 		clearColumnFilter(col) {
 			const def = this.filterDefFor(col)
 			if (def) {
-				this.$emit('column-filter', { key: col.key, params: clearedColumnFilterParams(def) })
+				const params = clearedColumnFilterParams(def)
+				this.applyLocalFilter(params)
+				this.$emit('column-filter', { key: col.key, params })
 			}
 		},
 
@@ -2252,6 +3105,9 @@ export default {
 		 */
 		applySort(key, append) {
 			const keys = nextSortState(this.effectiveSortKeys, key, { append })
+			if (this.localHeaders) {
+				this.localSortKeys = keys
+			}
 			const primary = keys[0] || null
 			/**
 			 * @event sort Emitted when a sortable column header is clicked (plain click) or shift-clicked (multi-sort).

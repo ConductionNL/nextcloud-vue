@@ -22,21 +22,8 @@
 						</template>
 						{{ t('nextcloud-vue', 'Documentation') }}
 					</NcButton>
-					<CnBuildiqEditButton />
-					<NcButton
-						v-if="suggestUrl && suggestButton"
-						variant="primary"
-						:href="suggestUrl"
-						target="_blank"
-						rel="noopener noreferrer"
-						data-testid="cn-features-board-suggest">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ t('nextcloud-vue', 'Suggest feature') }}
-					</NcButton>
 					<NcActions
-						v-if="!tabs"
+						v-if="!tabs && actionsMenu"
 						:menuName="t('nextcloud-vue', 'Actions')"
 						:forceName="true"
 						data-testid="cn-features-board-actions">
@@ -54,6 +41,19 @@
 							{{ t('nextcloud-vue', 'Support this app') }}
 						</NcActionButton>
 					</NcActions>
+					<CnBuildiqEditButton />
+					<NcButton
+						v-if="suggestUrl && suggestButton"
+						variant="primary"
+						:href="suggestUrl"
+						target="_blank"
+						rel="noopener noreferrer"
+						data-testid="cn-features-board-suggest">
+						<template #icon>
+							<Plus :size="20" />
+						</template>
+						{{ t('nextcloud-vue', 'Suggest feature') }}
+					</NcButton>
 				</div>
 			</div>
 			<p v-if="resolvedSubtitle" class="cn-features-board__subtitle" data-testid="cn-features-board-subtitle">
@@ -85,6 +85,7 @@
 				</button>
 			</div>
 			<NcActions
+				v-if="actionsMenu"
 				:menuName="t('nextcloud-vue', 'Actions')"
 				:forceName="true"
 				class="cn-features-board__tab-actions"
@@ -111,13 +112,13 @@
 			:class="{ 'cn-features-board__panel--tabbed': tabs }"
 			:role="tabs ? 'tabpanel' : null"
 			:aria-labelledby="tabs ? `${uid}-tab-${activeTab}` : null">
-			<CnRoadmapTab v-if="tabs && activeTab === 'roadmap'" :repo="repo" />
+			<CnRoadmapTab v-if="tabs && activeTab === 'roadmap'" :repo="repo" v-bind="roadmapTabOptions" />
 			<template v-else>
 				<div
 					class="cn-features-board__filter"
 					:class="`cn-features-board__filter--${filter}`"
 					role="group"
-					:aria-label="t('nextcloud-vue', 'Status')"
+					:aria-label="filterLabel ? tr(filterLabel) : t('nextcloud-vue', 'Status')"
 					data-testid="cn-features-board-filter">
 					<button
 						v-for="option in filterOptions"
@@ -195,7 +196,7 @@
 									data-testid="cn-features-board-feature">
 									<span class="cn-features-board__row-text">
 										<span class="cn-features-board__row-title">{{ feature.title }}</span>
-										<span v-if="feature.summary" class="cn-features-board__row-summary">{{ feature.summary }}</span>
+										<span v-if="summaries && feature.summary" class="cn-features-board__row-summary">{{ feature.summary }}</span>
 									</span>
 									<CnStatusBadge
 										:label="statusText(feature)"
@@ -271,7 +272,16 @@
 					type="info"
 					class="cn-features-board__notice"
 					data-testid="cn-features-board-notice">
-					{{ tr(notice) }}
+					<template v-if="noticeParts.link">
+						{{ noticeParts.before }}<a
+							:href="noticeParts.link.href"
+							target="_blank"
+							rel="noopener noreferrer"
+							data-testid="cn-features-board-notice-link">{{ noticeParts.link.text }}</a>{{ noticeParts.after }}
+					</template>
+					<template v-else>
+						{{ noticeParts.before }}
+					</template>
 				</NcNoteCard>
 			</template>
 		</div>
@@ -364,8 +374,22 @@ export default {
 			validator: (value) => ['cards', 'rows'].includes(value),
 		},
 
+		/** How the Roadmap tab draws its issues: `grid` or `columns`. See CnRoadmapTab. */
+		roadmapLayout: {
+			type: String,
+			default: 'grid',
+		},
+
+		/** Labels that put an open issue under In development. */
+		roadmapInProgressLabels: {
+			type: Array,
+			default: () => [],
+		},
+
 		/** Show the Features and Roadmap folder tabs. */
 		tabs: { type: Boolean, default: true },
+		/** Show the Actions menu (suggest, buildiq, AI skills, support), in the header or the tab row; false draws none. */
+		actionsMenu: { type: Boolean, default: true },
 		/** `chips`: pill buttons with a count. `segmented`: a segmented control without counts. */
 		filter: {
 			type: String,
@@ -373,8 +397,12 @@ export default {
 			validator: (value) => ['chips', 'segmented'].includes(value),
 		},
 
+		/** The status filter's accessible name, through the host translate (DqFunctionaliteiten "Toon"); empty: "Status". */
+		filterLabel: { type: String, default: '' },
 		/** Overrides of the status labels, by key (`all`, `available`, `beta`, `in_progress`, `planned`). */
 		statusLabels: { type: Object, default: () => ({}) },
+		/** Overrides of the status tones, by key, as CnStatusBadge variants (DqFunctionaliteiten: `{ planned: 'default' }`). */
+		statusVariants: { type: Object, default: () => ({}) },
 		/** How many issues the Next card lists; 0 hides the card. */
 		next: { type: Number, default: 3 },
 		/** Forge label to issue status (`in_progress`, `planned`) for the badges in the Next card. */
@@ -397,6 +425,10 @@ export default {
 		suggestUrl: { type: String, default: '' },
 		/** Show the feature-request form as the header's primary button; without it, it is an entry in the Actions menu. */
 		suggestButton: { type: Boolean, default: true },
+		/** In the `rows` layout, draw each feature's summary under its title; false shows the title and status only. */
+		summaries: { type: Boolean, default: true },
+		/** A link inside the notice: `{ text, href }`; the first occurrence of `text` in the translated notice opens `href` in a new tab. Only http(s) and site-relative hrefs link. */
+		noticeLink: { type: Object, default: null },
 		/** Target of the OpenBuilt entry in the Actions menu. */
 		openbuiltUrl: { type: String, default: '' },
 		/** Target of the AI skills entry in the Actions menu. */
@@ -417,12 +449,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The Roadmap tab's layout options, only those set away from their
+		 * defaults, so a page that sets none renders the tab as before.
+		 *
+		 * @return {object}
+		 */
+		roadmapTabOptions() {
+			return {
+				...(this.roadmapLayout && this.roadmapLayout !== 'grid' ? { layout: this.roadmapLayout } : {}),
+				...(this.roadmapInProgressLabels.length > 0 ? { inProgressLabels: this.roadmapInProgressLabels } : {}),
+			}
+		},
+
 		language() {
 			return readerLanguage()
 		},
 
+		/** The groups, their captions through the app's translate function. */
 		groups() {
 			return groupFeatures(this.features, this.categories, this.language)
+				.map((group) => ({ ...group, label: group.label ? this.tr(group.label) : '' }))
 		},
 
 		allFeatures() {
@@ -464,6 +511,27 @@ export default {
 
 		resolvedTitle() {
 			return this.title ? this.tr(this.title) : t('nextcloud-vue', 'Features and roadmap')
+		},
+
+		/**
+		 * The notice split around its link: the text before, the link and the
+		 * text after. Without a usable `noticeLink` (no match in the
+		 * translated notice, or an href that is not http(s) or site-relative)
+		 * `before` is the whole notice.
+		 *
+		 * @return {{before: string, link: ({text: string, href: string}|null), after: string}} The parts.
+		 */
+		noticeParts() {
+			const text = this.notice ? this.tr(this.notice) : ''
+			const link = this.noticeLink
+			const label = link && typeof link.text === 'string' ? this.tr(link.text) : ''
+			const href = link && typeof link.href === 'string' ? link.href.trim() : ''
+			const index = label ? text.indexOf(label) : -1
+			const allowed = (/^https?:\/\//i.test(href) || href.startsWith('/')) && safeHref(href) === href
+			if (index === -1 || !allowed) {
+				return { before: text, link: null, after: '' }
+			}
+			return { before: text.slice(0, index), link: { text: label, href }, after: text.slice(index + label.length) }
 		},
 
 		resolvedSubtitle() {
@@ -558,7 +626,7 @@ export default {
 		 * @return {string} The CnStatusBadge variant.
 		 */
 		variantOf(status) {
-			return FEATURE_STATUS_VARIANTS[status] || 'default'
+			return this.statusVariants[status] || FEATURE_STATUS_VARIANTS[status] || 'default'
 		},
 
 		/**
@@ -676,9 +744,15 @@ export default {
 	gap: 10px;
 }
 
+/* The board's meta line: 14px muted, also under a theme that sets every <p>
+   through the paragraph tokens with !important. */
 .cn-features-board__subtitle {
+	--nldesign-color-on-surface: var(--color-text-maxcontrast);
+	--nldesign-component-paragraph-font-size: 14px;
+	--nldesign-component-paragraph-color: var(--color-text-maxcontrast);
 	margin: 0;
-	font-size: 15px;
+	font-size: 14px;
+	line-height: normal;
 	color: var(--color-text-maxcontrast);
 }
 
@@ -715,6 +789,12 @@ export default {
 	white-space: nowrap;
 }
 
+/* Nextcloud's core sheet gives every plain button a 3px margin, which the
+   single-class rule does not outrank: the tabs stood 7px apart, not 4px. */
+.cn-features-board__tabs .cn-features-board__tab {
+	margin: 0 0 -1px;
+}
+
 .cn-features-board__tab--active {
 	position: relative;
 	background: var(--color-main-background);
@@ -728,10 +808,17 @@ export default {
 	margin: 0 8px 8px 0;
 }
 
+/* The Actions menu beside the tabs is a 34px control, as the board's
+   tab-row buttons are. */
+.cn-features-board__tab-actions :deep(.action-item__menutoggle) {
+	min-height: 34px;
+	height: 34px;
+}
+
 .cn-features-board__panel {
 	display: flex;
 	flex-direction: column;
-	gap: 22px;
+	gap: 20px;
 }
 
 .cn-features-board__panel--tabbed {
@@ -760,6 +847,7 @@ export default {
 
 .cn-features-board__filter--chips .cn-features-board__filter-option {
 	height: 36px;
+	margin: 0;
 	padding: 0 14px;
 	border: 1px solid var(--color-border-dark);
 	border-radius: 18px;
@@ -782,25 +870,32 @@ export default {
 	color: var(--color-border-dark);
 }
 
+/* The board draws the segmented filter as a track across the content row,
+   its options at the start. */
 .cn-features-board__filter--segmented {
-	display: inline-flex;
-	align-self: flex-start;
+	align-self: stretch;
+	justify-content: flex-start;
 	gap: 2px;
 	padding: 3px;
 	border-radius: 8px;
 	background: var(--color-background-dark);
 }
 
+/* `margin: 0`: Nextcloud's core sheet gives every plain button a 3px margin,
+   which set the options 5px apart instead of the board's 2px. An option at
+   rest is in the board's softer ink, the open one in the main ink. */
 .cn-features-board__filter--segmented .cn-features-board__filter-option {
 	height: 34px;
+	margin: 0;
 	padding: 0 14px;
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
-	color: var(--color-main-text);
+	color: var(--cn-board-text-soft, var(--color-main-text));
 }
 
 .cn-features-board__filter--segmented .cn-features-board__filter-option--active {
+	color: var(--color-main-text);
 	background: var(--color-main-background);
 	box-shadow: 0 1px 2px rgba(27, 28, 29, 0.12);
 }
@@ -856,6 +951,7 @@ export default {
 
 .cn-features-board__groups--rows .cn-features-board__group-title {
 	font-size: 17px;
+	line-height: normal;
 }
 
 .cn-features-board__group-caption {
@@ -909,7 +1005,15 @@ export default {
 	border-top: 1px solid var(--color-background-dark);
 }
 
+/* The nldesign theme paints every `<a>` in its link colour and underline with
+   `!important` through its link tokens; this button hands them the main ink.
+   @spec openspec/changes/features-board-read-more-ink/specs/features-board-read-more-ink/spec.md#requirement-the-learn-more-button-keeps-the-main-ink-under-a-theme */
 .cn-features-board__read-more {
+	--nldesign-color-on-surface: var(--color-main-text);
+	--nldesign-component-link-color: var(--color-main-text);
+	--nldesign-component-link-hover-color: var(--color-main-text);
+	--nldesign-component-link-visited-color: var(--color-main-text);
+	--nldesign-component-link-text-decoration: none;
 	display: inline-flex;
 	align-items: center;
 	height: 34px;
@@ -946,6 +1050,7 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+	line-height: normal;
 }
 
 .cn-features-board__row-title {
@@ -971,7 +1076,8 @@ export default {
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--cn-board-card-radius, 12px);
-	background: var(--color-background-hover);
+	/* The board's near-white side card (#fafbfc), the ground of a board table head. */
+	background: color-mix(in srgb, var(--color-background-hover) 40%, var(--color-main-background));
 }
 
 .cn-features-board__next-head {
@@ -984,6 +1090,7 @@ export default {
 	margin: 0;
 	font-size: 18px;
 	font-weight: 700;
+	line-height: 1.2;
 }
 
 .cn-features-board__next-lead {
@@ -1047,7 +1154,9 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-.cn-features-board__notice {
+/* The panel's gap is the notice's only space: NcNoteCard's own margin
+   outranks a plain class, so the notice is held by its place in the panel. */
+.cn-features-board__panel > .cn-features-board__notice {
 	margin: 0;
 }
 </style>

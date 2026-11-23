@@ -5,6 +5,7 @@ import {
 	groupMenuEntries,
 	isChecklistItemDone,
 	normalisePinnedAction,
+	onTab,
 	resolveNextStep,
 	resolvePill,
 	resolveTabCount,
@@ -51,6 +52,31 @@ describe('detailActionModel', () => {
 			expect(normalisePinnedAction(null, 'x')).toBeNull()
 			expect(normalisePinnedAction({ id: 'no-label' }, 'x')).toBeNull()
 			expect(normalisePinnedAction(['a'], 'x')).toBeNull()
+		})
+
+		it('keeps the tabs of a declared action named by id, and of an inline one', () => {
+			expect(normalisePinnedAction({ id: 'message', notTabs: ['ai'] }, 'x'))
+				.toEqual({ id: 'message', inline: null, tabs: undefined, notTabs: ['ai'] })
+			expect(normalisePinnedAction({ id: 'doc', tabs: ['files'] }, 'x').tabs).toEqual(['files'])
+			expect(normalisePinnedAction({ id: 'plan', label: 'Plan', notTabs: ['ai'] }, 'x').notTabs).toEqual(['ai'])
+		})
+	})
+
+	describe('onTab', () => {
+		it('shows an entry without tabs beside every tab', () => {
+			expect(onTab({}, 'ai')).toBe(true)
+			expect(onTab(null, 'ai')).toBe(true)
+			expect(onTab({ tabs: [] }, 'ai')).toBe(true)
+		})
+
+		it('shows an entry with tabs only while one of them is open', () => {
+			expect(onTab({ tabs: ['files', 'tasks'] }, 'tasks')).toBe(true)
+			expect(onTab({ tabs: ['files'] }, 'ai')).toBe(false)
+		})
+
+		it('stands an entry aside while one of its notTabs is open', () => {
+			expect(onTab({ notTabs: ['ai'] }, 'ai')).toBe(false)
+			expect(onTab({ notTabs: ['ai'] }, 'overview')).toBe(true)
 		})
 	})
 
@@ -122,6 +148,7 @@ describe('detailActionModel', () => {
 				stage: 'handling',
 				title: 'Step 2: handling',
 				after: 'Then: decision',
+				afterTitle: '',
 				items: [
 					{ label: 'Confirm receipt', done: true, hint: '' },
 					{ label: 'Review the documents', done: false, hint: '2 of 5 done' },
@@ -150,6 +177,13 @@ describe('detailActionModel', () => {
 		it('falls back to the raw value as the label', () => {
 			expect(resolvePill({ field: 'type', variant: 'error' }, { type: 'Woo request' }))
 				.toEqual({ label: 'Woo request', colorKey: 'Woo request', colorMap: null, variant: 'error' })
+		})
+
+		// @spec openspec/changes/detail-pill-values/specs/detail-pill-values/spec.md#requirement-a-header-pill-can-be-limited-to-some-values
+		it('draws a pill with `values` only for those raw values (DqTaak: priority only when high)', () => {
+			const config = { field: 'priority', values: ['high', 'urgent'], labels: { high: 'High' } }
+			expect(resolvePill(config, { priority: 'high' })).toMatchObject({ label: 'High', colorKey: 'high' })
+			expect(resolvePill(config, { priority: 'normal' })).toBeNull()
 		})
 
 		it('renders nothing for an empty field or no config', () => {

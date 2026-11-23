@@ -23,8 +23,11 @@
 //      vocabulary.
 
 import axios from '@nextcloud/axios'
+import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { defineStore } from 'pinia'
+import { flowEdgeCondition, flowEdgeConditionText } from '../utils/flowCondition.js'
+import { flowStepBridge, flowStepSwap, flowStepTail, insertStepEdges, swapStepEdges, swapStepPlaces } from '../utils/flowStepList.js'
 import { layoutFlowNodes, needsFullLayout, placeLooseNodes } from './flowGraphLayout.js'
 import { DEFAULT_EDGE_LINE_TYPE } from './useFlowEdgeStyles.js'
 
@@ -99,6 +102,15 @@ export const useFlowStore = defineStore('cnFlow', {
 	state: () => ({
 		flow: emptyFlow(),
 		flows: [],
+
+		// How the automatic layout runs: `right` (left to right) or `down`
+		// (top to bottom). Set by the editor that hosts the canvas.
+		layoutDirection: 'right',
+
+		// Whether the page edits a published flow in place and Save publishes
+		// the result as the next version (board DqFlow: "changes apply to new
+		// cases"). Set by the editor that hosts the canvas.
+		savesAsVersion: false,
 
 		// Snapshots of `flow`, oldest first, for Ctrl+Z.
 		//
@@ -180,6 +192,15 @@ export const useFlowStore = defineStore('cnFlow', {
 		// list, and the sidebar showed "Could not read the flow engine's node
 		// types" on every fresh /flows/new while the request was mid-air.
 		catalogLoading: false,
+
+		// Per flow id: `{ lastRun, runsSince }` from `GET /api/flow-runs/summary`,
+		// the read behind a flow list's last-run and runs-this-week columns.
+		runSummary: {},
+		// The runs of every listed flow since `runSummarySince`, for a
+		// "runs this week" list. Separate from `runs`, which belongs to the
+		// flow open in the editor.
+		recentRuns: [],
+		recentRunsLoading: false,
 
 		// The runs of the flow being edited, and the per-node steps of the run
 		// currently being inspected.
@@ -276,6 +297,9 @@ export const useFlowStore = defineStore('cnFlow', {
 		loading: false,
 		saving: false,
 		running: false,
+		// Trying the flow with a record (OpenRegister's dry-run): the answer per step, or null.
+		dryRunning: false,
+		dryRunResult: null,
 		checking: false,
 
 		// 🔴 WHAT `loading` DOES NOT COVER, AND WHY A SECOND FLAG EXISTS.
@@ -405,7 +429,8 @@ export const useFlowStore = defineStore('cnFlow', {
 		 * @return {boolean} Whether graph edits are locked.
 		 */
 		graphLocked: (state) => state.viewingVersion !== null
-			|| ['published', 'deprecated'].includes(state.flow.lifecycleStatus),
+			|| state.flow.lifecycleStatus === 'deprecated'
+			|| (state.flow.lifecycleStatus === 'published' && !state.savesAsVersion),
 
 		/**
 		 * Whether the surfaces are showing a RUN rather than the flow.
@@ -532,6 +557,8 @@ export const useFlowStore = defineStore('cnFlow', {
 				return (value === null || value === undefined || value === '') ? [] : [value]
 			}
 
+			const nodeOf = (id) => (state.flow.nodes || []).find((node) => node.id === id) || null
+
 			const lines = []
 			for (const [index, edge] of (state.flow.edges || []).entries()) {
 				const sources = toList(edge.source ?? edge.from)
@@ -607,6 +634,8 @@ export const useFlowStore = defineStore('cnFlow', {
 								lineType: edge.lineType || DEFAULT_EDGE_LINE_TYPE,
 								labelT: edge.labelT,
 								label: edge.title || edge.label || '',
+								condition: flowEdgeCondition(edge, nodeOf(source)),
+								conditionText: flowEdgeConditionText(edge, nodeOf(source)),
 								edge,
 							},
 						})
@@ -636,6 +665,15 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			return nodes.length ? [nodes[0].id] : []
+		},
+
+		/**
+		 * The flow as the list view reads it (see `utils/flowStepList.js`).
+		 *
+		 * @return {{nodes: Array<object>, lines: Array<object>, startIds: Array<string>, roleOf: Function}} The graph.
+		 */
+		stepGraph() {
+			return { nodes: this.nodes, lines: this.canvasEdges, startIds: this.startNodeIds, roleOf: this.roleOfNodeType }
 		},
 
 		/**
@@ -959,7 +997,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				// A new flow is runnable on demand until its author picks a real
 				// trigger, so the flow-level trigger and the seeded start node
 				// say the same thing.
-				this.flow = { ...emptyFlow(), name: 'New flow', app: app || 'openregister', trigger: 'manual' }
+				this.flow = { ...emptyFlow(), name: t('nextcloud-vue', 'New flow'), app: app || 'openregister', trigger: 'manual' }
 				this.seedStartNode()
 				this.dirty = false
 				return
@@ -1171,6 +1209,59 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.selectedNodeId = node.id
 			this.dirty = true
 			this.checkResult = null
+
+			return node.id
+		},
+
+		/**
+		 * Add a step at the bottom of the list view: wired in before the
+		 * closing step, else after the last step, as one undoable change.
+		 *
+		 * @param {string} type The step type.
+		 * @return {string|undefined} The new node's id, unless the graph is locked.
+		 */
+		appendStep(type) {
+			const tail = flowStepTail(this.stepGraph)
+			const id = this.addNode(type)
+			if (id !== undefined) {
+				this.flow.edges = insertStepEdges(this.edges, { id, ...tail })
+			}
+
+			return id
+		},
+
+		/**
+		 * Swap a step with its neighbour in the list view, in the flow itself.
+		 * A move the list cannot make (a step on a branch) changes nothing.
+		 *
+		 * @param {{id: string, by: number}} move The step and -1 (up) or 1 (down).
+		 * @return {void}
+		 */
+		moveStep(move) {
+			const pair = flowStepSwap(this.stepGraph, move)
+			if (pair === null || !this.pushUndo()) {
+				return
+			}
+
+			this.flow.edges = swapStepEdges(this.edges, pair)
+			this.flow.nodes = swapStepPlaces(this.nodes, pair)
+			this.dirty = true
+			this.checkResult = null
+		},
+
+		/**
+		 * Remove a step in the list view: a step in a chain leaves no gap, the
+		 * line into it goes on to the step after it.
+		 *
+		 * @param {string} id The step.
+		 * @return {void}
+		 */
+		removeStep(id) {
+			const bridge = flowStepBridge(this.stepGraph, id)
+			this.removeNode(id)
+			if (bridge !== null && !this.nodes.some((node) => node.id === id)) {
+				this.flow.edges = [...this.edges, bridge]
+			}
 		},
 
 		/**
@@ -1649,7 +1740,7 @@ export const useFlowStore = defineStore('cnFlow', {
 				return
 			}
 
-			this.flow.nodes = layoutFlowNodes(this.nodes, this.canvasEdges, this.startNodeIds)
+			this.flow.nodes = layoutFlowNodes(this.nodes, this.canvasEdges, this.startNodeIds, { direction: this.layoutDirection })
 			this.dirty = true
 		},
 
@@ -1683,12 +1774,12 @@ export const useFlowStore = defineStore('cnFlow', {
 			}
 
 			if (needsFullLayout(nodes)) {
-				this.flow.nodes = layoutFlowNodes(nodes, this.canvasEdges, this.startNodeIds)
+				this.flow.nodes = layoutFlowNodes(nodes, this.canvasEdges, this.startNodeIds, { direction: this.layoutDirection })
 				return true
 			}
 
 			if (nodes.some((node) => !this.hasPosition(node))) {
-				this.flow.nodes = placeLooseNodes(nodes, this.canvasEdges, this.startNodeIds)
+				this.flow.nodes = placeLooseNodes(nodes, this.canvasEdges, this.startNodeIds, { direction: this.layoutDirection })
 				return true
 			}
 
@@ -1759,6 +1850,48 @@ export const useFlowStore = defineStore('cnFlow', {
 				return null
 			}
 
+			if (this.savesAsVersion && this.flow.id) {
+				return await this.saveAsNextVersion()
+			}
+
+			return await this.writeHead()
+		},
+
+		/**
+		 * Save the edits as the flow's next published version: draft the
+		 * published version when that is what is open, put the edited graph on
+		 * the draft, then publish it. Runs already started keep the version
+		 * they started on.
+		 *
+		 * @spec openspec/changes/flow-board-save-as-version/specs/flow-board/spec.md#requirement-a-flow-page-can-save-edits-as-the-next-version
+		 * @return {Promise<object|null>} The saved flow, or null when a step
+		 *                                was refused.
+		 */
+		async saveAsNextVersion() {
+			const { id, uuid, version, semver, semverSource, lifecycleStatus, created, updated, ...edits } = JSON.parse(JSON.stringify(this.flow))
+			if (lifecycleStatus === 'published') {
+				const draft = await this.transition('draft')
+				if (draft === null) {
+					return null
+				}
+				this.flow = { ...this.flow, ...edits }
+			}
+
+			const saved = await this.writeHead()
+			if (saved === null) {
+				return null
+			}
+
+			await this.publish()
+			return saved
+		},
+
+		/**
+		 * PUT the open flow (POST a new one) as it stands.
+		 *
+		 * @return {Promise<object|null>} The saved flow, or null.
+		 */
+		async writeHead() {
 			this.saving = true
 			this.error = null
 			try {
@@ -2083,6 +2216,56 @@ export const useFlowStore = defineStore('cnFlow', {
 		},
 
 		/**
+		 * Try the saved flow with a record or an example payload, changing and
+		 * sending nothing.
+		 *
+		 * OpenRegister's dry-run walks the flow against the record: steps without
+		 * side effects run, every other step says what it would do. The answer,
+		 * with the subject, is kept in `dryRunResult` for the board to show.
+		 *
+		 * @param {object} subject `{uuid, register, schema}` of the record, or `{payload}`.
+		 * @return {Promise<object|null>} The answer (`{status, steps, error?}`), or null.
+		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-testing-a-flow-with-a-record-changes-nothing
+		 */
+		async dryRun(subject = {}) {
+			if (!this.flow.id) {
+				this.error = new Error('Save the flow before testing it.')
+				return null
+			}
+
+			this.dryRunning = true
+			try {
+				const response = await axios.post(
+					generateUrl(`/apps/openregister/api/flows/${this.flow.id}/dry-run`),
+					subject.payload === undefined
+						? { register: subject.register, schema: subject.schema, objectId: subject.uuid }
+						: { payload: subject.payload },
+				)
+				const result = response.data || { status: '', steps: [] }
+				this.dryRunResult = { ...result, subject: { ...subject } }
+				return result
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('cn-flow: could not test the flow', error)
+				this.error = error
+				this.dryRunResult = null
+				return null
+			} finally {
+				this.dryRunning = false
+			}
+		},
+
+		/**
+		 * Put away the result of a test with a record.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/flow-test-with-a-record/specs/flow-test-with-a-record/spec.md#requirement-the-result-shows-each-step-beside-the-canvas
+		 */
+		clearDryRun() {
+			this.dryRunResult = null
+		},
+
+		/**
 		 * Watch one run: poll it while its status is non-terminal.
 		 *
 		 * Polls `GET /apps/openregister/api/flow-runs/{uuid}` on an interval
@@ -2273,6 +2456,107 @@ export const useFlowStore = defineStore('cnFlow', {
 			this.stopWatching()
 			this.replayUuid = this.inspectedRunUuid
 			this.replayToken += 1
+		},
+
+		/**
+		 * Load the last run and the runs-since count of each listed flow.
+		 *
+		 * One request for the whole list. A failure leaves the summary empty,
+		 * so the cells read "never run" rather than stale numbers.
+		 *
+		 * @param {Array<string>} flowIds The flows to summarise.
+		 * @param {string} since ISO 8601 moment the count starts at.
+		 * @return {Promise<void>}
+		 */
+		async loadRunSummary(flowIds, since) {
+			const ids = (flowIds || []).filter(Boolean)
+			if (ids.length === 0) {
+				this.runSummary = {}
+				return
+			}
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/flow-runs/summary'), {
+					params: { flowIds: ids.join(','), since },
+				})
+				this.runSummary = response.data?.results || {}
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('cn-flow: could not load the run summary', error)
+				this.runSummary = {}
+			}
+		},
+
+		/**
+		 * Load the runs of the given flows since a moment, newest first.
+		 *
+		 * @param {Array<string>} flowIds The flows whose runs to list.
+		 * @param {string} since ISO 8601 moment the list starts at.
+		 * @return {Promise<void>}
+		 */
+		async loadRecentRuns(flowIds, since) {
+			const ids = (flowIds || []).filter(Boolean)
+			if (ids.length === 0) {
+				this.recentRuns = []
+				return
+			}
+			this.recentRunsLoading = true
+			try {
+				const response = await axios.get(generateUrl('/apps/openregister/api/flow-runs'), {
+					params: { flowIds: ids.join(','), since, limit: 200 },
+				})
+				this.recentRuns = response.data?.results || []
+			} catch (error) {
+				// eslint-disable-next-line no-console
+				console.error('cn-flow: could not load recent runs', error)
+				this.recentRuns = []
+			} finally {
+				this.recentRunsLoading = false
+			}
+		},
+
+		/**
+		 * Switch a stored flow on or off from a list, without opening it.
+		 *
+		 * Reads the stored flow and writes it back whole with only `enabled`
+		 * changed, the same round trip `duplicate()` makes: a partial body
+		 * would be read as a document without nodes. The list row is updated
+		 * in place from the answer, so the toggle does not reload the list.
+		 *
+		 * @param {string} id The flow id or uuid.
+		 * @param {boolean} enabled The new state.
+		 * @return {Promise<object>} The saved flow.
+		 */
+		async setEnabled(id, enabled) {
+			const current = await axios.get(generateUrl(`/apps/openregister/api/flows/${id}`))
+			const response = await axios.put(
+				generateUrl(`/apps/openregister/api/flows/${id}`),
+				{ ...(current.data || {}), enabled: enabled === true },
+			)
+			const saved = response.data || {}
+			const now = typeof saved.enabled === 'boolean' ? saved.enabled : enabled === true
+			this.flows = this.flows.map((flow) => (
+				String(flow.id) === String(id) || String(flow.uuid) === String(id)
+					? { ...flow, enabled: now }
+					: flow
+			))
+			return saved
+		},
+
+		/**
+		 * Start a finished run again, as `POST /api/flow-runs/{uuid}/retry`.
+		 *
+		 * @param {string} uuid The run to retry.
+		 * @return {Promise<object|null>} The new run, or null without a uuid.
+		 */
+		async retryRun(uuid) {
+			if (!uuid) {
+				return null
+			}
+			const response = await axios.post(generateUrl(`/apps/openregister/api/flow-runs/${encodeURIComponent(uuid)}/retry`))
+			if (this.flow.id) {
+				await this.loadRuns(this.flow.id)
+			}
+			return response.data || null
 		},
 
 		async loadRuns(flowId) {

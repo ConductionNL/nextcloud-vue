@@ -1,0 +1,2 @@
+- [x] look-board-detail.css side notice icon align-self flex-start
+- [x] Spec tests/css/lookBoardSideNoticeIcon.spec.js

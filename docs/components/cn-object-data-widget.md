@@ -32,6 +32,7 @@ A plain-object value shows as a definition list, with one nested list for an obj
 | `overrides` | `Object` | `{}` | Per-property configuration overrides (see below) |
 | `columns` | `Number` | `3` | Number of grid columns |
 | `collapsedFields` (`collapsed-fields`) | `Number` | `null` | Number of fields shown while collapsed, with a "Show all N fields" button for the rest. `null` fits the cell: the whole rows that fit stay, and the button only appears when the cell overflows |
+| `footnote` | `String` | `''` | A muted 13px line under the fields, through the host translate. A detail page `data` widget sets it as `content.footnote` (DqZaakContact "Ontvangstbevestiging"). |
 | `editable` | `Boolean` | `true` | Whether editing is enabled globally — gates both inline (click-to-edit) and the full-form **Edit** action item |
 | `edit-label` | `String` | `'Edit'` | Label for the Edit action item, which opens a schema-driven `CnFormDialog` pre-filled with the object (alongside inline editing) |
 | `hide-empty` | `Boolean` | `false` | Hide fields that have no value instead of rendering them with an em dash. Read grid only — a field being edited, a field with an unsaved change, and the full Edit form stay visible. |
@@ -45,6 +46,7 @@ A plain-object value shows as a definition list, with one nested list for an obj
 | `documentation-url` | `String` | `''` | Documentation link surfaced in the widget's overflow Actions menu (empty hides the Documentation item). |
 | `widget-id` | `String` | `''` | Stable id forwarded to the widget chrome (falls back to `object-type`). |
 | `metadata-label` | `String` | `'Metadata'` | Label for the Metadata item in the overflow Actions menu. |
+| `fixedColumns` | Boolean | `false` | Keep `columns` under the board look too, instead of fitting 200px columns (manifest `content.fixedColumns`). |
 
 ## Slots
 
@@ -214,3 +216,19 @@ widget's **dirty values winning** — picking a new caseType immediately scopes
 the status options to it, before any save. Entries whose token stays
 unresolved are dropped (an unfiltered picker beats an empty one). Options
 reload on every edit start for the same reason.
+
+## A key inside an object
+
+An `overrides` key or an `include` entry can be a dotted path such as `handling.teams`: the widget shows and edits that key inside the `handling` object, and saves `handling` with its other keys kept. See [`CnFormDialog`](./cn-form-dialog.md#a-key-inside-an-object-handlingteams).
+
+## A value as a pill
+
+A field override `pill: { variantMap }` draws the shown value as a status pill, toned by the raw value:
+
+```json
+{ "status": { "enumLabels": { "settled": "Settled" }, "pill": { "variantMap": { "settled": "success", "parked": "warning" } } } }
+```
+
+## Values as inputs, with a hint (`fieldLook: "input"`, `overrides[key].hint`)
+
+`fieldLook: "input"` draws each value as a 40px input box under its label, as board PqOfferte draws the quote's facts; a click still edits the field in place and saves it. `overrides[key].hint` adds a muted line under a value, translated ("Staat op de pdf", "Wordt gezet bij verzenden"), in either look.

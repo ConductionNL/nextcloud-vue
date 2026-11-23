@@ -70,6 +70,13 @@ describe('viewAsTab', () => {
 	it('falls back to the id when a view has no title', () => {
 		expect(viewAsTab({ id: 'x' }).label).toBe('x')
 	})
+
+	it('reads a stored view\'s query: its locked filters under its filters (DqFilterBeheren counts)', () => {
+		const stored = { id: 7, name: 'Wacht op inwoner', query: { filters: { waitingOnApplicant: true }, overrides: { lockedFilters: { isDraft: false, isFinalStatus: false } } } }
+		expect(viewAsTab(stored).filter).toEqual({ isDraft: false, isFinalStatus: false, waitingOnApplicant: true })
+		expect(viewAsTab({ id: 8, query: { filters: { assignee: '@me' } } }).filter).toEqual({ assignee: '@me' })
+		expect(viewAsTab({ id: 9 }).filter).toEqual({})
+	})
 })
 
 describe('resolveClaimedTeams', () => {

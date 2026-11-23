@@ -32,4 +32,19 @@ describe('CnDashboardPage: the grid sits flush in the board look', () => {
 		expect(rule[1]).toContain('margin-inline: calc(-1 * var(--cn-dashboard-grid-margin, 12px))')
 		expect(rule[1]).toContain('width: auto')
 	})
+
+	it('reaches a grid right under the header, the KPI row or the view switch up by the margin, and ends a header with a trail 8px under it', () => {
+		const source = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'components', 'CnDashboardPage', 'CnDashboardPage.vue'), 'utf8')
+		const body = (selector) => {
+			const at = source.indexOf(`${selector} {`)
+			return at < 0 ? '' : source.slice(at, source.indexOf('}', at))
+		}
+		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header + :deep(.cn-dashboard-grid)')).toContain('margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px))')
+		const switchRule = body('.cn-dashboard-page--board .cn-dashboard-page__kpi-row + :deep(.cn-dashboard-grid),\n.cn-dashboard-page--board .cn-dashboard-page__switch-row + :deep(.cn-dashboard-grid)')
+		expect(switchRule).toContain('margin-top: calc(-1 * var(--cn-dashboard-grid-margin, 12px))')
+		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header:has(.cn-header-trail)')).toContain('padding-bottom: 8px')
+		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail)')).toContain('margin-bottom: 0')
+		// The trail and the date beside it sit at normal leading: a 75px header (DqDagAfsluiten), not 79.
+		expect(body('.cn-dashboard-page--board .cn-dashboard-page__header :deep(.cn-header-trail)')).toContain('line-height: normal')
+	})
 })

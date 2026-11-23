@@ -177,7 +177,38 @@
 /* The secondary line of a cell (`columns[].secondary`): muted, smaller, on its
    own line under the value. Theme hooks: --cn-table-secondary-size and
    --cn-table-secondary-color. */
+/* Pills beside a cell's value (`col.pills`, "Geheimhouding"). */
+.cn-data-table td > .cn-table-cell__pills {
+	display: inline-flex;
+	gap: 6px;
+	margin-inline-start: 8px;
+	vertical-align: middle;
+}
+
+.cn-data-table td:has(> .cn-table-cell__pills) > .cn-cell-renderer {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
 .cn-data-table .cn-table-cell__secondary {
+	display: block;
+	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
+	font-size: var(--cn-table-secondary-size, 0.9em);
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The overline of a cell (`columns[].overline` / `overlineText`): muted and
+   smaller, on its own line above the value. Same theme hooks as the
+   secondary line. */
+/* A count column's zero label as text (`aggregate.zeroAs: "text"`): "Geen" in the muted ink. */
+.cn-data-table .cn-table-cell__zero {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-data-table .cn-table-cell__overline {
 	display: block;
 	color: var(--cn-table-secondary-color, var(--color-text-maxcontrast));
 	font-size: var(--cn-table-secondary-size, 0.9em);
@@ -193,6 +224,18 @@
 	overflow: visible;
 	white-space: normal;
 	overflow-wrap: anywhere;
+}
+
+/* In a table fitted to its tile every column but the growing one asks for
+   as little width as its content allows (`width: 1%`). With
+   `overflow-wrap: anywhere` that is one character, so a wrapping head broke
+   letter by letter ("D o e l", DqDoorlooptijd "Prestaties per zaaktype",
+   240px tall). Here a wrapping column breaks between words and only breaks
+   a word that is longer than the column.
+   @spec openspec/changes/fit-table-wrap-by-word/specs/fit-table-wrap-by-word/spec.md#requirement-a-wrapping-column-in-a-fitted-table-breaks-between-words */
+.cn-data-table--fit th.cn-cell--wrap,
+.cn-data-table--fit td.cn-cell--wrap {
+	overflow-wrap: break-word;
 }
 
 /* Opt-in fixed layout (CnDataTable's `fixedLayout` prop).
@@ -258,6 +301,19 @@
 	white-space: nowrap;
 }
 
+/* A growing column that opts into wrapping (`cn-cell--wrap`, DqDoorlooptijd
+   "Zaken met risico" titles) wraps its text over lines instead of cutting
+   it, and keeps a readable width: with `max-width: 0` the wide one-line
+   cells beside it squeezed it to its padding (24px).
+   @spec openspec/changes/fit-table-wrap-column-keeps-width/specs/fit-table-wrap-column-keeps-width/spec.md#requirement-a-wrapping-growing-column-keeps-a-readable-width */
+.cn-data-table--fit th.cn-table-col--grow.cn-cell--wrap,
+.cn-data-table--fit td.cn-table-col--grow.cn-cell--wrap {
+	min-width: 8em;
+	max-width: none;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
 /* The secondary line of the growing column ("2026-0004" under a case title)
    is a line of its own with its own ellipsis. The cell does not wrap, so in
    the board look, where the secondary line is an inline block (the title
@@ -283,10 +339,31 @@
 	color: var(--color-text-maxcontrast);
 }
 
+/* The header row of a `hideHeader` table: there for a screen reader, drawn
+   as nothing. !important because the looks style every header cell with
+   more specific selectors than any one table can know about. */
+.cn-data-table thead.cn-data-table__hidden-head tr,
+.cn-data-table thead.cn-data-table__hidden-head th {
+	height: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: none !important;
+	line-height: 0 !important;
+	font-size: 0 !important;
+	box-shadow: none !important;
+}
+
 /* Reusable cell utilities — set on a column's `cellClass`. Handy for compact
    list widgets (name + trailing status) that use `hideHeader`. */
 .cn-data-table td.cn-cell--strong {
 	font-weight: 500;
+}
+
+/* A lead cell's value reads 15px, a person's name over their function
+   (DqAfdelingen). */
+.cn-data-table td.cn-cell--lead > .cn-cell-renderer,
+.cn-data-table td.cn-cell--lead .cn-table-row__link > .cn-cell-renderer {
+	font-size: 15px;
 }
 
 .cn-data-table td.cn-cell--muted {
@@ -361,6 +438,12 @@
 	background: transparent;
 }
 
+/* The sorted column's label is at full text colour, like its chevron. */
+.cn-data-table th[aria-sort='ascending'] .cn-table-header__sort,
+.cn-data-table th[aria-sort='descending'] .cn-table-header__sort {
+	color: var(--color-main-text);
+}
+
 .cn-data-table th .cn-table-header__sort:focus-visible {
 	outline: 2px solid var(--color-main-text);
 	outline-offset: 2px;
@@ -388,6 +471,13 @@
 
 .cn-data-table th.cn-table-header--sortable:hover .cn-table-header__chevron--idle,
 .cn-data-table th .cn-table-header__sort:focus-visible .cn-table-header__chevron--idle {
+	opacity: 1;
+}
+
+/* The boards draw an unsorted column's chevron solid in the control border
+   grey (#828a95), not as a faded muted one (DqZaakAssistent "Moment"). */
+.cn-look-board .cn-table-header__chevron--idle:not(.cn-look-nextcloud *) {
+	color: var(--cn-board-control-border, var(--color-text-maxcontrast));
 	opacity: 1;
 }
 
@@ -529,6 +619,36 @@
 	background: var(--color-background-hover);
 }
 
+.cn-table-row--reorderable {
+	cursor: grab;
+}
+
+/* The handle before a reorderable row's name: a muted 16px grip 10px before
+   it. It floats, so a name that wraps in a narrow cell wraps beside the grip
+   instead of dropping under it. */
+.cn-table-row__handle {
+	display: inline-flex;
+	float: inline-start;
+	margin-block-start: 1px;
+	margin-inline-end: 10px;
+	color: var(--color-text-maxcontrast);
+	cursor: grab;
+}
+
+/* The name beside the grip is a block 26px in (the grip and its gap), so a
+   fitted column is never narrower than the grip plus the name's longest word:
+   a floated grip alone does not count towards the cell's narrowest width, and
+   the name split mid-word (DqZaaktypeVelden "Welstandsgebied").
+   @spec openspec/changes/fit-table-wrap-column-keeps-width/specs/fit-table-wrap-column-keeps-width/spec.md#requirement-a-reorderable-rows-name-keeps-its-words-whole */
+.cn-data-table td:has(> .cn-table-row__handle) > .cn-cell-renderer {
+	display: block;
+	margin-inline-start: 26px;
+}
+
+.cn-table-row--drop-target {
+	box-shadow: inset 0 2px 0 var(--color-primary-element);
+}
+
 .cn-table-row--selected {
 	background-color: var(--color-primary-light);
 	box-shadow: inset 3px 0 0 0 var(--color-primary);
@@ -557,9 +677,12 @@
 	outline-offset: -2px;
 }
 
+/* The controls in a linked row sit above the row link. A checkbox switch's
+   own input stays absolutely placed behind its icon: lifting it put the 34px
+   input in the flow and grew every row (the selection cell is lifted). */
 .cn-table-row--linked .cn-table-col--checkbox,
 .cn-table-row--linked .cn-table-col--actions,
-.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link) {
+.cn-table-row--linked td :is(a, button, input, select, textarea, label, summary, [role='button'], [role='checkbox'], [role='link'], [contenteditable='true']):not(.cn-table-row__link):not(.checkbox-radio-switch__input) {
 	position: relative;
 	z-index: 1;
 }
@@ -616,6 +739,16 @@
 .cn-table-loading p {
 	margin-top: calc(5 * var(--default-grid-baseline));
 	color: var(--color-text-maxcontrast);
+}
+
+/* Detail row (`#row-detail`): what belongs to the row above it, such as its
+   child records, indented under that row across the full width. It is not a
+   data row: no hover, no pointer, its text wraps. */
+.cn-data-table .cn-table-row-detail > td {
+	max-width: none;
+	white-space: normal;
+	padding: 0 0 calc(2 * var(--default-grid-baseline)) calc(6 * var(--default-grid-baseline));
+	border-bottom: 1px solid var(--color-border);
 }
 
 /* Empty State (inside table) */
@@ -767,3 +900,68 @@
 .cn-data-table td.cn-table-col--pinned-last {
 	box-shadow: inset -1px 0 0 0 var(--color-border);
 }
+
+/* A column of numbers (`class: 'cn-table-col--end'`) aligns to the end, header included. */
+.cn-data-table .cn-table-col--end {
+	text-align: end;
+}
+
+/* CnDataTable state banners (R1): above the rows, inside the table's inset. */
+.cn-data-table__notices {
+	padding: 0 var(--cn-card-notice-inset, 16px) 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-data-table th.cn-table-header--sortable,
+	.cn-table-row,
+	.viewTableRow {
+		transition: none;
+	}
+}
+
+/* stackOnPhone: a row is a stacked block on a phone-width screen, each cell
+   one line with its column name, the controls 44px tall to touch. */
+@media (max-width: 600px) {
+	.cn-data-table--stack thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.cn-data-table--stack,
+	.cn-data-table--stack tbody,
+	.cn-data-table--stack tr,
+	.cn-data-table--stack td {
+		display: block;
+		width: 100%;
+	}
+
+	.cn-data-table--stack tr {
+		padding: 8px 0;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.cn-data-table--stack td {
+		display: flex;
+		gap: 8px;
+		max-width: none !important;
+		padding: 4px 12px;
+		border: 0;
+		white-space: normal;
+	}
+
+	.cn-data-table--stack td[data-label]::before {
+		content: attr(data-label);
+		flex: 0 0 40%;
+		color: var(--color-text-maxcontrast);
+		font-weight: 600;
+	}
+
+	.cn-data-table--stack td button,
+	.cn-data-table--stack td .button-vue {
+		min-height: 44px;
+	}
+}
+

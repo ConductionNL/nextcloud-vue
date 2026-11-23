@@ -25,6 +25,7 @@ jest.mock('../../src/composables/useDataSource.js', () => ({
 
 import { mount } from '@vue/test-utils'
 import CnChartWidget from '../../src/components/CnChartWidget/CnChartWidget.vue'
+import { loadApexCharts } from '../../src/components/CnChartWidget/apexChartsLoader.js'
 
 const barProps = {
 	type: 'bar',
@@ -33,6 +34,9 @@ const barProps = {
 }
 
 const mountChart = (props = {}) => mount(CnChartWidget, { propsData: props })
+
+// The chart component loads on demand; load it once so mounts render it at once.
+beforeAll(() => loadApexCharts())
 
 describe('CnChartWidget — display passthrough', () => {
 	describe('horizontal bars', () => {

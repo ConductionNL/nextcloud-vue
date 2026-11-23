@@ -1,0 +1,2 @@
+- [x] Component, export and docs
+- [x] Spec

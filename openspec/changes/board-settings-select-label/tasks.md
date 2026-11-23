@@ -1,0 +1,3 @@
+- [x] :not(.v-select *) on the two text-field label rules
+- [x] Select makes room and raises its label
+- [x] Spec tests/css/lookBoardSettingsSelectLabel.spec.js; lookBoardSettingsFields.spec.js follows the selectors

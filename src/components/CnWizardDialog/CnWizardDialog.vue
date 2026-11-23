@@ -5,7 +5,7 @@
 		defaultWidth="wizard"
 		:eyebrow="boardEyebrow"
 		:subtitle="subtitle"
-		:name="dialogTitle"
+		:name="shownTitle"
 		size="large"
 		:open="dialogOpen"
 		:noClose="loading || !cancellable"
@@ -82,8 +82,17 @@
 			     Dutch one, reporting a broken dialog rather than a missing
 			     string. -->
 			<template v-else>
+				<!-- A step marked `skippable` moves on without validating or
+				     saving (PqInstellen "Deze stap overslaan"). -->
+				<NcButton v-if="currentStep && currentStep.skippable === true && !isLast"
+					variant="tertiary"
+					data-testid="cn-wizard-skip"
+					:disabled="loading"
+					@click="skip">
+					{{ skipLabel }}
+				</NcButton>
 				<NcButton v-if="cancellable" data-testid="cn-wizard-cancel" @click="onClose">
-					{{ cancelLabel }}
+					{{ (currentStep && currentStep.cancelLabel) || cancelLabel }}
 				</NcButton>
 				<NcButton v-if="!isFirst"
 					data-testid="cn-wizard-back"
@@ -106,7 +115,7 @@
 							<component :is="submitIcon || Check" v-else :size="20" />
 						</template>
 					</template>
-					{{ isLast ? submitLabel : nextLabel }}
+					{{ isLast ? (currentStep && currentStep.submitLabel) || submitLabel : nextLabel }}
 				</NcButton>
 			</template>
 		</template>
@@ -192,7 +201,7 @@ export default {
 		 * navigates linearly between adjacent steps unless the
 		 * consumer calls `jumpTo()` from a slot scope.
 		 *
-		 * @type {Array<{ id: string, label: string, optional?: boolean, icon?: string }>}
+		 * @type {Array<{ id: string, label: string, optional?: boolean, icon?: string, skippable?: boolean }>}
 		 */
 		steps: {
 			type: Array,
@@ -208,7 +217,7 @@ export default {
 		 */
 		dialogTitle: {
 			type: String,
-			default: 'Wizard',
+			default: () => t('nextcloud-vue', 'Wizard'),
 		},
 
 		/**
@@ -266,6 +275,12 @@ export default {
 		 */
 		eyebrowContext: { type: String, default: '' },
 		/**
+		 * Board look: head the dialog with the current step's label, the
+		 * dialog title moving to the eyebrow's context. The result phase and
+		 * the Nextcloud look keep `dialogTitle`.
+		 */
+		stepHeading: { type: Boolean, default: false },
+		/**
 		 * The eyebrow sentence, with `{context}`, `{step}` and `{total}`
 		 * placeholders, so it can be translated.
 		 */
@@ -279,17 +294,19 @@ export default {
 		submitIcon: { type: [Object, Function], default: null },
 
 		/** Cancel-button label (wizard phase). */
-		cancelLabel: { type: String, default: 'Cancel' },
+		cancelLabel: { type: String, default: () => t('nextcloud-vue', 'Cancel') },
 		/** Back-button label. */
-		backLabel: { type: String, default: 'Back' },
+		backLabel: { type: String, default: () => t('nextcloud-vue', 'Back') },
+		/** Skip-button label, on a step marked `skippable`. */
+		skipLabel: { type: String, default: () => t('nextcloud-vue', 'Skip this step') },
 		/** Next-button label (intermediate steps). */
-		nextLabel: { type: String, default: 'Next' },
+		nextLabel: { type: String, default: () => t('nextcloud-vue', 'Next') },
 		/** Submit-button label (last step). */
-		submitLabel: { type: String, default: 'Submit' },
+		submitLabel: { type: String, default: () => t('nextcloud-vue', 'Submit') },
 		/** Close-button label (result phase). */
-		closeLabel: { type: String, default: 'Close' },
+		closeLabel: { type: String, default: () => t('nextcloud-vue', 'Close') },
 		/** Success banner default text when result.message is empty. */
-		successText: { type: String, default: 'Done.' },
+		successText: { type: String, default: () => t('nextcloud-vue', 'Done.') },
 		/**
 		 * Whether the dialog can be dismissed (Cancel button, ESC, backdrop
 		 * click) before reaching the result phase. `false` hides Cancel and
@@ -354,6 +371,19 @@ export default {
 				.replace('{context}', this.eyebrowContext || this.eyebrow || this.dialogTitle)
 				.replace('{step}', String(this.currentIndex + 1))
 				.replace('{total}', String(this.steps.length))
+		},
+
+		/**
+		 * The dialog's heading: the current step's label with `stepHeading`
+		 * in the board look, otherwise `dialogTitle`.
+		 *
+		 * @return {string} The heading.
+		 */
+		shownTitle() {
+			if (this.stepHeading && this.isBoardLook && this.result === null && this.currentStep && this.currentStep.label) {
+				return this.currentStep.label
+			}
+			return this.dialogTitle
 		},
 
 		/** @return {object} The check icon, the default finishing icon. */
@@ -469,6 +499,26 @@ export default {
 			 *   (next / back / jumpTo / submit).
 			 * @type {{ stepId: string, stepIndex: number, direction: 'next'|'back'|'jump' }}
 			 */
+			this.$emit('step-change', {
+				stepId: this.currentStep.id,
+				stepIndex: this.currentIndex,
+				direction: 'next',
+			})
+		},
+
+		/**
+		 * Move past a `skippable` step without validating it, so nothing
+		 * of it is saved.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/setup-wizard-optional-skip/specs/setup-wizard/spec.md#requirement-a-setup-step-can-be-skipped
+		 */
+		skip() {
+			if (this.isLast || this.currentStep?.skippable !== true) {
+				return
+			}
+			this.validationError = ''
+			this.currentIndex += 1
 			this.$emit('step-change', {
 				stepId: this.currentStep.id,
 				stepIndex: this.currentIndex,

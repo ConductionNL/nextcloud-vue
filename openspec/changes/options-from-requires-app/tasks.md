@@ -1,0 +1,2 @@
+- [x] 1 `requiresApp` and `missingText` on `optionsFrom`: the source is not read while the app is missing, the form falls back to a text input with `missingText` (tests/components/CnFormFieldOptionsFrom.spec.js)
+- [x] 2 Manifest schema accepts both keys on `optionsFrom`

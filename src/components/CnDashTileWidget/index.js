@@ -7,13 +7,15 @@
  * avoid clobbering the library's existing quick-access `CnTileWidget`.
  */
 
-import CnDashTileWidgetForm from '../CnDashTileWidgetForm/CnDashTileWidgetForm.vue'
-import CnDashTileWidget from './CnDashTileWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnDashTileWidgetForm = lazyComponent(() => import('../CnDashTileWidgetForm/CnDashTileWidgetForm.vue'), 'CnDashTileWidgetForm')
+const LazyCnDashTileWidget = lazyComponent(() => import('./CnDashTileWidget.vue'), 'CnDashTileWidget')
+
 registerDashboardWidget('tile', {
-	renderer: CnDashTileWidget,
-	form: CnDashTileWidgetForm,
+	renderer: LazyCnDashTileWidget,
+	form: LazyCnDashTileWidgetForm,
 	defaultContent: {
 		title: '',
 		icon: '',
@@ -30,5 +32,5 @@ registerDashboardWidget('tile', {
 	icon: 'ViewGrid',
 })
 
-export { CnDashTileWidget }
-export default CnDashTileWidget
+export { default as CnDashTileWidget } from './CnDashTileWidget.vue'
+export { default } from './CnDashTileWidget.vue'

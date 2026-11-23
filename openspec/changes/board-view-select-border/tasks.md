@@ -1,0 +1,2 @@
+- [x] Board-look board-select border in look-board-index.css
+- [x] CSS spec tests/css/lookBoardViewSelectBorder.spec.js

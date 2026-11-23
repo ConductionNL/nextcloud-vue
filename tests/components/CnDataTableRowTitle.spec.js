@@ -7,6 +7,7 @@
  * render as before.
  *
  * @spec openspec/changes/screens-table-rows-parity/specs/index-list-board-look/spec.md#requirement-a-row-title-can-be-plain-text
+ * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
  */
 const { mount } = require('@vue/test-utils')
 const CnDataTable = require('../../src/components/CnDataTable/CnDataTable.vue').default
@@ -47,10 +48,27 @@ describe('CnDataTable: rowTitle', () => {
 		expect(container.classes()).not.toContain('cn-table-container--title-plain')
 	})
 
-	it('accepts only link and plain', () => {
+	it('marks the board table text when asked, the row link kept', () => {
+		const wrapper = mountTable('board', { rowTitle: 'text' })
+		const container = wrapper.find('[data-testid="cn-object-list"]')
+		expect(container.classes()).toContain('cn-table-container--title-text')
+		expect(container.classes()).not.toContain('cn-table-container--title-plain')
+		expect(wrapper.find('td.cn-table-col--title').exists()).toBe(true)
+		expect(mountTable('nextcloud', { rowTitle: 'text' }).find('[data-testid="cn-object-list"]').classes()).not.toContain('cn-table-container--title-text')
+	})
+
+	it('marks the board table strong when asked (DqZaaktypeStatussen)', () => {
+		const container = mountTable('board', { rowTitle: 'strong' }).find('[data-testid="cn-object-list"]')
+		expect(container.classes()).toContain('cn-table-container--title-strong')
+		expect(mountTable('nextcloud', { rowTitle: 'strong' }).find('[data-testid="cn-object-list"]').classes()).not.toContain('cn-table-container--title-strong')
+	})
+
+	it('accepts only link, plain, text and strong', () => {
 		const { validator } = CnDataTable.props.rowTitle
 		expect(validator('link')).toBe(true)
 		expect(validator('plain')).toBe(true)
+		expect(validator('text')).toBe(true)
+		expect(validator('strong')).toBe(true)
 		expect(validator('bold')).toBe(false)
 	})
 

@@ -61,6 +61,7 @@ warning:
 | `message` | `string` | `'Are you sure you want to continue?'` | Confirmation question shown in the confirm phase. |
 | `variant` | `'primary'\|'error'\|'warning'\|'success'` | `'primary'` | Primary-button variant; `error` marks the confirm as destructive. |
 | `confirmLabel` | `string` | `'Confirm'` | Primary button label. |
+| `confirmIcon` | `string` | `''` | A CnIcon name drawn on the primary button (`DeleteOutline` for a delete). |
 | `cancelLabel` | `string` | `'Cancel'` | Cancel button label (confirm phase). |
 | `closeLabel` | `string` | `'Close'` | Close button label (result phase). |
 | `successText` | `string` | `'Done.'` | Success message in the result phase. |
@@ -77,3 +78,25 @@ warning:
 | Method | Description |
 |--------|-------------|
 | `setResult({ success?, error? })` | Report the operation outcome — flips the dialog into its result phase (success auto-closes after 2s; an error stays open). |
+
+Between the confirm click and `setResult()`, Cancel is disabled, along with Esc and the close button. The operation is already running, so a cancel there would not stop it.
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| `default` | Extra body content below the message in the confirm phase: a checkbox, a list or a note. Unused, the dialog renders as before. |
+
+```vue
+<CnConfirmDialog
+  :dialog-title="t('myapp', 'Mark as read')"
+  :message="t('myapp', 'Confirm that you have read this page.')"
+  @confirm="onConfirm"
+  @close="...">
+  <NcCheckboxRadioSwitch v-model="alsoNotify">
+    {{ t('myapp', 'Tell the author') }}
+  </NcCheckboxRadioSwitch>
+</CnConfirmDialog>
+```
+
+The `open` attribute and the `update:open` listener fall through to the dialog frame, as with `CnDialog`.

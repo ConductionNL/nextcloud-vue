@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { parseDateValue } from './dateVariant.js'
+
 /**
  * How many indicators a row shows before the rest move into the row menu.
  * Four hundred cases are triaged by glancing, and a row of nine icons is not
@@ -27,21 +29,74 @@ function atPath(row, path) {
 }
 
 /**
+ * The moment an `after` / `before` bound names: `"now"` or a date.
+ *
+ * @param {unknown} bound The declared bound.
+ * @param {Date} now The current moment.
+ * @return {Date|null} The moment, or null when the bound is not one.
+ */
+function boundMoment(bound, now) {
+	return bound === 'now' ? now : parseDateValue(bound)
+}
+
+/**
+ * Whether a value is a number below `lt` and above `gt`, each bound optional.
+ * An empty value or one that is not a number never holds.
+ *
+ * @param {unknown} value The field value.
+ * @param {{lt?: number, gt?: number}} bounds The bounds.
+ * @return {boolean} True when the value lies within the bounds.
+ */
+function numberWithin(value, bounds) {
+	if (value === null || value === undefined || value === '' || typeof value === 'boolean') {
+		return false
+	}
+	const number = Number(value)
+	if (!Number.isFinite(number)) {
+		return false
+	}
+	const lt = Number(bounds.lt)
+	const gt = Number(bounds.gt)
+	return (bounds.lt === undefined || (Number.isFinite(lt) && number < lt))
+		&& (bounds.gt === undefined || (Number.isFinite(gt) && number > gt))
+}
+
+/**
  * Whether one declared indicator applies to a row.
  *
- * The grammar is deliberately three words wide: `equals`, `in`, and truthiness
- * when neither is given. A condition a reader cannot evaluate in their head is
- * a condition nobody can check against the icon it draws.
+ * The grammar is deliberately small: `equals`, `in`, a date `after` or
+ * `before` a moment (`"now"` or an ISO date), a number `lt` or `gt` a bound,
+ * and truthiness when none is given. A condition a reader cannot evaluate in their head is a condition
+ * nobody can check against the icon it draws. A date bound applies only to a
+ * field holding a readable date.
  *
  * @param {object} indicator The declared indicator.
  * @param {object} row The row.
+ * @param {Date} [now] The current moment, for `"now"`.
  * @return {boolean} True when the indicator applies.
+ * @spec openspec/changes/cell-config-growth/specs/cell-config-growth/spec.md#requirement-a-row-indicator-can-compare-a-date
+ * @spec openspec/changes/pl4-cell-rules/specs/pl4-cell-rules/spec.md#requirement-a-row-condition-can-compare-a-number
  */
-export function indicatorApplies(indicator, row) {
+export function indicatorApplies(indicator, row, now = new Date()) {
 	if (!indicator || typeof indicator !== 'object' || typeof indicator.field !== 'string') {
 		return false
 	}
 	const value = atPath(row, indicator.field)
+	if (indicator.after !== undefined || indicator.before !== undefined) {
+		const date = parseDateValue(value)
+		if (date === null) {
+			return false
+		}
+		const after = indicator.after === undefined ? null : boundMoment(indicator.after, now)
+		const before = indicator.before === undefined ? null : boundMoment(indicator.before, now)
+		if ((indicator.after !== undefined && after === null) || (indicator.before !== undefined && before === null)) {
+			return false
+		}
+		return (after === null || date.getTime() > after.getTime()) && (before === null || date.getTime() < before.getTime())
+	}
+	if (indicator.lt !== undefined || indicator.gt !== undefined) {
+		return numberWithin(value, indicator)
+	}
 	if (indicator.equals !== undefined) {
 		return value === indicator.equals
 	}

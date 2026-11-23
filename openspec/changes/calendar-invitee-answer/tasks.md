@@ -1,0 +1,2 @@
+- [x] 1.1 inviteeAnswer, label and tone (eventStatus.js), l10n
+- [x] 1.2 tests (calendarInviteeAnswer.spec.js)

@@ -19,8 +19,8 @@ than the card. The selection and row-menu columns SHALL keep their width. The
 first data column SHALL take 18% of the table, and the other data columns SHALL
 share the rest unless a column declares its own `width`. A cell value that does
 not fit SHALL be cut with an ellipsis on one line. A header's filter button
-SHALL stay inside its header. Data cells SHALL have 12px inline padding, and the
-first data cell 18px at its start. Without the board look the table SHALL keep
+SHALL stay inside its header. The cell padding is set by board-table-density.
+Without the board look the table SHALL keep
 its auto layout.
 
 #### Scenario: PqTickets at 1440px

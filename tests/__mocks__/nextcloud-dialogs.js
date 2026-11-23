@@ -18,6 +18,7 @@
 const showSuccess = jest.fn()
 const showError = jest.fn()
 const showUndo = jest.fn()
+const showConfirmation = jest.fn().mockResolvedValue(true)
 
 const FilePickerType = { Choose: 1, Move: 2, Copy: 3, MoveCopy: 4, Custom: 5 }
 
@@ -38,6 +39,7 @@ module.exports = {
 	showSuccess,
 	showError,
 	showUndo,
+	showConfirmation,
 	getFilePickerBuilder,
 	FilePickerType,
 }

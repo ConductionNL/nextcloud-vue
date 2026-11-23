@@ -1,0 +1,1 @@
+- [x] 1 `targets` and `targetLabel` on CnStorePage, the chosen id in the install body (tests/components/CnStorePageTargets.spec.js); docs/components/cn-store-page.md

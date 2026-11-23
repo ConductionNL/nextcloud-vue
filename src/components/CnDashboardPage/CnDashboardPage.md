@@ -126,11 +126,14 @@ predicate's field value into their text wherever it says `{value}` (e.g.
 | `gridMargin` | Number | `12` | Grid margin (gutter) in pixels between widgets |
 | `emptyLabel` | String | `'No widgets configured'` | Text shown in the empty state when `layout` is empty |
 | `unavailableLabel` | String | `'Widget not available'` | Text shown for unknown or unavailable widgets |
-| `userLayout` | Boolean | `false` | Keep a per-user arrangement of this page. Off by default: a page without it makes **no** layout request and renders exactly as before. |
+| `userLayout` | Boolean | `false` | **Deprecated** (layout belongs to Buildiq; removed after this release). Keep a per-user arrangement of this page. Off by default: a page without it makes **no** layout request and renders exactly as before. |
 | `appId` | String | `''` | The Nextcloud app the user layout is stored under. Required for `userLayout` to do anything. |
 | `userLayoutStore` | Object | `null` | A store exposing `loadDashboardLayout` / `saveDashboardLayout` / `resetDashboardLayout`, usually one carrying [`dashboardLayoutsPlugin`](../../../docs/store/plugins/dashboard-layouts.md). Left unset, the page reads and writes user preferences directly. |
 
 ## Per-user layout
+
+> **Deprecated: layout belongs to Buildiq.** Arranging a page is Buildiq's job (Ruben, 18 Oct 2026): its **Indeling aanpassen** edits the layout everybody sees. `userLayout` still works for this release and will be removed after it. While Buildiq edits the page (`cnEditingBody`), the grid shows the manifest layout, and a drag or resize goes into the manifest Buildiq saves, also on a page with `userLayout`. A user arrangement made outside an in-page edit session is saved at once, because no **Done** follows to save it.
+
 
 With `userLayout: true` and an `appId`, this page loads the current user's arrangement before the first grid render and merges it over the manifest layout. The rules are [`mergeUserLayout`](../../../docs/utilities/merge-user-layout.md)'s: **the manifest decides which widgets exist, the user decides where they sit.**
 

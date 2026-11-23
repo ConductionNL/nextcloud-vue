@@ -8,11 +8,12 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name          | Type     | Required | Default           | Description                                 |
-| ------------- | -------- | -------- | ----------------- | ------------------------------------------- |
-| `menuLabel`   | `string` |          | `'Widget menu'`   | Accessible name for the cog trigger / menu. |
-| `editLabel`   | `string` |          | `'Edit widget'`   | Label for the Edit action item.             |
-| `deleteLabel` | `string` |          | `'Delete widget'` | Label for the Delete action item.           |
+| Name          | Type      | Required | Default           | Description                                                                                                                                                              |
+| ------------- | --------- | -------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `menuLabel`   | `string`  |          | `'Widget menu'`   | Accessible name for the cog trigger / menu.                                                                                                                              |
+| `editLabel`   | `string`  |          | `'Edit widget'`   | Label for the Edit action item.                                                                                                                                          |
+| `deleteLabel` | `string`  |          | `'Delete widget'` | Label for the Delete action item.                                                                                                                                        |
+| `canDelete`   | `boolean` |          | `true`            | Whether the Delete action is offered. Pass `false` for a widget the user may not remove, such as a compulsory widget on a dashboard held with less than full permission. |
 
 ### Events
 

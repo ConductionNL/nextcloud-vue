@@ -10,7 +10,7 @@
     disabled            grey      it is not going to run, so nothing else matters
     last run failed     error     it ran and it broke
     last run stopped
-      or cancelled      warning   it ended without finishing what it was asked
+      or cancelled      warning   a check stopped it, or it was cancelled
     last run completed  success   it worked
     enabled, never run  info      armed, unproven
 
@@ -43,9 +43,9 @@ import { translate as t } from '@nextcloud/l10n'
 /**
  * The run states that count as each health, keyed the way the API reports them.
  *
- * `stopped` is a WARNING and not a success on purpose: a run that stopped
- * reached a terminal state without finishing the work it was asked to do, and
- * calling that green is how a half-done nightly goes unnoticed for a week.
+ * `stopped` is a WARNING and not a success on purpose: the caller passes a
+ * run's outcome, so a clean End arrives as `completed` and `stopped` means a
+ * check ended the run before its work was done.
  */
 const WARNING_STATES = ['stopped', 'cancelled', 'dead_letter']
 const ERROR_STATES = ['failed']

@@ -132,9 +132,11 @@ It is answered at once from the page workspace, with no request. A widget whose 
 
 Give the chips a full-width cell with `showTitle: false` to get the board's bar. The group is a radio group: the arrow keys move the choice and Tab leaves it in one step.
 
+On a phone, `chipsOnPhone: "pills"` draws the chips as separate pills in one row that scrolls sideways instead of a segmented group (PqMobiel). To drop the bar's card on a phone only, give the widget `borderless: "narrow"` (see CnDashboardPage).
+
 ## Toggle, select and bar
 
-A switch and a select are page controls too. `style: "toggle"` draws a switch that writes `onValue` (default true) when on and `offValue` (default false) when off, and starts off. `layout: "bar"` with `controls` draws several controls in one row, each a workspace filter of its own; `align: "end"` pushes a control to the right edge.
+A switch and a select are page controls too. `style: "toggle"` draws a switch that writes `onValue` (default true) when on and `offValue` (default false) when off, and starts off; `control: "checkbox"` draws it as a checkbox instead. `layout: "bar"` with `controls` draws several controls in one row, each a workspace filter of its own; `align: "end"` pushes a control to the right edge.
 
 ```jsonc
 {
@@ -152,3 +154,24 @@ A switch and a select are page controls too. `style: "toggle"` draws a switch th
 ```
 
 A list says what the controls mean for it with `pageControls` (see the record list and object table pages).
+
+## Input with a load button
+
+`style: "input"` draws a labelled text field and a load button, the boards' in-card report form (DqTermijnen "Kwartaal (JJJJ-Qn)" with "Rapport laden"). The value goes to the workspace only when the reader loads it, and only when it has the right form; a wrong value is marked invalid and explained under the field.
+
+| Key | Meaning |
+|-----|---------|
+| `inputType` | `quarter` reads `YYYY-Qn`, `year` reads `YYYY`; both start with the current one. Any other value is free text. |
+| `pattern` | For free text: a regular expression the value must match. |
+| `submitLabel` | The button's label, through the host translate (default "Load"). |
+| `default` | The starting value, when the workspace holds none. |
+
+```json
+{
+  "id": "td-quarter-form",
+  "type": "workspace-filter",
+  "content": { "style": "input", "inputType": "quarter", "writes": "@workspace.quarter", "label": "Quarter (YYYY-Qn)", "submitLabel": "Load report" }
+}
+```
+
+A widget reads the loaded value through `@workspace.quarter`. Placed in a `sections` widget with the table it drives, the form and the table share one card.

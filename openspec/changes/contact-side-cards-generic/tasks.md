@@ -1,0 +1,5 @@
+- [x] 1. `CnFieldListWidget`: `variant: "pairs"`, `row.label`, `emptyLabel`, `mirror`.
+- [x] 2. `CnFieldGroupsWidget` (`field-groups`), registered, content-only, in the library vocabulary.
+- [x] 3. `CnObjectLinksWidget` (`object-links`) and `CnObjectLinkDialog`, registered, content-only, in the library vocabulary.
+- [x] 4. Tests: `CnFieldListWidgetPairs.spec.js`, `CnFieldGroupsWidget.spec.js`, `CnObjectLinksWidget.spec.js`.
+- [x] 5. Docs: `cn-field-list-widget.md`, `cn-field-groups-widget.md`, `cn-object-links-widget.md`.

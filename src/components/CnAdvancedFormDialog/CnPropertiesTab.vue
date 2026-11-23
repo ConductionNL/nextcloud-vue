@@ -106,6 +106,7 @@
 									:selectOptions="(propertyOverrides[key] && propertyOverrides[key].selectOptions) || null"
 									:selectMultiple="propertyOverrides[key] ? propertyOverrides[key].selectMultiple !== false : true"
 									:textareaRows="(propertyOverrides[key] && propertyOverrides[key].textareaRows) || 4"
+									:optionsFrom="(propertyOverrides[key] && propertyOverrides[key].optionsFrom) || null"
 									@update:value="onPropertyValueUpdate(key, $event)" />
 							</slot>
 						</td>
@@ -207,7 +208,7 @@ export default {
 		showConstantProperties: { type: Boolean, default: false },
 		/**
 		 * Per-property overrides forwarded to CnPropertyValueCell. Keyed by property key.
-		 * Each entry may contain: `{ widget, selectOptions, selectMultiple, textareaRows }`.
+		 * Each entry may contain: `{ widget, selectOptions, selectMultiple, textareaRows, optionsFrom }`.
 		 */
 		propertyOverrides: { type: Object, default: () => ({}) },
 		/**

@@ -1,0 +1,2 @@
+- [x] look-board-index.css rule
+- [x] tests/css/lookBoardLogIconLabelRegular.spec.js (red first)

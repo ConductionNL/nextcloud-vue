@@ -13,3 +13,5 @@ One bar cut into segments, with a legend that carries the numbers. This example 
 ```
 
 Props: `content` holds the configuration (see the component description) and `translate` is an optional translate function for the labels in it.
+
+On a detail page `objectId` names the record on the page, which an `endpointSource` URL reads through its `@objectId` token.

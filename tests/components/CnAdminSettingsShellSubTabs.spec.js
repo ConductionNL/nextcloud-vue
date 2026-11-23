@@ -99,4 +99,15 @@ describe('CnAdminSettingsShell tabs inside a tab', () => {
 		expect(wrapper.find('[data-testid="cn-admin-settings-subtabs-general"]').exists()).toBe(false)
 		wrapper.unmount()
 	})
+	it('keeps the panel spacing for a tab that holds only its own strip', async () => {
+		const wrapper = mount(CnAdminSettingsShell, {
+			props: { appId: 'pipelinq', appName: 'Pipelinq', environment: 'production', tabs: TABS },
+			slots: { 'tab-portal-portals': '<p data-testid="portals">Portalen</p>' },
+			global: { stubs: { NcSettingsSection: true, CnVersionInfoCard: true, CnBuildiqEditButton: true, CnEnvironmentBanner: true } },
+			attachTo: document.body,
+		})
+		await flush()
+		expect(wrapper.find('[data-testid="cn-admin-settings-tabs"]').classes()).not.toContain('cn-admin-settings-shell__tabs--bare')
+		wrapper.unmount()
+	})
 })

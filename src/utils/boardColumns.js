@@ -37,6 +37,7 @@ export const OFF_BOARD_KEY = '__off_board__'
  *   declared `color` is used.
  * @return {{stages: Array<object>, usable: boolean}} The stages (each with a
  *   `color`, '' when it has none), and whether the field can back a board at all.
+ * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
  */
 export function stagesOf(field, colorField = '') {
 	const declared = Array.isArray(field?.states)
@@ -56,6 +57,8 @@ export function stagesOf(field, colorField = '') {
 					hidden: entry?.hidden === true,
 					color: colorOf(field, entry, colorField),
 					capacity: capacityValue(entry?.capacity),
+					merged: entry?.merged,
+					closed: entry?.closed === true,
 				}))
 		.filter((stage) => stage.key !== '')
 
@@ -150,7 +153,8 @@ function labelFor(field, value) {
  *   `statusField` value is the key.
  *
  * @return {{columns: Array<object>, usable: boolean}} The columns, each
- *   `{ key, label, cards, count }`, and whether the field could back a board.
+ *   `{ key, label, cards, count, closed }`, and whether the field could back a board.
+ * @spec openspec/changes/board-column-capacity/specs/board-view/spec.md#requirement-a-column-can-carry-a-capacity
  */
 export function buildBoardColumns({
 	field,
@@ -171,6 +175,8 @@ export function buildBoardColumns({
 		label: stage.label,
 		color: stage.color,
 		capacity: stage.capacity ?? null,
+		merged: stage.merged ?? 1,
+		closed: stage.closed === true,
 		cards: [],
 		count: 0,
 	}))

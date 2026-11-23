@@ -5,7 +5,7 @@
 <template>
 	<div
 		class="cn-object-list-widget"
-		:class="{ 'cn-object-list-widget--dropping': dropping }"
+		:class="{ 'cn-object-list-widget--dropping': dropping, 'cn-object-list-widget--bleed': content.tableBleed === true, 'cn-object-list-widget--framed': content.tableFrame === true }"
 		@dragenter="onDragEnter"
 		@dragover="onDragOver"
 		@dragleave="onDragLeave"
@@ -35,12 +35,12 @@
 		     deliberate, and stays `compact` inside a fit-measured cell so it
 		     cannot outgrow a short tile (ADR-062). -->
 		<CnWidgetEmptyState
-			v-else-if="!loading && rows.length === 0"
+			v-else-if="!loading && rows.length === 0 && readOnlyRows.length === 0"
 			:name="resolvedEmptyText"
 			:compact="fitRows !== null && fitRows < 3"
 			class="cn-object-list-widget__empty">
-			<template v-if="allowCreate && !waitingForContext" #action>
-				<NcButton @click="openCreate">
+			<template v-if="allowCreate && !waitingForContext && !addInHeader" #action>
+				<NcButton class="cn-object-list-widget__empty-add" :class="{ 'cn-button--tonal': addTonal }" @click="openCreate">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
@@ -122,7 +122,7 @@
 					:key="group.key"
 					class="cn-object-list-widget__group"
 					data-testid="object-list-group">
-					<h4 class="cn-object-list-widget__group-heading">
+					<component :is="innerHeadingTag" class="cn-object-list-widget__group-heading cn-inner-heading">
 						<!-- `groupLabelResolve` reuses the fkResolve cell for the
 						     heading itself: `groupBy` may bucket by a uuid that is
 						     ONE MORE hop past what `extend` inlined (e.g. a
@@ -140,7 +140,7 @@
 							{{ group.label }}
 						</template>
 						({{ group.rows.length }})
-					</h4>
+					</component>
 					<CnDataTable
 						:columns="resolvedColumns"
 						:rows="group.rows"
@@ -151,23 +151,29 @@
 						:sortKey="localSort.field || null"
 						:sortOrder="localSort.dir || 'asc'"
 						borderless
+						:rowTitle="rowTitle"
 						:fitWidth="fitWidthActive"
 						:fixedLayout="fixedLayoutActive"
 						:hideHeader="content.hideHeader === true"
+						:filterable="content.filterable === true"
+						:activeFilters="headerFilters"
 						@rowClick="onRowClick"
 						@rowAuxClick="onRowAuxClick"
 						@select="onSelect"
-						@sort="onSort">
+						@sort="onSort"
+						@columnFilter="onHeaderFilter">
 						<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
-							<CnRowActions :actions="mappedRowActions" :row="row" />
+							<CnRowActions v-if="!row._readOnly" :actions="mappedRowActions" :row="row" />
 						</template>
 					</CnDataTable>
 				</div>
 			</div>
 			<div v-else class="cn-object-list-widget__table">
 				<CnDataTable
+					:reorderable="reorderField !== ''"
 					:columns="resolvedColumns"
 					:rows="facetedRows"
+					:rowClass="selectionRowClass"
 					:loading="loading"
 					:emptyText="emptyText"
 					:selectable="content.selectable === true"
@@ -175,19 +181,34 @@
 					:sortKey="localSort.field || null"
 					:sortOrder="localSort.dir || 'asc'"
 					borderless
+					:rowTitle="rowTitle"
 					:fitWidth="fitWidthActive"
 					:fixedLayout="fixedLayoutActive"
 					:hideHeader="content.hideHeader === true"
+					:filterable="content.filterable === true"
+					:activeFilters="headerFilters"
 					@rowClick="onRowClick"
 					@rowAuxClick="onRowAuxClick"
 					@select="onSelect"
-					@sort="onSort">
+					@sort="onSort"
+					@columnFilter="onHeaderFilter"
+					@rowMove="onRowMove">
 					<!-- Declarative per-row actions (`content.rowActions`).
 					     CnDataTable only paints the trailing actions column
 					     when this slot is supplied, so a widget without
 					     `rowActions` keeps the column count it had. -->
 					<template v-if="mappedRowActions.length > 0" #row-actions="{ row }">
-						<CnRowActions :actions="mappedRowActions" :row="row" />
+						<CnRowActions v-if="!row._readOnly" :actions="mappedRowActions" :row="row" />
+					</template>
+					<!-- `content.children`: each row's child records under it, as
+					     a nested list fed from one query for all rows. -->
+					<template v-if="childrenConfig && childLink" #row-detail="{ row }">
+						<CnObjectListWidget
+							class="cn-object-list-widget__children"
+							data-testid="cn-object-list-children"
+							:content="childContentFor(row)"
+							:presetRows="childRowsFor(row)"
+							@rowsStale="fetchChildren" />
 					</template>
 				</CnDataTable>
 			</div>
@@ -205,6 +226,11 @@
 			  more than the widget is showing, pager or no pager — a widget is
 			  a summary, and the index is where the list actually lives.
 			-->
+			<!-- A reorder's outcome, read out: the row's new place, or why the
+			     server refused it. -->
+			<p class="hidden-visually cn-object-list-widget__reorder-status" aria-live="polite" data-testid="cn-object-list-reorder-status">
+				{{ reorderStatus }}
+			</p>
 			<CnPagination
 				v-if="showPager"
 				compact
@@ -233,19 +259,100 @@
 				{{ moreLabel }}
 			</p>
 		</template>
+		<!-- `content.footnote`: a line under the table ("Awb 4:17 en 4:18"),
+		     through the host translate. Not while the list waits for its
+		     context or failed to load. -->
+		<!-- `content.summary`: counts over the loaded rows ("(1/2 completed)"). -->
+		<p
+			v-if="resolvedSummary && !waitingForContext && !error && rows.length > 0"
+			class="cn-object-list-widget__summary"
+			data-testid="cn-object-list-widget-summary">
+			{{ resolvedSummary }}
+		</p>
+		<p
+			v-if="resolvedFootnote && totalRows.length === 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__footnote"
+			data-testid="cn-object-list-widget-footnote">
+			{{ resolvedFootnote }}
+		</p>
+		<!-- `content.totals` (board PqOfferte "Regels"): the footnote on the
+		     left and the totals of the record the list sits on in a box on the
+		     right. -->
+		<div
+			v-if="totalRows.length > 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__foot"
+			data-testid="cn-object-list-widget-foot">
+			<p v-if="resolvedFootnote" class="cn-object-list-widget__footnote">
+				{{ resolvedFootnote }}
+			</p>
+			<dl class="cn-object-list-widget__totals" :aria-label="t('nextcloud-vue', 'Totals')">
+				<template v-for="row in totalRows" :key="row.key">
+					<dt :class="{ 'cn-object-list-widget__total--emphasis': row.emphasis }">
+						{{ row.label }}
+					</dt>
+					<dd :class="{ 'cn-object-list-widget__total--emphasis': row.emphasis }">
+						{{ row.value }}
+					</dd>
+				</template>
+			</dl>
+		</div>
+		<!-- `content.footerLinks`: a row of links under the list, each with
+		     an optional muted note ("Objecttypen beheren (alleen voor
+		     beheerders)"). -->
+		<div
+			v-if="footerLinks.length > 0 && !waitingForContext && !error"
+			class="cn-object-list-widget__links"
+			data-testid="cn-object-list-widget-links">
+			<span v-for="link in footerLinks" :key="link.key" class="cn-object-list-widget__link-item">
+				<a
+					class="cn-object-list-widget__link"
+					:href="link.href"
+					data-testid="cn-object-list-widget-link"
+					@click="onFooterLink($event, link)">{{ link.label }}</a>
+				<span
+					v-if="link.note"
+					class="cn-object-list-widget__link-note"
+					data-testid="cn-object-list-widget-link-note">{{ link.note }}</span>
+			</span>
+		</div>
+		<!-- Why the declared create action is withheld on this record
+		     (`content.createAction.hiddenNote`). -->
+		<p
+			v-if="createHiddenNote && !waitingForContext && !error"
+			class="cn-object-list-widget__hidden-note"
+			data-testid="cn-object-list-widget-hidden-note">
+			{{ createHiddenNote }}
+		</p>
 		<!-- Create affordance (ADR-062): every collection carries its Add at
 		     the bottom of the widget; the host card's Actions menu calls the
 		     same openCreate() through the public method. Suppressed while the
 		     empty state is showing — that renders its own copy in its #action
 		     slot, and two Add buttons on one empty card read as a bug. -->
 		<div
-			v-if="allowCreate && !waitingForContext && !showingEmptyState"
+			v-if="allowCreate && !waitingForContext && !showingEmptyState && !addInHeader"
 			class="cn-object-list-widget__add">
-			<NcButton variant="tertiary" wide @click="openCreate">
+			<NcButton variant="tertiary"
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
+				@click="openCreate">
 				<template #icon>
 					<Plus :size="20" />
 				</template>
 				{{ addLabel }}
+			</NcButton>
+			<NcButton
+				v-for="(entry, index) in addActions"
+				:key="`add-action-${index}`"
+				variant="tertiary"
+				:wide="!addTonal"
+				:class="{ 'cn-button--tonal': addTonal }"
+				data-testid="cn-object-list-widget-add-action"
+				@click="openCreateWith(entry.createDefaults)">
+				<template #icon>
+					<CnIcon v-if="entry.icon" :name="entry.icon" :size="20" />
+					<Plus v-else :size="20" />
+				</template>
+				{{ entry.label }}
 			</NcButton>
 		</div>
 		<!-- Upload affordance. A `dropZone` action already accepts a dropped
@@ -270,40 +377,59 @@
 			data-testid="object-list-upload-input"
 			@change="onUploadFilesSelected">
 		<CnFormDialog
-			v-if="showCreate && createSchema"
+			v-if="(showCreate || editingRow) && createSchema"
 			ref="createDialog"
 			:schema="createSchema"
-			:item="null"
+			:item="editingRow"
 			:register="content.register || ''"
-			:initialData="createInitialData"
+			:initialData="editingRow ? null : createInitialData"
 			:lockedFields="createLockedFields"
 			:size="formSize"
 			:columns="formColumns"
 			:includeFields="formIncludeFields"
 			:excludeFields="formExcludeFields"
 			:fieldOverrides="formFieldOverrides"
-			@confirm="onCreateConfirm"
-			@close="showCreate = false" />
+			@confirm="editingRow ? onEditConfirm($event) : onCreateConfirm($event)"
+			@close="closeForm" />
 	</div>
 </template>
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { translate as t } from '@nextcloud/l10n'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
 import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
+import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
+import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
+import innerHeading from '../../mixins/innerHeading.js'
+import { useObjectStore } from '../../store/index.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
+import { fillCountLabel } from '../../utils/fillCountLabel.js'
+import { formatMoney } from '../../utils/formatMetric.js'
+import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
+import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
+import { createActionState, listAddActions } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
+import { readPath } from '../../utils/readPath.js'
+import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
+import { actionForRow, fillRowTokens, hasRowTokens, resolveRowFilter, rowTokenField } from '../../utils/rowTokens.js'
+import { changedKeys } from '../../utils/saveEdited.js'
+import { evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
+import { HOST_WIDGET_ID, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
+import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
 
 /**
@@ -338,7 +464,9 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 export default {
 	name: 'CnObjectListWidget',
 
-	components: { CnDataTable, CnFormDialog, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
+	components: { CnDataTable, CnFormDialog, CnIcon, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
+
+	mixins: [innerHeading],
 
 	inject: {
 		/**
@@ -348,6 +476,10 @@ export default {
 		 * object. Null on dashboards (tokens then pass through unresolved).
 		 */
 		cnObjectContext: { default: null },
+		/** The page's row selection (CnDetailPage), for `content.rowSelection`. */
+		cnWidgetSelection: { from: WIDGET_SELECTION, default: null },
+		/** This widget's id on the page (CnDetailWidgetHost), the key it publishes under. */
+		cnHostWidgetId: { from: HOST_WIDGET_ID, default: null },
 		/**
 		 * Page-level workspace context (reactive `ref({})`) provided by
 		 * CnDashboardPage. Lets `@workspace.<key>` filter tokens resolve so a
@@ -366,6 +498,10 @@ export default {
 		 * an untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
+		/** The page's own record edit (CnDetailPage), for a column `toggle` that writes the record. */
+		cnRecordEdit: { default: null },
+		/** The host's cell formatters, for a column `toggle`'s `labelFormatter`. */
+		cnFormatters: { default: () => ({}) },
 		/**
 		 * Pre-bound `dispatchAction` provided by CnPageRenderer (router,
 		 * registry, handlers and openModal already wired). `rowActions` and
@@ -427,27 +563,96 @@ export default {
 		 * those carrying a selected value. Client-side over the fetched page,
 		 * like the rest of this widget's row set.
 		 *
+		 * `createAction` (one action of the `rowActions` shape) replaces the
+		 * list's own create form: every Add, here and in the host card's menu,
+		 * runs it instead, labelled with its `label`. Its `visibleWhen` is
+		 * evaluated against the page record, and while it fails the Add is
+		 * hidden and `hiddenNote` (a string, or `[{ when, text }]` where the
+		 * first holding entry wins) is shown in its place.
+		 *
+		 * `summary` (`{ text, counts }`) is a line under the rows: `{total}` is
+		 * the number of loaded rows and each `counts` key the number of loaded
+		 * rows its `visibleWhen`-shaped condition holds for.
+		 *
 		 * `hideHeader: true` drops the table's column header row (CnDataTable's
 		 * `hideHeader`), for a short list that reads as rows, not as a table.
 		 *
+		 * `rowIdField` (a dot-path) names the row field holding the id
+		 * `rowRoute` opens, for a row that links to another record.
+		 * `footnote` is a line under the table, through the host translate.
+		 *
+		 * `export` (`{ label?, format?, group? }`) offers the filtered list as a
+		 * download in the card's header; `group` shows it to one group only.
+		 * With `url` (and `params`, tokens such as `@objectId`) the button
+		 * downloads that app endpoint instead of OpenRegister's export.
+		 *
+		 * `endpointSource` (`{ url, params?, responsePath? }`) reads the rows
+		 * from an app endpoint instead of OpenRegister, for a list without
+		 * `register`/`schema`: rows at `responsePath` (default `results`),
+		 * the count at `total`. Such a list is read-only.
+		 *
+		 * `tableBleed: true` runs the table edge to edge in its card: in the
+		 * board look it goes under the card's side padding and its outer cells
+		 * take that padding, so the column text lines up with the card title.
+		 * Without it the table stays inside the padding.
+		 * `tableFrame: true` draws the table in a 1px frame with an 8px radius
+		 * inside the card's padding, a white head with a rule under it and
+		 * 18px outer insets (PqKassabon "Regels").
+		 * `headerSubtitle` is a line under the card title with the list's
+		 * counts: `{total}` and `{count:<field>=<value>}` ("{total} vastgelegd").
+		 * `headerNote` takes the same counts beside the card title instead.
+		 *
 		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
-		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, prompt?: string, emptyText?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, tableBleed?: boolean, tableFrame?: boolean}}
+		 * `children` (`{ register?, schema, filter, columns, reorder, rowActions,
+		 * … }`) shows each row's child records under it, as a list of the same
+		 * kind: `filter` names the link with an `@row.<field>` token
+		 * (`{ courseId: "@row.id" }`). The children of every row come from one
+		 * query on the list of parent values.
+		 *
+		 * @spec openspec/changes/zuiddrecht-pixel-gaps/specs/zuiddrecht-pixel-gaps/spec.md#requirement-small-opt-ins-from-the-decidiq-and-learniq-lanes
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowIdField?: string, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}, children?: object}}
+		 * @type {{register?: string, schema?: string, filter?: object, sort?: {field?: string, dir?: string}, limit?: number, extend?: Array<string>, columns?: Array, rowActions?: Array<object>, dropZone?: object, upload?: boolean, groupBy?: string, groupOrder?: Array<string>, groupLabel?: string, groupLabelResolve?: {register: string, schema: string, labelField?: string}, selectable?: boolean, bulkActions?: Array<object>, sortable?: boolean, facet?: {field: string, label?: string}, rowRoute?: string, rowRouteField?: string, rowRouteMap?: object, rowIdField?: string, rowRouteIdField?: string, createEndpoint?: {url: string, bodyKey?: string, extra?: object}, prompt?: string, emptyText?: string, footnote?: string, viewAllRoute?: string, viewAllQuery?: object, hideHeader?: boolean, export?: {label?: string, format?: ('csv'|'excel'), group?: string}}}
 		 */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * Rows handed in instead of fetched. The list then reads nothing
+		 * itself: where it would read again (after a write, a refused
+		 * reorder) it emits `rows-stale` for the owner to hand in new rows.
+		 * A `children` list gives each nested list its rows this way, from
+		 * one query for all parents.
+		 */
+		presetRows: {
+			type: Array,
+			default: null,
+		},
 	},
 
-	emits: ['created', 'row-click', 'row-aux-click', 'view-all', 'files-dropped'],
+	emits: ['created', 'updated', 'row-click', 'row-aux-click', 'view-all', 'files-dropped', 'header', 'rows-stale'],
 
 	data() {
 		return {
+			/** The current user's groups once a `footerLinks` entry with `group` asked for them; null before. */
+			footerGroups: null,
+			/** What the last reorder did, for the live region: the new place, or the server's refusal. */
+			reorderStatus: '',
 			rows: [],
+			/** Colour and icon per referenced id for each `badge` column that resolves them (`refLookSpecs`). */
+			refLooks: {},
+			/** The rows `content.readOnlyRows` adds after the list's own, tagged `_readOnly`. */
+			readOnlyRows: [],
 			loading: false,
 			error: '',
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
 			total: 0,
+			/** The card header's Download action once `content.export` offered it; null before. */
+			headerAction: null,
+			/** Whether the header was last told a counts line (`content.headerSubtitle`), so an empty one clears it. */
+			headerSubtitleShown: false,
 			/** Current 1-based page. Paging is SERVER-side (`_page`). */
 			page: 1,
 			/** Rows that fit the host cell; null = unconstrained (dashboards). */
@@ -463,6 +668,10 @@ export default {
 			fitStage: 0,
 			/** Whether the create dialog is open. */
 			showCreate: false,
+			/** The `createDefaults` of the extra add (`content.addActions`) that opened the form, or null. */
+			addActionDefaults: null,
+			/** The row the form edits (`content.editable`), or null while it creates. */
+			editingRow: null,
 			/**
 			 * The list's own schema definition, once fetched.
 			 *
@@ -487,12 +696,43 @@ export default {
 			 * override the manifest-declared default without mutating a prop.
 			 */
 			localSort: { ...(this.content.sort || {}) },
+			/** The column-head filters (`content.filterable`), `{ paramKey: values[] }`. */
+			headerFilters: {},
 			/** Facet values currently toggled on (`content.facet`). */
 			facetSelected: [],
+			/** Child rows per parent row id (`content.children`). */
+			childRows: {},
 		}
 	},
 
 	computed: {
+		/**
+		 * The class that marks the selected row (`content.rowSelection`), or
+		 * null when this list offers no row selection.
+		 *
+		 * @return {((row: object) => string)|null} The class per row.
+		 * @spec openspec/changes/side-card-follows-row/specs/side-card-follows-row/spec.md#requirement-a-list-publishes-its-rows-and-its-selected-row
+		 */
+		selectionRowClass() {
+			if (this.content.rowSelection !== true || !this.cnWidgetSelection || typeof this.cnHostWidgetId !== 'function') {
+				return null
+			}
+			const selected = this.cnWidgetSelection.entry(this.cnHostWidgetId()).selected
+			const idOf = (row) => String((row && (row.id ?? row['@self']?.id)) ?? '')
+			return (row) => (selected && idOf(row) !== '' && idOf(row) === idOf(selected) ? 'cn-object-list-widget__row--selected' : '')
+		},
+
+		/**
+		 * How the table draws its title column (`content.rowTitle`: link, plain,
+		 * text or strong), link when unset or unknown.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/board-log-table-plain-cells/specs/board-log-table-plain-cells/spec.md#requirement-a-tables-title-column-can-read-as-plain-text
+		 */
+		rowTitle() {
+			return ['plain', 'text', 'strong'].includes(this.content.rowTitle) ? this.content.rowTitle : 'link'
+		},
+
 		/**
 		 * Whether the table fits the widget's width (stage 1): `content.fitWidth`
 		 * when it says, else once the columns were measured not to fit.
@@ -630,6 +870,22 @@ export default {
 		 * schema property's `x-enum-labels`, completed here for the
 		 * manifest-column path rather than special-cased per column.
 		 */
+		/**
+		 * The `badge` columns that take their tone and icon from the record
+		 * they point at (`widgetProps.resolve: { register, schema, colorField?, iconField? }`).
+		 *
+		 * @return {Array<{key: string, register: string, schema: string, colorField: string, iconField: string}>}
+		 * @spec openspec/changes/object-list-badge-tone-from-record/specs/object-list-badge-tone-from-record/spec.md
+		 */
+		refLookSpecs() {
+			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
+			return cols
+				.filter((c) => c && typeof c === 'object' && c.widget === 'badge' && c.widgetProps && c.widgetProps.resolve)
+				.map((c) => ({ key: c.key, ...c.widgetProps.resolve }))
+				.filter((r) => typeof r.key === 'string' && r.key !== '' && r.register && r.schema && (r.colorField || r.iconField))
+				.map((r) => ({ key: r.key, register: r.register, schema: r.schema, colorField: r.colorField || '', iconField: r.iconField || '' }))
+		},
+
 		resolvedColumns() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
 			const sortableConfig = this.content.sortable
@@ -645,18 +901,55 @@ export default {
 				const title = prop && typeof prop.title === 'string' ? prop.title.trim() : ''
 				return title !== '' ? title : key
 			}
+			// CnDataTable gets no `:schema` here, so a column takes the
+			// schema property's `format` and enum (with its labels) itself,
+			// unless it says its own or draws a widget or formatter.
+			const withSchemaPresentation = (out) => {
+				const prop = props[out.key]
+				// A formatter draws the cell itself, but one that prints an enum's
+				// label reads it from the cell's property: hand it the schema's.
+				if (prop && out.formatter !== undefined && out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (labels && typeof labels === 'object') {
+						out.enum = prop.enum
+						out.enumLabels = labels
+					}
+					return out
+				}
+				// The `label` widget writes the enum's label, so it still takes the enum.
+				if (!prop || (out.widget !== undefined && out.widget !== 'label') || out.formatter !== undefined) {
+					return out
+				}
+				if (out.format === undefined && typeof prop.format === 'string' && prop.format !== '') {
+					out.format = prop.format
+				}
+				if (out.enum === undefined && Array.isArray(prop.enum) && prop.enum.length > 0) {
+					out.enum = prop.enum
+					const labels = prop.enumLabels || prop['x-enum-labels']
+					if (out.enumLabels === undefined && labels && typeof labels === 'object') {
+						out.enumLabels = labels
+					}
+				}
+				return out
+			}
 			const mapped = cols.map((c) => {
 				if (typeof c === 'string') {
-					return { key: c, label: headingFor(c) }
+					return withSchemaPresentation({ key: c, label: headingFor(c) })
 				}
 				const out = { key: c.key, label: c.label || headingFor(c.key) }
 				// `secondary` (a second, muted line under the cell) rides
 				// along too: the table draws it, and dropping it here took the
 				// list rows' second line away (zuiddrecht-pixel-gaps-3).
-				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow']) {
+				for (const k of ['format', 'widget', 'widgetProps', 'formatter', 'formatterOptions', 'align', 'width', 'type', 'enum', 'enumLabels', 'sortable', 'secondary', 'colorMap', 'grow', 'cellClass', 'filterable', 'filterField', 'emptyValue', 'emptyValueBy', 'emptyLabel', 'firstOf', 'secondaryLabels', 'secondaryRefs']) {
 					if (c[k] !== undefined) {
 						out[k] = c[k]
 					}
+				}
+				withSchemaPresentation(out)
+				const toggle = c.toggle ? this.cellToggleProps(c) : null
+				if (toggle !== null) {
+					out.widget = out.widget || 'switch'
+					out.widgetProps = { ...(out.widgetProps || {}), ...toggle }
 				}
 				// `content.sortable` (bool = every column, array = the listed
 				// keys) fills in `sortable` for a column that did not already
@@ -666,6 +959,9 @@ export default {
 				if (out.sortable === undefined && sortableConfig !== undefined) {
 					out.sortable = sortableConfig === true
 						|| (Array.isArray(sortableConfig) && sortableConfig.includes(out.key))
+				}
+				if (out.widget === 'badge' && this.refLooks[out.key]) {
+					out.widgetProps = { ...(out.widgetProps || {}), looks: this.refLooks[out.key] }
 				}
 				return out
 			})
@@ -701,7 +997,7 @@ export default {
 		 */
 		mappedRowActions() {
 			const declared = Array.isArray(this.content.rowActions) ? this.content.rowActions : []
-			return declared
+			const mapped = declared
 				.filter((a) => a && typeof a === 'object')
 				.map((action) => ({
 					label: action.label,
@@ -711,6 +1007,67 @@ export default {
 					...this.rowActionLink(action),
 					handler: (row) => this.runRowAction(action, row),
 				}))
+			if (this.content.editable === true) {
+				mapped.unshift({ label: t('nextcloud-vue', 'Edit'), icon: 'Pencil', handler: (row) => this.openEdit(row) })
+			}
+			if (this.content.deletable === true) {
+				mapped.push({ label: t('nextcloud-vue', 'Delete'), icon: 'TrashCanOutline', destructive: true, handler: (row) => this.deleteRow(row) })
+			}
+			if (this.reorderField === '') {
+				return mapped
+			}
+			// The keyboard half of the drag: one place up or down.
+			return [
+				...mapped,
+				{ label: t('nextcloud-vue', 'Move up'), icon: 'ArrowUp', handler: (row) => this.moveRowBy(row, -1) },
+				{ label: t('nextcloud-vue', 'Move down'), icon: 'ArrowDown', handler: (row) => this.moveRowBy(row, 1) },
+			]
+		},
+
+		/**
+		 * The field a reorderable list is ordered by (`content.reorder.field`),
+		 * or '' when the list does not reorder. A grouped list does not.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		reorderField() {
+			const reorder = this.content && this.content.reorder
+			const field = reorder && typeof reorder === 'object' ? reorder.field : ''
+			return typeof field === 'string' && field !== '' && !this.isGrouped ? field : ''
+		},
+
+		/**
+		 * The declared child list (`content.children`), or null. A grouped
+		 * list shows no children.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		childrenConfig() {
+			const children = this.content && this.content.children
+			if (!children || typeof children !== 'object' || Array.isArray(children) || !children.schema || this.isGrouped) {
+				return null
+			}
+			return children
+		},
+
+		/**
+		 * How a child points at its row: the child `filter` key whose value
+		 * is an `@row.<field>` token, and that row field. Null without one.
+		 *
+		 * @return {{key: string, field: string}|null}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		childLink() {
+			const filter = (this.childrenConfig && this.childrenConfig.filter) || {}
+			for (const [key, value] of Object.entries(filter)) {
+				const field = rowTokenField(value)
+				if (field !== '') {
+					return { key, field }
+				}
+			}
+			return null
 		},
 
 		/**
@@ -866,8 +1223,9 @@ export default {
 
 		/**
 		 * The faceted rows bucketed by `content.groupBy`, one entry per
-		 * distinct value in first-seen order (matching how the rows already
-		 * arrived — server-sorted). A `$ref` group key that resolves to an
+		 * distinct value: the keys `content.groupOrder` lists first, in that
+		 * order, then the others in first-seen order (matching how the rows
+		 * already arrived — server-sorted). A `$ref` group key that resolves to an
 		 * object (an `extend`-inlined reference) groups by its `id`, so
 		 * `groupBy: 'informatieobjecttype'` groups the actual referenced
 		 * objects rather than one group per string-ified object.
@@ -897,7 +1255,12 @@ export default {
 				}
 				byKey.get(key).rows.push(row)
 			}
-			return order.map((key) => byKey.get(key))
+			const first = Array.isArray(this.content.groupOrder) ? this.content.groupOrder.map(String) : []
+			const rank = (key) => (first.includes(key) ? first.indexOf(key) : first.length)
+			return order
+				.map((key, index) => ({ key, index }))
+				.sort((a, b) => rank(a.key) - rank(b.key) || a.index - b.index)
+				.map(({ key }) => byKey.get(key))
 		},
 
 		/** Empty-state text (overridable via `content.emptyText`). */
@@ -919,6 +1282,56 @@ export default {
 		},
 
 		/**
+		 * `content.footerLinks` (`[{ label, route?, query?, href?, note?, group? }]`)
+		 * ready to draw: labels and notes through the host translate, a `route`
+		 * with its token-resolved `query` as a router location and its href, an
+		 * `href` as given. A link with `group` shows only to that group's
+		 * members, and not before the groups are known.
+		 *
+		 * @spec openspec/changes/object-list-footer-links/specs/object-list/spec.md#requirement-an-object-list-can-end-with-a-row-of-links
+		 * @return {Array<{key: string, label: string, note: string, href: string, location: object|null}>}
+		 */
+		footerLinks() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const out = []
+			links.forEach((link, index) => {
+				if (!link || typeof link.label !== 'string' || link.label === '') {
+					return
+				}
+				if (typeof link.group === 'string' && link.group !== '' && !(this.footerGroups || []).includes(link.group)) {
+					return
+				}
+				const location = typeof link.route === 'string' && link.route !== ''
+					? { name: link.route, query: resolveFilterTokens(link.query || {}, this.tokenCtx) }
+					: null
+				const href = location ? resolveHref(location, this.$router) : (typeof link.href === 'string' ? link.href : '')
+				if (!location && href === '') {
+					return
+				}
+				out.push({
+					key: `link-${index}`,
+					label: fn(link.label),
+					note: typeof link.note === 'string' && link.note !== '' ? fn(link.note) : '',
+					href,
+					location,
+				})
+			})
+			return out
+		},
+
+		/**
+		 * `content.footnote` run through the host translate function, or ''.
+		 *
+		 * @return {string}
+		 */
+		resolvedFootnote() {
+			const note = typeof this.content.footnote === 'string' ? this.content.footnote : ''
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return note ? fn(note) : ''
+		},
+
+		/**
 		 * The rows actually rendered: capped to what fits the host grid cell
 		 * (ADR-062 — content adapts to the cell, never a nested scrollbar).
 		 * Unconstrained on surfaces without a fixed-height cell (dashboards
@@ -927,7 +1340,8 @@ export default {
 		 * @return {Array<object>}
 		 */
 		visibleRows() {
-			return this.fitRows ? this.rows.slice(0, this.fitRows) : this.rows
+			const rows = this.readOnlyRows.length > 0 ? [...this.rows, ...this.readOnlyRows] : this.rows
+			return this.fitRows ? rows.slice(0, this.fitRows) : rows
 		},
 
 		/**
@@ -940,6 +1354,9 @@ export default {
 		 * @return {number}
 		 */
 		pageSize() {
+			if (this.presetRows !== null) {
+				return Math.max(this.presetRows.length, 1)
+			}
 			return Number((this.content || {}).limit) || 25
 		},
 
@@ -973,7 +1390,7 @@ export default {
 
 		/** Whether the designed empty state is what the widget is showing. */
 		showingEmptyState() {
-			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0
+			return !this.waitingForContext && !this.error && !this.loading && this.rows.length === 0 && this.readOnlyRows.length === 0
 		},
 
 		/**
@@ -1023,7 +1440,74 @@ export default {
 		/** Whether the create affordance renders (on by default; `content.allowCreate: false` opts out). */
 		allowCreate() {
 			const c = this.content || {}
+			if (this.createState.action) {
+				return c.allowCreate !== false && this.createState.visible
+			}
 			return c.allowCreate !== false && Boolean(c.register) && Boolean(c.schema)
+		},
+
+		/**
+		 * The declared `content.createAction` against the page record: the
+		 * action, whether it shows, and the untranslated note when it does not.
+		 *
+		 * @return {{action: (object|null), visible: boolean, note: string}}
+		 */
+		createState() {
+			return createActionState(this.content, this.objectCtx ? this.objectCtx.object : null)
+		},
+
+		/**
+		 * Why the create action is withheld, through the host translate, or ''.
+		 *
+		 * @return {string}
+		 */
+		createHiddenNote() {
+			const note = this.createState.note
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return note ? fn(note) : ''
+		},
+
+		/**
+		 * `content.summary` filled in: `{total}` is the number of loaded rows
+		 * and every `counts` key the number of loaded rows its condition holds
+		 * for. The text goes through the host translate first, so a catalogue
+		 * entry keeps its placeholders.
+		 *
+		 * @return {string}
+		 */
+		/**
+		 * `content.headerSubtitle` filled in (`{total}`, `{count:field=value}`),
+		 * or '' without one.
+		 *
+		 * @return {string}
+		 */
+		headerSubtitleText() {
+			return this.countLine(this.content.headerSubtitle)
+		},
+
+		/**
+		 * `content.headerNote` filled in like `headerSubtitle`, for beside the
+		 * card title ("4 vastgelegd"), or '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/object-list-header-note/specs/object-list-header-note/spec.md#requirement-an-object-list-can-say-its-counts-beside-its-card-title
+		 */
+		headerNoteText() {
+			return this.countLine(this.content.headerNote)
+		},
+
+		resolvedSummary() {
+			const summary = this.content.summary
+			if (!summary || typeof summary.text !== 'string' || summary.text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			const values = { total: this.rows.length }
+			const counts = summary.counts && typeof summary.counts === 'object' ? summary.counts : {}
+			for (const [key, cond] of Object.entries(counts)) {
+				values[key] = this.rows.filter((row) => evaluateVisibleWhenLocal(cond, row)).length
+			}
+			return fn(summary.text).replace(/\{(\w+)\}/g, (match, key) => (key in values ? String(values[key]) : match))
 		},
 
 		/**
@@ -1073,15 +1557,117 @@ export default {
 		createInitialData() {
 			const props = (this.createSchema && this.createSchema.properties) || {}
 			const out = { ...this.filterSeed }
-			const defaults = this.content && this.content.createDefaults
-			if (defaults && typeof defaults === 'object' && !Array.isArray(defaults)) {
-				for (const [key, value] of Object.entries(defaults)) {
+			// A new row of a reorderable list goes last.
+			if (this.reorderField !== '' && this.reorderField in props) {
+				out[this.reorderField] = Math.max(this.total, this.rows.length) + 1
+			}
+			const declared = this.content && this.content.createDefaults
+			// Tokens resolve as the filter's do: `@objectId` is the page's object.
+			const defaults = declared && typeof declared === 'object' && !Array.isArray(declared) ? resolveFilterTokens(declared, this.tokenCtx) : null
+			const extra = this.addActionDefaults ? resolveFilterTokens(this.addActionDefaults, this.tokenCtx) : null
+			for (const set of [defaults, extra]) {
+				if (!set) {
+					continue
+				}
+				for (const [key, value] of Object.entries(set)) {
 					if (key in props && value !== undefined) {
 						out[key] = value
 					}
 				}
 			}
 			return out
+		},
+
+		/**
+		 * The totals under the list (`content.totals`: `[{ label, path, format?,
+		 * currency?, currencyField?, emphasis? }]`), read from the record the
+		 * list sits on: a quote's subtotal, VAT and total under its lines.
+		 * `format: "currency"` writes a money amount in the reader's language;
+		 * a row without a value is left out. Labels go through the app's
+		 * translate, then their `{path}` tokens are filled from the record
+		 * ("Btw {vatRate}%").
+		 *
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-end-in-the-totals-of-the-record-it-sits-on
+		 * @return {Array<{key: string, label: string, value: string, emphasis: boolean}>}
+		 */
+		totalRows() {
+			const rows = Array.isArray(this.content.totals) ? this.content.totals : []
+			const record = this.objectCtx ? (this.objectCtx.object || this.objectCtx.objectData || null) : null
+			if (rows.length === 0 || !record) {
+				return []
+			}
+			const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			return rows
+				.filter((row) => row && typeof row.path === 'string' && row.path !== '')
+				.map((row, index) => {
+					const raw = readPath(record, row.path)
+					const value = row.format === 'currency'
+						? formatMoney(raw, { currency: row.currency, currencyField: row.currencyField }, record, null)
+						: (raw === null || raw === undefined ? '' : String(raw))
+					const label = tr(String(row.label || row.path)).replace(/\{([\w.@-]+)\}/g, (match, path) => {
+						const filled = readPath(record, path)
+						return filled === null || filled === undefined || typeof filled === 'object' ? '' : String(filled)
+					})
+					return { key: `${index}-${row.path}`, label, value, emphasis: row.emphasis === true }
+				})
+				.filter((row) => row.value !== '')
+		},
+
+		/**
+		 * Whether the Add buttons are the board's tonal pill
+		 * (`content.addVariant: "tonal"`, board PqLead "Product toevoegen")
+		 * instead of the wide tertiary button.
+		 *
+		 * @spec openspec/changes/board-tonal-card-actions/specs/board-tonal-card-actions/spec.md#requirement-an-object-list-add-can-be-the-tonal-pill
+		 * @return {boolean}
+		 */
+		addTonal() {
+			return this.content?.addVariant === 'tonal'
+		},
+
+		/**
+		 * Whether the Add sits in the card's title row (`content.addPlacement:
+		 * "header"`) instead of below the rows.
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-list-can-put-its-add-in-the-title-row
+		 * @return {boolean}
+		 */
+		addInHeader() {
+			return this.content?.addPlacement === 'header'
+		},
+
+		/**
+		 * The title-row Add reported to the card, or null: an outlined button
+		 * with `content.addIcon` (default Plus).
+		 *
+		 * @spec openspec/changes/list-add-in-panel-heading/specs/object-list/spec.md#requirement-a-list-can-put-its-add-in-the-title-row
+		 * @return {object|null}
+		 */
+		headerAddAction() {
+			if (!this.addInHeader || !this.allowCreate || this.waitingForContext) {
+				return null
+			}
+			return {
+				label: this.addLabel,
+				icon: typeof this.content.addIcon === 'string' && this.content.addIcon !== '' ? this.content.addIcon : 'Plus',
+				add: true,
+				variant: 'secondary',
+				run: () => this.openCreate(),
+			}
+		},
+
+		/**
+		 * The extra adds (`content.addActions`: `[{ label, icon?, createDefaults? }]`),
+		 * each opening this list's create form with its own defaults over the
+		 * list's (board PqOfferte "Eigen regel toevoegen"). Labels go through the
+		 * app's translate. Empty without create, or while a declared
+		 * `createAction` replaces the form.
+		 *
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+		 * @return {Array<{label: string, icon: string, createDefaults: object|null}>}
+		 */
+		addActions() {
+			return listAddActions(this.content, this.allowCreate && !this.createState.action, this.cnTranslate)
 		},
 
 		/**
@@ -1140,6 +1726,11 @@ export default {
 			// `prompt`. It used to print raw, so a Dutch user read the English
 			// manifest string. A label an app already translated has no key
 			// of its own in the catalogue and comes back unchanged.
+			const action = this.createState.action
+			if (action && typeof action.label === 'string' && action.label !== '') {
+				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+				return fn(action.label)
+			}
 			if (this.content.addLabel) {
 				const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
 				return fn(this.content.addLabel)
@@ -1160,6 +1751,7 @@ export default {
 				// (`content.sortable`) overrides the manifest default without
 				// touching the prop, and the fetch must follow that override.
 				sort: this.localSort || {},
+				headerFilters: this.headerFilters,
 				limit: c.limit || 25,
 				objectId: this.objectCtx ? this.objectCtx.objectId : null,
 			})
@@ -1167,6 +1759,42 @@ export default {
 	},
 
 	watch: {
+		rows() {
+			this.loadRefLooks()
+		},
+
+		presetRows(next) {
+			if (next !== null) {
+				this.rows = [...next]
+				this.total = this.rows.length
+			}
+		},
+
+		facetedRows: {
+			immediate: true,
+			handler() {
+				this.publishSelectionRows()
+			},
+		},
+
+		/** The counts under the card title follow the rows (`content.headerSubtitle`). */
+		headerSubtitleText() {
+			this.emitHeader()
+		},
+
+		/** The title-row Add comes and goes with create rights (`content.addPlacement`). */
+		headerAddAction: {
+			immediate: true,
+			handler() {
+				this.emitHeader()
+			},
+		},
+
+		/** The counts beside the card title follow the rows (`content.headerNote`). */
+		headerNoteText() {
+			this.emitHeader()
+		},
+
 		sourceKey() {
 			// The query changed, so page 3 of the OLD result set means nothing
 			// against the new one — and an out-of-range `_page` returns an empty
@@ -1197,8 +1825,17 @@ export default {
 	},
 
 	mounted() {
+		if (this.presetRows !== null) {
+			// A nested list: its owner reads the rows and keeps them current.
+			this.rows = [...this.presetRows]
+			this.total = this.rows.length
+			this.loadHeadingsIfNeeded()
+			return
+		}
 		this.fetchRows()
 		this.loadHeadingsIfNeeded()
+		this.offerExport()
+		this.loadFooterGroups()
 		// A table wider than the widget fits its columns to the width instead of
 		// scrolling sideways (no inner scrollbars).
 		if (typeof ResizeObserver !== 'undefined') {
@@ -1250,6 +1887,385 @@ export default {
 
 	methods: {
 		/**
+		 * Read the colour and icon names the `refLookSpecs` columns need for
+		 * the ids in the rows, one batch per column. A failed read leaves the
+		 * badge as declared.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-badge-tone-from-record/specs/object-list-badge-tone-from-record/spec.md
+		 */
+		async loadRefLooks() {
+			if (this.refLookSpecs.length === 0) {
+				return
+			}
+			if (!this._refLookResolver) {
+				this._refLookResolver = createRefLabelResolver(() => {
+					try {
+						return useObjectStore()
+					} catch {
+						return null
+					}
+				})
+			}
+			const read = (spec, ids, name) => (name
+				? this._refLookResolver.resolve(spec.register, spec.schema, ids, name, { strict: true }).catch(() => ({}))
+				: Promise.resolve({}))
+			await Promise.all(this.refLookSpecs.map(async (spec) => {
+				const known = this.refLooks[spec.key] || {}
+				const ids = [...new Set(this.rows
+					.map((row) => objectFieldValue(row, spec.key))
+					.filter((id) => typeof id === 'string' && id !== '' && !Object.hasOwn(known, id)))]
+				if (ids.length === 0) {
+					return
+				}
+				const [colors, icons] = await Promise.all([read(spec, ids, spec.colorField), read(spec, ids, spec.iconField)])
+				const found = {}
+				ids.forEach((id) => {
+					found[id] = { color: (colors && colors[id]) || null, icon: (icons && icons[id]) || null }
+				})
+				this.refLooks = { ...this.refLooks, [spec.key]: { ...(this.refLooks[spec.key] || {}), ...found } }
+			}))
+		},
+
+		/**
+		 * Offer `content.export` as a button in the card's header: the list as
+		 * it is filtered here, through OpenRegister's export (which applies its
+		 * own read rights to every row). `group` keeps the button to the members
+		 * of one Nextcloud group, a role such as AI oversight; it hides the
+		 * button, and the export endpoint still decides what anyone may read.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/widget-subtitle-and-list-export/specs/object-list-widget/spec.md#requirement-a-list-can-offer-its-rows-as-an-export
+		 */
+		/**
+		 * The content of one row's child list: the declared `children` with
+		 * its `@row` tokens resolved against the row and the parent's
+		 * register when it names none.
+		 *
+		 * @param {object} row The parent row.
+		 * @return {object}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		childContentFor(row) {
+			const children = this.childrenConfig || {}
+			return {
+				...children,
+				register: children.register || (this.content || {}).register,
+				filter: resolveRowFilter(children.filter, row),
+			}
+		},
+
+		/**
+		 * The child rows of one row, as last read.
+		 *
+		 * @param {object} row The parent row.
+		 * @return {Array<object>}
+		 */
+		childRowsFor(row) {
+			const link = this.childLink
+			if (!link) {
+				return []
+			}
+			const value = resolveRowFilter({ v: `@row.${link.field}` }, row).v
+			return this.childRows[String(value)] || []
+		},
+
+		/**
+		 * Read the children of every loaded row in one query (`<link>[]=` the
+		 * row values, page by page) and file them under their row.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-children/specs/object-list-widget/spec.md#requirement-a-list-can-show-each-rows-child-records-under-it
+		 */
+		/**
+		 * Read the rows `content.readOnlyRows` adds after the list's own:
+		 * `{ url, responsePath?, where? }`, an app endpoint (tokens such as
+		 * `@objectId` in the url), narrowed by `where` (`{ field: value }` or
+		 * `{ field: [values] }`). Each row is tagged `_readOnly`. A read that
+		 * fails adds nothing.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-read-only-rows/specs/object-list-widget/spec.md#requirement-a-list-can-add-read-only-rows-from-an-endpoint
+		 */
+		async fetchReadOnlyRows() {
+			const config = this.content && this.content.readOnlyRows
+			if (!config || typeof config !== 'object' || typeof config.url !== 'string' || config.url === '') {
+				this.readOnlyRows = []
+				return
+			}
+			let data = null
+			try {
+				data = await fetchEndpointSource({ url: config.url, responsePath: config.responsePath || '' }, this.tokenCtx)
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load the read-only rows:', e)
+			}
+			const where = config.where && typeof config.where === 'object' ? Object.entries(config.where) : []
+			const matches = (row) => where.every(([field, want]) => {
+				const value = readPath(row, field)
+				return Array.isArray(want) ? want.map(String).includes(String(value)) : String(value) === String(want)
+			})
+			this.readOnlyRows = (Array.isArray(data) ? data : [])
+				.filter((row) => row && typeof row === 'object' && matches(row))
+				.map((row) => ({ ...row, _readOnly: true }))
+		},
+
+		async fetchChildren() {
+			const children = this.childrenConfig
+			const link = this.childLink
+			if (!children || !link) {
+				this.childRows = {}
+				return
+			}
+			const values = [...new Set(this.rows
+				.map((row) => resolveRowFilter({ v: `@row.${link.field}` }, row).v)
+				.filter((v) => v !== undefined && v !== null && v !== '')
+				.map(String))]
+			if (values.length === 0) {
+				this.childRows = {}
+				return
+			}
+			const register = children.register || (this.content || {}).register
+			const params = { [link.key]: values, _lang: getLanguage() }
+			for (const [k, v] of Object.entries(resolveFilterTokens(children.filter || {}, this.tokenCtx))) {
+				if (k !== link.key && rowTokenField(v) === '' && v !== '' && v !== null && v !== undefined && typeof v !== 'object') {
+					params[k] = v
+				}
+			}
+			const order = children.reorder && children.reorder.field
+			if (typeof order === 'string' && order !== '') {
+				params[`_order[${order}]`] = 'asc'
+			} else if (children.sort && children.sort.field) {
+				params[`_order[${children.sort.field}]`] = children.sort.dir === 'desc' ? 'desc' : 'asc'
+			}
+			if (Array.isArray(children.extend) && children.extend.length > 0) {
+				params._extend = children.extend.filter((e) => typeof e === 'string' && e !== '')
+			}
+			const limit = Number(children.limit) || 500
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register, schema: children.schema })
+				const grouped = {}
+				for (let page = 1; ; page++) {
+					const res = await axios.get(url, { params: { ...params, _limit: limit, _page: page } })
+					const results = (res && res.data && res.data.results) || []
+					for (const child of results) {
+						const key = String(objectFieldValue(child, link.key))
+						if (values.includes(key)) {
+							(grouped[key] = grouped[key] || []).push(child)
+						}
+					}
+					const total = res && res.data && typeof res.data.total === 'number' ? res.data.total : results.length
+					if (results.length < limit || page * limit >= total) {
+						break
+					}
+				}
+				this.childRows = grouped
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load child rows:', e)
+				this.childRows = {}
+			}
+		},
+
+		/**
+		 * The export URL for this list as it is filtered here.
+		 *
+		 * @param {'csv'|'excel'} format The export format.
+		 * @return {string} The URL.
+		 */
+		exportUrl(format) {
+			return buildExportUrl(this.content.register, this.content.schema, this.resolvedFilter, format)
+		},
+
+		/**
+		 * The download URL of an `export` that names an app endpoint: its
+		 * `url` and `params` resolved against the record, '' while a required
+		 * token is unresolved.
+		 *
+		 * @param {{url: string, params?: object}} config The export config.
+		 * @return {string} The URL under the Nextcloud base, or ''.
+		 * @spec openspec/changes/object-list-endpoint-rows/specs/object-list-widget/spec.md#requirement-a-list-can-read-its-rows-from-an-app-endpoint
+		 */
+		endpointExportUrl(config) {
+			const request = resolveEndpointRequest({ url: config.url, params: config.params || {} }, this.tokenCtx)
+			if (request.blocked) {
+				return ''
+			}
+			const base = /^https?:\/\//i.test(request.url) ? request.url : generateUrl(request.url)
+			const query = new URLSearchParams(Object.entries(request.params).map(([key, value]) => [key, String(value)])).toString()
+			return query === '' ? base : `${base}${base.includes('?') ? '&' : '?'}${query}`
+		},
+
+		/**
+		 * Read the rows from `content.endpointSource`: rows at its
+		 * `responsePath` (default `results`), the count at `total`.
+		 *
+		 * @param {{url: string, params?: object, responsePath?: string}} source The endpoint.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-endpoint-rows/specs/object-list-widget/spec.md#requirement-a-list-can-read-its-rows-from-an-app-endpoint
+		 */
+		async fetchEndpointRows(source) {
+			this.loading = true
+			this.error = ''
+			try {
+				const body = await fetchEndpointSource({ url: source.url, method: source.method, params: source.params || {} }, this.tokenCtx)
+				const rows = getByPath(body, typeof source.responsePath === 'string' && source.responsePath !== '' ? source.responsePath : 'results')
+				this.rows = Array.isArray(rows) ? rows : []
+				this.total = body && typeof body.total === 'number' ? body.total : this.rows.length
+				this.$nextTick(() => {
+					this.measureFit()
+					this.measureWidthFit()
+				})
+			} catch (e) {
+				// eslint-disable-next-line no-console
+				console.warn('[CnObjectListWidget] failed to load the endpoint rows:', e)
+				this.error = endpointErrorMessage(e)
+				this.rows = []
+				this.total = 0
+			} finally {
+				this.loading = false
+			}
+		},
+
+		async offerExport() {
+			const config = this.content && this.content.export
+			const endpointUrl = config && typeof config.url === 'string' && config.url !== '' ? this.endpointExportUrl(config) : ''
+			if (!config || typeof config !== 'object' || (!endpointUrl && (!this.content.register || !this.content.schema))) {
+				return
+			}
+			if (typeof config.group === 'string' && config.group !== '') {
+				const groups = await getCurrentUserGroups().catch(() => [])
+				if (!groups.includes(config.group)) {
+					return
+				}
+			}
+			const format = config.format === 'excel' ? 'excel' : 'csv'
+			const label = typeof config.label === 'string' && config.label !== '' ? (typeof this.cnTranslate === 'function' ? this.cnTranslate(config.label) : config.label) : t('nextcloud-vue', 'Download')
+			/**
+			 * @event header The card header's Download action for the list as
+			 * filtered here (`content.export`), handed to the host card.
+			 * @type {{action: {label: string, icon: string, run: Function}}}
+			 */
+			this.headerAction = {
+				label,
+				icon: 'Download',
+				run: () => window.location.assign(endpointUrl || this.exportUrl(format)),
+			}
+			this.emitHeader()
+		},
+
+		/**
+		 * A counts template (`{total}`, `{count:<field>=<value>}`) translated and
+		 * filled from the rows, or '' without one.
+		 *
+		 * @param {unknown} text The template.
+		 * @return {string}
+		 */
+		countLine(text) {
+			if (typeof text !== 'string' || text === '') {
+				return ''
+			}
+			const fn = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			return fillCountLabel(fn(text), this.total || this.rows.length, this.rows)
+		},
+
+		/**
+		 * Tell the card around this list what its header shows: the Download
+		 * action (`content.export`), the counts line under the title
+		 * (`content.headerSubtitle`) and the note beside it
+		 * (`content.headerNote`). Nothing when the list has none of them.
+		 *
+		 * @spec openspec/changes/widget-header-subtitle-counts/specs/widget-header-subtitle-counts/spec.md#requirement-a-list-can-say-its-counts-under-its-card-title
+		 */
+		emitHeader() {
+			const subtitle = this.headerSubtitleText
+			const note = this.headerNoteText
+			// A line shown before is cleared with an empty one, so the card does
+			// not keep a stale count; a list that never had one stays silent.
+			const add = this.headerAddAction
+			if (!this.headerAction && !add && subtitle === '' && note === '' && !this.headerSubtitleShown) {
+				return
+			}
+			this.headerSubtitleShown = subtitle !== '' || note !== '' || add !== null
+			/**
+			 * @event header The card header's parts: the Download action for the
+			 * list as filtered here (`content.export`) and the counts line under
+			 * the title (`content.headerSubtitle`).
+			 * @type {{action?: {label: string, icon: string, run: Function}, subtitle: string}}
+			 */
+			this.$emit('header', {
+				...(this.headerAction ? { action: this.headerAction } : {}),
+				...(add ? { actions: [add] } : {}),
+				subtitle,
+				note,
+			})
+		},
+
+		/**
+		 * Move a row one place up or down (the row actions).
+		 *
+		 * @param {object} row The row.
+		 * @param {number} delta -1 for up, 1 for down.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		moveRowBy(row, delta) {
+			const from = this.rows.findIndex((r) => rowIdOf(r) === rowIdOf(row))
+			return this.reorderTo(from, from + delta)
+		},
+
+		/**
+		 * A row dragged to another place in the table.
+		 *
+		 * @param {{from: number, to: number}} move The old and new index.
+		 * @return {Promise<void>}
+		 */
+		onRowMove({ from, to } = {}) {
+			return this.reorderTo(from, to)
+		},
+
+		/**
+		 * Put the row at `from` at `to`, renumber the rows from this page's
+		 * first place, and write the order field on the rows whose number
+		 * changed, as a PATCH of that field only. A refusal is read out and the
+		 * list is read again.
+		 *
+		 * @param {number} from The index moved from.
+		 * @param {number} to The index moved to.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-reorder-order-field/specs/object-list-widget/spec.md#requirement-a-list-can-be-reordered-by-its-order-field
+		 */
+		async reorderTo(from, to) {
+			const field = this.reorderField
+			if (field === '' || from < 0 || to < 0 || from >= this.rows.length || to >= this.rows.length || from === to) {
+				return
+			}
+			const moved = this.rows[from]
+			const { rows, changes } = renumberRows(moveIndex(this.rows, from, to), field, (this.page - 1) * this.pageSize + 1)
+			this.rows = rows
+			const c = this.content || {}
+			try {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				for (const change of changes) {
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id: change.id }),
+						{ [field]: change.value },
+					)
+				}
+				this.reorderStatus = t('nextcloud-vue', '{name} moved to place {place} of {total}', {
+					name: objectDisplayName(moved || {}) || t('nextcloud-vue', 'Row'),
+					place: (this.page - 1) * this.pageSize + to + 1,
+					total: Math.max(this.total, this.rows.length),
+				})
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				this.reorderStatus = (data && (data.message || data.error)) || t('nextcloud-vue', 'The new order could not be saved.')
+				await this.fetchRows()
+			}
+		},
+
+		/**
 		 * Fetch the object rows from OpenRegister. Lazily imports the
 		 * axios/router helpers (the library never hard-depends on them at module
 		 * load — same pattern as CnStatWidget / CnFilesWidget).
@@ -1257,7 +2273,20 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchRows() {
+			if (this.presetRows !== null) {
+				/**
+				 * @event rows-stale The rows handed in through `presetRows` are
+				 * out of date (after a write or a refused reorder); the owner
+				 * reads them again.
+				 */
+				this.$emit('rows-stale')
+				return
+			}
 			const c = this.content || {}
+			if ((!c.register || !c.schema) && c.endpointSource && typeof c.endpointSource.url === 'string' && c.endpointSource.url !== '') {
+				await this.fetchEndpointRows(c.endpointSource)
+				return
+			}
 			if (!c.register || !c.schema) {
 				this.rows = []
 				this.error = ''
@@ -1286,8 +2315,13 @@ export default {
 				// It doubles as the PAGE SIZE: one fetch is exactly one page, so
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
-				const params = { _limit: this.pageSize, _page: this.page }
-				if (this.localSort && this.localSort.field) {
+				// `_lang` asks OpenRegister for translatable fields in the
+				// user's language (REQ-OR-003).
+				const params = { _limit: this.pageSize, _page: this.page, _lang: getLanguage() }
+				if (this.reorderField !== '') {
+					// A reorderable list is always shown in its stored order.
+					params[`_order[${this.reorderField}]`] = 'asc'
+				} else if (this.localSort && this.localSort.field) {
 					params[`_order[${this.localSort.field}]`] = (this.localSort.dir === 'desc' ? 'desc' : 'asc')
 				}
 				// `content.extend` → OpenRegister's repeated `_extend[]`. axios
@@ -1308,7 +2342,12 @@ export default {
 				const filter = this.resolvedFilter
 				if (filter && typeof filter === 'object') {
 					for (const [k, v] of Object.entries(filter)) {
-						if (v && typeof v === 'object') {
+						if (Array.isArray(v)) {
+							// A list matches any of its values: `field[]=a&field[]=b`.
+							if (v.length > 0) {
+								params[k] = v
+							}
+						} else if (v && typeof v === 'object') {
 							for (const [op, ov] of Object.entries(v)) {
 								params[`${k}[${op}]`] = ov
 							}
@@ -1317,9 +2356,12 @@ export default {
 						}
 					}
 				}
+				Object.assign(params, headerFilterParams(this.headerFilters))
 				const res = await axios.get(url, { params })
 				this.rows = (res && res.data && res.data.results) || []
 				this.total = (res && res.data && typeof res.data.total === 'number') ? res.data.total : this.rows.length
+				await this.fetchChildren()
+				await this.fetchReadOnlyRows()
 				this.$nextTick(() => {
 					this.measureFit()
 					this.measureWidthFit()
@@ -1363,7 +2405,8 @@ export default {
 		 * is the budget). Measures the cell's remaining height below the table
 		 * top, reserves room for the "View all" footer, and derives the row
 		 * budget from the first rendered row's height. No-ops (fitRows null =
-		 * render all fetched rows) outside a fixed-height cell.
+		 * render all fetched rows) outside a fixed-height cell and inside a
+		 * tab panel, unless the content sets `fit: true`.
 		 *
 		 * @return {void}
 		 */
@@ -1376,12 +2419,27 @@ export default {
 			// the bottom, the budget floors to one row, and the rest are clipped.
 			// Only an explicit `false` opts out, so a manifest that never sets the
 			// key keeps the ADR-062 behaviour unchanged.
-			if (this.content && this.content.fit === false) {
+			if ((this.content && this.content.fit === false) || this.presetRows !== null) {
 				this.fitRows = null
 				return
 			}
 			const cell = this.$el && this.$el.closest && this.$el.closest('.grid-stack-item-content')
 			if (!cell) {
+				this.fitRows = null
+				return
+			}
+			// A list inside a tab panel does not own the cell, as on a
+			// dashboard: it renders every fetched row unless the content asks
+			// for the fit with `fit: true`.
+			const panel = this.$el.closest('[role="tabpanel"]')
+			if (panel && cell.contains(panel) && !(this.content && this.content.fit === true)) {
+				this.fitRows = null
+				return
+			}
+			// A cell that sizes to its content takes the list's height, so the
+			// cell is no budget; a row maximum ("4") still is.
+			const item = cell.closest('.grid-stack-item')
+			if (item && item.getAttribute('gs-size-to-content') === 'true' && !(this.content && this.content.fit === true)) {
 				this.fitRows = null
 				return
 			}
@@ -1410,7 +2468,9 @@ export default {
 		 */
 		forgetCreateSchema() {
 			this.createSchema = null
+			this.schemaRequest = null
 			this.showCreate = false
+			this.editingRow = null
 		},
 
 		/**
@@ -1421,8 +2481,128 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
-		async openCreate() {
+		/**
+		 * Edit a row in the list's own form (`content.editable`): the form the
+		 * Add button opens, filled with the row.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async openEdit(row) {
+			try {
+				await this.ensureSchema()
+				this.showCreate = false
+				this.editingRow = row ? { ...row } : null
+			} catch (e) {
+				this.error = (e && e.message) || 'error'
+			}
+		},
+
+		/**
+		 * Delete a row of the list's own schema (`content.deletable`). The
+		 * toast offers Undo; a refusal toasts the server's message.
+		 *
+		 * @param {object} row The row.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async deleteRow(row) {
 			const c = this.content || {}
+			const id = rowIdOf(row)
+			if (id === '') {
+				return
+			}
+			const pending = (async () => {
+				const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+				try {
+					await axios.delete(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }))
+				} catch (e) {
+					const data = e && e.response && e.response.data
+					const refusal = data && (data.message || data.error)
+					throw new Error((typeof refusal === 'string' && refusal) || (e && e.message) || t('nextcloud-vue', 'The delete failed'), { cause: e })
+				}
+				return true
+			})()
+			await this.reportDelete(row, pending)
+			await pending.catch(() => {})
+			this.fetchRows()
+		},
+
+		/** Close the form, whether it created or edited. */
+		closeForm() {
+			this.showCreate = false
+			this.editingRow = null
+		},
+
+		/**
+		 * Save an edited row: a PATCH of the keys the form changed, so every
+		 * key it does not show keeps its stored value; nothing when nothing
+		 * changed. A refusal shows the server's message in the dialog.
+		 *
+		 * @param {object} formData The edited values.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/object-list-edit-in-place/specs/object-list-widget/spec.md#requirement-a-list-can-edit-a-row-in-its-own-form
+		 */
+		async onEditConfirm(formData) {
+			const c = this.content || {}
+			const row = this.editingRow
+			const id = rowIdOf(row)
+			const changes = changedKeys(row, formData)
+			try {
+				if (id !== '' && Object.keys(changes).length > 0) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+				}
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ success: true })
+				}
+				/**
+				 * @event updated Emitted after a row was edited, with the keys that changed.
+				 * @type {object}
+				 */
+				this.$emit('updated', { id, changes })
+				this.fetchRows()
+			} catch (e) {
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
+				if (this.$refs.createDialog) {
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
+				}
+			}
+		},
+
+		/**
+		 * Open the create form with an extra add's defaults
+		 * (`content.addActions`) merged over the list's.
+		 *
+		 * @param {object|null} defaults The extra add's `createDefaults`.
+		 * @spec openspec/changes/object-list-add-actions/specs/object-list/spec.md#requirement-a-list-can-offer-more-than-one-add
+		 */
+		async openCreateWith(defaults) {
+			await this.startCreate(defaults && typeof defaults === 'object' && !Array.isArray(defaults) ? defaults : null)
+		},
+
+		async openCreate() {
+			await this.startCreate(null)
+		},
+
+		/**
+		 * Open the create form (or run the declared `createAction`), with the
+		 * extra add's defaults set before the form reads its initial data.
+		 *
+		 * @param {object|null} defaults The extra add's `createDefaults`, or null.
+		 */
+		async startCreate(defaults) {
+			this.addActionDefaults = defaults
+			const c = this.content || {}
+			const { action, visible } = this.createState
+			if (action) {
+				if (visible) {
+					this.dispatch(action)
+				}
+				return
+			}
 			if (!c.schema) {
 				return
 			}
@@ -1439,7 +2619,9 @@ export default {
 		 *
 		 * Two readers share it: the create dialog builds its form from the
 		 * properties, and `resolvedColumns` reads each property's `title` to
-		 * label a column the manifest gave only a key for.
+		 * label a column the manifest gave only a key for. A request in flight
+		 * for the same register and schema is shared, and an answer for a list
+		 * that has since been retargeted is dropped.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -1448,7 +2630,31 @@ export default {
 			if (this.createSchema || !c.schema) {
 				return
 			}
+			const key = `${c.register || ''}/${c.schema}`
+			if (this.schemaRequest && this.schemaRequest.key === key) {
+				return this.schemaRequest.promise
+			}
+			const promise = this.fetchSchema(c)
+			this.schemaRequest = { key, promise }
+			try {
+				const schema = await promise
+				if (this.schemaRequest && this.schemaRequest.promise === promise) {
+					this.createSchema = schema
+				}
+			} finally {
+				if (this.schemaRequest && this.schemaRequest.promise === promise) {
+					this.schemaRequest = null
+				}
+			}
+		},
 
+		/**
+		 * Read a list's schema definition from OpenRegister.
+		 *
+		 * @param {object} c The list config (`register`, `schema`).
+		 * @return {Promise<object|null>} The schema, or null.
+		 */
+		async fetchSchema(c) {
 			const [{ default: axios }, { generateUrl }] = await Promise.all([
 				import('@nextcloud/axios'),
 				import('@nextcloud/router'),
@@ -1464,15 +2670,19 @@ export default {
 			const url = generateUrl('/apps/openregister/api/schemas/{sch}', { sch: c.schema })
 			const params = c.register ? { register: c.register } : undefined
 			const res = await axios.get(url, params ? { params } : undefined)
-			this.createSchema = (res && res.data) || null
+			return (res && res.data) || null
 		},
 
 		/**
-		 * Load the schema when, and only when, a column heading needs it.
+		 * Load the schema when, and only when, a column needs it: for its
+		 * heading (no `label`), or for its presentation (a top-level key
+		 * without its own `format`, `enum`, `widget` or `formatter`, which
+		 * takes the property's format and enum labels; or one with a
+		 * `formatter` and no `enum`, whose formatter may print the enum label).
 		 *
-		 * A widget whose every column carries its own `label` never makes this
-		 * request. One that gave bare keys does, because the alternative is
-		 * printing the key at the user.
+		 * A widget whose every column says its label and presentation, or
+		 * reads a dotted path the list's schema does not hold, never makes
+		 * this request.
 		 *
 		 * Failure is deliberately silent: an unreachable schema costs the nicer
 		 * heading, and the column still renders under its key. It must never
@@ -1482,8 +2692,11 @@ export default {
 		 */
 		async loadHeadingsIfNeeded() {
 			const cols = Array.isArray(this.content.columns) ? this.content.columns : []
-			const needsHeadings = cols.some((c) => (typeof c === 'string') || !c.label)
-			if (needsHeadings === false) {
+			const needsSchema = cols.some((c) => (typeof c === 'string')
+				|| !c.label
+				|| (typeof c.key === 'string' && !c.key.includes('.') && !c.key.startsWith('@')
+					&& c.enum === undefined && (c.formatter !== undefined || (c.format === undefined && c.widget === undefined))))
+			if (needsSchema === false) {
 				return
 			}
 
@@ -1491,6 +2704,79 @@ export default {
 				await this.ensureSchema()
 			} catch {
 				// Headings only. Swallowed on purpose; see the docblock.
+			}
+		},
+
+		/**
+		 * The switch cell props a column's `toggle` asks for: `{ url, method?,
+		 * bodyKey?, ariaLabel?, labelFormatter?, updatesRecord? }`. The cell
+		 * sends `{ [bodyKey]: on }` (default key `value`) to `url` (`{field}`
+		 * from the row, `@objectId` from the page) with `method` (PUT, POST or
+		 * PATCH; default PUT). `ariaLabel` names each cell, `{label}` being the
+		 * row through the host formatter `labelFormatter`. With `updatesRecord`
+		 * the endpoint answers the page's record, which the page takes over,
+		 * and the cell can be changed only while the record can be edited.
+		 *
+		 * @param {object|string} column The declared column.
+		 * @return {object|null} The widget props, or null without a toggle.
+		 * @spec openspec/changes/cell-toggle-request/specs/object-list-widget/spec.md#requirement-a-column-can-toggle-a-value-through-an-endpoint
+		 */
+		cellToggleProps(column) {
+			const cfg = column && typeof column === 'object' ? column.toggle : null
+			if (!cfg || typeof cfg !== 'object' || typeof cfg.url !== 'string' || cfg.url === '') {
+				return null
+			}
+			const props = {}
+			if (typeof cfg.ariaLabel === 'string' && cfg.ariaLabel !== '') {
+				props.ariaLabel = (row) => this.cellToggleLabel(cfg, row)
+			}
+			const edit = this.cnRecordEdit
+			if (cfg.updatesRecord === true && edit && edit.available === false) {
+				return props
+			}
+			props.onToggle = (row, on) => this.sendCellToggle(cfg, row, on)
+			return props
+		},
+
+		/**
+		 * A toggle cell's name for one row: `ariaLabel` through the host
+		 * translate, `{label}` the row through `labelFormatter`, then the
+		 * row's `{field}` tokens.
+		 *
+		 * @param {object} cfg The column's `toggle`.
+		 * @param {object} row The row.
+		 * @return {string}
+		 */
+		cellToggleLabel(cfg, row) {
+			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
+			let text = translate(cfg.ariaLabel)
+			const formatter = cfg.labelFormatter && this.cnFormatters ? this.cnFormatters[cfg.labelFormatter] : null
+			if (typeof formatter === 'function') {
+				const label = formatter(undefined, row)
+				text = text.split('{label}').join(typeof label === 'string' ? label : '')
+			}
+			return fillRowTokens(text, row)
+		},
+
+		/**
+		 * Send a toggle cell's new state. A refusal rejects, so the cell
+		 * returns to its old state.
+		 *
+		 * @param {object} cfg The column's `toggle`.
+		 * @param {object} row The row.
+		 * @param {boolean} on The new state.
+		 * @return {Promise<void>}
+		 */
+		async sendCellToggle(cfg, row, on) {
+			const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
+			const url = interpolateUrlTokens(fillRowTokens(cfg.url, row, { encode: true }), this.tokenCtx)
+			const method = ['post', 'patch'].includes(String(cfg.method || '').toLowerCase()) ? String(cfg.method).toLowerCase() : 'put'
+			const key = typeof cfg.bodyKey === 'string' && cfg.bodyKey !== '' ? cfg.bodyKey : 'value'
+			const response = await axios[method](generateUrl(url), { [key]: on === true })
+			const record = response && response.data
+			const ctx = this.objectCtx
+			if (cfg.updatesRecord === true && record && typeof record === 'object' && !Array.isArray(record) && ctx && typeof ctx.setObject === 'function') {
+				ctx.setObject(record)
 			}
 		},
 
@@ -1516,8 +2802,10 @@ export default {
 						payload[k] = v
 					}
 				}
-				const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
-				const response = await axios.post(url, payload)
+				const endpoint = c.createEndpoint && typeof c.createEndpoint === 'object' && c.createEndpoint.url ? c.createEndpoint : null
+				const url = endpoint ? generateUrl(endpoint.url) : generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })
+				const body = endpoint && endpoint.bodyKey ? { ...(endpoint.extra || {}), [endpoint.bodyKey]: payload } : { ...((endpoint && endpoint.extra) || {}), ...payload }
+				const response = await axios.post(url, body)
 				dispatchObjectCreated({ register: c.register, schema: c.schema, object: (response && response.data) || payload })
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })
@@ -1529,8 +2817,12 @@ export default {
 				this.$emit('created', payload)
 				this.fetchRows()
 			} catch (e) {
+				// The server's own refusal ("a case type keeps one final status")
+				// says more than the transport's "Request failed with status 422".
+				const data = e && e.response && e.response.data
+				const refusal = data && (data.message || data.error)
 				if (this.$refs.createDialog) {
-					this.$refs.createDialog.setResult({ error: (e && e.message) || 'error' })
+					this.$refs.createDialog.setResult({ error: (typeof refusal === 'string' && refusal) || (e && e.message) || 'error' })
 				}
 			}
 		},
@@ -1551,6 +2843,33 @@ export default {
 			}
 			this.page = target
 			this.fetchRows()
+		},
+
+		/**
+		 * Load the current user's groups when a `footerLinks` entry names one.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadFooterGroups() {
+			const links = Array.isArray(this.content.footerLinks) ? this.content.footerLinks : []
+			if (this.footerGroups !== null || !links.some((link) => link && typeof link.group === 'string' && link.group !== '')) {
+				return
+			}
+			this.footerGroups = await getCurrentUserGroups().catch(() => [])
+		},
+
+		/**
+		 * A footer link click: a route link goes through the router (a
+		 * modified click is left to the browser), an `href` is a plain link.
+		 *
+		 * @param {MouseEvent} event The click event.
+		 * @param {{location: object|null}} link The link.
+		 * @return {void}
+		 */
+		onFooterLink(event, link) {
+			if (link.location) {
+				followLinkClick(event, link.location, this.$router)
+			}
 		},
 
 		/**
@@ -1584,6 +2903,12 @@ export default {
 		 * @return {void}
 		 */
 		onRowClick(row, event) {
+			if (row && row._readOnly === true) {
+				return
+			}
+			if (this.content.rowSelection === true && this.cnWidgetSelection && typeof this.cnHostWidgetId === 'function') {
+				this.cnWidgetSelection.select(this.cnHostWidgetId(), row)
+			}
 			this.openRowRoute(row, event)
 			/**
 			 * @event row-click Emitted with the clicked object (for hosts that
@@ -1593,6 +2918,20 @@ export default {
 			 * @type {object}
 			 */
 			this.$emit('row-click', row, event)
+		},
+
+		/**
+		 * Publish the rows this list shows under its widget id, for a card that
+		 * follows them (`content.rowSelection`).
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/side-card-follows-row/specs/side-card-follows-row/spec.md#requirement-a-list-publishes-its-rows-and-its-selected-row
+		 */
+		publishSelectionRows() {
+			if (this.content.rowSelection !== true || !this.cnWidgetSelection || typeof this.cnHostWidgetId !== 'function') {
+				return
+			}
+			this.cnWidgetSelection.publishRows(this.cnHostWidgetId(), this.facetedRows)
 		},
 
 		/**
@@ -1623,8 +2962,11 @@ export default {
 		 * @return {void}
 		 */
 		openRowRoute(row, event) {
-			const route = this.content.rowRoute
-			const id = row && (row.id || (row['@self'] && row['@self'].id))
+			const byField = this.content.rowRouteField && row ? (this.content.rowRouteMap || {})[String(row[this.content.rowRouteField])] : undefined
+			const route = byField || this.content.rowRoute
+			const field = this.content.rowIdField || this.content.rowRouteIdField
+			const raw = field ? readPath(row, field) : row && (row.id || (row['@self'] && row['@self'].id))
+			const id = typeof raw === 'string' || typeof raw === 'number' ? String(raw) : ''
 			if (route && id && this.$router) {
 				markNewTabHandled(event, openRowTarget(event, { name: route, params: { id } }, this.$router))
 			}
@@ -1646,7 +2988,7 @@ export default {
 		 * @return {void}
 		 */
 		runRowAction(action, row) {
-			const pending = this.dispatch(action, [row], { row })
+			const pending = this.dispatch(actionForRow(action, row), [row], { row })
 			if (action && action.type === 'object-op' && action.op === 'delete') {
 				this.reportDelete(row, pending)
 			}
@@ -1705,6 +3047,33 @@ export default {
 		 * @return {object} `{ href, linkTarget }`, `{ to }`, or `{}`.
 		 */
 		rowActionLink(action) {
+			// A route with a query: a router location per row, the query's row
+			// tokens filled raw (the router encodes) and its page tokens resolved.
+			if (action && action.type === 'navigate' && !action.confirm && typeof action.route === 'string' && action.route !== '') {
+				const locationFor = (row) => ({
+					name: action.route,
+					query: resolveFilterTokens(actionForRow(action, row).query || {}, this.tokenCtx),
+				})
+				return {
+					href: () => '',
+					to: (row) => locationFor(row),
+				}
+			}
+			if (action && action.type === 'navigate' && !action.confirm && hasRowTokens(action.target)) {
+				const linkFor = (row) => actionLink(actionForRow(action, row), { router: this.$router || null, tokenCtx: this.tokenCtx })
+				// An in-app link answers `to` (followed by the router), an external one `href`.
+				return {
+					href: (row) => {
+						const link = linkFor(row)
+						return link && link.external ? link.href : ''
+					},
+
+					to: (row) => {
+						const link = linkFor(row)
+						return link && !link.external ? link.to : null
+					},
+				}
+			}
 			if (hasActionTargetTokens(action.target)) {
 				return {}
 			}
@@ -1915,6 +3284,18 @@ export default {
 		},
 
 		/**
+		 * CnDataTable's `column-filter` handler (`content.filterable`): the
+		 * filter joins the others and the list fetches again from page one.
+		 *
+		 * @param {{key: string, params: object}} payload The column's filter.
+		 * @return {void}
+		 * @spec openspec/changes/table-widget-header-controls/specs/table-widget-header-controls/spec.md
+		 */
+		onHeaderFilter(payload) {
+			this.headerFilters = nextHeaderFilters(this.headerFilters, payload)
+		},
+
+		/**
 		 * Toggle one facet value on/off (`content.facet`).
 		 *
 		 * @param {string} value The facet value clicked.
@@ -1942,6 +3323,11 @@ export default {
 </script>
 
 <style scoped>
+/* The row a following card describes (content.rowSelection). */
+.cn-object-list-widget :deep(.cn-object-list-widget__row--selected) {
+	background: var(--color-primary-element-light, #eaf0f7);
+}
+
 /* The widget already lives inside CnWidgetWrapper's padded card chrome. The
    table is rendered `borderless` so CnDataTable drops its own border/shadow/
    background AND its bottom margin (the `.cn-table-container--borderless`
@@ -2025,6 +3411,87 @@ export default {
 	font-size: 0.85em;
 	margin: 4px 0 0;
 	padding: 4px;
+}
+
+.cn-object-list-widget__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin: 12px 0 0;
+	font-size: 14px;
+}
+
+.cn-object-list-widget__link {
+	font-weight: 600;
+}
+
+.cn-object-list-widget__link-note {
+	margin-inline-start: 6px;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.cn-object-list-widget__footnote {
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+	margin: 8px 0 0;
+}
+
+/* `content.totals`: the footnote and a totals box side by side, wrapping on a
+   narrow card (board PqOfferte "Regels"). */
+.cn-object-list-widget__foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px 24px;
+	padding-top: 18px;
+}
+
+.cn-object-list-widget__foot .cn-object-list-widget__footnote {
+	flex: 1 1 260px;
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.cn-object-list-widget__totals {
+	display: grid;
+	flex: 0 1 300px;
+	grid-template-columns: 1fr max-content;
+	gap: 8px 24px;
+	margin: 0;
+	padding: 14px 16px;
+	border-radius: var(--border-radius-element, 8px);
+	background: var(--cn-board-sunken-ground, var(--color-background-hover));
+	font-size: 15px;
+}
+
+.cn-object-list-widget__totals dt,
+.cn-object-list-widget__totals dd {
+	width: auto;
+	margin: 0;
+	padding: 0;
+}
+
+.cn-object-list-widget__totals dt {
+	color: color-mix(in srgb, var(--color-main-text) 80%, var(--color-text-maxcontrast));
+	text-align: start;
+}
+
+.cn-object-list-widget__totals dd {
+	text-align: end;
+}
+
+.cn-object-list-widget__totals .cn-object-list-widget__total--emphasis {
+	padding-top: 8px;
+	border-top: 1px solid var(--color-border-dark, var(--color-border));
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
+.cn-object-list-widget__totals dd.cn-object-list-widget__total--emphasis {
+	font-size: 18px;
 }
 
 /* Footer Add — same pattern as the integration leaves' footer action

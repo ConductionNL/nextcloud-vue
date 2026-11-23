@@ -1,0 +1,2 @@
+- [x] look-board.css legend type
+- [x] spec

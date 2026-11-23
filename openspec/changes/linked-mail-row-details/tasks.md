@@ -1,0 +1,4 @@
+- [x] jest CnEmailTabRowDetails red first (3 of 4)
+- [x] CnEmailTab meta line, outgoing tile, pill
+- [x] board look styles
+- [x] l10n en/nl

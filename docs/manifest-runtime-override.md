@@ -25,7 +25,7 @@ The override is merged with one of two strategies, selected by `options.mergeStr
 | `'deepMerge'` *(default)* | **Replaced wholesale** | The **complete** resolved arrays (whole `menu[]`, whole `pages[]`) | The backend owns the entire nav/pages and it's easy to emit them in full. |
 | `'delta'` | **Merged by `id`** | Only the **difference** — patch/add/remove individual entries | You want to *extend* a bundled/`buildManifest`-assembled shell without reproducing it, or persist a minimal patch. |
 
-In **`delta`** mode the keyed structural merge ([`mergeManifestDelta`](utilities/merge-manifest-delta.md)) merges `pages[]`, `widgets[]`, `menu[]`, **and a menu entry's nested `children[]`** by `id`:
+In **`delta`** mode the keyed structural merge ([`mergeManifestDelta`](utilities/merge-manifest-delta.md)) merges `pages[]`, `widgets[]`, `menu[]`, **and a menu entry's nested `children[]`** by `id` (and an index page's `defaultSavedViews[]` by `slug`, so per-user default views join the page's own, as dossiq's case type pins do):
 
 - a delta entry whose `id` **matches** a base entry is merged into it (patch);
 - a delta entry whose `id` is **new** is appended;

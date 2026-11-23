@@ -1,0 +1,3 @@
+- [x] CnConversationWidget channelIcons -> message.channelIcon
+- [x] CnConversationThread icon in the channel chip
+- [x] jest CnConversationSource (red first)

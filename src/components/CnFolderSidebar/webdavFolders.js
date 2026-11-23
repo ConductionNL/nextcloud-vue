@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import { generateRemoteUrl } from '@nextcloud/router'
+import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /**
  * Default WebDAV folder loader for CnFolderSidebar's `files` source.
@@ -104,7 +105,7 @@ function text(parent, local) {
  * @return {string} The normalised path.
  */
 function normalizePath(path) {
-	const trimmed = (path || '/').replace(/\/+$/, '')
+	const trimmed = stripTrailingSlashes(path || '/')
 	return trimmed.startsWith('/') ? trimmed : '/' + trimmed
 }
 

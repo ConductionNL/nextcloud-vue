@@ -81,3 +81,14 @@ With extra content (e.g., a badge or status indicator):
   </template>
 </CnPageHeader>
 ```
+
+Breadcrumb and meta: `breadcrumb` (one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list) draws a
+line under the title in the detail header's breadcrumb style, with the title as the current crumb; `meta` follows after a
+middle dot:
+
+```vue
+<CnPageHeader
+  title="Zaaktypen"
+  :breadcrumb="{ label: 'Instellingen', href: '#instellingen' }"
+  meta="14 zaaktypen" />
+```

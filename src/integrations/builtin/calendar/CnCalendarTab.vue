@@ -241,6 +241,8 @@ import CnCalendarEventPicker from '../../../components/CnCalendarEventPicker/CnC
 import CnStatusBadge from '../../../components/CnStatusBadge/CnStatusBadge.vue'
 import { buildHeaders, prefixUrl } from '../../../utils/index.js'
 import { userLocale } from '../../../utils/userLocale.js'
+import { linkCalendarEvent } from './calendarEventLink.js'
+import { eventStatusLabel, eventStatusVariant } from './eventStatus.js'
 
 const MAX_AVATARS = 3
 
@@ -429,29 +431,12 @@ export default {
 			// payload: { calendarUri, eventUid }
 			this.closePicker()
 			this.error = ''
-			try {
-				const response = await fetch(`${this.baseObjectUrl()}/events/link`, {
-					method: 'POST',
-					headers: buildHeaders(),
-					body: JSON.stringify(payload),
-				})
-				if (response.ok) {
-					await this.fetchEvents()
-					this.$emit('linked', payload)
-				} else {
-					let message = t('nextcloud-vue', 'Could not link the meeting.')
-					try {
-						const body = await response.json()
-						if (body && typeof body.error === 'string') {
-							message = body.error
-						}
-					} catch { /* ignore */ }
-					this.error = message
-				}
-			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error('[CnCalendarTab] failed to link event', err)
-				this.error = t('nextcloud-vue', 'Could not link the meeting.')
+			const result = await linkCalendarEvent(`${this.baseObjectUrl()}/events`, payload)
+			if (result.ok) {
+				await this.fetchEvents()
+				this.$emit('linked', payload)
+			} else {
+				this.error = result.error
 			}
 		},
 
@@ -558,31 +543,11 @@ export default {
 		},
 
 		statusLabel(ev) {
-			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') {
-				return t('nextcloud-vue', 'Confirmed')
-			}
-			if (status === 'tentative') {
-				return t('nextcloud-vue', 'Tentative')
-			}
-			if (status === 'cancelled') {
-				return t('nextcloud-vue', 'Cancelled')
-			}
-			return ''
+			return eventStatusLabel(ev)
 		},
 
 		statusVariant(ev) {
-			const status = (ev.status || '').toString().toLowerCase()
-			if (status === 'confirmed') {
-				return 'success'
-			}
-			if (status === 'tentative') {
-				return 'warning'
-			}
-			if (status === 'cancelled') {
-				return 'error'
-			}
-			return 'default'
+			return eventStatusVariant(ev)
 		},
 
 		attendeeList(ev) {

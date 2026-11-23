@@ -14,7 +14,6 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name                                                  | Payload | Description |
-| ----------------------------------------------------- | ------- | ----------- |
-| `update:content`                                      | —       |             |
-| `update:content Emitted with the edited config blob.` | —       |             |
+| Name             | Payload | Description                          |
+| ---------------- | ------- | ------------------------------------ |
+| `update:content` | —       | Emitted with the edited config blob. |

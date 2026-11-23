@@ -1,0 +1,2 @@
+- [x] look-board-detail.css rules
+- [x] tests/css/lookBoardMailTabInCard.spec.js (red first)

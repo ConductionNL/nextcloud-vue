@@ -22,7 +22,7 @@ function rulesEndingWith(needle) {
 	const re = /([^{}]+)\{([^{}]*)\}/g
 	let m
 	while ((m = re.exec(css))) {
-		if (m[1].split(',').map((s) => s.trim()).some((s) => s.endsWith(needle))) {
+		if (m[1].split(/,(?![^(]*\))/).map((s) => s.trim()).some((s) => s.endsWith(needle))) {
 			out.push(m[2])
 		}
 	}
@@ -44,6 +44,14 @@ describe('look-board-index.css: table control columns under the Nextcloud box mo
 		expect(body).toMatch(/box-sizing:\s*border-box !important/)
 		expect(px(body, 'width')).toBe(28 + inlinePadding(body))
 		expect(px(body, 'min-width')).toBe(px(body, 'width'))
+	})
+
+	it('pads the checkbox cell 16px as the boards do and starts the checkbox 4px in, a native checkbox margin', () => {
+		// r26a: the board's checkbox sat 21px into the card, live at 16; r29: the cell padding then read 20 for the board's 16.
+		const body = rulesEndingWith('.cn-table-container--board .cn-data-table .cn-table-col--checkbox')
+		expect(body).toMatch(/padding-inline:\s*16px;/)
+		expect(px(body, 'width')).toBe(60)
+		expect(rulesEndingWith('.cn-table-container--board .cn-data-table .cn-table-col--checkbox .checkbox-radio-switch')).toMatch(/margin-inline-start:\s*4px/)
 	})
 
 	it('forces border-box on the row menu column and sizes it to the 34px button plus 16px either side', () => {

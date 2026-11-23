@@ -22,8 +22,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnFieldInspectionCard from './field-inspection/CnFieldInspectionCard.vue'
-import CnFieldInspectionTab from './field-inspection/CnFieldInspectionTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnFieldInspectionCard = lazyComponent(() => import('./field-inspection/CnFieldInspectionCard.vue'), 'CnFieldInspectionCard')
+const CnFieldInspectionTab = lazyComponent(() => import('./field-inspection/CnFieldInspectionTab.vue'), 'CnFieldInspectionTab')
 
 /**
  * Default offline configuration for the field-inspection leaf.

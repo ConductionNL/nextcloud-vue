@@ -123,6 +123,12 @@ describe('CnIndexPage board header', () => {
 		expect(bar.attributes('data-edit')).toBe('false')
 	})
 
+	it('leaves the square out of an embedded list\'s toolbar with buildiqButton false', () => {
+		// The page around an embedded list (CnIndexListWidget) carries the one square.
+		expect(mountPage({ showTitle: false }).find('.bar').attributes('data-edit')).toBe('true')
+		expect(mountPage({ showTitle: false, buildiqButton: false }).find('.bar').attributes('data-edit')).toBe('false')
+	})
+
 	it('keeps the saved views in the toolbar when the header carries the buttons', () => {
 		const w = mountPage({ headerButtons: BUTTONS, allowSavedViews: true })
 		expect(w.find('.views').exists()).toBe(true)

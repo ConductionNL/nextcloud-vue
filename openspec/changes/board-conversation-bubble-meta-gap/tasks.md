@@ -1,0 +1,2 @@
+- [x] look-board-detail.css meta 13px in the thread rule, bubble gap 6px
+- [x] Spec tests/css/lookBoardConversationMetaGap.spec.js
