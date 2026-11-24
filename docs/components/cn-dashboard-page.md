@@ -120,6 +120,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `widgets` | Array | `[]` | Widget definition objects (see Widget definition below) |
 | `layout` | Array | `[]` | Grid placement objects (see Layout item below) |
 | `loading` | Boolean | `false` | Show loading spinner instead of the grid |
+| `download` | Boolean | `false` | A "Download" button in the header that saves the page's figures as CSV (see *Downloading the figures*) |
+| `downloadName` | String | `''` | File name of the download before `-<yyyy-mm-dd>.csv`; `dashboard` when empty |
 | `allowEdit` | Boolean | `false` | Show the Edit/Done toggle button |
 | `columns` | Number | `12` | Number of grid columns |
 | `cellHeight` | Number | `80` | Grid cell height in pixels |
@@ -689,4 +691,23 @@ The panel sits at the right edge under the Nextcloud header, over the page, and 
 
 ```json
 { "id": "MyWork", "type": "dashboard", "config": { "layoutPanel": true, "kpiRow": ["my-lens"] } }
+```
+
+## Downloading the figures
+
+`config.download: true` puts a **Download** button in the page header. It saves
+`<downloadName>-<yyyy-mm-dd>.csv` with the header row `widget,label,value`:
+
+- a `stat` tile with an OpenRegister `source`: one row with its label and count;
+- a `chart` whose `dataSource.aggregate` counts per `groupBy`: one row per group;
+- an `object-table`: one row per record, its columns joined by ` | ` as the label.
+
+The figures are read with the same OpenRegister calls the widgets make, and the
+button stays disabled until they are in. A widget whose read fails writes one row
+with the value `error`; other widget kinds, and tiles reading an app endpoint,
+are left out. The file is UTF-8 with a byte order mark, so a spreadsheet opens
+Dutch labels correctly.
+
+```json
+{ "id": "ApplicationsReport", "type": "dashboard", "config": { "download": true, "downloadName": "buildiq-applications", "widgets": [], "layout": [] } }
 ```

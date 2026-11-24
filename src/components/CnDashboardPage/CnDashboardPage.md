@@ -122,6 +122,8 @@ predicate's field value into their text wherever it says `{value}` (e.g.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `loading` | Boolean | `false` | Show a loading spinner instead of the widget grid |
+| `download` | Boolean | `false` | A "Download" button in the header that saves the figures of the stat tiles, grouped charts and object tables as CSV (`widget,label,value`); disabled until they are read |
+| `downloadName` | String | `''` | File name of the download before `-<yyyy-mm-dd>.csv`; `dashboard` when empty |
 | `cellHeight` | Number | `80` | Grid cell height in pixels (passed to CnDashboardGrid) |
 | `gridMargin` | Number | `12` | Grid margin (gutter) in pixels between widgets |
 | `emptyLabel` | String | `'No widgets configured'` | Text shown in the empty state when `layout` is empty |
