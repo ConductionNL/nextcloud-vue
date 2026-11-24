@@ -117,6 +117,19 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
+				<!-- `download: true`: save the figures the page shows as CSV
+				     (dashboard-download-csv). Disabled until they are read. -->
+				<NcButton
+					v-if="download"
+					variant="secondary"
+					:disabled="!downloadReady"
+					data-testid="cn-dashboard-download"
+					@click="saveDownload">
+					<template #icon>
+						<Download :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Download') }}
+				</NcButton>
 				<!-- The page's view switch (`views`), unless a greeting header
 				     widget on the page draws it. Its options control the view
 				     region below the grid. -->
@@ -1141,6 +1154,7 @@ import { headerActionAsLink } from '../../utils/actionLink.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { downloadFileName, downloadPlanEntry, readDownloadRows, saveTextFile, toCsv } from '../../utils/dashboardDownload.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
@@ -1816,6 +1830,24 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Offer a "Download" button in the header that saves the figures of the
+		 * page's stat tiles, grouped charts and object tables as CSV
+		 * (`widget,label,value`). Disabled until the figures are read.
+		 *
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		download: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The file name of the download, before `-<yyyy-mm-dd>.csv`; "dashboard" when empty. */
+		downloadName: {
+			type: String,
+			default: '',
+		},
+
 		/** Whether to show the edit toggle button */
 		allowEdit: {
 			type: Boolean,
@@ -2339,6 +2371,10 @@ export default {
 	data() {
 		return {
 			isEditing: false,
+			/** The CSV rows of `download`, or null until they are read. */
+			downloadRows: null,
+			/** Whether the CSV rows are being read. */
+			downloadReading: false,
 			/** Whether the window is phone-wide (under 640px), for a widget's `viewport`. */
 			narrowViewport: false,
 			viewportQuery: null,
@@ -2442,6 +2478,54 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * What each widget on the page contributes to the download, in the
+		 * order the page shows them: the KPI row, then the grid.
+		 *
+		 * @return {Array<object>} Plan entries (`utils/dashboardDownload.js`).
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		downloadPlan() {
+			if (!this.download) {
+				return []
+			}
+			const grid = Array.isArray(this.renderedLayout) ? this.renderedLayout : []
+			const items = [...(this.kpiRowItems || []), ...grid]
+			const seen = new Set()
+			const plan = []
+			for (const item of items) {
+				if (!item || seen.has(item.widgetId)) {
+					continue
+				}
+				seen.add(item.widgetId)
+				const entry = downloadPlanEntry(this.getWidgetDef(item.widgetId), this.getWidgetTitle(item), this.effectiveTranslate)
+				if (entry) {
+					plan.push(entry)
+				}
+			}
+			return plan
+		},
+
+		/**
+		 * The plan as a string, so a re-render that builds an equal plan does
+		 * not read the figures again.
+		 *
+		 * @return {string}
+		 */
+		downloadPlanKey() {
+			return JSON.stringify(this.downloadPlan)
+		},
+
+		/**
+		 * Whether "Download" can be pressed: the page has loaded and every
+		 * figure has been read.
+		 *
+		 * @return {boolean}
+		 */
+		downloadReady() {
+			return this.download && !this.loading && !this.downloadReading && Array.isArray(this.downloadRows)
+		},
+
 		/**
 		 * Whether the `#actions` slot leads the board header row.
 		 *
@@ -3362,6 +3446,13 @@ export default {
 	},
 
 	watch: {
+		downloadPlanKey: {
+			immediate: true,
+			handler() {
+				this.readDownload()
+			},
+		},
+
 		/**
 		 * Re-evaluate the widget predicates when the defs change — the
 		 * in-app editor (ADR-041) mutates widget defs in place and "Add
@@ -3409,6 +3500,41 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Read the figures of the download. A newer read wins over an older one.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		async readDownload() {
+			if (!this.download) {
+				this.downloadRows = null
+				return
+			}
+			const run = (this._downloadRun || 0) + 1
+			this._downloadRun = run
+			this.downloadReading = true
+			const rows = await readDownloadRows(this.downloadPlan)
+			if (this._downloadRun !== run) {
+				return
+			}
+			this.downloadRows = rows
+			this.downloadReading = false
+		},
+
+		/**
+		 * Save the figures as `<downloadName>-<yyyy-mm-dd>.csv`.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		saveDownload() {
+			if (!this.downloadReady) {
+				return
+			}
+			saveTextFile(toCsv(this.downloadRows), downloadFileName(this.downloadName))
+		},
+
 		/**
 		 * Follow the phone breakpoint (640px, where the board grid stacks to
 		 * one column), so a widget declared for one `viewport` shows only

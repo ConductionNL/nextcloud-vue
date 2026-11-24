@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.192.0",
+	"version": "2.193.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -5774,6 +5774,15 @@
 									}
 								}
 							}
+						},
+						"download": {
+							"type": "boolean",
+							"default": false,
+							"description": "type='dashboard': a \"Download\" button in the header saves the figures of the page's stat tiles (OpenRegister `source`), grouped charts (`dataSource.aggregate.groupBy` count) and object tables as CSV with the header row `widget,label,value`, UTF-8 with a byte order mark. Disabled until the figures are read; a widget whose read fails writes one row with the value `error` (dashboard-download-csv)."
+						},
+						"downloadName": {
+							"type": "string",
+							"description": "type='dashboard' with `download: true`: the file name before `-<yyyy-mm-dd>.csv`; \"dashboard\" when empty."
 						},
 						"kpiRow": {
 							"type": "array",
