@@ -18,6 +18,7 @@ export {
 	applyConflictResolution,
 	cacheKey,
 	CONFLICT_RECORD_PREFIX,
+	conflictFieldsOf,
 	countPending,
 	countStuck,
 	enqueueMutation,

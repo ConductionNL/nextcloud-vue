@@ -462,6 +462,7 @@ export async function recordConflict({
 		schema: conflictSchema,
 		payload: {
 			queueOperationId: operation.id,
+			syncQueueRef: operation.id,
 			conflictType,
 			deviceId: operation.deviceId,
 			targetRegister: operation.register,
@@ -469,6 +470,7 @@ export async function recordConflict({
 			targetId: operation.targetId ?? null,
 			clientVersion: operation.payload ?? {},
 			serverVersion: serverObject ?? null,
+			conflictFields: conflictFieldsOf(operation.payload, serverObject),
 			detectedAt: new Date().toISOString(),
 		},
 	})
@@ -481,6 +483,30 @@ export async function recordConflict({
 	})
 
 	return recordId
+}
+
+/**
+ * The fields the device sent whose value differs from the server's.
+ *
+ * Only the fields the device wrote can collide: a field only the server holds
+ * (its `@self` metadata, a property the device never touched) is no conflict.
+ * With no server version every sent field counts, because nothing says they
+ * agree. Paths are top-level property names, sorted, so a resolver writing
+ * the device's values back writes exactly what the device sent.
+ *
+ * @spec openspec/changes/inspection-conflict-card/design.md (dossiq, open decision 4)
+ * @param {object|null} clientVersion The payload the device sent.
+ * @param {object|null} serverObject  The server's version, when it sent one.
+ *
+ * @return {string[]} The differing field names.
+ */
+export function conflictFieldsOf(clientVersion, serverObject) {
+	const client = clientVersion !== null && typeof clientVersion === 'object' ? clientVersion : {}
+	const server = serverObject !== null && typeof serverObject === 'object' ? serverObject : null
+	return Object.keys(client)
+		.filter((field) => field !== '@self' && field !== 'id')
+		.filter((field) => server === null || JSON.stringify(client[field]) !== JSON.stringify(server[field]))
+		.sort()
 }
 
 /**
