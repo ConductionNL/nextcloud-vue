@@ -1729,6 +1729,11 @@ export default {
 		this.observeScrollOverflow()
 	},
 
+	/**
+	 * Re-measure the overflow after an update.
+	 *
+	 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
+	 */
 	updated() {
 		// Columns and rows can change after mount (self-fetch resolving, a
 		// column toggled), and either can flip the table between fitting and
@@ -2038,6 +2043,7 @@ export default {
 		 * Measure the overflow in the next frame, once however many updates ask.
 		 *
 		 * @return {void}
+		 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
 		 */
 		scheduleScrollOverflow() {
 			if (this._overflowFrame) {
@@ -2071,9 +2077,10 @@ export default {
 		},
 
 		/**
-		 * Tear down the overflow observer.
+		 * Tear down the overflow observer and drop a pending measurement.
 		 *
 		 * @return {void}
+		 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
 		 */
 		disconnectScrollOverflow() {
 			if (this._overflowFrame) {
