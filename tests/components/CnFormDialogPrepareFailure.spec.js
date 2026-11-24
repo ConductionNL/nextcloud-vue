@@ -30,16 +30,6 @@ const schema = {
 }
 
 describe('CnFormDialog when the payload cannot be built', () => {
-	let errorSpy
-
-	beforeEach(() => {
-		errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-	})
-
-	afterEach(() => {
-		errorSpy.mockRestore()
-	})
-
 	it('stops loading, shows the reason and emits no confirm', () => {
 		const wrapper = mount(CnFormDialog, {
 			propsData: { schema, item: { id: 'a-1', title: 'Old' } },
@@ -54,7 +44,6 @@ describe('CnFormDialog when the payload cannot be built', () => {
 		expect(wrapper.vm.loading).toBe(false)
 		expect(wrapper.vm.formError).toContain('boom')
 		expect(wrapper.emitted('confirm')).toBeUndefined()
-		expect(errorSpy).toHaveBeenCalled()
 	})
 
 	it('still emits confirm with the payload when building succeeds', () => {

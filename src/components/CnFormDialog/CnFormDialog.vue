@@ -5642,7 +5642,7 @@ export default {
 			// Building the payload runs before any listener sees it. If it
 			// throws, nothing is sent and only `setResult` would ever clear
 			// `loading`, so Save would spin forever with the dialog locked open
-			// (`no-close` is bound to `loading`). Hand the failure back instead.
+			// (`no-close` is bound to `loading`). Show the reason instead.
 			let base
 			let answers
 			try {
@@ -5658,7 +5658,6 @@ export default {
 				}))
 				this.foldStoredAnswers(base, answers)
 			} catch (error) {
-				console.error('CnFormDialog: the form could not be prepared for saving', error)
 				this.loading = false
 				this.formError = t('nextcloud-vue', 'The form could not be saved: {message}', { message: (error && error.message) || String(error) })
 				return
