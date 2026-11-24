@@ -36,6 +36,7 @@
     "./stylelint": "./stylelint/index.js",
     "./testing": "./testing/index.js",
     "./testing/playwright": "./testing/playwright.js",
+    "./testing/performance": "./testing/performance.js",
     "./webpack": "./webpack/index.js",
     "./dist/*": "./dist/*",
     "./src/*": "./src/*",
