@@ -2306,6 +2306,14 @@ export default {
 		 */
 		item: {
 			immediate: true,
+			/**
+			 * Re-seed the form from the record now bound.
+			 *
+			 * @param {object|null} newItem The record now bound.
+			 * @param {object|null} oldItem The record previously bound.
+			 * @return {void}
+			 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+			 */
 			handler(newItem, oldItem) {
 				// Scoped to the record the values were typed into. Swapping
 				// the dialog to a DIFFERENT record starts from that record,
@@ -2314,6 +2322,7 @@ export default {
 					? this.pendingUserEdits()
 					: null
 				this.initFormData(newItem)
+				this.reseedDynamicAnswers()
 				this.restoreUserEdits(pending)
 			},
 		},
@@ -4776,6 +4785,29 @@ export default {
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
 			this.dynamicLoading = false
+			this.seedStoredAnswers(active, properties)
+			this.seedDynamicDefaults(properties)
+		},
+
+		/**
+		 * Put the stored answers and defaults back after the record was
+		 * seeded again. The data-driven fields load once per driving value,
+		 * so a record read again with the same driver (the detail page does
+		 * so once it holds the edit lock) would otherwise leave them empty.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+		 */
+		reseedDynamicAnswers() {
+			if (this.dynamicLoading || this.dynamicToken !== this.dynamicDriverToken) {
+				return
+			}
+			const properties = this.dynamicProperties || {}
+			if (Object.keys(properties).length === 0) {
+				return
+			}
+			const active = this.extendsDeclarations
+				.filter(({ key }) => this.dynamicDriverValue(this.formData[key]) !== '')
 			this.seedStoredAnswers(active, properties)
 			this.seedDynamicDefaults(properties)
 		},
