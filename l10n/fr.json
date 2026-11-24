@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Champ de date pour la période",
+    "None: the widget does not follow the period": "Aucun : le widget ne suit pas la période",
     "Report a bug": "Signaler un bug",
     "View": "Afficher",
     "Edit": "Modifier",

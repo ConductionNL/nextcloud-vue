@@ -42,6 +42,12 @@
 		<!-- Filters with operators. -->
 		<CnFilterRowsEditor :value="filterRows" :fields="availableFields" @input="onFilterRows" />
 
+		<CnPeriodFieldSelect
+			:register="source.register"
+			:schema="source.schema"
+			:value="periodField"
+			@update="updatePeriodField" />
+
 		<!-- Columns. -->
 		<h4 class="cn-object-list-form__section">
 			{{ t('nextcloud-vue', 'Columns') }}
@@ -87,6 +93,7 @@ import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
+import CnPeriodFieldSelect from '../CnPeriodFieldSelect/CnPeriodFieldSelect.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { isPrototypeKey } from '../../utils/prototypeKeys.js'
@@ -113,7 +120,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnObjectListWidgetForm',
 
-	components: { NcTextField, NcSelect, NcButton, Plus, Close, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect },
+	components: { NcTextField, NcSelect, NcButton, Plus, Close, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnPeriodFieldSelect },
 
 	props: {
 		/**
@@ -167,6 +174,7 @@ export default {
 				: [{ key: '', label: '' }],
 
 			filterRows: filterToRows(initial.filter || {}),
+			periodField: typeof initial.periodField === 'string' ? initial.periodField : '',
 			availableFields: [],
 		}
 	},
@@ -186,6 +194,8 @@ export default {
 				sort: { field: this.sort.field, dir: this.sort.dir },
 				limit: this.limit,
 				columns: this.columns.filter((c) => c.key && c.key.trim() !== ''),
+				// The date field the host dashboard's period applies to; written only when set.
+				...(this.periodField ? { periodField: this.periodField } : {}),
 			}
 		},
 	},
@@ -253,6 +263,17 @@ export default {
 		 */
 		onFilterRows(rows) {
 			this.filterRows = rows
+			this.emitChange()
+		},
+
+		/**
+		 * Set the date field the host dashboard's period applies to.
+		 *
+		 * @param {string} field The date field, '' for none.
+		 * @return {void}
+		 */
+		updatePeriodField(field) {
+			this.periodField = field
 			this.emitChange()
 		},
 

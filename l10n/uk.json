@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Поле дати для періоду",
+    "None: the widget does not follow the period": "Немає: віджет не стежить за періодом",
     "Report a bug": "Повідомити про помилку",
     "View": "Перегляд",
     "Edit": "Редагувати",

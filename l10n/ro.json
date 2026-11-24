@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Câmp de dată pentru perioadă",
+    "None: the widget does not follow the period": "Niciunul: widgetul nu urmează perioada",
     "Report a bug": "Raportează o eroare",
     "View": "Vizualizare",
     "Edit": "Editare",

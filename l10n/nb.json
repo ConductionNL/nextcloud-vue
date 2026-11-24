@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Datofelt for perioden",
+    "None: the widget does not follow the period": "Ingen: modulen følger ikke perioden",
     "Report a bug": "Rapporter en feil",
     "View": "Vis",
     "Edit": "Rediger",

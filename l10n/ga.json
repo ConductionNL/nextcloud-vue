@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Réimse dáta don tréimhse",
+    "None: the widget does not follow the period": "Dada: ní leanann an giuirléid an tréimhse",
     "Report a bug": "Tuairiscigh fabht",
     "View": "Amharc",
     "Edit": "Cuir in eagar",

@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Date field for the period",
+    "None: the widget does not follow the period": "None: the widget does not follow the period",
     "Search the knowledge base": "Search the knowledge base",
     "Searching…": "Searching…",
     "Knowledge base unavailable": "Knowledge base unavailable",

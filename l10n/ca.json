@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Camp de data per al període",
+    "None: the widget does not follow the period": "Cap: el giny no segueix el període",
     "Report a bug": "Informa d'un error",
     "View": "Visualitza",
     "Edit": "Edita",

@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Dönem için tarih alanı",
+    "None: the widget does not follow the period": "Yok: pencere öğesi dönemi izlemez",
     "Report a bug": "Hata bildir",
     "View": "Görüntüle",
     "Edit": "Düzenle",

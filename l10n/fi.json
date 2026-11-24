@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Jakson päivämääräkenttä",
+    "None: the widget does not follow the period": "Ei mitään: pienoisohjelma ei seuraa jaksoa",
     "Report a bug": "Ilmoita virheestä",
     "View": "Näytä",
     "Edit": "Muokkaa",
