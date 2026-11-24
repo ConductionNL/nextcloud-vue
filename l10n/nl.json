@@ -3240,7 +3240,9 @@
     "This applies to every app that sends notifications through Open Register.": "Dit geldt voor elke app die meldingen stuurt via Open Register.",
     "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.": "Uw Nextcloud dwingt stille uren nog niet af. Uw keuze blijft bewaard en werkt zodra dat kan.",
     "Saving failed. Try again.": "Opslaan is mislukt. Probeer het opnieuw.",
-    "This time is not valid.": "Deze tijd is niet geldig."
+    "This time is not valid.": "Deze tijd is niet geldig.",
+    "The values for this row could not be worked out. It keeps the values it had.": "De waarden voor deze regel konden niet worden bepaald. De regel houdt de waarden die hij had.",
+    "Filters ({count})": "Filters ({count})"
   },
   "plurals": {
     "{count} member": [
