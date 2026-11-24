@@ -238,6 +238,7 @@ same button sits on a readiness row that names a `step` and has no `link`.
 | `loadLabel` | `string` | `"Load"` | Load button label on a dataset card. |
 | `reloadLabel` | `string` | `"Load again"` | Load button label once that dataset loaded in this session. |
 | `completedStepIds` | `Array<string>` | `[]` | Ids of steps the server already reports done (e.g. from `useSetupStatus(...).steps`). Lets a freshly (re)mounted wizard resume at the first actually-unmet step and show correct done-markers, instead of restarting from the top — this component's own local state only tracks the current session. |
+| `startStep` | `string` | `''` | The id of a step to open on, for a link that names one. Wins over resuming; ignored when no step has that id. `CnAppRoot` passes it from the address: `?setup=open` opens the wizard, `?setup=<stepId>` opens it at that step (setup-wizard-opens-at-a-step). |
 
 ## Resuming vs. starting fresh
 

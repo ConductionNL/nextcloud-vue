@@ -55,6 +55,10 @@
 				</div>
 			</div>
 		</div>
+		<!-- Quiet hours: OpenRegister's per-user delivery window, shown when
+		     the app turns it on. Outside the chain above, so the block stays
+		     when the app has no notifications of its own. -->
+		<CnQuietHours v-if="showQuietHours" />
 	</NcAppSettingsSection>
 </template>
 
@@ -94,6 +98,7 @@ import { NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, 
 import BellOffOutline from 'vue-material-design-icons/BellOffOutline.vue'
 import BellOutline from 'vue-material-design-icons/BellOutline.vue'
 import CnNotificationMatrix from '../CnNotificationMatrix/CnNotificationMatrix.vue'
+import CnQuietHours from '../CnQuietHours/CnQuietHours.vue'
 import innerHeading from '../../mixins/innerHeading.js'
 import { channelsOnFor, keyFor, propsFor, writeFor } from '../../utils/notificationPreferenceProps.js'
 import { notificationRuleLabel } from '../../utils/notificationRuleLabel.js'
@@ -111,6 +116,7 @@ export default {
 		BellOutline,
 		BellOffOutline,
 		CnNotificationMatrix,
+		CnQuietHours,
 	},
 
 	mixins: [innerHeading],
@@ -133,6 +139,11 @@ export default {
 		 */
 		cnNotificationLabels: { default: () => ({}) },
 		cnTranslate: { default: null },
+		/**
+		 * Whether the app shows the quiet-hours block, provided by the
+		 * CnAppRoot ancestor from its `quietHours` prop.
+		 */
+		cnQuietHours: { default: false },
 	},
 
 	props: {
@@ -149,6 +160,19 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * Show the quiet-hours block (OpenRegister's per-user delivery
+		 * window) under the notifications. `null` follows the CnAppRoot
+		 * ancestor's `quietHours`; off by default, so apps that do not ask
+		 * for it look as before.
+		 *
+		 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+		 */
+		quietHours: {
+			type: Boolean,
+			default: null,
+		},
 	},
 
 	data() {
@@ -160,6 +184,21 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the quiet-hours block shows: the prop when given, else
+		 * the CnAppRoot ancestor's choice.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+		 */
+		showQuietHours() {
+			if (this.quietHours !== null) {
+				return this.quietHours === true
+			}
+			const injected = typeof this.cnQuietHours === 'function' ? this.cnQuietHours() : this.cnQuietHours
+			return injected === true
+		},
+
 		/**
 		 * Entries scoped to the current app. Falls back to the full list
 		 * when there is no `cnAppId` context to scope by (e.g. the

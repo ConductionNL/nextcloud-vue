@@ -75,7 +75,7 @@ function mountRoot(manifest, route = { name: 'home' }) {
 			CnSetupWizard: {
 				name: 'CnSetupWizard',
 				template: '<div class="setup-wizard-stub" />',
-				props: ['appId', 'steps', 'cancellable', 'completedStepIds'],
+				props: ['appId', 'steps', 'cancellable', 'completedStepIds', 'startStep'],
 			},
 		},
 	})
@@ -286,6 +286,28 @@ describe('CnAppRoot setup wizard', () => {
 			expect(wrapper.vm.phase).toBe('shell')
 			expect(wrapper.vm.setupWizardOpen).toBe(true)
 			expect(wizardOf(wrapper).props('cancellable')).toBe(true)
+		})
+
+		it('opens the wizard at the step ?setup=<stepId> names (setup-wizard-opens-at-a-step)', async () => {
+			mockSetupState = setupState([
+				{ ...CURRENCY, done: true },
+				{ ...DEMO, done: true },
+			])
+			const wrapper = mountRoot(manifestWith([CURRENCY, DEMO]), { name: 'home', query: { setup: 'demo' } })
+			expect(wrapper.vm.setupWizardOpen).toBe(true)
+			expect(wizardOf(wrapper).props('startStep')).toBe('demo')
+			wizardOf(wrapper).vm.$emit('close')
+			await wrapper.vm.$nextTick()
+			expect(wrapper.vm.setupStartStep).toBe('')
+		})
+
+		it('ignores a step name the setup does not have', () => {
+			mockSetupState = setupState([
+				{ ...CURRENCY, done: true },
+				{ ...DEMO, done: true },
+			])
+			const wrapper = mountRoot(manifestWith([CURRENCY, DEMO]), { name: 'home', query: { setup: 'nope' } })
+			expect(wrapper.vm.setupWizardOpen).toBe(false)
 		})
 
 		it('ignores the query for an app without setup steps', () => {
