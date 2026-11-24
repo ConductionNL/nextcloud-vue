@@ -15,7 +15,7 @@ would be ignored, and one that only declares the older `quickActions` must keep 
 - `primaryActionFrom`: a field path whose value names the declared header action drawn as the
   record's primary button. Only an id of `headerActions` is taken, and only while that action's own
   `visibleWhen` shows it; otherwise the stage's primary action and `primaryAction` stay.
-- Manifest schema 2.196.0 accepts both.
+- Manifest schema 2.197.0 accepts both.
 
 ## Impact
 
