@@ -65,7 +65,6 @@ jest.mock('leaflet', () => {
 jest.mock('leaflet.markercluster', () => ({}), { virtual: true })
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
-const IMAGE = { type: 'image', url: '/img/aldmoor.png', width: 2400, height: 1600 }
 
 function mountMap(props = {}) {
 	return mount(CnMapWidget, { propsData: { center: [52, 5], ...props } })
