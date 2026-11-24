@@ -350,8 +350,14 @@ export default {
 		 * untranslated key renders as itself.
 		 */
 		cnTranslate: { default: () => (key) => key },
-		/** v2 component registry, for resolving an `open-form` createOverride. */
+		/** v2 component registry, for resolving an `open-form` createOverride and an `open-modal` target. */
 		cnRegistry: { default: () => ({}) },
+		/**
+		 * Modal opener provided by CnAppRoot (`cnOpenModal(key, props)`). Used
+		 * by the fallback dispatch, so an `open-modal` action outside a page
+		 * (the navigation's primary action) opens its registered modal.
+		 */
+		cnOpenModal: { default: null },
 		/** Legacy customComponents map, same resolution fallback. */
 		cnCustomComponents: { default: () => ({}) },
 	},
@@ -1196,7 +1202,9 @@ export default {
 		/**
 		 * Route an action through the shared dispatcher — the pre-bound
 		 * `cnDispatchAction` (router/registry/handlers/openModal already
-		 * wired) when available, else a direct call with a minimal context.
+		 * wired) when available, else a direct call with the router, the
+		 * registry and CnAppRoot's modal opener, so `open-modal` also works
+		 * outside a page (the navigation's primary action).
 		 * The token context and the host translate function are always
 		 * merged in (the latter localises `api-call` success/error toasts).
 		 *
@@ -1210,6 +1218,8 @@ export default {
 			}
 			return dispatchAction(action, {
 				router: this.effectiveRouter,
+				registry: this.cnRegistry,
+				openModal: typeof this.cnOpenModal === 'function' ? this.cnOpenModal : null,
 				openForm: (a) => this.openForm(a),
 				openRunNode: (a) => this.openRunNode(a),
 				...extra,
