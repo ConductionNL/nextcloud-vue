@@ -1459,13 +1459,16 @@ import {
 	normalisePinnedAction,
 	onTab,
 	pillCountSource,
+	pillEndpointSource,
 	pillLook,
 	resolveCountPill,
+	resolveEndpointPill,
 	resolveNextStep,
 	resolvePill,
 	stageEntry,
 	stageOf,
 } from '../../utils/detailActionModel.js'
+import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotals } from '../../utils/fetchFilterCounts.js'
@@ -3707,6 +3710,9 @@ export default {
 			widgetConditionSeq: 0,
 			/** The counts of the header's count pills (`countFrom`), by pill key (`type`, `status`). */
 			pillCounts: {},
+			// The values the header's endpoint pills read, by pill key (detail-pill-from-endpoint).
+			pillEndpointValues: {},
+			pillEndpointSeq: 0,
 			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
 			pillCountSeq: 0,
 			/** The labels of the records pills with `resolve` point at, by pill key. */
@@ -4593,9 +4599,7 @@ export default {
 		headerPills() {
 			return [['type', this.typePill], ['status', this.statusPill]]
 				.map(([key, config]) => {
-					const pill = pillCountSource(config)
-						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
-						: resolvePill(config, this.resolvedObject)
+					const pill = this.headerPillOf(key, config)
 					if (!pill) {
 						return null
 					}
@@ -4649,6 +4653,21 @@ export default {
 
 		pillCountKey() {
 			return JSON.stringify([this.objectId, pillCountSource(this.typePill), pillCountSource(this.statusPill)])
+		},
+
+		/**
+		 * What the endpoint pills read, as one key: the record and each pill's
+		 * resolved request. A change reads again.
+		 *
+		 * @return {string} The key.
+		 * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+		 */
+		pillEndpointKey() {
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			return JSON.stringify([['type', this.typePill], ['status', this.statusPill]].map(([key, config]) => {
+				const source = pillEndpointSource(config)
+				return source ? [key, resolveEndpointRequest(source, ctx)] : null
+			}))
 		},
 
 		/**
@@ -6323,6 +6342,14 @@ export default {
 			},
 		},
 
+		// The header's endpoint pills read again for another record or request.
+		pillEndpointKey: {
+			immediate: true,
+			handler() {
+				this.refreshPillEndpoints()
+			},
+		},
+
 		// Opening a record marks it read, once, after its data has rendered.
 		readStateDue: {
 			immediate: true,
@@ -7118,6 +7145,52 @@ export default {
 			})
 			if (seq === this.pillCountSeq) {
 				this.pillCounts = counts
+			}
+		},
+
+		/**
+		 * One header pill: a count pill from its count, an endpoint pill from
+		 * the value its endpoint answered, any other from the record.
+		 *
+		 * @param {string} key `type` or `status`.
+		 * @param {object|null} config The pill config.
+		 * @return {object|null} The pill, or null.
+		 * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+		 */
+		headerPillOf(key, config) {
+			if (pillCountSource(config)) {
+				return resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
+			}
+			if (pillEndpointSource(config)) {
+				return resolveEndpointPill(config, this.pillEndpointValues[key])
+			}
+			return resolvePill(config, this.resolvedObject)
+		},
+
+		/**
+		 * Read the values behind the header's endpoint pills (`endpointSource`).
+		 * A failed read, a request still waiting on a token or a record
+		 * without an id shows no pill.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+		 */
+		async refreshPillEndpoints() {
+			const pills = [['type', this.typePill], ['status', this.statusPill]]
+				.map(([key, config]) => [key, pillEndpointSource(config)])
+				.filter(([, source]) => source)
+			const seq = ++this.pillEndpointSeq
+			if (pills.length === 0 || this.objectId === null || this.objectId === undefined || this.objectId === '') {
+				this.pillEndpointValues = {}
+				return
+			}
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const values = {}
+			await Promise.all(pills.map(async ([key, source]) => {
+				values[key] = await fetchEndpointSource(source, ctx).catch(() => null)
+			}))
+			if (seq === this.pillEndpointSeq) {
+				this.pillEndpointValues = values
 			}
 		},
 

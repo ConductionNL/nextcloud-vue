@@ -407,3 +407,40 @@ export function resolveCountPill(config, count, translate = (text) => text) {
 		variant: typeof config.variant === 'string' && config.variant !== '' ? config.variant : 'default',
 	}
 }
+
+/**
+ * The endpoint an endpoint pill reads (`endpointSource`), or null for any
+ * other pill. A pill with `field`, `text` or `countFrom` is not one.
+ *
+ * @param {object|null} config The pill config.
+ * @return {{url: string, method?: string, params?: object, responsePath?: string}|null} The endpointSource block.
+ * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+ */
+export function pillEndpointSource(config) {
+	if (!config || typeof config !== 'object' || config.field || config.text || config.countFrom) {
+		return null
+	}
+	const source = config.endpointSource
+	if (!source || typeof source !== 'object' || typeof source.url !== 'string' || source.url === '') {
+		return null
+	}
+	return source
+}
+
+/**
+ * An endpoint pill once its value is read: the raw value (at the source's
+ * `responsePath`) shown through `labels` and keyed into `colorMap`, as a field
+ * pill. Nothing while the value is unknown, empty, not a scalar or outside
+ * `values`.
+ *
+ * @param {object|null} config The pill config.
+ * @param {unknown} value The value the endpoint answered.
+ * @return {{label: string, colorKey: string, colorMap: object|null, variant: string}|null} What CnStatusBadge needs, or null.
+ * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+ */
+export function resolveEndpointPill(config, value) {
+	if (!pillEndpointSource(config) || (typeof value !== 'string' && typeof value !== 'number')) {
+		return null
+	}
+	return resolvePill({ ...config, field: 'value', text: undefined }, { value })
+}
