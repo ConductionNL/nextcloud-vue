@@ -257,7 +257,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 256,
+			"transitive": 257,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1049,7 +1049,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 232,
+			"transitive": 233,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -1322,7 +1322,7 @@
 		},
 		"CnDetailPage": {
 			"direct": 15,
-			"transitive": 232,
+			"transitive": 233,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2064,7 +2064,7 @@
 		},
 		"CnFlowsPage": {
 			"direct": 2,
-			"transitive": 230,
+			"transitive": 231,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2568,7 +2568,7 @@
 		},
 		"CnIndexListWidget": {
 			"direct": 0,
-			"transitive": 230,
+			"transitive": 231,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -2687,7 +2687,7 @@
 		},
 		"CnIndexPage": {
 			"direct": 14,
-			"transitive": 227,
+			"transitive": 228,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4056,7 +4056,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 249,
+			"transitive": 250,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4595,7 +4595,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 233,
+			"transitive": 234,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -5730,7 +5730,7 @@
 			"page": "cn-tasks-card"
 		},
 		"CnTasksWidget": {
-			"direct": 2,
+			"direct": 4,
 			"transitive": 125,
 			"tier": "heavy",
 			"via": [
@@ -6109,7 +6109,7 @@
 		},
 		"CnWidgetGrid": {
 			"direct": 0,
-			"transitive": 230,
+			"transitive": 231,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
