@@ -96,3 +96,25 @@ describe('CnHeaderWidget emblem: true without a theme emblem', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('CnHeaderWidget greetingLine styles', () => {
+	const css = require('fs').readFileSync(require('path').join(__dirname, '../../src/components/CnHeaderWidget/CnHeaderWidget.vue'), 'utf8')
+
+	/**
+	 * The declarations of one rule of the component's style block.
+	 *
+	 * @param {string} selector The rule's selector.
+	 * @return {string} The declarations, empty when the rule is absent.
+	 */
+	const rule = (selector) => (css.split(selector + ' {')[1] || '').split('}')[0]
+
+	it('sizes the line under the heading at 14px, above the 16px subtitle rule', () => {
+		// The line also carries the subtitle class, so its rule must out-rank `.cn-header-widget__subtitle`.
+		expect(rule('.cn-header-widget--greeting-line .cn-header-widget__line')).toContain('font-size: 14px')
+	})
+
+	it('draws the emblem 44px high with a 14px gap', () => {
+		expect(rule('.cn-header-widget--greeting-line')).toContain('--cn-header-emblem-size: 44px')
+		expect(rule('.cn-header-widget--greeting-line')).toContain('--cn-header-emblem-gap: 14px')
+	})
+})
