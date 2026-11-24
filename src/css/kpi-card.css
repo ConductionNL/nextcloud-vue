@@ -508,6 +508,13 @@ a.cn-kpi-card--stacked:focus-visible {
 	overflow-wrap: break-word;
 }
 
+/* The source before " · " in a board label is set in bold ink (LpVandaag:
+   "dossiq · Cases"). */
+.cn-kpi-card--board .cn-kpi-card__title-source {
+	font-weight: 700;
+	color: var(--color-main-text);
+}
+
 /* The 18px glyph before the label, drawn only on a link tile. */
 .cn-kpi-card--board .cn-kpi-card__title {
 	display: flex;
