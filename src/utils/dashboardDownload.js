@@ -40,7 +40,7 @@ export const DOWNLOAD_ERROR_VALUE = 'error'
 /**
  * Whether a value is a plain object.
  *
- * @param {*} value The value.
+ * @param {unknown} value The value.
  * @return {boolean}
  */
 function isObject(value) {
@@ -190,7 +190,7 @@ export async function readDownloadRows(plan, readers = DEFAULT_READERS) {
 /**
  * One CSV cell, quoted when it must be.
  *
- * @param {*} value The cell value.
+ * @param {unknown} value The cell value.
  * @return {string}
  */
 export function csvCell(value) {
@@ -201,7 +201,7 @@ export function csvCell(value) {
 /**
  * The file content: a byte order mark, the header row and the data rows.
  *
- * @param {Array<Array<*>>} rows The data rows.
+ * @param {Array<Array<string|number>>} rows The data rows.
  * @return {string}
  * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
  */
