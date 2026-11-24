@@ -5775,6 +5775,15 @@
 								}
 							}
 						},
+						"download": {
+							"type": "boolean",
+							"default": false,
+							"description": "type='dashboard': a \"Download\" button in the header saves the figures of the page's stat tiles (OpenRegister `source`), grouped charts (`dataSource.aggregate.groupBy` count) and object tables as CSV with the header row `widget,label,value`, UTF-8 with a byte order mark. Disabled until the figures are read; a widget whose read fails writes one row with the value `error` (dashboard-download-csv)."
+						},
+						"downloadName": {
+							"type": "string",
+							"description": "type='dashboard' with `download: true`: the file name before `-<yyyy-mm-dd>.csv`; \"dashboard\" when empty."
+						},
 						"kpiRow": {
 							"type": "array",
 							"items": { "type": "string" },
