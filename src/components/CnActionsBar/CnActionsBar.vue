@@ -953,7 +953,8 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'calendar'].includes(v),
+			// A page's own view (customViewSegments) is named by its id.
+			validator: (v) => typeof v === 'string' && v !== '',
 		},
 
 		/**
@@ -965,7 +966,20 @@ export default {
 		availableViewModes: {
 			type: Array,
 			default: () => ['cards', 'table'],
-			validator: (modes) => modes.every((m) => ['cards', 'table', 'list', 'calendar'].includes(m)),
+			validator: (modes) => modes.every((m) => typeof m === 'string' && m !== ''),
+		},
+
+		/**
+		 * Segments of the page's own views (CnIndexPage `customViews`):
+		 * `[{ mode, label, icon }]`. A mode listed in `availableViewModes`
+		 * draws with this label and icon (a CnIcon name; empty draws a grid).
+		 *
+		 * @type {Array<{mode: string, label: string, icon?: string}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViewSegments: {
+			type: Array,
+			default: () => [],
 		},
 
 		/** Whether to show the view-mode toggle */
@@ -1404,6 +1418,7 @@ export default {
 				list: { label: this.listLabel || t('nextcloud-vue', 'List'), icon: this.listIcon, fallback: ViewListOutline },
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
 				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
+				...this.customSegmentDefs,
 			}
 			const modes = [...this.availableViewModes]
 			if (this.showMap && !modes.includes('map')) {
@@ -1439,6 +1454,22 @@ export default {
 		},
 
 		/**
+		 * The segment definitions of the page's own views, by mode.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customSegmentDefs() {
+			const defs = {}
+			for (const segment of (Array.isArray(this.customViewSegments) ? this.customViewSegments : [])) {
+				if (segment && typeof segment.mode === 'string' && segment.mode !== '') {
+					defs[segment.mode] = { label: segment.label || segment.mode, icon: segment.icon || '', fallback: ViewGridOutline }
+				}
+			}
+			return defs
+		},
+
+		/**
 		 * Board look: the `viewSwitch` list, or null without one.
 		 *
 		 * @return {Array<string>|null}
@@ -1470,6 +1501,7 @@ export default {
 				board: { label: t('nextcloud-vue', 'Board'), icon: '', fallback: ViewColumnOutline },
 				map: { label: this.mapLabel || t('nextcloud-vue', 'Map'), icon: this.mapIcon, fallback: MapMarkerOutline },
 				calendar: { label: t('nextcloud-vue', 'Calendar'), icon: '', fallback: CalendarMonthOutline },
+				...this.customSegmentDefs,
 			}
 			return modes.filter((mode) => !named.includes(mode) && labels[mode]).map((mode) => ({ mode, ...labels[mode] }))
 		},

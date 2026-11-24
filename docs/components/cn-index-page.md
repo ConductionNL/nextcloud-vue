@@ -898,6 +898,32 @@ A row whose `@self.register` / `@self.schema` names another pair behaves as a ro
 
 Keep the columns to ones every pair has, such as `@self.name`, `@self.updated` and shared properties. Live updates follow the page's own pair only. In this mode, any `dispatchObjectsChanged` signal refreshes the list.
 
+## A view of the page's own
+
+When the built-in views do not fit, a page adds its own view of the whole filtered list with
+`customViews` (manifest `pages[].config.customViews`):
+
+```json
+"customViews": [
+  { "id": "diagram", "label": "Diagram", "icon": "Graph", "component": "ConnectionsDiagram" }
+]
+```
+
+Each view is a segment of the view switch after the built-in ones and opens with
+`?_view=<id>`. The component, looked up in the registry and then in `customComponents`,
+gets the rows the other views draw, so the list's filters, search and quick filters apply:
+
+| Prop | |
+|---|---|
+| `rows` | The filtered rows |
+| `schema` | The page's schema |
+| `loading` | Whether the list is loading |
+| `rowKey` | The row id field |
+
+It emits `rowClick` with a row to open it, as a table row click does. A view whose id is a
+built-in mode, or whose component does not resolve, is left out; a page without
+`customViews` is unchanged.
+
 ## Map view mode
 
 Alongside `table` and `cards`, CnIndexPage offers an **opt-in `map` view mode** — a third view-toggle segment that plots the **current filtered rows** on a [CnMapWidget](./cn-map-widget.md). It is strictly opt-in and fully backward compatible: pages that don't configure it render exactly as before.

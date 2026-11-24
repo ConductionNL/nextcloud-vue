@@ -169,6 +169,7 @@
 			:showMap="showMapSegment"
 			:mapLabel="mapLabel"
 			:mapIcon="mapIcon"
+			:customViewSegments="customViewSegments"
 			:listIcon="listIcon"
 			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
 			:searchPlacement="searchPlacement"
@@ -1122,6 +1123,21 @@
 					@cardAuxClick="onRowAuxClick"
 					@moved="onBoardMoved"
 					@cardAction="onRowAction" />
+
+				<!--
+					A view of the page's own (`customViews`): the component the
+					app names gets the whole filtered list, as the other views
+					draw it, and opens a row the way they do.
+				-->
+				<component
+					:is="activeCustomView.component"
+					v-else-if="activeCustomView"
+					:rows="displayObjects"
+					:schema="effectiveSchema"
+					:loading="effectiveLoading"
+					:rowKey="rowKey"
+					:data-testid="'cn-index-custom-view-' + activeCustomView.id"
+					@rowClick="onRowClick" />
 
 				<!--
 					Date axis. Reads only: nothing here reschedules, because a
@@ -3299,7 +3315,8 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(v),
+			// A page's own view (`customViews`) is named by its id, so any id passes here.
+			validator: (v) => typeof v === 'string' && v !== '',
 		},
 
 		/**
@@ -3356,6 +3373,24 @@ export default {
 		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		viewModes: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Views of the page's own, each drawing the whole filtered list:
+		 * `[{ id, label, icon?, component }]`. `component` names a component
+		 * in the registry or customComponents; it gets `rows` (the filtered
+		 * rows the other views draw), `schema`, `loading` and `rowKey`, and
+		 * emits `rowClick` with a row to open it. Each view is a segment of the
+		 * view switch after the built-in ones and opens with `?_view=<id>`.
+		 * Fed from the manifest as `pages[].config.customViews`. An id that is
+		 * a built-in mode, or a component that does not resolve, is left out.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, component: string}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViews: {
 			type: Array,
 			default: null,
 		},
@@ -6157,9 +6192,11 @@ export default {
 		 * @return {Array<string>} The ordered toggle segments minus 'map'.
 		 */
 		effectiveToggleModes() {
-			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
-				? this.viewModes
-				: this.availableViewModes
+			const custom = this.customViewEntries.map((view) => view.id)
+			const list = [
+				...((Array.isArray(this.viewModes) && this.viewModes.length) ? this.viewModes : this.availableViewModes),
+				...custom,
+			].filter((mode, index, all) => all.indexOf(mode) === index)
 
 			// 🔴 A SEGMENT ONLY WHEN THE MODE CAN ACTUALLY WORK. A board needs
 			// a status field to build its columns from and a date axis needs
@@ -6181,6 +6218,46 @@ export default {
 				}
 				return true
 			})
+		},
+
+		/**
+		 * The page's own views that can open: a valid id that is no built-in
+		 * mode, a label, and a component that resolves.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string, component: object}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViewEntries() {
+			const builtIn = ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar']
+			const views = Array.isArray(this.customViews) ? this.customViews : []
+			return views.flatMap((view) => {
+				const id = typeof view?.id === 'string' ? view.id : ''
+				const component = typeof view?.component === 'string' ? this.resolveNamedComponent(view.component) : null
+				if (!/^[a-z][a-zA-Z0-9-]*$/.test(id) || builtIn.includes(id) || !component) {
+					return []
+				}
+				return [{ id, label: this.cnTranslate(view.label || id), icon: typeof view.icon === 'string' ? view.icon : '', component }]
+			})
+		},
+
+		/**
+		 * The page's own view that is open, or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		activeCustomView() {
+			return this.customViewEntries.find((view) => view.id === this.currentViewMode) || null
+		},
+
+		/**
+		 * The view-switch segments of the page's own views, for CnActionsBar.
+		 *
+		 * @return {Array<{mode: string, label: string, icon: string}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViewSegments() {
+			return this.customViewEntries.map((view) => ({ mode: view.id, label: view.label, icon: view.icon }))
 		},
 
 		/**
