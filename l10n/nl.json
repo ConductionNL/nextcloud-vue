@@ -3234,7 +3234,13 @@
     "Recorded on": "Vastgelegd op",
     "Set when it closes": "Bepaald bij afsluiten",
     "The values for this row could not be worked out. It keeps the values it had.": "De waarden voor deze regel konden niet worden bepaald. De regel houdt de waarden die hij had.",
-    "Filters ({count})": "Filters ({count})"
+    "Filters ({count})": "Filters ({count})",
+    "Sessions about {label}": "Sessies over {label}",
+    "Sessions about this page": "Sessies over deze pagina",
+    "This session is about": "Deze sessie gaat over",
+    "This session is not linked to anything": "Deze sessie is nergens aan gekoppeld",
+    "Remove {label} from this session": "{label} uit deze sessie verwijderen",
+    "Could not remove the link": "De koppeling kon niet worden verwijderd"
   },
   "plurals": {
     "{count} member": [

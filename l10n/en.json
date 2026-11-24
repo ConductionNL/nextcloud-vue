@@ -2956,7 +2956,13 @@
     "Recorded on": "Recorded on",
     "Set when it closes": "Set when it closes",
     "The values for this row could not be worked out. It keeps the values it had.": "The values for this row could not be worked out. It keeps the values it had.",
-    "Filters ({count})": "Filters ({count})"
+    "Filters ({count})": "Filters ({count})",
+    "Sessions about {label}": "Sessions about {label}",
+    "Sessions about this page": "Sessions about this page",
+    "This session is about": "This session is about",
+    "This session is not linked to anything": "This session is not linked to anything",
+    "Remove {label} from this session": "Remove {label} from this session",
+    "Could not remove the link": "Could not remove the link"
   },
   "plurals": {
     "{count} member": [
