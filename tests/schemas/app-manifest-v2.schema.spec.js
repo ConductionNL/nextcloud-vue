@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.195.0', () => {
+	it('the manifest schema version reads 2.196.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1468,11 +1468,12 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.192.0 lets a page name the menu entry it marks (page.menuEntry; page-names-its-menu-entry).
 		// 2.193.0 lets a dashboard offer its figures as CSV (config.download, config.downloadName; dashboard-download-csv).
 		// 2.194.0 lets a stats-block entry read an endpoint (entries[].endpointSource, valueField; stats-block-entry-endpoint).
-		// 2.195.0 lets a store say where an install can go (store.installTarget; store-install-target).
-		expect(schema.version).toBe('2.195.0')
+		// 2.195.0 lets a grid widget mount on page open rather than near the screen (widgetEntry.eager).
+		// 2.196.0 lets a store say where an install can go (store.installTarget; store-install-target).
+		expect(schema.version).toBe('2.196.0')
 	})
 
-	it('accepts store.installTarget with a property and schemas, and nothing less (2.195.0)', () => {
+	it('accepts store.installTarget with a property and schemas, and nothing less (2.196.0)', () => {
 		const store = (installTarget) => ({ ...MINIMAL_V2, store: { types: ['openregister.configset'], installTarget } })
 		expect(validateManifestV2(store({ property: 'setting', schemas: ['larping_skill', 'condition'] })).valid).toBe(true)
 		expect(validateManifestV2(store({ property: 'setting' })).valid).toBe(false)

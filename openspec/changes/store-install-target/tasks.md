@@ -1,2 +1,2 @@
 - [x] 1 `targets` and `targetLabel` on CnStorePage, the chosen id in the install body (tests/components/CnStorePageTargets.spec.js); docs/components/cn-store-page.md
-- [x] 2 `store.installTarget: { property, schemas }` in the v2 manifest schema (2.195.0), so an app can declare which property of which installed objects records the target; the engine half is ConductionNL/openregister#11046 (tests/schemas/app-manifest-v2.schema.spec.js)
+- [x] 2 `store.installTarget: { property, schemas }` in the v2 manifest schema (2.196.0), so an app can declare which property of which installed objects records the target; the engine half is ConductionNL/openregister#11046 (tests/schemas/app-manifest-v2.schema.spec.js)
