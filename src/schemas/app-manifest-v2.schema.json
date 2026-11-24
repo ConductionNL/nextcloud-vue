@@ -4324,21 +4324,6 @@
 					"$ref": "#/$defs/dateAxisView",
 					"description": "Index pages only. The date-axis view's configuration, handed to CnIndexPage as the `dateAxis` prop. The segment appears only when `viewModes` also lists `dateAxis`. Refused on any other page type."
 				},
-				"customViews": {
-					"type": "array",
-					"description": "Index pages only. Views of the page's own, each drawing the whole filtered list: a segment of the view switch after the built-in ones, opened with ?_view=<id>. `component` names a registry or customComponents component; it gets the filtered `rows`, `schema`, `loading` and `rowKey` and emits `rowClick` to open a row. An id that is a built-in mode, or a component that does not resolve, is left out.",
-					"items": {
-						"type": "object",
-						"required": ["id", "label", "component"],
-						"additionalProperties": false,
-						"properties": {
-							"id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9-]*$", "description": "The mode id, as ?_view= names it." },
-							"label": { "type": "string", "minLength": 1, "description": "The segment's label, translated as the page's other labels are." },
-							"icon": { "type": "string", "description": "A CnIcon name for the segment." },
-							"component": { "type": "string", "minLength": 1, "description": "The registry or customComponents name of the view." }
-						}
-					}
-				},
 				"savedViewTree": {
 					"$ref": "#/$defs/savedViewTree",
 					"description": "Index pages only. Renders this page's saved views as a tree with labels, and declares the views that ship with the app. Refused on any other page type: a page with no saved-view dropdown has nothing to put in a tree."

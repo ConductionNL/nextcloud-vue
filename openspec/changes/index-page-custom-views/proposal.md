@@ -24,4 +24,4 @@ list's filters.
   accept the ids.
 - A view whose id is a built-in mode, or whose component does not resolve, is left out. A
   page without `customViews` is unchanged.
-- The manifest schema documents `config.customViews`.
+- No manifest schema change: `pages[].config` is free-form, and the page renderer hands its keys to `CnIndexPage` as props.
