@@ -224,7 +224,7 @@ describe('CnAiChatPanel', () => {
 		const attachments = [{ path: '/tmp/foo.txt', name: 'foo.txt' }]
 		wrapper.vm.onSend({ text: 'Hello from input', attachments })
 		expect(wrapper.emitted('send')).toBeTruthy()
-		expect(wrapper.emitted('send')[0]).toEqual(['Hello from input', 'agent-1', attachments])
+		expect(wrapper.emitted('send')[0]).toEqual(['Hello from input', 'agent-1', attachments, null])
 	})
 
 	/**

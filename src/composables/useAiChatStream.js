@@ -226,6 +226,10 @@ export function useAiChatStream(contextInstance, options = {}) {
 		if (Array.isArray(extras?.attachmentNotices)) {
 			assistantMessage.attachmentNotices = extras.attachmentNotices
 		}
+		// The sources the answer cites, in citation order: marker [n] is sources[n-1].
+		if (Array.isArray(extras?.sources) && extras.sources.length > 0) {
+			assistantMessage.sources = extras.sources
+		}
 		state.messages.push(assistantMessage)
 		if (typeof conversationUuid === 'string' && conversationUuid !== '') {
 			state.conversationUuid = conversationUuid
@@ -308,6 +312,9 @@ export function useAiChatStream(contextInstance, options = {}) {
 	 *   `attachmentsUrl()`), to be read by the backend from `body.attachments`.
 	 *   Omitted from the request body entirely when empty so existing backends
 	 *   that don't yet read the key see no change to the payload shape.
+	 * @param {{type: string, fileId: number}|null} [options.scope] - What the turn is
+	 *   about: one document (`type: 'file'`) or one folder (`type: 'folder'`). Sent
+	 *   as `body.scope` only when given, so an unscoped turn keeps its shape.
 	 * @returns {Promise<void>} Resolves on "final", rejects on "error" or abort
 	 */
 	function send(content, options = {}) {
@@ -360,6 +367,9 @@ export function useAiChatStream(contextInstance, options = {}) {
 		// unaffected) for the common no-attachment turn.
 		if (Array.isArray(options.attachments) && options.attachments.length > 0) {
 			body.attachments = options.attachments
+		}
+		if (options.scope && typeof options.scope === 'object' && options.scope.fileId) {
+			body.scope = { type: options.scope.type, fileId: options.scope.fileId }
 		}
 
 		abortController = new AbortController()
@@ -504,11 +514,17 @@ export function useAiChatStream(contextInstance, options = {}) {
 			const messages = Array.isArray(data.results)
 				? data.results
 				: (Array.isArray(data.messages) ? data.messages : [])
-			state.messages = messages.map((m) => ({
-				role: m.role || 'assistant',
-				content: m.content || '',
-				toolCalls: m.toolCalls || m.tool_calls || [],
-			}))
+			state.messages = messages.map((m) => {
+				const message = {
+					role: m.role || 'assistant',
+					content: m.content || '',
+					toolCalls: m.toolCalls || m.tool_calls || [],
+				}
+				if (Array.isArray(m.sources) && m.sources.length > 0) {
+					message.sources = m.sources
+				}
+				return message
+			})
 			state.pendingApprovals = Array.isArray(data.pendingApprovals) ? data.pendingApprovals : []
 			// Don't force a new thread — resume this conversation, and remember its
 			// uuid so the next send() continues it instead of starting a new one.
