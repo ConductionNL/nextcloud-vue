@@ -2962,7 +2962,8 @@
     "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.",
     "Hand over": "Hand over",
     "The hand-over was refused": "The hand-over was refused",
-    "Task {title} handed to {name}": "Task {title} handed to {name}"
+    "Task {title} handed to {name}": "Task {title} handed to {name}",
+    "Filters ({count})": "Filters ({count})"
   },
   "plurals": {
     "{count} member": [
