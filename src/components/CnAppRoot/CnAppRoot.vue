@@ -445,6 +445,7 @@
 					:steps="manifest.setup.steps"
 					:cancellable="true"
 					:completedStepIds="setupCompletedStepIds"
+					:startStep="setupStartStep"
 					@complete="onSetupComplete"
 					@close="dismissSetupWizard" />
 			</div>
@@ -1121,6 +1122,16 @@ export default {
 			},
 
 			/**
+			 * Whether the notification pane shows the quiet-hours block
+			 * (OpenRegister's per-user delivery window). A getter, as above.
+			 *
+			 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+			 */
+			get cnQuietHours() {
+				return self.quietHours === true
+			},
+
+			/**
 			 * Target repo slug for the in-product feature-request deep
 			 * link (e.g. `ConductionNL/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
@@ -1619,6 +1630,20 @@ export default {
 		notificationLabels: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Show the quiet-hours block in the user settings' notification
+		 * pane. It reads and saves OpenRegister's per-user delivery window
+		 * (`/api/notification-delivery-window`), which applies to every app
+		 * on the instance. Off by default.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+		 */
+		quietHours: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2149,6 +2174,8 @@ export default {
 			 * @type {boolean}
 			 */
 			setupWizardOpen: false,
+			/** The step `?setup=<stepId>` asked the setup wizard to open on; '' for its own start. */
+			setupStartStep: '',
 			/**
 			 * The user's last-seen walkthrough app version (ADR-043).
 			 *
@@ -3379,10 +3406,11 @@ export default {
 		/**
 		 * Open the setup wizard again when the address asks for it
 		 * (`?setup=open`), also after it was finished or dismissed, so a menu
-		 * entry or a link can offer "set up again". Ignored for an app without
-		 * setup steps.
+		 * entry or a link can offer "set up again". `?setup=<stepId>` opens it
+		 * at that step. Ignored for an app without setup steps.
 		 *
 		 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+		 * @spec openspec/changes/setup-wizard-opens-at-a-step/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard-at-a-step
 		 */
 		'$route.query.setup': {
 			immediate: true,
@@ -3392,7 +3420,15 @@ export default {
 			 */
 			handler(value) {
 				const setup = this.manifest && this.manifest.setup
-				if (value === 'open' && setup && setup.enabled !== false && Array.isArray(setup.steps) && setup.steps.length > 0) {
+				if (!setup || setup.enabled === false || !Array.isArray(setup.steps) || setup.steps.length === 0) {
+					return
+				}
+				if (value === 'open') {
+					this.setupStartStep = ''
+					this.setupWizardOpen = true
+				} else if (typeof value === 'string' && setup.steps.some((step) => step && step.id === value)) {
+					// `?setup=<stepId>` opens the wizard at that step.
+					this.setupStartStep = value
 					this.setupWizardOpen = true
 				}
 			},
@@ -4001,6 +4037,7 @@ export default {
 		dismissSetupWizard() {
 			this.persistSetupWizardDismissal(false)
 			this.setupWizardOpen = false
+			this.setupStartStep = ''
 		},
 
 		/**

@@ -2962,7 +2962,22 @@
     "This session is about": "This session is about",
     "This session is not linked to anything": "This session is not linked to anything",
     "Remove {label} from this session": "Remove {label} from this session",
-    "Could not remove the link": "Could not remove the link"
+    "Could not remove the link": "Could not remove the link",
+    "Quiet hours": "Quiet hours",
+    "Hold back notifications during set hours. Reminders with a deadline still arrive on time.": "Hold back notifications during set hours. Reminders with a deadline still arrive on time.",
+    "Turn on quiet hours": "Turn on quiet hours",
+    "Begin": "Begin",
+    "This applies to every app that sends notifications through Open Register.": "This applies to every app that sends notifications through Open Register.",
+    "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.": "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.",
+    "Saving failed. Try again.": "Saving failed. Try again.",
+    "This time is not valid.": "This time is not valid.",
+    "Hand to a colleague": "Hand to a colleague",
+    "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.": "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.",
+    "Mandate": "Mandate",
+    "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.",
+    "Hand over": "Hand over",
+    "The hand-over was refused": "The hand-over was refused",
+    "Task {title} handed to {name}": "Task {title} handed to {name}"
   },
   "plurals": {
     "{count} member": [

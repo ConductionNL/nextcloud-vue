@@ -491,6 +491,19 @@ export default {
 		},
 
 		/**
+		 * The id of a step to open on, for a link that asks for one step
+		 * (`?setup=<stepId>`, e.g. "Connect a catalogue" opening at `store`).
+		 * Wins over resuming; ignored when no step has that id.
+		 *
+		 * @type {string}
+		 * @spec openspec/changes/setup-wizard-opens-at-a-step/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard-at-a-step
+		 */
+		startStep: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * The app's dependencies, in the manifest's own shape (app-id strings
 		 * or `{ id, name?, required? }`). Falls back to the injected manifest's
 		 * `dependencies`. A missing REQUIRED one replaces every step with the
@@ -818,6 +831,10 @@ export default {
 		 * @return {string}
 		 */
 		initialStepId() {
+			// A link that names a step opens on it.
+			if (this.startStep && this.setupSteps.some((s) => s && s.id === this.startStep)) {
+				return this.startStep
+			}
 			// Fresh setup — nothing done anywhere yet, so there is nothing to
 			// resume past. Start at step one so a leading `info`/welcome step is
 			// actually seen; resuming is only for returning sessions.
