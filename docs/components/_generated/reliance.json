@@ -257,7 +257,7 @@
 		},
 		"CnAppRoot": {
 			"direct": 11,
-			"transitive": 257,
+			"transitive": 259,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -343,6 +343,7 @@
 				"CnPhotoAlbumPicker",
 				"CnPlanWidget",
 				"CnPollPicker",
+				"CnQuietHours",
 				"CnRecordListWidget",
 				"CnRecordNotesWidget",
 				"CnRedactionEditor",
@@ -1049,7 +1050,7 @@
 		},
 		"CnDashboardPage": {
 			"direct": 4,
-			"transitive": 233,
+			"transitive": 234,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -3596,10 +3597,12 @@
 			"page": "cn-notification-matrix"
 		},
 		"CnNotificationPreferences": {
-			"direct": 2,
-			"transitive": 0,
-			"tier": "light",
-			"via": [],
+			"direct": 3,
+			"transitive": 1,
+			"tier": "medium",
+			"via": [
+				"CnQuietHours"
+			],
 			"page": "cn-notification-preferences"
 		},
 		"CnObjectAccessTab": {
@@ -4056,7 +4059,7 @@
 		},
 		"CnPageRenderer": {
 			"direct": 7,
-			"transitive": 250,
+			"transitive": 251,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",
@@ -4364,6 +4367,13 @@
 			"via": [],
 			"page": "cn-quicklinks-widget-form"
 		},
+		"CnQuietHours": {
+			"direct": 1,
+			"transitive": 0,
+			"tier": "light",
+			"via": [],
+			"page": "cn-quiet-hours"
+		},
 		"CnRadioCardsWidget": {
 			"direct": 0,
 			"transitive": 2,
@@ -4595,7 +4605,7 @@
 		},
 		"CnReportsPage": {
 			"direct": 0,
-			"transitive": 234,
+			"transitive": 235,
 			"tier": "heavy",
 			"via": [
 				"CnActionButtons",

@@ -3233,11 +3233,30 @@ export default {
 		 * (manifest `config.quickActionsFrom`, e.g.
 		 * `@context.caseType.quickActions`). Only ids of `headerActions` are
 		 * taken, so the record's data never defines an action. An empty or
-		 * missing list keeps `quickActions`.
+		 * missing list keeps `quickActions`. A list of paths is read in
+		 * order and the first that names a declared action wins, so a newer
+		 * key (`@context.caseType.headerActions`) can lead an older one.
 		 *
 		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 * @spec openspec/changes/detail-header-row-from-record/specs/detail-page/spec.md#requirement-quick-actions-can-be-read-from-more-than-one-path
 		 */
 		quickActionsFrom: {
+			type: [String, Array],
+			default: '',
+		},
+
+		/**
+		 * A field path, read like a `visibleWhen` field, whose value names the
+		 * declared header action drawn as this record's primary button
+		 * (manifest `config.primaryActionFrom`, e.g.
+		 * `@context.caseType.primaryAction`). Only an id of `headerActions`
+		 * is taken, and only while that action's own `visibleWhen` shows it,
+		 * so the record's data never defines or widens an action. Otherwise
+		 * the stage's primary action and `primaryAction` stay.
+		 *
+		 * @spec openspec/changes/detail-header-row-from-record/specs/detail-page/spec.md#requirement-a-record-can-name-its-primary-action
+		 */
+		primaryActionFrom: {
 			type: String,
 			default: '',
 		},
@@ -4100,7 +4119,32 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		stagePrimary() {
+			const fromRecord = this.recordPrimary
+			if (fromRecord && this.menuHeaderActions.some((entry) => entry && entry.id === fromRecord.id)) {
+				return fromRecord
+			}
 			return normalisePinnedAction(stageEntry(this.primaryActionByStage, this.recordStage), 'cn-stage-primary')
+		},
+
+		/**
+		 * The primary action the record names through `primaryActionFrom`:
+		 * an id of a declared header action, else null. Whether that action
+		 * is visible to the reader is decided by its own `visibleWhen`
+		 * (`stagePrimary` only takes it while the menu lists it).
+		 *
+		 * @return {{id: string, inline: null}|null} The named action, or null.
+		 * @spec openspec/changes/detail-header-row-from-record/specs/detail-page/spec.md#requirement-a-record-can-name-its-primary-action
+		 */
+		recordPrimary() {
+			if (!this.primaryActionFrom || !this.widgetVisibilityData) {
+				return null
+			}
+			const id = readVisibleWhenPath(this.widgetVisibilityData, this.primaryActionFrom)
+			if (typeof id !== 'string' || id === '') {
+				return null
+			}
+			const known = (Array.isArray(this.headerActions) ? this.headerActions : []).some((action) => action && action.id === id)
+			return known ? { id, inline: null } : null
 		},
 
 		/**
@@ -4114,11 +4158,9 @@ export default {
 		 */
 		effectiveQuickActions() {
 			const declared = Array.isArray(this.quickActions) ? this.quickActions : []
-			if (!this.quickActionsFrom || !this.widgetVisibilityData) {
-				return declared
-			}
-			const listed = readVisibleWhenPath(this.widgetVisibilityData, this.quickActionsFrom)
-			if (!Array.isArray(listed)) {
+			const paths = (Array.isArray(this.quickActionsFrom) ? this.quickActionsFrom : [this.quickActionsFrom])
+				.filter((path) => typeof path === 'string' && path !== '')
+			if (paths.length === 0 || !this.widgetVisibilityData) {
 				return declared
 			}
 			const known = new Set((Array.isArray(this.headerActions) ? this.headerActions : []).map((action) => action && action.id))
@@ -4128,8 +4170,14 @@ export default {
 				}
 				return entry && typeof entry === 'object' && !('label' in entry) && typeof entry.id === 'string' ? entry.id : ''
 			}
-			const picked = listed.filter((entry) => known.has(idOf(entry)))
-			return picked.length > 0 ? picked : declared
+			for (const path of paths) {
+				const listed = readVisibleWhenPath(this.widgetVisibilityData, path)
+				const picked = Array.isArray(listed) ? listed.filter((entry) => known.has(idOf(entry))) : []
+				if (picked.length > 0) {
+					return picked
+				}
+			}
+			return declared
 		},
 
 		/**

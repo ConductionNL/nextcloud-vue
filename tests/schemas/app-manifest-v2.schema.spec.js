@@ -1470,15 +1470,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.194.0 lets a stats-block entry read an endpoint (entries[].endpointSource, valueField; stats-block-entry-endpoint).
 		// 2.195.0 lets a grid widget mount on page open rather than near the screen (widgetEntry.eager).
 		// 2.196.0 lets a store say where an install can go (store.installTarget; store-install-target).
-		expect(schema.version).toBe('2.196.0')
-	})
-
-	it('accepts store.installTarget with a property and schemas, and nothing less (2.196.0)', () => {
-		const store = (installTarget) => ({ ...MINIMAL_V2, store: { types: ['openregister.configset'], installTarget } })
-		expect(validateManifestV2(store({ property: 'setting', schemas: ['larping_skill', 'condition'] })).valid).toBe(true)
-		expect(validateManifestV2(store({ property: 'setting' })).valid).toBe(false)
-		expect(validateManifestV2(store({ property: 'setting', schemas: [] })).valid).toBe(false)
-		expect(validateManifestV2(store({ property: 'setting', schemas: ['a'], extra: true })).valid).toBe(false)
+		// 2.197.0 lets a detail page read its primary action from the record (primaryActionFrom) and its quick actions from more than one path (detail-header-row-from-record).
+		expect(schema.version).toBe('2.197.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {

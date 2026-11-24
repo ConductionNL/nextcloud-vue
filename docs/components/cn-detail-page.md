@@ -84,6 +84,7 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 | 1. The next step | One primary button. Its label follows the record's stage. | `primaryActionByStage` |
 | 2. Quick actions | At most three buttons that are always visible. | `quickActions` |
 | `quickActionsFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose list of `headerActions` ids picks this record's quick actions in that order (manifest `config.quickActionsFrom`, e.g. `@context.caseType.quickActions`, so a case type names the actions its cases need most). Only declared header actions are taken: an id nobody declares, or an action written out in the data, is dropped. An empty or missing list keeps `quickActions`. |
+| `primaryActionFrom` | String | `''` | A field path, read like a `visibleWhen` field, naming the declared header action drawn as this record's primary button (manifest `config.primaryActionFrom`, e.g. `@context.caseType.primaryAction`, so a case type picks the act its cases lead with). Only an id of `headerActions` is taken, and only while that action's own `visibleWhen` shows it, so the data never widens who may act; otherwise the stage's primary action and `primaryAction` stay. `quickActionsFrom` also takes a list of paths, read in order: the first that names a declared action wins. |
 | 3. The rest | The overflow menu, in named groups. | `group` on a header action |
 | 4. Admin actions | The last group of that menu, for admins only. | `adminOnly` on a header action |
 
