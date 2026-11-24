@@ -56,3 +56,7 @@ While a session is open, a "Session settings" titlebar entry lists the session's
 ## Approved-assistant mark
 
 When thematiq is installed, the panel reads `GET /apps/thematiq/api/assistant-mark` once per page load and, if the mark is on, draws a footer row (`role="note"`) under the input with the organisation's logo (max 24px high, the response's `alt`) and its label, shown exactly as received. The row appears in both the chat and history views. With thematiq absent, the mark off, or any failure, no row is rendered. No prop is involved. The label uses `--color-main-text` on `--color-main-background`.
+
+## Turn scope
+
+When `context.pageKind` is `document` (or `file`) and `context.fileId` is set, the panel shows a chip "About this document" above the composer; on a `folder` page it reads "About this folder". While the chip shows, every `send` carries `{ type: 'file' | 'folder', fileId }` as its fourth argument, which the companion sends as `scope` in the request body. Removing the chip sends the next turns unscoped until the page moves to another file.

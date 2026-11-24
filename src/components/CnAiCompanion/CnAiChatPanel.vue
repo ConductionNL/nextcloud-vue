@@ -352,6 +352,27 @@
 					<span>{{ note }}</span>
 				</p>
 
+				<!--
+				  What this turn is about: the document or folder the page shows.
+				  Removing the chip sends the next turns unscoped, until the page
+				  moves to another file.
+				-->
+				<div
+					v-if="turnScope"
+					class="cn-ai-chat-window__scope"
+					data-testid="cn-ai-panel-scope">
+					<span class="cn-ai-chat-window__scope-label">{{ scopeLabel }}</span>
+					<button
+						type="button"
+						class="cn-ai-chat-window__scope-remove"
+						:aria-label="cnTranslate('Ask without this scope')"
+						:title="cnTranslate('Ask without this scope')"
+						data-testid="cn-ai-panel-scope-remove"
+						@click="removeScope">
+						<Close :size="16" />
+					</button>
+				</div>
+
 				<div class="cn-ai-chat-window__input">
 					<CnAiInput
 						ref="input"
@@ -436,6 +457,7 @@ import {
 	SPEECH_LOCAL,
 	SPEECH_OFF,
 } from '../../composables/aiSpeechPolicy.js'
+import { turnScopeOf } from '../../utils/aiChatScope.js'
 import { getAssistantMark } from '../../utils/assistantMark.js'
 import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
@@ -672,10 +694,40 @@ export default {
 			scopedConversations: [],
 			sessionScopeLabel: '',
 			linkRemoveError: false,
+			// The file id whose scope chip the user removed; a new file brings it back.
+			removedScopeFileId: null,
 		}
 	},
 
 	computed: {
+		/**
+		 * What the next turn is about: the page's document or folder, unless
+		 * the user removed the chip for that file.
+		 *
+		 * @return {{type: string, fileId: number}|null} The turn scope.
+		 */
+		turnScope() {
+			const scope = turnScopeOf(this.context)
+			if (scope === null || scope.fileId === this.removedScopeFileId) {
+				return null
+			}
+			return scope
+		},
+
+		/**
+		 * The chip's text: "About this document" or "About this folder".
+		 *
+		 * @return {string} The label.
+		 */
+		scopeLabel() {
+			if (this.turnScope === null) {
+				return ''
+			}
+			return this.turnScope.type === 'folder'
+				? this.cnTranslate('About this folder')
+				: this.cnTranslate('About this document')
+		},
+
 		/** Top N conversations offered directly in the sessions menu. */
 		recentConversations() {
 			return this.conversations.slice(0, RECENT_CONVERSATIONS_LIMIT)
@@ -1492,7 +1544,18 @@ export default {
 		 * @param {{text: string, attachments: Array<{path: string, name: string}>}} payload CnAiInput's send payload.
 		 */
 		onSend({ text, attachments }) {
-			this.$emit('send', text, this.selectedAgentUuid, attachments)
+			this.$emit('send', text, this.selectedAgentUuid, attachments, this.turnScope)
+		},
+
+		/**
+		 * Remove the scope chip: the next turns search everything again.
+		 *
+		 * @return {void}
+		 */
+		removeScope() {
+			if (this.turnScope !== null) {
+				this.removedScopeFileId = this.turnScope.fileId
+			}
 		},
 
 		onNewChat() {
@@ -1896,6 +1959,40 @@ export default {
 	flex: none;
 	align-self: flex-start;
 	margin-top: 1px;
+}
+
+/* The scope chip above the composer: what the next turn is about. */
+.cn-ai-chat-window__scope {
+	display: inline-flex;
+	align-self: flex-start;
+	align-items: center;
+	gap: 4px;
+	margin: 0 8px 8px;
+	padding: 2px 4px 2px 12px;
+	border-radius: var(--border-radius-pill, 16px);
+	background: var(--color-primary-element-light, #eaf0f7);
+	color: var(--color-primary-element-light-text, #234a78);
+	font-size: 13px;
+}
+
+.cn-ai-chat-window__scope-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 24px;
+	min-height: 24px;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+.cn-ai-chat-window__scope-remove:hover,
+.cn-ai-chat-window__scope-remove:focus-visible {
+	background: var(--color-background-hover, rgba(0, 0, 0, .06));
 }
 
 /* A titled panel is the body of its card: the card draws border and corners. */

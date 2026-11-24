@@ -573,8 +573,8 @@ export default {
 			this.isPanelOpen = false
 		},
 
-		onSend(text, agentUuid, attachments) {
-			this.stream.send(text, { agentUuid, attachments }).catch((err) => {
+		onSend(text, agentUuid, attachments, scope = null) {
+			this.stream.send(text, { agentUuid, attachments, scope }).catch((err) => {
 				// Stream errors are tracked in stream.state.error — no extra handling needed
 				// eslint-disable-next-line no-console
 				console.info('[CnAiCompanion] send error:', err?.message)
