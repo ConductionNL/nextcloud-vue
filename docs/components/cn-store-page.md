@@ -32,7 +32,7 @@ every key below can be written in the manifest.
 | `kindLenses` | Array | `[]` | Extra lens chips under the board look, one per item kind (`[{ kind, label }]`); the label goes through the app's translate. |
 | `publishable` | Boolean | `false` | The app accepts a publish at `/api/store/publish`: Publish opens the publish dialog instead of following `publishRoute`. |
 
-The engine stamps the chosen target only where the app's manifest declares it: `store.installTarget: { "property": "setting", "schemas": ["larping_skill"] }` writes the id into `setting` on every installed object of those schemas (manifest schema 2.194.0). A `target` the manifest does not declare is refused by the engine.
+The engine stamps the chosen target only where the app's manifest declares it: `store.installTarget: { "property": "setting", "schemas": ["larping_skill"] }` writes the id into `setting` on every installed object of those schemas (manifest schema 2.195.0). A `target` the manifest does not declare is refused by the engine.
 
 ## Who sees Install and Publish
 

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.194.0",
+	"version": "2.195.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -4097,10 +4097,21 @@
 		},
 		"statsBlockEntry": {
 			"type": "object",
-			"required": ["register", "schema"],
+			"anyOf": [
+				{ "required": ["register", "schema"] },
+				{ "required": ["endpointSource"] }
+			],
 			"additionalProperties": false,
 			"description": "One KPI entry inside a multi-entry stats-block widget (CnStatsBlockWidget `entries[]`). Carries the same source contract as a type:'stat' widget: register + schema + metric + token-resolved filter (@today / @me / @workspace.* and ?-optional clauses), plus per-entry presentation (title, variant, countLabel, format), an optional route deep link, and hideWhenZero. A money value names its currency with currencyField (the page object's field) or currency.",
 			"properties": {
+				"endpointSource": {
+					"$ref": "#/$defs/endpointSource",
+					"description": "stats-block-entry-endpoint (2.194.0): read the entry's value from an app REST endpoint instead of OpenRegister's aggregation (then register and schema may be left out). Entries naming the same endpoint share one request, and each reads its own `valueField`, so one summary endpoint feeds several KPIs."
+				},
+				"valueField": {
+					"type": "string",
+					"description": "With `endpointSource`: the dot-path of the value in the response (after the source's `responsePath`); omitted, the response itself. A value that is not a number shows as no value."
+				},
 				"title": {
 					"type": "string",
 					"description": "KPI title rendered by the inner CnStatsBlock."
