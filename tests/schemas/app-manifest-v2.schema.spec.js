@@ -1467,7 +1467,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.191.0 lets a bulk action sit under More in the band (action.menu; bulk-actions-more-menu).
 		// 2.192.0 lets a page name the menu entry it marks (page.menuEntry; page-names-its-menu-entry).
 		// 2.193.0 lets a dashboard offer its figures as CSV (config.download, config.downloadName; dashboard-download-csv).
-		expect(schema.version).toBe('2.193.0')
+		// 2.194.0 lets a detail page read its primary action from the record (primaryActionFrom) and its quick actions from more than one path (detail-header-row-from-record).
+		expect(schema.version).toBe('2.194.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
