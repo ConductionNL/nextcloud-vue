@@ -146,6 +146,17 @@ describe('CnSetupWizard', () => {
 			propsData: { appId: 'procest', steps, completedStepIds },
 		})
 
+		it('opens on the step a link names, over resuming (setup-wizard-opens-at-a-step)', () => {
+			const at = (startStep, done = []) => shallowMount(CnSetupWizard, {
+				propsData: { appId: 'procest', steps, completedStepIds: done, startStep },
+			}).vm.initialStepId
+			expect(at('seed')).toBe('seed')
+			expect(at('welcome', ['region'])).toBe('welcome')
+			// A name no step has is ignored.
+			expect(at('nope', ['region'])).toBe('seed')
+			expect(at('nope')).toBe('')
+		})
+
 		it('starts at step one on a fresh setup so the welcome step is seen', () => {
 			// '' = CnWizardDialog's own first-step default, i.e. the `info` step.
 			expect(mountWizard([]).vm.initialStepId).toBe('')
