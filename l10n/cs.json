@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Datové pole pro období",
+    "None: the widget does not follow the period": "Žádné: widget nesleduje období",
     "Report a bug": "Nahlásit chybu",
     "View": "Zobrazit",
     "Edit": "Upravit",

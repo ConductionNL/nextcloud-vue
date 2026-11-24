@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Dagsetningarreitur fyrir tímabilið",
+    "None: the widget does not follow the period": "Ekkert: græjan fylgir ekki tímabilinu",
     "Report a bug": "Tilkynna villu",
     "View": "Skoða",
     "Edit": "Breyta",

@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Fusha e datës për periudhën",
+    "None: the widget does not follow the period": "Asnjë: widget-i nuk ndjek periudhën",
     "Report a bug": "Raporto një gabim",
     "View": "Shiko",
     "Edit": "Përpuno",

@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Πεδίο ημερομηνίας για την περίοδο",
+    "None: the widget does not follow the period": "Κανένα: το γραφικό στοιχείο δεν ακολουθεί την περίοδο",
     "Report a bug": "Αναφορά σφάλματος",
     "View": "Προβολή",
     "Edit": "Επεξεργασία",

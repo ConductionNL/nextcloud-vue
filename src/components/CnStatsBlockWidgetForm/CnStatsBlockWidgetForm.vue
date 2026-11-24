@@ -41,6 +41,12 @@
 
 		<CnFilterRowsEditor :value="filterRows" :fields="availableFields" @input="onFilterRows" />
 
+		<CnPeriodFieldSelect
+			:register="source.register"
+			:schema="source.schema"
+			:value="periodField"
+			@update="updateField('periodField', $event)" />
+
 		<h4 class="cn-stats-block-form__section">
 			{{ t('nextcloud-vue', 'Display') }}
 		</h4>
@@ -73,6 +79,7 @@ import { NcSelect, NcTextField } from '@nextcloud/vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnPeriodFieldSelect from '../CnPeriodFieldSelect/CnPeriodFieldSelect.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
@@ -94,7 +101,7 @@ const DEFAULT_CONTENT = Object.freeze({
 export default {
 	name: 'CnStatsBlockWidgetForm',
 
-	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser },
+	components: { NcTextField, NcSelect, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser, CnPeriodFieldSelect },
 
 	props: {
 		/**
@@ -134,6 +141,7 @@ export default {
 			metric: ds.metric ?? (ds.aggregate === 'count' ? 'count' : 'count'),
 			field: ds.field ?? '',
 			filterRows: filterToRows(ds.filter || {}),
+			periodField: typeof ds.periodField === 'string' ? ds.periodField : '',
 			availableFields: [],
 		}
 	},
@@ -160,6 +168,8 @@ export default {
 					metric: this.metric,
 					field: this.field,
 					filter: rowsToFilter(this.filterRows),
+					// The date field the host dashboard's period applies to; written only when set.
+					...(this.periodField ? { periodField: this.periodField } : {}),
 				},
 			}
 		},
@@ -184,7 +194,7 @@ export default {
 		/**
 		 * Set a top-level field and emit.
 		 *
-		 * @param {'title'|'countLabel'|'variant'|'iconClass'|'metric'|'field'} field The data key to write.
+		 * @param {'title'|'countLabel'|'variant'|'iconClass'|'metric'|'field'|'periodField'} field The data key to write.
 		 * @param {string} value The new value for that key.
 		 * @return {void}
 		 */

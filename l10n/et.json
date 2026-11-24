@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Perioodi kuupäevaväli",
+    "None: the widget does not follow the period": "Puudub: vidin ei järgi perioodi",
     "Report a bug": "Teata veast",
     "View": "Vaata",
     "Edit": "Muuda",

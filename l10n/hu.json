@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Dátummező az időszakhoz",
+    "None: the widget does not follow the period": "Nincs: a widget nem követi az időszakot",
     "Report a bug": "Hiba bejelentése",
     "View": "Megtekintés",
     "Edit": "Szerkesztés",

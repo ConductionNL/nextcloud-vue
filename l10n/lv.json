@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Perioda datuma lauks",
+    "None: the widget does not follow the period": "Nav: logrīks neseko periodam",
     "Report a bug": "Ziņot par kļūdu",
     "View": "Skatīt",
     "Edit": "Rediģēt",

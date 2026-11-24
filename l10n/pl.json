@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Pole daty dla okresu",
+    "None: the widget does not follow the period": "Brak: widżet nie podąża za okresem",
     "Report a bug": "Zgłoś błąd",
     "View": "Wyświetl",
     "Edit": "Edytuj",

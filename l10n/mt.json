@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Qasam tad-data għall-perjodu",
+    "None: the widget does not follow the period": "Xejn: il-widget ma jsegwix il-perjodu",
     "Report a bug": "Irrapporta bug",
     "View": "Ara",
     "Edit": "Editja",

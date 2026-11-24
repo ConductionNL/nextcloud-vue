@@ -1,5 +1,7 @@
 {
   "translations": {
+    "Date field for the period": "Поле за датум за периодот",
+    "None: the widget does not follow the period": "Нема: виџетот не го следи периодот",
     "Report a bug": "Пријави грешка",
     "View": "Преглед",
     "Edit": "Уреди",
