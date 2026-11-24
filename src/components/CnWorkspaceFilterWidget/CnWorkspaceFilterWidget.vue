@@ -33,6 +33,23 @@
 				:key="index"
 				:content="control"
 				@change="$emit('change', $event)" />
+			<!-- `clear`: how many filter controls are set, and one button that
+			     sets them all back to their default. -->
+			<div
+				v-if="barClear && activeFilterCount > 0"
+				class="cn-workspace-filter-widget__clear"
+				data-testid="cn-workspace-filter-clear">
+				<span class="cn-workspace-filter-widget__active-count" data-testid="cn-workspace-filter-active-count">
+					{{ activeFilterText }}
+				</span>
+				<NcButton
+					type="button"
+					variant="tertiary"
+					data-testid="cn-workspace-filter-clear-button"
+					@click="clearFilters">
+					{{ clearFiltersLabel }}
+				</NcButton>
+			</div>
 		</template>
 
 		<!-- An input with a load button (`style: "input"`): the value goes to
@@ -139,9 +156,10 @@
 		<!-- Select style -->
 		<NcSelect
 			v-else-if="style === 'select'"
-			:modelValue="selectedOption"
+			:modelValue="isMultiple ? selectedOptions : selectedOption"
 			:options="selectOptions"
-			:clearable="false"
+			:multiple="isMultiple"
+			:clearable="isMultiple"
 			:inputLabel="content.inline ? '' : (tr(label) || writeKey)"
 			:labelOutside="content.inline === true"
 			:ariaLabelCombobox="tr(label) || writeKey"
@@ -240,6 +258,29 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
  * }
  * ```
  */
+/**
+ * The workspace key a `writes` value names (`@workspace.priority` → `priority`).
+ *
+ * @param {string} writes The `writes` value.
+ * @return {string}
+ */
+function keyOf(writes) {
+	return String(writes || '').replace(/^@(workspace|page)\./, '')
+}
+
+/**
+ * The values of a comma-joined multiple selection.
+ *
+ * @param {unknown} value The stored value.
+ * @return {string[]}
+ */
+function splitValues(value) {
+	if (value === undefined || value === null || value === '') {
+		return []
+	}
+	return String(value).split(',').map((part) => part.trim()).filter((part) => part !== '')
+}
+
 export default {
 	name: 'CnWorkspaceFilterWidget',
 
@@ -292,7 +333,7 @@ export default {
 		 * button that asks the object table with that `exportId` for its rows
 		 * as CSV (DqTermijnen "CSV exporteren").
 		 *
-		 * @type {{label?: string, submitLabel?: string, exportTable?: {exportId: string, label?: string}, inputType?: string, pattern?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
+		 * @type {{label?: string, submitLabel?: string, exportTable?: {exportId: string, label?: string}, inputType?: string, pattern?: string, controls?: Array<object>, onValue?: unknown, offValue?: unknown, align?: string, urlKey?: string, writes?: string, style?: string, allLabel?: string, multiple?: boolean, filter?: boolean, clear?: {label?: string, countLabel?: string}, showCounts?: boolean, options?: Array, source?: object, endpointSource?: object, objectSource?: object, default?: (string|number), layout?: string, title?: string, description?: string, link?: object}}
 		 */
 		content: {
 			type: Object,
@@ -430,6 +471,70 @@ export default {
 			return this.content.controls
 				.filter((control) => control && typeof control === 'object')
 				.map((control) => ({ ...control, inline: true }))
+		},
+
+		/**
+		 * The bar's `clear` declaration (`{ label?, countLabel? }`), or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/workspace-filter-multi-and-clear/tasks.md#task-2
+		 */
+		barClear() {
+			const clear = this.content.clear
+			return clear && typeof clear === 'object' ? clear : null
+		},
+
+		/**
+		 * How many filters the bar's `filter: true` controls hold: each value of
+		 * a multiple select counts, a single value counts once, and a control
+		 * on its default (or empty) counts none.
+		 *
+		 * @return {number}
+		 * @spec openspec/changes/workspace-filter-multi-and-clear/tasks.md#task-2
+		 */
+		activeFilterCount() {
+			const bag = this.readWorkspaceBag()
+			return this.filterControls().reduce((total, control) => {
+				const value = bag[keyOf(control.writes)]
+				if (value === undefined || value === null || value === '') {
+					return total
+				}
+				if (control.default !== undefined && String(value) === String(control.default)) {
+					return total
+				}
+				return total + (control.multiple === true ? splitValues(value).length : 1)
+			}, 0)
+		},
+
+		/** @return {string} "Filters (N)", or the bar's own `countLabel` with `{count}`. */
+		activeFilterText() {
+			const own = this.barClear?.countLabel
+			if (own) {
+				return this.tr(own).replace('{count}', String(this.activeFilterCount))
+			}
+			return t('nextcloud-vue', 'Filters ({count})', { count: this.activeFilterCount })
+		},
+
+		/** @return {string} The clear button's label. */
+		clearFiltersLabel() {
+			return this.tr(this.barClear?.label || '') || t('nextcloud-vue', 'Clear filters')
+		},
+
+		/**
+		 * Whether a select takes several values (`multiple: true`), written
+		 * to the workspace comma-joined.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/workspace-filter-multi-and-clear/tasks.md#task-1
+		 */
+		isMultiple() {
+			return this.content.multiple === true && this.style === 'select'
+		},
+
+		/** @return {Array<object>} The selected option objects of a multiple select. */
+		selectedOptions() {
+			const values = splitValues(this.selected)
+			return this.selectOptions.filter((option) => values.includes(String(option.value)))
 		},
 
 		/** @return {unknown} The value a switch writes when on. */
@@ -652,8 +757,12 @@ export default {
 				}
 				return [this.onValue, this.offValue].find((value) => String(value) === String(raw))
 			}
-			const known = this.displayOptions.some((option) => String(option.value) === String(raw))
-			return known ? String(raw) : undefined
+			const isKnown = (value) => this.displayOptions.some((option) => String(option.value) === String(value))
+			if (this.isMultiple) {
+				const values = splitValues(raw).filter(isKnown)
+				return values.length > 0 ? values.join(',') : undefined
+			}
+			return isKnown(raw) ? String(raw) : undefined
 		},
 
 		/**
@@ -759,7 +868,7 @@ export default {
 			}
 			// Default selection: when nothing is selected and there's no "All"
 			// clear affordance, adopt the first option so siblings have a value.
-			if ((this.selected === undefined || this.selected === '') && !this.content.allLabel) {
+			if ((this.selected === undefined || this.selected === '') && !this.content.allLabel && !this.isMultiple) {
 				const first = this.normalisedOptions[0]
 				if (first && this.readWorkspace() === undefined && this.content.default === undefined) {
 					this.selected = first.value
@@ -908,7 +1017,56 @@ export default {
 		 * @return {void}
 		 */
 		onSelect(option) {
+			if (Array.isArray(option)) {
+				this.applySelection(option.map((picked) => picked.value).join(','))
+				return
+			}
 			this.applySelection(option ? option.value : '')
+		},
+
+		/**
+		 * The bar's filter controls (`filter: true` with a `writes` key).
+		 *
+		 * @return {Array<object>}
+		 * @spec openspec/changes/workspace-filter-multi-and-clear/tasks.md#task-2
+		 */
+		filterControls() {
+			if (!this.isBar) {
+				return []
+			}
+			return this.content.controls.filter((control) => control && control.filter === true && control.writes)
+		},
+
+		/**
+		 * Set every filter control of the bar back to its default (or empty),
+		 * in the workspace and in the address.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/workspace-filter-multi-and-clear/tasks.md#task-2
+		 */
+		clearFilters() {
+			const controls = this.filterControls()
+			const query = { ...((this.$route && this.$route.query) || {}) }
+			let addressChanged = false
+			for (const control of controls) {
+				const value = control.default !== undefined ? control.default : ''
+				this.writeWorkspaceKey(keyOf(control.writes), value)
+				if (typeof control.urlKey === 'string' && control.urlKey !== '' && query[control.urlKey] !== undefined) {
+					if (control.default !== undefined) {
+						query[control.urlKey] = String(control.default)
+					} else {
+						delete query[control.urlKey]
+					}
+					addressChanged = true
+				}
+				this.$emit('change', { key: keyOf(control.writes), value })
+			}
+			if (addressChanged && this.$router) {
+				const result = this.$router.replace({ query })
+				if (result && typeof result.catch === 'function') {
+					result.catch(() => {})
+				}
+			}
 		},
 
 		/**
@@ -1018,7 +1176,18 @@ export default {
 		 * @return {void}
 		 */
 		writeWorkspace(value) {
-			if (!this.writeKey) {
+			this.writeWorkspaceKey(this.writeKey, value)
+		},
+
+		/**
+		 * Write a value into the workspace bag under any key.
+		 *
+		 * @param {string} key The workspace key.
+		 * @param {unknown} value The value to write.
+		 * @return {void}
+		 */
+		writeWorkspaceKey(key, value) {
+			if (!key) {
 				return
 			}
 			const holder = this.cnWorkspaceContext
@@ -1026,10 +1195,10 @@ export default {
 				return
 			}
 			if ('value' in holder) {
-				holder.value = { ...(holder.value || {}), [this.writeKey]: value }
+				holder.value = { ...(holder.value || {}), [key]: value }
 				return
 			}
-			holder[this.writeKey] = value
+			holder[key] = value
 		},
 	},
 }
@@ -1138,6 +1307,17 @@ export default {
 
 .cn-workspace-filter-widget--end ~ .cn-workspace-filter-widget--end {
 	margin-inline-start: 0;
+}
+
+.cn-workspace-filter-widget__clear {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cn-workspace-filter-widget__active-count {
+	color: var(--color-text-maxcontrast);
+	font-variant-numeric: tabular-nums;
 }
 
 .cn-workspace-filter-widget__toggle {
