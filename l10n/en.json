@@ -2955,6 +2955,14 @@
     "Selection list rule": "Selection list rule",
     "Recorded on": "Recorded on",
     "Set when it closes": "Set when it closes",
+    "The values for this row could not be worked out. It keeps the values it had.": "The values for this row could not be worked out. It keeps the values it had.",
+    "Filters ({count})": "Filters ({count})",
+    "Sessions about {label}": "Sessions about {label}",
+    "Sessions about this page": "Sessions about this page",
+    "This session is about": "This session is about",
+    "This session is not linked to anything": "This session is not linked to anything",
+    "Remove {label} from this session": "Remove {label} from this session",
+    "Could not remove the link": "Could not remove the link",
     "Quiet hours": "Quiet hours",
     "Hold back notifications during set hours. Reminders with a deadline still arrive on time.": "Hold back notifications during set hours. Reminders with a deadline still arrive on time.",
     "Turn on quiet hours": "Turn on quiet hours",
@@ -2963,15 +2971,13 @@
     "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.": "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.",
     "Saving failed. Try again.": "Saving failed. Try again.",
     "This time is not valid.": "This time is not valid.",
-    "The values for this row could not be worked out. It keeps the values it had.": "The values for this row could not be worked out. It keeps the values it had.",
     "Hand to a colleague": "Hand to a colleague",
     "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.": "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.",
     "Mandate": "Mandate",
     "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.",
     "Hand over": "Hand over",
     "The hand-over was refused": "The hand-over was refused",
-    "Task {title} handed to {name}": "Task {title} handed to {name}",
-    "Filters ({count})": "Filters ({count})"
+    "Task {title} handed to {name}": "Task {title} handed to {name}"
   },
   "plurals": {
     "{count} member": [

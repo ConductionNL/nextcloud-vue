@@ -59,6 +59,7 @@ const URL_HELPERS = [
 	'attachmentsUrl',
 	'conversationsUrl',
 	'sessionsUrl',
+	'sessionLinksUrl',
 	'conversationMessagesUrl',
 	'conversationUrl',
 	'agentsUrl',

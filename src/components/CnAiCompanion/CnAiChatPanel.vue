@@ -161,7 +161,8 @@
 						:aria-label="cnTranslate('Sessions')"
 						:title="cnTranslate('Sessions')"
 						:forceMenu="true"
-						data-testid="cn-ai-panel-sessions">
+						data-testid="cn-ai-panel-sessions"
+						@open="fetchScopedConversations">
 						<template #icon>
 							<History :size="18" />
 						</template>
@@ -174,9 +175,20 @@
 							</template>
 							{{ cnTranslate('Start new chat') }}
 						</NcActionButton>
-						<NcActionCaption :name="cnTranslate('Recent conversations')" />
+						<!--
+						  On a page about a file or a record, the sessions about it
+						  come first, headed with what they are about. An unlabelled
+						  filtered list reads as "I have no sessions", so the scoped
+						  list is shown only when it has something in it; otherwise,
+						  and on a page without that context, the unscoped recent
+						  list stays. "View all conversations" below is always the
+						  way out of the scope.
+						-->
+						<NcActionCaption
+							:name="sessionsMenuCaption"
+							data-testid="cn-ai-panel-sessions-caption" />
 						<NcActionButton
-							v-for="conversation in recentConversations"
+							v-for="conversation in menuConversations"
 							:key="conversation.uuid"
 							:closeAfterClick="true"
 							@click="onConversationSelect(conversation.uuid)">
@@ -193,6 +205,41 @@
 							</template>
 							{{ cnTranslate('View all conversations') }}
 						</NcActionButton>
+					</NcActions>
+
+					<!--
+					  What this session is about: the links a sent turn recorded,
+					  each removable by the person they describe. A link that only
+					  the system can remove is a tracker.
+					-->
+					<NcActions
+						v-if="activeConversationUuid"
+						:aria-label="cnTranslate('Session settings')"
+						:title="cnTranslate('Session settings')"
+						:forceMenu="true"
+						data-testid="cn-ai-panel-session-links">
+						<template #icon>
+							<LinkVariant :size="18" />
+						</template>
+						<NcActionCaption
+							:name="activeConversationLinks.length > 0
+								? cnTranslate('This session is about')
+								: cnTranslate('This session is not linked to anything')" />
+						<NcActionButton
+							v-for="link in activeConversationLinks"
+							:key="link.type + ':' + link.id"
+							:closeAfterClick="false"
+							:aria-label="cnTranslate('Remove {label} from this session', { label: linkLabel(link) })"
+							data-testid="cn-ai-panel-session-link-remove"
+							@click="removeLink(link)">
+							<template #icon>
+								<LinkVariantRemove :size="20" />
+							</template>
+							{{ linkLabel(link) }}
+						</NcActionButton>
+						<NcActionCaption
+							v-if="linkRemoveError"
+							:name="cnTranslate('Could not remove the link')" />
 					</NcActions>
 
 					<NcButton
@@ -365,6 +412,8 @@ import Creation from 'vue-material-design-icons/Creation.vue'
 import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import History from 'vue-material-design-icons/History.vue'
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
+import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
+import LinkVariantRemove from 'vue-material-design-icons/LinkVariantRemove.vue'
 import MessageTextOutline from 'vue-material-design-icons/MessageTextOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDashboardIcon from '../CnIconPicker/CnDashboardIcon.vue'
@@ -376,6 +425,7 @@ import {
 	conversationsUrl,
 	DEFAULT_CHAT_APP_ID,
 	normalizeConversation,
+	sessionLinksUrl,
 	speechCapabilitiesUrl,
 	speechSynthesisUrl,
 } from '../../composables/aiChatConfig.js'
@@ -421,6 +471,8 @@ export default {
 		Plus,
 		History,
 		InformationOutline,
+		LinkVariant,
+		LinkVariantRemove,
 		Creation,
 		Close,
 		Check,
@@ -616,6 +668,10 @@ export default {
 			conversations: [],
 			conversationsLoading: false,
 			conversationsFetchError: false,
+			// Sessions about the page's file or record (session-entity-links).
+			scopedConversations: [],
+			sessionScopeLabel: '',
+			linkRemoveError: false,
 		}
 	},
 
@@ -623,6 +679,82 @@ export default {
 		/** Top N conversations offered directly in the sessions menu. */
 		recentConversations() {
 			return this.conversations.slice(0, RECENT_CONVERSATIONS_LIMIT)
+		},
+
+		/**
+		 * The entity this page is about, named the way a session link names
+		 * it: a file by its numeric id, a record by its uuid. Null on a page
+		 * without that context, which keeps the unscoped list.
+		 *
+		 * @return {{type: string, id: string}|null} The page's entity, or null.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		contextLink() {
+			const context = this.context || {}
+			const fileId = context.fileId ?? context.contextFileId
+			if (fileId !== undefined && fileId !== null && /^\d+$/.test(String(fileId))) {
+				return { type: 'file', id: String(fileId) }
+			}
+			if (typeof context.objectUuid === 'string' && context.objectUuid !== '') {
+				return { type: 'object', id: context.objectUuid }
+			}
+			return null
+		},
+
+		/**
+		 * Whether the sessions menu shows the sessions about this page. Only
+		 * when there are some: an empty, filtered list reads as "I have no
+		 * sessions".
+		 *
+		 * @return {boolean} True when the scoped list leads the menu.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		showScopedSessions() {
+			return this.contextLink !== null && this.scopedConversations.length > 0
+		},
+
+		/**
+		 * The conversations the sessions menu offers directly.
+		 *
+		 * @return {Array<object>} Top N scoped sessions, or top N recent ones.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		menuConversations() {
+			return this.showScopedSessions
+				? this.scopedConversations.slice(0, RECENT_CONVERSATIONS_LIMIT)
+				: this.recentConversations
+		},
+
+		/**
+		 * The heading of the sessions menu's list: what the scoped list is
+		 * about, by its label, or the plain recent heading.
+		 *
+		 * @return {string} The caption.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		sessionsMenuCaption() {
+			if (!this.showScopedSessions) {
+				return this.cnTranslate('Recent conversations')
+			}
+			return this.sessionScopeLabel !== ''
+				? this.cnTranslate('Sessions about {label}', { label: this.sessionScopeLabel })
+				: this.cnTranslate('Sessions about this page')
+		},
+
+		/**
+		 * The links of the open session, from whichever list holds it.
+		 *
+		 * @return {Array<{type: string, id: string, label: string}>} Its links.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		activeConversationLinks() {
+			const uuid = this.activeConversationUuid
+			if (!uuid) {
+				return []
+			}
+			const found = this.conversations.find((conv) => conv.uuid === uuid)
+				|| this.scopedConversations.find((conv) => conv.uuid === uuid)
+			return (found && Array.isArray(found.links)) ? found.links : []
 		},
 
 		/**
@@ -870,6 +1002,21 @@ export default {
 
 	watch: {
 		/**
+		 * The page moved to another file or record: list the sessions about
+		 * that one instead.
+		 *
+		 * @param {{type: string, id: string}|null} next The page's entity now.
+		 * @param {{type: string, id: string}|null} previous The page's entity before.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		contextLink(next, previous) {
+			const key = (link) => (link ? `${link.type}:${link.id}` : '')
+			if (key(next) !== key(previous)) {
+				this.fetchScopedConversations()
+			}
+		},
+
+		/**
 		 * The mounting app changed which agent the page starts on (the user
 		 * moved into or out of an area with its own assistant): follow it,
 		 * unless the user picked an agent.
@@ -948,6 +1095,7 @@ export default {
 	created() {
 		this.fetchAgents()
 		this.fetchConversations()
+		this.fetchScopedConversations()
 		this.restoreSpeakPreference()
 		this.probeLocalSpeech()
 		this.loadAssistantMark()
@@ -1279,6 +1427,50 @@ export default {
 		},
 
 		/**
+		 * A link as the user reads it: its label, or its id when the label
+		 * was not known at link time.
+		 *
+		 * @param {{id: string, label?: string}} link The link.
+		 * @return {string} The text shown for it.
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		linkLabel(link) {
+			return (link.label || '').trim() || String(link.id)
+		},
+
+		/**
+		 * Remove one link from the open session. On success the session
+		 * leaves the scoped list when the link was what put it there.
+		 *
+		 * @param {{type: string, id: string}} link The link to remove.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		async removeLink(link) {
+			const uuid = this.activeConversationUuid
+			if (!uuid) {
+				return
+			}
+			this.linkRemoveError = false
+			try {
+				await axios.delete(sessionLinksUrl(this.chatAppId, uuid), { params: { type: link.type, id: link.id } })
+			} catch {
+				this.linkRemoveError = true
+				return
+			}
+			const without = (conv) => (conv.uuid !== uuid
+				? conv
+				: { ...conv, links: (conv.links || []).filter((l) => !(l.type === link.type && String(l.id) === String(link.id))) })
+			this.conversations = this.conversations.map(without)
+			const scope = this.contextLink
+			if (scope && scope.type === link.type && scope.id === String(link.id)) {
+				this.scopedConversations = this.scopedConversations.filter((conv) => conv.uuid !== uuid)
+			} else {
+				this.scopedConversations = this.scopedConversations.map(without)
+			}
+		},
+
+		/**
 		 * A conversation's menu label, trimmed to keep the menu one line per row.
 		 *
 		 * @param {{title: string, uuid: string}} conversation The conversation.
@@ -1375,6 +1567,39 @@ export default {
 				this.agents = []
 			} finally {
 				this.agentsLoading = false
+			}
+		},
+
+		/**
+		 * Fetch the caller's sessions about the page's file or record, with
+		 * the label the list is headed with. No context, or a failed call,
+		 * leaves the scoped list empty, so the menu shows the unscoped one.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+		 */
+		async fetchScopedConversations() {
+			const scope = this.contextLink
+			if (scope === null) {
+				this.scopedConversations = []
+				this.sessionScopeLabel = ''
+				return
+			}
+			try {
+				const response = await axios.get(conversationsUrl(this.chatAppId), {
+					params: { limit: 50, linkedType: scope.type, linkedId: scope.id },
+				})
+				const data = response.data || {}
+				const list = Array.isArray(data) ? data : (data.results || [])
+				const current = this.contextLink
+				if (current === null || current.type !== scope.type || current.id !== scope.id) {
+					return
+				}
+				this.scopedConversations = list.map(normalizeConversation)
+				this.sessionScopeLabel = (data.scope && typeof data.scope.label === 'string') ? data.scope.label : ''
+			} catch {
+				this.scopedConversations = []
+				this.sessionScopeLabel = ''
 			}
 		},
 

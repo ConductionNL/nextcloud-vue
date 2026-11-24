@@ -21,6 +21,12 @@ Slide-out chat panel for the AI Chat Companion. Anchored to the right viewport e
 | `new-thread` | — | Emitted when the "Start new chat" button is clicked |
 | `load-conversation` | `string` (UUID) | Emitted when the user selects a conversation from `CnAiHistoryDialog` |
 
+## Sessions about the page
+
+When `context` names a file (`fileId`) or a record (`objectUuid`), the panel asks the backend for the sessions linked to it (`GET {chatApiBase}/conversations?linkedType=&linkedId=`) on mount, when the entity changes, and whenever the sessions menu opens. If there are any, the sessions menu lists them under "Sessions about {label}", with the label from the response's `scope`; otherwise it keeps "Recent conversations". "View all conversations" always opens the unscoped history.
+
+While a session is open, a "Session settings" titlebar entry lists the session's `links` (`{ type, id, label }`) and removes one with `DELETE {chatApiBase}/sessions/{uuid}/links?type=&id=`. A removed link takes the session out of that entity's scoped list.
+
 ## Focus management
 
 - On `visible = true`: focus moves to the message-input textarea.
