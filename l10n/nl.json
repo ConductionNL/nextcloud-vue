@@ -3260,7 +3260,12 @@
     "This week": "Deze week",
     "Next week": "Volgende week",
     "Week timetable": "Weekrooster",
-    "Nothing planned this week": "Deze week staat er niets gepland"
+    "Nothing planned this week": "Deze week staat er niets gepland",
+    "About this document": "Over dit document",
+    "About this folder": "Over deze map",
+    "Ask without this scope": "Vraag zonder deze afbakening",
+    "Sources": "Bronnen",
+    "page {page}": "pagina {page}"
   },
   "plurals": {
     "{count} member": [

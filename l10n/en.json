@@ -2982,7 +2982,12 @@
     "This week": "This week",
     "Next week": "Next week",
     "Week timetable": "Week timetable",
-    "Nothing planned this week": "Nothing planned this week"
+    "Nothing planned this week": "Nothing planned this week",
+    "About this document": "About this document",
+    "About this folder": "About this folder",
+    "Ask without this scope": "Ask without this scope",
+    "Sources": "Sources",
+    "page {page}": "page {page}"
   },
   "plurals": {
     "{count} member": [
