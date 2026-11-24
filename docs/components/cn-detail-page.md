@@ -365,6 +365,20 @@ The detail body is, at its core, a real drag/resize grid powered by
   non-production builds the page console.warns any grid cell whose rendered
   content is taller than its `gridHeight` — overflow is a design bug (enlarge
   the cell or scope the widget's content), never a scroll surface.
+- **Cells below the fold mount when they come near the screen.** A cell whose
+  authored top (`gridY` rows of 80px) lies within the first viewport height
+  mounts its widget on open, as before. Any other cell stays an empty
+  placeholder until an IntersectionObserver reports it within one viewport
+  height of the screen, then keeps its widget mounted. Opening a record then
+  fetches only for the cards in view. A fixed cell keeps its grid size while it
+  waits, and a `sizeToContent` cell holds its `gridHeight` rows. Set
+  `eager: true` on the layout entry or the widget definition for a widget that
+  must load at once. Edit mode, printing and a browser without
+  IntersectionObserver mount every cell at once.
+
+```json
+{ "id": "case-terms", "type": "data", "title": "Terms", "eager": true }
+```
 
 ## Sidebar config object
 

@@ -3,7 +3,7 @@
 	"$id": "https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json",
 	"title": "Conduction App Manifest v2",
 	"description": "v2 schema for the JSON-driven page and navigation manifest consumed by @conduction/nextcloud-vue. Introduces a uniform widgets[] array on every page type with a per-slot grid coordinate system, a typed actions[] discriminator, and the required $schema field for version detection. v1 manifests continue to validate against app-manifest.schema.json (unchanged).",
-	"version": "2.195.0",
+	"version": "2.196.0",
 	"type": "object",
 	"required": ["$schema", "version"],
 	"allOf": [
@@ -2228,6 +2228,10 @@
 					"type": ["boolean", "integer"],
 					"minimum": 1,
 					"description": "Opt-in: hand this placement's height to whatever it renders, so a widget that decides AT RUNTIME it has nothing to show costs no row. `true` sizes purely to content; an integer sizes to content too but caps the height at that many rows (GridStack's maximum, NOT a minimum: content shorter than N rows is as short as it is, content taller is clipped at N). It makes gridHeight advisory for this widget — right for anything whose height is whatever it turned out to be (a banner whose condition is false, a list that came back empty), wrong for anything with a deliberate size. Maps to CnDashboardGrid's per-item `sizeToContent`."
+				},
+				"eager": {
+					"type": "boolean",
+					"description": "On a detail page's body grid, mount this widget on page open instead of when its cell comes within a viewport height of the screen. A grid widget below the first screen waits, so opening a record fetches for the cards in view only; set `eager: true` on a widget whose data another part of the page needs at once. Read off the layout entry or the widget definition. Edit mode, printing and a browser without IntersectionObserver mount every widget at once."
 				},
 				"props": {
 					"type": "object",

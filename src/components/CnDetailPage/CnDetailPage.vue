@@ -928,10 +928,16 @@
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
-					<div
+					<!-- A cell mounts its widget only once it comes within a
+					     viewport height of the screen (CnDetailGridCell), so a
+					     page open fetches for the cards in view, not for every
+					     card below the fold. -->
+					<CnDetailGridCell
 						class="cn-detail-page__grid-item"
 						:class="{ 'cn-detail-page__grid-item--fit': !!item.sizeToContent }"
-						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
+						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined"
+						:eager="gridCellEager(item, section)"
+						:minHeight="item.sizeToContent ? gridCellMinHeight(item) : 0">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     EVERY grid widget while the page is in Buildiq edit mode,
 						     as it does on CnDashboardPage. It was gated on the type
@@ -1035,7 +1041,7 @@
 								@openIntegration="onAutoBodyOpenIntegration"
 								@selectObject="onRelatedObjectSelect" />
 						</slot>
-					</div>
+					</CnDetailGridCell>
 				</template>
 			</CnDashboardGrid>
 
@@ -1429,6 +1435,7 @@ import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.v
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import CnDetailGridCell from './CnDetailGridCell.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
@@ -1539,6 +1546,9 @@ const DEFAULT_DETAIL_COLUMN_OPTS = Object.freeze({
  * still 50px a column, enough for a tile. Below 600px it stacks as before.
  */
 const SIDE_COLUMN_STACK_WIDTH = 600
+
+/** The body grid's row height in pixels (CnDashboardGrid's default `cellHeight`). */
+const GRID_CELL_HEIGHT = 80
 
 /**
  * Whether `opts` is the untouched default table, so a page that passed its own
@@ -1728,6 +1738,7 @@ export default {
 		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
+		CnDetailGridCell,
 		CnDetailHeaderChips,
 		CnFollowToggle,
 		CnPresenceAvatars,
@@ -8347,6 +8358,40 @@ export default {
 			}
 			const entry = getWidgetTypeEntry(def.type)
 			return (entry && entry.form) || null
+		},
+
+		/**
+		 * Whether a body grid cell mounts its widget at once rather than when
+		 * it nears the screen: the widget or its placement says `eager: true`,
+		 * the grid is being edited, or the cell's authored top lies within the
+		 * first viewport height, so the cards in view on open draw in the
+		 * first paint.
+		 *
+		 * @param {object} item Layout item.
+		 * @param {object} section The grid section the item is drawn in.
+		 * @return {boolean} true when the cell mounts its content at once.
+		 */
+		gridCellEager(item, section) {
+			if (item.eager === true || section.editable || this.findWidget(item)?.eager === true) {
+				return true
+			}
+			if (typeof window === 'undefined' || !window.innerHeight) {
+				return true
+			}
+			const top = (Number(item.gridY) || 0) * GRID_CELL_HEIGHT
+			return top < window.innerHeight
+		},
+
+		/**
+		 * The height an empty size-to-content cell holds while its widget waits
+		 * to mount: its authored rows, so GridStack does not collapse the row
+		 * and then jump when the content arrives.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {number} Height in pixels.
+		 */
+		gridCellMinHeight(item) {
+			return Math.max(1, Number(item.gridHeight) || 1) * GRID_CELL_HEIGHT
 		},
 
 		/**
