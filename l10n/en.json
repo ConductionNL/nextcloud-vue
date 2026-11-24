@@ -2964,6 +2964,13 @@
     "Saving failed. Try again.": "Saving failed. Try again.",
     "This time is not valid.": "This time is not valid.",
     "The values for this row could not be worked out. It keeps the values it had.": "The values for this row could not be worked out. It keeps the values it had.",
+    "Hand to a colleague": "Hand to a colleague",
+    "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.": "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.",
+    "Mandate": "Mandate",
+    "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.",
+    "Hand over": "Hand over",
+    "The hand-over was refused": "The hand-over was refused",
+    "Task {title} handed to {name}": "Task {title} handed to {name}",
     "Filters ({count})": "Filters ({count})"
   },
   "plurals": {

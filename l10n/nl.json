@@ -3242,6 +3242,13 @@
     "Saving failed. Try again.": "Opslaan is mislukt. Probeer het opnieuw.",
     "This time is not valid.": "Deze tijd is niet geldig.",
     "The values for this row could not be worked out. It keeps the values it had.": "De waarden voor deze regel konden niet worden bepaald. De regel houdt de waarden die hij had.",
+    "Hand to a colleague": "Overdragen aan een collega",
+    "{title} goes to the colleague you choose. You stay named as the one they act on behalf of.": "{title} gaat naar de collega die u kiest. U blijft genoemd als degene namens wie die collega handelt.",
+    "Mandate": "Mandaat",
+    "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "De bevoegdheid waarop deze overdracht steunt, bijvoorbeeld een vast mandaat of een opdracht van uw leidinggevende.",
+    "Hand over": "Overdragen",
+    "The hand-over was refused": "De overdracht is geweigerd",
+    "Task {title} handed to {name}": "Taak {title} overgedragen aan {name}",
     "Filters ({count})": "Filters ({count})"
   },
   "plurals": {

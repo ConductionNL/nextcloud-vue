@@ -23,7 +23,7 @@ Every Conduction app runs its human tasks on OpenRegister's one task store (ADR-
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | The widget config blob (`scope`, `limit`, `pollSeconds`, `rowRoute`, `emptyText`, `variant`, `viewAllRoute`, `viewAllLabel`, `objectUuid`, `includeDone`, `create`, `completeAny`, `cancel`, `expandRows`, `completeUrl`, `claimCapabilityUrl`, `dueFormat`, `stateLabels`, `stateColors`, `viewAllPlacement`). |
+| `content` | `object` | `{}` | The widget config blob (`scope`, `limit`, `pollSeconds`, `rowRoute`, `emptyText`, `variant`, `viewAllRoute`, `viewAllLabel`, `objectUuid`, `includeDone`, `create`, `completeAny`, `cancel`, `expandRows`, `completeUrl`, `claimCapabilityUrl`, `delegate`, `dueFormat`, `stateLabels`, `stateColors`, `viewAllPlacement`). |
 | `widgetId` | `string` | `''` | Placement id, so the per-widget Refresh action (`cn:widget:refresh`) reaches this instance. |
 | `objectId` | `string \| number` | `''` | The page's record id, for `objectUuid: "@objectId"` in the content. |
 | `translate` | `Function` | `null` | Translate function. Falls back to the injected `cnTranslate`. |
@@ -57,6 +57,7 @@ On a record page (`objectUuid: "@objectId"`) the widget can let a handler finish
 - **`expandRows: true`** in the table makes a row's title a toggle (`aria-expanded`) that opens that task in the same card under the table; the card's title links to `rowRoute`.
 - **`completeUrl`** sends Complete to an app route instead of the engine's (`/apps/dossiq/api/case-tasks/{id}/complete`, which checks the case type's form and effects first). [CnTaskFormDialog](./cn-task-form-dialog.md) takes the same route.
 - **`claimCapabilityUrl`** gates Claim on what the engine can do: the URL answers `{ "claim": true }` or `false`, and a failed read leaves Claim off. Where claim is off, an offered task says to assign it instead.
+- **`delegate: true`** offers "Hand to a colleague" on the viewer's own open task. A dialog asks for the colleague and the mandate relied on (both required) and posts them to OpenRegister's `delegate` verb; a refusal stays in the dialog in the server's words. In the table, a delegated task shows "on behalf of" the original performer under its handler.
 - **The table as a board draws it** (DqZaakTaken): `dueFormat: "date"` shows the deadline as a short date, an overdue one still saying so to a screen reader; `stateLabels` and `stateColors` (`{ "active": "purple" }`) word and colour the status by its raw state; `viewAllPlacement: "footer"` draws the view-all link under the table instead of in the card header.
 - **A task that carries a form** opens CnTaskFormDialog from Complete in the table and the lists, and fills its form inline in the cards.
 
