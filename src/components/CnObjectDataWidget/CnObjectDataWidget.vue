@@ -504,6 +504,7 @@ import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '.
 import { humaniseKey } from '../../utils/humaniseKey.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { readPath } from '../../utils/readPath.js'
+import { readRelatedOnce } from '../../utils/readRelatedOnce.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
@@ -1915,7 +1916,13 @@ export default {
 			this.updateField(field.key, opt ? opt.id : null)
 		},
 
-		/** Fetch related objects' display names into relatedLabels. */
+		/**
+		 * Fetch related objects' display names into relatedLabels. The read of
+		 * each related record is shared with the other widgets on the page.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/related-record-read-once/specs/data-widget/spec.md#requirement-a-related-record-is-read-once-per-page-open
+		 */
 		async resolveRelations() {
 			// Collect every unresolved (target, id) pair first, then fetch them
 			// ALL in parallel — sequential lookups made names trail the page by
@@ -1944,7 +1951,7 @@ export default {
 			await Promise.all(jobs.map(async ({ reg, sch, id }) => {
 				try {
 					const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
-					const res = await axios.get(url)
+					const res = await readRelatedOnce(url, () => axios.get(url))
 					const d = (res && res.data) ? res.data : {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
 					this.relatedLabels[id] = this.objectDisplayName(obj, id)
