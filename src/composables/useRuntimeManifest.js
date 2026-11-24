@@ -50,6 +50,7 @@ function loadValidator() {
  * @param {('replace'|'delta')} [options.mergeStrategy] How to combine the fetched
  *   payload with the stub. Defaults to `'replace'` (full replace, unchanged).
  * @return {{ manifest: import('vue').Ref, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, orphanedDeltaPaths: import('vue').Ref<string[]> }}
+ * @spec openspec/changes/manifest-validator-self-contained/specs/manifest-validator-self-contained/spec.md#requirement-a-backend-manifest-delta-reaches-the-navigation
  */
 export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 	const manifest = ref(stubManifest)
@@ -62,6 +63,9 @@ export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 	const isDelta = options.mergeStrategy === 'delta'
 
 	;(async () => {
+		// The validator chunk loads beside the fetch rather than after it, so
+		// its download and evaluation overlap the server's answer.
+		const validatorLoad = loadValidator().then((validate) => ({ validate }), (error) => ({ error }))
 		try {
 			const response = await fetcher(url)
 
@@ -81,8 +85,11 @@ export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 				orphanedDeltaPaths.value = merged.orphanedDeltaPaths
 			}
 
-			const validateManifest = await loadValidator()
-			const result = validateManifest(resolved)
+			const loaded = await validatorLoad
+			if (loaded.error) {
+				throw loaded.error
+			}
+			const result = loaded.validate(resolved)
 
 			if (!result.valid) {
 				validationErrors.value = result.errors
