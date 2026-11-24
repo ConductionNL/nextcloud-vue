@@ -1514,6 +1514,7 @@ import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useLook } from '../../composables/useLook.js'
 import { actionLabelText, fetchSelectionActions, runSelectionAction } from '../../composables/useObjectActions.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
@@ -2247,6 +2248,22 @@ export default {
 		 * @type {Record<string, {register: string, schema: string, filter?: object}>|null}
 		 */
 		headerMetaCounts: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * An endpoint whose answer fills `{source}` in `headerMeta` (manifest
+		 * `config.headerMetaSource`): `{ url, method?, params?, responsePath? }`,
+		 * the request grammar of a widget's `endpointSource`. For a line the
+		 * list cannot count, such as "Bijgewerkt uit Magister om 07.00, 3
+		 * wijzigingen". While it reads, after a failed read or for an empty
+		 * value the note is left out.
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string}|null}
+		 * @spec openspec/changes/index-header-meta-from-endpoint/specs/index-page/spec.md#requirement-the-header-note-can-read-a-value-from-an-endpoint
+		 */
+		headerMetaSource: {
 			type: Object,
 			default: null,
 		},
@@ -5167,6 +5184,8 @@ export default {
 			pageTabCounts: {},
 			/** The `headerMetaCounts` totals, by name; a failed one is null. */
 			headerMetaCountValues: {},
+			/** The value `headerMetaSource` answered, or null (index-header-meta-from-endpoint). */
+			headerMetaSourceValue: null,
 			/** The row the pointer is on in the map list, by key; '' for none. */
 			activeMapKey: '',
 			/** The rows `mapConfig.markerColor.source` points at, or null before they load. */
@@ -9724,6 +9743,14 @@ export default {
 				.replace('{shown}', () => onCount(this.effectiveObjects.length))
 				.replace('{total}', () => (typeof total === 'number' ? onCount(total) : ''))
 				.replace(/\{rows:([\w.-]+)\}/g, (match, field) => onCount(rows.filter((row) => isSet(field.split('.').reduce((at, key) => (at && typeof at === 'object' ? at[key] : undefined), row))).length))
+				.replace(/\{source\}/g, () => {
+					const value = this.headerMetaSourceValue
+					if ((typeof value !== 'string' && typeof value !== 'number') || value === '') {
+						missing = true
+						return ''
+					}
+					return String(value)
+				})
 				.replace(/\{count:([\w-]+)\}/g, (match, name) => {
 					const value = this.headerMetaCountValues[name]
 					if (typeof value !== 'number') {
@@ -9766,6 +9793,22 @@ export default {
 			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
 			const valid = Object.entries(sources).filter(([, from]) => from && from.register && from.schema)
 			return valid.length > 0 ? JSON.stringify(valid) : ''
+		},
+
+		/**
+		 * What the header note's endpoint value depends on: the resolved
+		 * request, '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-header-meta-from-endpoint/specs/index-page/spec.md#requirement-the-header-note-can-read-a-value-from-an-endpoint
+		 */
+		headerMetaSourceKey() {
+			const source = this.headerMetaSource
+			if (!source || typeof source !== 'object' || typeof source.url !== 'string' || source.url === '') {
+				return ''
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			return JSON.stringify(resolveEndpointRequest(source, ctx))
 		},
 
 		/**
@@ -10319,6 +10362,13 @@ export default {
 			immediate: true,
 			handler() {
 				this.loadHeaderMetaCounts()
+			},
+		},
+
+		headerMetaSourceKey: {
+			immediate: true,
+			handler() {
+				this.loadHeaderMetaSource()
 			},
 		},
 
@@ -11067,6 +11117,26 @@ export default {
 				}
 			}
 			return true
+		},
+
+		/**
+		 * Read the value `headerMetaSource` answers for `{source}`. A failed
+		 * read is null and leaves the note out.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-header-meta-from-endpoint/specs/index-page/spec.md#requirement-the-header-note-can-read-a-value-from-an-endpoint
+		 */
+		async loadHeaderMetaSource() {
+			const key = this.headerMetaSourceKey
+			if (key === '') {
+				this.headerMetaSourceValue = null
+				return
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const value = await fetchEndpointSource(this.headerMetaSource, ctx).catch(() => null)
+			if (key === this.headerMetaSourceKey) {
+				this.headerMetaSourceValue = value
+			}
 		},
 
 		/**

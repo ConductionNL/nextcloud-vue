@@ -1472,7 +1472,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.196.0 lets a store say where an install can go (store.installTarget; store-install-target).
 		// 2.197.0 lets a detail page read its primary action from the record (primaryActionFrom) and its quick actions from more than one path (detail-header-row-from-record).
 		// 2.198.0 lets a header pill read its value from an endpoint (headerPill.endpointSource; detail-pill-from-endpoint).
-		expect(schema.version).toBe('2.198.0')
+		// 2.199.0 lets an index header note read a value from an endpoint (headerMetaSource; index-header-meta-from-endpoint).
+		expect(schema.version).toBe('2.199.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
