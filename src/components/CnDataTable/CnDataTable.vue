@@ -1729,12 +1729,19 @@ export default {
 		this.observeScrollOverflow()
 	},
 
+	/**
+	 * Re-measure the overflow after an update.
+	 *
+	 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
+	 */
 	updated() {
 		// Columns and rows can change after mount (self-fetch resolving, a
 		// column toggled), and either can flip the table between fitting and
 		// overflowing. ResizeObserver alone would miss a change that alters
-		// content width without resizing the box.
-		this.measureScrollOverflow()
+		// content width without resizing the box. Measured once per frame:
+		// the reads force a layout, and a list that fills in (rows, then
+		// lookups, then counts) updates several times before it paints.
+		this.scheduleScrollOverflow()
 	},
 
 	beforeUnmount() {
@@ -2033,6 +2040,26 @@ export default {
 		},
 
 		/**
+		 * Measure the overflow in the next frame, once however many updates ask.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
+		 */
+		scheduleScrollOverflow() {
+			if (this._overflowFrame) {
+				return
+			}
+			if (typeof requestAnimationFrame !== 'function') {
+				this.measureScrollOverflow()
+				return
+			}
+			this._overflowFrame = requestAnimationFrame(() => {
+				this._overflowFrame = null
+				this.measureScrollOverflow()
+			})
+		},
+
+		/**
 		 * Recompute whether the scrollport overflows horizontally.
 		 *
 		 * @return {void}
@@ -2050,11 +2077,16 @@ export default {
 		},
 
 		/**
-		 * Tear down the overflow observer.
+		 * Tear down the overflow observer and drop a pending measurement.
 		 *
 		 * @return {void}
+		 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
 		 */
 		disconnectScrollOverflow() {
+			if (this._overflowFrame) {
+				cancelAnimationFrame(this._overflowFrame)
+				this._overflowFrame = null
+			}
 			if (this._scrollObserver) {
 				this._scrollObserver.disconnect()
 				this._scrollObserver = null
