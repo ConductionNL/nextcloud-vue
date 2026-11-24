@@ -12,6 +12,7 @@ and the composer ([`CnAiInput`](./cn-ai-input.md)). Rendered by
 | `visible` | Boolean | No | `false` | Controls panel visibility. |
 | `streamState` (`stream-state`) | Object | **Yes** | — | The reactive `state` object from [`useAiChatStream()`](../utilities/composables/use-ai-chat-stream.md): `{ isStreaming, currentText, toolCalls, error, messages }`. |
 | `fabRef` (`fab-ref`) | Object | No | `null` | Ref to the FAB element — kept for API back-compat; focus return is handled by `NcAppSidebar`. |
+| `defaultAgent` (`default-agent`) | String | No | `''` | The agent to start on, by uuid or name (case-insensitive); wins over the page-relevance default until the user picks an agent, and is followed when it changes. |
 
 ## Events
 
