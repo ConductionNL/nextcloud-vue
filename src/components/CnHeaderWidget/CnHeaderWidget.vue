@@ -1083,6 +1083,16 @@ export default {
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.cn-header-widget__cta {
+		transition: none;
+	}
+
+	.cn-header-widget__cta:hover {
+		transform: none;
+	}
+}
+
 .cn-header-widget__cta--primary {
 	background-color: var(--color-primary, #0070c0);
 	color: var(--color-primary-text, #ffffff);
