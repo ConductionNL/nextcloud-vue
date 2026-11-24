@@ -406,7 +406,7 @@ export default {
 		vue({ css: false, compilerOptions: { comments: false } }),
 		// MUST come after vue() — it rewrites that plugin's generated trailer.
 		anchorSfcDefaultExport(),
-		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport(), unwrapVueDeep()] }),
+		postcss({ extract: 'nextcloud-vue.css', minimize: true, plugins: [postcssImport(), unwrapVueDeep()] }),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
 		// `esmExternals: ['vue']` makes the commonjs plugin treat the external
