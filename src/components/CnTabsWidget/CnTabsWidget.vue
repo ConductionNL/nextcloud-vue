@@ -236,7 +236,7 @@ import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries
 import { headerLinkTarget, resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { resolveTabCount } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible } from '../../utils/detailWidgetVisibility.js'
-import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
 import { buildHeaders, prefixUrl } from '../../utils/index.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
@@ -810,7 +810,7 @@ export default {
 		 */
 		countSourcesKey() {
 			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
-			return JSON.stringify(tabs.map((tab) => this.countSourceOf(tab)))
+			return JSON.stringify(tabs.map((tab, index) => this.shownCountSourceOf(tab, index)))
 		},
 
 		/** @return {string} The source-mode conditions, serialised, to re-evaluate when they change. */
@@ -1551,34 +1551,80 @@ export default {
 		},
 
 		/**
+		 * What a tab counts, unless its own condition already rules it out:
+		 * a tab whose record condition is false, or not decidable yet because
+		 * the record is still loading, counts nothing until it shows.
+		 *
+		 * @param {object|string} tab   The `content.tabs[]` entry.
+		 * @param {number}        index Its index in `content.tabs`.
+		 * @return {object|null} The count source, or null.
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		shownCountSourceOf(tab, index) {
+			const cond = tab && typeof tab === 'object' ? tab.visibleWhen : null
+			if (cond && isLocallyDecidableVisibleWhen(cond) && this.tabVisibility(tab, index) !== 'visible') {
+				return null
+			}
+			return this.countSourceOf(tab)
+		},
+
+		/**
 		 * Count the list behind every tab with `countFrom`: once on mount,
-		 * when the record changes and after a refresh. A tab keeps its last
-		 * total while the new one is on its way; a failed count shows none.
+		 * when the record changes and after a refresh. Calls in the same tick
+		 * share one round. A tab keeps its last total while the new one is on
+		 * its way; a failed count shows none.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
 		 */
-		async refreshWidgetCounts() {
+		refreshWidgetCounts() {
+			if (!this._countsQueued) {
+				this._countsQueued = Promise.resolve().then(() => {
+					this._countsQueued = null
+					return this.countTabs()
+				})
+			}
+			return this._countsQueued
+		},
+
+		/**
+		 * One counting round: every `{ register, schema, filter }` list goes
+		 * out in one batch count request, endpoint and history counts on
+		 * their own.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/screens-tab-counts-parity/specs/tab-counts/spec.md#requirement-a-tab-can-count-its-list
+		 */
+		async countTabs() {
 			const tabs = Array.isArray(this.content?.tabs) ? this.content.tabs : []
 			const seq = ++this.countSeq
 			const ctx = { objectId: this.objectId, object: this.objectData || undefined }
-			await Promise.all(tabs.map(async (tab, index) => {
-				const source = this.countSourceOf(tab)
+			const store = (totals) => {
+				if (seq === this.countSeq) {
+					this.widgetCounts = { ...this.widgetCounts, ...totals }
+				}
+			}
+			const lists = []
+			const jobs = []
+			tabs.forEach((tab, index) => {
+				const source = this.shownCountSourceOf(tab, index)
 				if (!source) {
 					return
 				}
-				let total
 				if (source.auditTrail) {
-					total = await this.countAuditTrail(source)
+					jobs.push(this.countAuditTrail(source).then((total) => store({ [index]: total })))
 				} else if (source.endpoint) {
-					total = await this.countEndpoint(source, ctx)
+					jobs.push(this.countEndpoint(source, ctx).then((total) => store({ [index]: total })))
 				} else {
-					total = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
+					lists.push({ index, source })
 				}
-				if (seq === this.countSeq) {
-					this.widgetCounts = { ...this.widgetCounts, [index]: total }
-				}
-			}))
+			})
+			if (lists.length > 0) {
+				jobs.push(fetchListTotals(lists.map(({ source }) => source), ctx)
+					.catch(() => [])
+					.then((totals) => store(Object.fromEntries(lists.map(({ index }, i) => [index, typeof totals[i] === 'number' ? totals[i] : null])))))
+			}
+			await Promise.all(jobs)
 		},
 
 		/**
