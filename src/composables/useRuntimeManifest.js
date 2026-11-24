@@ -50,6 +50,7 @@ function loadValidator() {
  * @param {('replace'|'delta')} [options.mergeStrategy] How to combine the fetched
  *   payload with the stub. Defaults to `'replace'` (full replace, unchanged).
  * @return {{ manifest: import('vue').Ref, isLoading: import('vue').Ref<boolean>, validationErrors: import('vue').Ref<string[]|null>, orphanedDeltaPaths: import('vue').Ref<string[]> }}
+ * @spec openspec/changes/manifest-validator-self-contained/specs/manifest-validator-self-contained/spec.md#requirement-a-backend-manifest-delta-reaches-the-navigation
  */
 export function useRuntimeManifest(appId, stubManifest = null, options = {}) {
 	const manifest = ref(stubManifest)
