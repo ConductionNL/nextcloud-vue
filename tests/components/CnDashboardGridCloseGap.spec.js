@@ -29,6 +29,13 @@ describe('CnDashboardGrid: closing the gap', () => {
 		expect(GridStack.init.mock.calls.at(-1)[0].float).toBe(false)
 	})
 
+	it('names the same layout as a GridStack 14 mode', () => {
+		mount(CnDashboardGrid, { propsData: { layout: [tile] } })
+		expect(GridStack.init.mock.calls.at(-1)[0].mode).toBe('float')
+		mount(CnDashboardGrid, { propsData: { layout: [tile], float: false } })
+		expect(GridStack.init.mock.calls.at(-1)[0].mode).toBe('top')
+	})
+
 	it('moves a tracked item to its new row without emitting a layout change', async () => {
 		const wrapper = mount(CnDashboardGrid, { propsData: { layout: [tile] } })
 		const grid = wrapper.vm.grid

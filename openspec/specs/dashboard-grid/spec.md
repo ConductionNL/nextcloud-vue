@@ -23,6 +23,13 @@ CnDashboardGrid SHALL initialize a GridStack.js instance on mount, binding it to
 - THEN `GridStack.init()` is called on the `.grid-stack` element with `column`, `cellHeight`, `margin`, `float: true`, `animate: true`, and `removable: false`
 - AND all 3 items are rendered at their specified grid positions using `gs-*` attributes
 
+#### Scenario: GridStack 12, 13 and 14 read the same layout mode
+
+- GIVEN the consumer installs GridStack 12, 13 or 14 (the peer range)
+- WHEN the grid initializes
+- THEN it passes both `float` (read by 12 and 13) and `mode` (`'float'` or `'top'`, read by 14), naming the same layout
+- AND an item dragged or resized lands where it is put, and a 12-column layout stacks in one column on a phone
+
 #### Scenario: grid is destroyed on component teardown
 
 - GIVEN the grid has been initialized

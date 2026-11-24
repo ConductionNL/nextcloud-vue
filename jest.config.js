@@ -75,7 +75,9 @@ module.exports = {
 		// runnable here. `marked` is the same story: from 16 on it ships ESM
 		// only (`lib/marked.esm.js`), so the markdown suites fail to load
 		// against the marked 18 the fleet installs unless it is transformed.
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack|marked)/)',
+		// `gridstack` ships ESM; `import 'gridstack'` stays on the mock below,
+		// while a spec that imports `gridstack/dist/...` runs the real engine.
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack|marked|gridstack)/)',
 	],
 	moduleNameMapper: {
 		// pinia >= 4 loads @vue/devtools-api, which registers a devtools backend
