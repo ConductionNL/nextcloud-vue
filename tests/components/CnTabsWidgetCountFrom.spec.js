@@ -18,10 +18,17 @@ jest.mock('../../src/utils/appInstalled.js', () => ({
 	isAppInstalled: jest.fn(() => true),
 }))
 
-jest.mock('../../src/utils/fetchFilterCounts.js', () => ({
-	__esModule: true,
-	fetchListTotal: jest.fn(),
-}))
+jest.mock('../../src/utils/fetchFilterCounts.js', () => {
+	const fetchListTotal = jest.fn()
+	return {
+		__esModule: true,
+		fetchListTotal,
+		// The tabs count their lists in one batch; each list answers through fetchListTotal here.
+		fetchListTotals: jest.fn((lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve()
+			.then(() => fetchListTotal(register, schema, filter, ctx))
+			.catch(() => null)))),
+	}
+})
 
 const WIDGETS = [
 	{ id: 'w-cases', type: 'object-list', title: 'Cases', content: { register: 'dossiq', schema: 'case', filter: { requester: '@objectId' } } },
