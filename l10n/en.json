@@ -2954,7 +2954,8 @@
     "Destruction date": "Destruction date",
     "Selection list rule": "Selection list rule",
     "Recorded on": "Recorded on",
-    "Set when it closes": "Set when it closes"
+    "Set when it closes": "Set when it closes",
+    "The form could not be saved: {message}": "The form could not be saved: {message}"
   },
   "plurals": {
     "{count} member": [
