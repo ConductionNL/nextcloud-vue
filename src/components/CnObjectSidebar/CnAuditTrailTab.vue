@@ -154,6 +154,11 @@ export default {
 
 	components: { CnConfirmDialog, NcButton, NcListItem, NcLoadingIcon, NcSelect, NcDateTimePickerNative, History },
 
+	inject: {
+		// The label lookup from CnAppRoot, so an `actionLabels` text shows in the user's language.
+		cnTranslate: { default: null },
+	},
+
 	props: {
 		/** ID of the object this tab belongs to */
 		objectId: { type: String, required: true },
@@ -289,8 +294,9 @@ export default {
 
 	methods: {
 		/**
-		 * The row's action in words: its `actionLabels` label filled for the
-		 * entry, else the action as recorded.
+		 * The row's action in words: its `actionLabels` label in the user's
+		 * language (through the app's label lookup) filled for the entry, else
+		 * the action as recorded.
 		 *
 		 * @param {object} entry The audit entry.
 		 * @return {string} The words.
@@ -301,7 +307,8 @@ export default {
 			if (label === null) {
 				return entry.action
 			}
-			return fillAuditLabel(label, entry, { actor: entry.userName || entry.user || '', object: this.objectData })
+			const words = typeof this.cnTranslate === 'function' ? this.cnTranslate(label) : label
+			return fillAuditLabel(words, entry, { actor: entry.userName || entry.user || '', object: this.objectData })
 		},
 
 		resetAndFetch() {
