@@ -2954,7 +2954,8 @@
     "Destruction date": "Destruction date",
     "Selection list rule": "Selection list rule",
     "Recorded on": "Recorded on",
-    "Set when it closes": "Set when it closes"
+    "Set when it closes": "Set when it closes",
+    "The values for this row could not be worked out. It keeps the values it had.": "The values for this row could not be worked out. It keeps the values it had."
   },
   "plurals": {
     "{count} member": [
