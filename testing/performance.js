@@ -24,6 +24,7 @@
  *
  * "Usable" is measured from the start of the navigation to the moment all of
  * these hold, and stay true for a quiet window:
+ *  - the document has loaded, so every bundle has run;
  *  - the page's ready selector (default: its `main` landmark) is visible;
  *  - no fetch or XHR request is in flight;
  *  - no loading indicator is visible.
@@ -315,7 +316,8 @@ async function measureLoad(page, url, options = {}) {
 				}
 				const root = Array.from(document.querySelectorAll(readySelector)).find(visible)
 				const busy = Array.from(document.querySelectorAll(busySelector)).some(visible)
-				return { ready: Boolean(root), busy }
+				// Before `load` the bundles are still parsing: nothing has had a chance to fetch yet.
+				return { ready: Boolean(root) && document.readyState === 'complete', busy }
 			}, [ready, BUSY_SELECTOR]).catch(() => ({ ready: false, busy: true }))
 			const now = clock()
 			const looksReady = state.ready && !state.busy

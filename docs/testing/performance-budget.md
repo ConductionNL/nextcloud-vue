@@ -49,6 +49,7 @@ The spec creates one test per page. Each test loads the page once to warm the ca
 
 The clock starts at navigation. It stops when all of these hold for 100 ms:
 
+- the document has loaded, so every bundle has run;
 - the ready selector is visible;
 - no fetch or XHR request is in flight;
 - no loading indicator (`aria-busy="true"`, `.loading-icon`, `.icon-loading`) is visible.
