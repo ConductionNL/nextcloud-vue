@@ -1005,6 +1005,8 @@ export default {
 		 * The page moved to another file or record: list the sessions about
 		 * that one instead.
 		 *
+		 * @param {{type: string, id: string}|null} next The page's entity now.
+		 * @param {{type: string, id: string}|null} previous The page's entity before.
 		 * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
 		 */
 		contextLink(next, previous) {
