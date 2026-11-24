@@ -63,3 +63,32 @@ describe('auditLabel with a label that depends on the record', () => {
 		expect(auditLabel({ action: 'create' }, rules, {})).toBe('Event created')
 	})
 })
+
+/**
+ * @spec openspec/changes/audit-label-action-prefix/specs/audit-trail/spec.md#requirement-an-action-label-can-cover-every-action-under-a-prefix
+ * @spec openspec/changes/audit-label-action-prefix/specs/audit-trail/spec.md#requirement-a-label-can-name-the-tool-an-entry-records
+ */
+describe('auditLabel with a label for every action under a prefix', () => {
+	const rules = { actionLabels: { 'mcp.*': 'Assistant: {toolId}', 'mcp.lead.*': 'Assistant on leads', 'mcp.close': 'Closed by the assistant' } }
+
+	it('words an action through the wildcard key, with the tool it records', () => {
+		expect(auditLabel({ action: 'mcp.search', toolId: 'stackiq.module.search' }, rules)).toBe('Assistant: stackiq.module.search')
+	})
+
+	it('takes the most specific wildcard first', () => {
+		expect(auditLabel({ action: 'mcp.lead.search', toolId: 'pipelinq.lead.search' }, rules)).toBe('Assistant on leads')
+	})
+
+	it('lets an exact key win over a wildcard', () => {
+		expect(auditLabel({ action: 'mcp.close', toolId: 'x.close' }, rules)).toBe('Closed by the assistant')
+	})
+
+	it('does not cover the prefix itself or another action', () => {
+		expect(auditLabel({ action: 'mcp' }, rules)).toBeNull()
+		expect(auditLabel({ action: 'update' }, rules)).toBeNull()
+	})
+
+	it('leaves {toolId} empty for an entry without a tool', () => {
+		expect(auditLabel({ action: 'mcp.search' }, rules)).toBe('Assistant: ')
+	})
+})
