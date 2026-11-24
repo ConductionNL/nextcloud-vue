@@ -2303,10 +2303,17 @@ export default {
 		 *
 		 * @param {object|null} newItem The record now bound.
 		 * @param {object|null} oldItem The record previously bound.
-		 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
 		 */
 		item: {
 			immediate: true,
+			/**
+			 * Re-seed the form from the record now bound.
+			 *
+			 * @param {object|null} newItem The record now bound.
+			 * @param {object|null} oldItem The record previously bound.
+			 * @return {void}
+			 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+			 */
 			handler(newItem, oldItem) {
 				// Scoped to the record the values were typed into. Swapping
 				// the dialog to a DIFFERENT record starts from that record,
