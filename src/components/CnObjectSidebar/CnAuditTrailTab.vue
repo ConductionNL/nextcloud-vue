@@ -42,7 +42,7 @@
 					<NcListItem
 						:name="formatDate(entry.created)"
 						:bold="false"
-						:details="entry.action"
+						:details="actionText(entry)"
 						:counterNumber="changedCount(entry)"
 						@click="toggleExpand(entry.id)">
 						<template #icon>
@@ -144,6 +144,7 @@ import { NcButton, NcDateTimePickerNative, NcListItem, NcLoadingIcon, NcSelect }
 import History from 'vue-material-design-icons/History.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
 import { useRestoreVersion } from '../../composables/useRestoreVersion.js'
+import { actionLabelFor, fillAuditLabel } from '../../utils/auditLabels.js'
 import { buildHeaders } from '../../utils/index.js'
 import { isLockedByCurrentUser, isObjectLocked, lockHolder } from '../../utils/objectLock.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -188,6 +189,17 @@ export default {
 		 * @type {object|null}
 		 */
 		objectData: { type: Object, default: null },
+		/**
+		 * What happened, in words, per action: the same `actionLabels` the
+		 * History card takes (`claim`, `complete:completed`, a `mcp.*`
+		 * wildcard; `{actor}`, `{toolId}`, `{state}`, `{changed.<key>}` and
+		 * `{object.<path>}` filled in). An action without a label shows as
+		 * recorded.
+		 *
+		 * @type {{[key: string]: string|Array<{when?: object, text: string}>}|null}
+		 * @spec openspec/changes/audit-tab-action-labels/specs/audit-trail/spec.md#requirement-the-sidebar-history-tab-words-an-action-by-its-label
+		 */
+		actionLabels: { type: Object, default: null },
 	},
 
 	emits: ['restored'],
@@ -276,6 +288,22 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * The row's action in words: its `actionLabels` label filled for the
+		 * entry, else the action as recorded.
+		 *
+		 * @param {object} entry The audit entry.
+		 * @return {string} The words.
+		 * @spec openspec/changes/audit-tab-action-labels/specs/audit-trail/spec.md#requirement-the-sidebar-history-tab-words-an-action-by-its-label
+		 */
+		actionText(entry) {
+			const label = actionLabelFor(entry, this.actionLabels, this.objectData)
+			if (label === null) {
+				return entry.action
+			}
+			return fillAuditLabel(label, entry, { actor: entry.userName || entry.user || '', object: this.objectData })
+		},
+
 		resetAndFetch() {
 			this.page = 1
 			this.entries = []

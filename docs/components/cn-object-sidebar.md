@@ -245,3 +245,11 @@ Choosing the button opens a `CnConfirmDialog` with the entry's date and user, sa
 ```json
 { "type": "audit", "props": { "allowRestore": true } }
 ```
+
+## Action labels in the history tab
+
+`CnAuditTrailTab` also takes `actionLabels` (Object, default `null`), the same map the History card takes: a row reads its label instead of the recorded action, by action and state, by action, or by a `.*` wildcard (`mcp.*` covers every assistant action), with `{actor}`, `{toolId}`, `{state}`, `{changed.<key>}` and `{object.<path>}` filled in. An action without a label shows as recorded; the expanded details keep the recorded action.
+
+```json
+{ "type": "audit", "props": { "actionLabels": { "mcp.*": "Assistant: {toolId}" } } }
+```
