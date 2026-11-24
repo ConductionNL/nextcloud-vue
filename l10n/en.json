@@ -2954,7 +2954,15 @@
     "Destruction date": "Destruction date",
     "Selection list rule": "Selection list rule",
     "Recorded on": "Recorded on",
-    "Set when it closes": "Set when it closes"
+    "Set when it closes": "Set when it closes",
+    "Quiet hours": "Quiet hours",
+    "Hold back notifications during set hours. Reminders with a deadline still arrive on time.": "Hold back notifications during set hours. Reminders with a deadline still arrive on time.",
+    "Turn on quiet hours": "Turn on quiet hours",
+    "Begin": "Begin",
+    "This applies to every app that sends notifications through Open Register.": "This applies to every app that sends notifications through Open Register.",
+    "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.": "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.",
+    "Saving failed. Try again.": "Saving failed. Try again.",
+    "This time is not valid.": "This time is not valid."
   },
   "plurals": {
     "{count} member": [

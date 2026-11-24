@@ -1121,6 +1121,16 @@ export default {
 			},
 
 			/**
+			 * Whether the notification pane shows the quiet-hours block
+			 * (OpenRegister's per-user delivery window). A getter, as above.
+			 *
+			 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+			 */
+			get cnQuietHours() {
+				return self.quietHours === true
+			},
+
+			/**
 			 * Target repo slug for the in-product feature-request deep
 			 * link (e.g. `ConductionNL/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
@@ -1619,6 +1629,20 @@ export default {
 		notificationLabels: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Show the quiet-hours block in the user settings' notification
+		 * pane. It reads and saves OpenRegister's per-user delivery window
+		 * (`/api/notification-delivery-window`), which applies to every app
+		 * on the instance. Off by default.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+		 */
+		quietHours: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**

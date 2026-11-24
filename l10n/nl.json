@@ -3232,7 +3232,15 @@
     "Destruction date": "Vernietigingsdatum",
     "Selection list rule": "Selectielijstregel",
     "Recorded on": "Vastgelegd op",
-    "Set when it closes": "Bepaald bij afsluiten"
+    "Set when it closes": "Bepaald bij afsluiten",
+    "Quiet hours": "Stille uren",
+    "Hold back notifications during set hours. Reminders with a deadline still arrive on time.": "Stel meldingen uit tijdens vaste uren. Herinneringen met een deadline komen op tijd binnen.",
+    "Turn on quiet hours": "Stille uren aanzetten",
+    "Begin": "Begin",
+    "This applies to every app that sends notifications through Open Register.": "Dit geldt voor elke app die meldingen stuurt via Open Register.",
+    "Your Nextcloud does not enforce quiet hours yet. Your choice is kept and works as soon as it can.": "Uw Nextcloud dwingt stille uren nog niet af. Uw keuze blijft bewaard en werkt zodra dat kan.",
+    "Saving failed. Try again.": "Opslaan is mislukt. Probeer het opnieuw.",
+    "This time is not valid.": "Deze tijd is niet geldig."
   },
   "plurals": {
     "{count} member": [

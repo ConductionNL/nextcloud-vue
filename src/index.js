@@ -307,6 +307,7 @@ export {
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
+	CnQuietHours,
 	CnRadioCardsWidget,
 	CnReadinessChecklist,
 	CnRealtimeToast,
