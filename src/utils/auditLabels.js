@@ -143,7 +143,9 @@ export function changeNote(entry, rule) {
 
 /**
  * The `actionLabels` entry for an entry: by action and state first, then by
- * action; a related record's entry (`relatedAs`) tries its prefixed keys first.
+ * action, then by a trailing wildcard on the action's leading segments, most
+ * specific first (`mcp.lead.*`, then `mcp.*` for `mcp.lead.search`); a
+ * related record's entry (`relatedAs`) tries its prefixed keys first.
  * A label may be a list of `{ when?, text }`: the first entry whose local
  * visibleWhen condition holds for the record (one without `when` always does)
  * gives the words ("Event created in campaign …", else "Event created").
@@ -153,6 +155,7 @@ export function changeNote(entry, rule) {
  * @param {object|null} [object] The record a label's condition reads.
  * @return {string|null} The label, or null.
  * @spec openspec/changes/audit-label-when/specs/audit-trail/spec.md#requirement-an-action-label-can-depend-on-the-record
+ * @spec openspec/changes/audit-label-action-prefix/specs/audit-trail/spec.md#requirement-an-action-label-can-cover-every-action-under-a-prefix
  */
 export function actionLabelFor(entry, labels, object = null) {
 	const action = entry && (entry.action || entry.event)
@@ -162,8 +165,28 @@ export function actionLabelFor(entry, labels, object = null) {
 	const state = entry.stateAfter || ''
 	const prefix = entry.relatedAs ? `${entry.relatedAs}.` : ''
 	const label = (prefix ? (labels[`${prefix}${action}:${state}`] ?? labels[`${prefix}${action}`]) : undefined)
-		?? labels[`${action}:${state}`] ?? labels[action]
+		?? labels[`${action}:${state}`] ?? labels[action] ?? wildcardLabel(String(action), labels)
 	return labelForRecord(label, object)
+}
+
+/**
+ * The label of the most specific trailing wildcard key that covers an action:
+ * for `mcp.lead.search` first `mcp.lead.*`, then `mcp.*`; undefined for none.
+ *
+ * @param {string} action The action.
+ * @param {object} labels The labels.
+ * @return {unknown} The label, or undefined.
+ * @spec openspec/changes/audit-label-action-prefix/specs/audit-trail/spec.md#requirement-an-action-label-can-cover-every-action-under-a-prefix
+ */
+function wildcardLabel(action, labels) {
+	const segments = action.split('.')
+	for (let length = segments.length - 1; length > 0; length--) {
+		const label = labels[`${segments.slice(0, length).join('.')}.*`]
+		if (label !== undefined) {
+			return label
+		}
+	}
+	return undefined
 }
 
 /**
@@ -184,14 +207,16 @@ function labelForRecord(label, object) {
 }
 
 /**
- * Fill a label's tokens: `{actor}`, `{state}`, `{changed.<key>}`,
- * `{object.<path>}` and, with the matched change `rule`, `{from}` and `{to}`
- * (the old and new value of the rule's field).
+ * Fill a label's tokens: `{actor}`, `{state}`, `{toolId}` (the tool an
+ * assistant entry records), `{changed.<key>}`, `{object.<path>}` and, with the
+ * matched change `rule`, `{from}` and `{to}` (the old and new value of the
+ * rule's field).
  *
  * @param {string} label The label.
  * @param {object} entry The entry.
  * @param {{actor?: string, object?: object|null, valueLabels?: object|null, rule?: object|null, names?: Function|null}} [context] What the tokens read.
  * @return {string} The filled label.
+ * @spec openspec/changes/audit-label-action-prefix/specs/audit-trail/spec.md#requirement-a-label-can-name-the-tool-an-entry-records
  */
 export function fillAuditLabel(label, entry, { actor = '', object = null, valueLabels = null, rule = null, names = null } = {}) {
 	return label
@@ -199,6 +224,7 @@ export function fillAuditLabel(label, entry, { actor = '', object = null, valueL
 		.replace(/\{from\}/g, () => changeSideValue(entry, rule, 'old', { valueLabels, names }))
 		.replace(/\{to\}/g, () => changeSideValue(entry, rule, 'new', { valueLabels, names }))
 		.replace('{state}', (entry && entry.stateAfter) || '')
+		.replace(/\{toolId\}/g, () => (entry && typeof entry.toolId === 'string' ? entry.toolId : ''))
 		.replace(/\{changed\.([\w.-]+)\}/g, (match, key) => changedValue(entry, key, valueLabels))
 		.replace(/\{object\.([\w.-]+)\}/g, (match, path) => {
 			const value = object ? readPath(object, path) : undefined
