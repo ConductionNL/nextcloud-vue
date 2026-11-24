@@ -57,7 +57,10 @@
 					aria-hidden="true">
 					<CnWidgetIcon :name="resolvedIcon" :size="18" />
 				</span>
-				<span v-if="content.label" class="cn-kpi-card__title-text" :title="resolvedLabel">{{ resolvedLabel }}</span>
+				<span v-if="content.label" class="cn-kpi-card__title-text" :title="resolvedLabel">
+					<template v-if="labelParts"><strong class="cn-kpi-card__title-source">{{ labelParts.source }}</strong> · {{ labelParts.rest }}</template>
+					<template v-else>{{ resolvedLabel }}</template>
+				</span>
 
 				<!-- Per-tile range override. Rendered ONLY when the tile declares its
 				     own `content.dateRange.presets`; a tile that merely follows the
@@ -679,6 +682,21 @@ export default {
 		resolvedLabel() {
 			const label = this.content.label
 			return label ? this.effectiveTranslate(label) : ''
+		},
+
+		/**
+		 * The board look's label in two parts when it reads "<source> · <name>"
+		 * (LpVandaag: "dossiq · Cases"), so the source is set in bold ink.
+		 *
+		 * @return {{source: string, rest: string}|null} The parts, null for a label without a source.
+		 * @spec openspec/specs/tile-widget/spec.md
+		 */
+		labelParts() {
+			const at = this.resolvedLabel.indexOf(' · ')
+			if (!this.isBoardLook || at <= 0) {
+				return null
+			}
+			return { source: this.resolvedLabel.slice(0, at), rest: this.resolvedLabel.slice(at + 3) }
 		},
 
 		/**
