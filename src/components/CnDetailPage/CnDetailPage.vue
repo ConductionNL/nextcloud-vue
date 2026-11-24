@@ -1438,6 +1438,7 @@ import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
 import CnDetailGridCell from './CnDetailGridCell.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
+import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { actionLabelText, fetchObjectActions } from '../../composables/useObjectActions.js'
@@ -1468,7 +1469,6 @@ import {
 	stageEntry,
 	stageOf,
 } from '../../utils/detailActionModel.js'
-import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchListTotals } from '../../utils/fetchFilterCounts.js'

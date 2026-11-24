@@ -10,8 +10,8 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
-import { pillEndpointSource, resolveEndpointPill } from '../../src/utils/detailActionModel.js'
 import { fetchEndpointSource } from '../../src/composables/useEndpointSource.js'
+import { pillEndpointSource, resolveEndpointPill } from '../../src/utils/detailActionModel.js'
 
 jest.mock('../../src/composables/useEndpointSource.js', () => {
 	const actual = jest.requireActual('../../src/composables/useEndpointSource.js')
