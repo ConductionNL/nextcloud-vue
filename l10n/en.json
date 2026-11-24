@@ -2977,7 +2977,12 @@
     "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.",
     "Hand over": "Hand over",
     "The hand-over was refused": "The hand-over was refused",
-    "Task {title} handed to {name}": "Task {title} handed to {name}"
+    "Task {title} handed to {name}": "Task {title} handed to {name}",
+    "Previous week": "Previous week",
+    "This week": "This week",
+    "Next week": "Next week",
+    "Week timetable": "Week timetable",
+    "Nothing planned this week": "Nothing planned this week"
   },
   "plurals": {
     "{count} member": [
