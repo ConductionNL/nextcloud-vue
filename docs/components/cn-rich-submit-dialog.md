@@ -110,6 +110,12 @@ export default {
 | `confirm` | `{ reason, notes, files }` | User clicked Submit. `loading` is set; the parent calls `setResult()` to flip into the result phase. |
 | `close` | — | Dialog dismissed. |
 
+## Slots
+
+| Slot | Props | Description |
+|---|---|---|
+| `file-sources` | `{ addFiles }` | Under the file input: another source of files, such as a "Choose from my files" button over the Nextcloud file picker. The consumer fetches the files and calls `addFiles(files)`; it applies the same max-files and max-size checks over the files already chosen plus these (a single-file dialog replaces its file) and returns `false`, with the banner saying why, when it refuses them. |
+
 ## Public methods
 
 | Method | Signature | Description |
