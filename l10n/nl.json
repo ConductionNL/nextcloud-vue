@@ -3255,7 +3255,12 @@
     "The authority this hand-over relies on, for example a standing mandate or your manager's instruction.": "De bevoegdheid waarop deze overdracht steunt, bijvoorbeeld een vast mandaat of een opdracht van uw leidinggevende.",
     "Hand over": "Overdragen",
     "The hand-over was refused": "De overdracht is geweigerd",
-    "Task {title} handed to {name}": "Taak {title} overgedragen aan {name}"
+    "Task {title} handed to {name}": "Taak {title} overgedragen aan {name}",
+    "Previous week": "Vorige week",
+    "This week": "Deze week",
+    "Next week": "Volgende week",
+    "Week timetable": "Weekrooster",
+    "Nothing planned this week": "Deze week staat er niets gepland"
   },
   "plurals": {
     "{count} member": [

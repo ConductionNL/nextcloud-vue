@@ -504,6 +504,8 @@ export { CnGuardianHome } from './CnGuardianHome/index.js'
 // Workplace dashboard primitives (openspec: workplace-dashboard-primitives).
 export { CnWeekStripWidget } from './CnWeekStripWidget/index.js'
 export { CnWeekStripWidgetForm } from './CnWeekStripWidgetForm/index.js'
+// One week as a timetable (openspec: week-grid).
+export { CnWeekGrid } from './CnWeekGrid/index.js'
 export { CnStackedBarWidget } from './CnStackedBarWidget/index.js'
 export { CnTeamWorkloadWidget } from './CnTeamWorkloadWidget/index.js'
 export { CnStackedBarWidgetForm } from './CnStackedBarWidgetForm/index.js'
