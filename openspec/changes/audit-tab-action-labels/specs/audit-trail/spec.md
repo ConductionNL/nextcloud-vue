@@ -16,7 +16,8 @@ The sidebar history tab says what happened in the same words as the History card
 
 `CnAuditTrailTab` SHALL take `actionLabels` and SHALL show a row's action as its label, chosen and filled as the History
 card does (by action and state, by action, by a `.*` wildcard; `{actor}`, `{toolId}`, `{state}`, `{changed.<key>}` and
-`{object.<path>}` filled in). An action without a label SHALL show as recorded.
+`{object.<path>}` filled in). An action without a label SHALL show as recorded. The label SHALL pass through the app's label lookup (`cnTranslate`), as tab labels do, so it
+shows in the user's language.
 
 #### Scenario: An assistant action in the history tab
 
