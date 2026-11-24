@@ -1951,7 +1951,7 @@ export default {
 			await Promise.all(jobs.map(async ({ reg, sch, id }) => {
 				try {
 					const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
-					const res = await readRelatedOnce(url, (u) => axios.get(u))
+					const res = await readRelatedOnce(url, () => axios.get(url))
 					const d = (res && res.data) ? res.data : {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
 					this.relatedLabels[id] = this.objectDisplayName(obj, id)

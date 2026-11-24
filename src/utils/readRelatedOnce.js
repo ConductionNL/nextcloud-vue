@@ -24,7 +24,7 @@ const reads = new Map()
  * Read a related record once for every caller within the TTL.
  *
  * @param {string} url The record's url.
- * @param {Function} get Reads the url and resolves to the response (e.g. `axios.get`).
+ * @param {(url: string) => Promise<object>} get Reads the url and resolves to the response (e.g. `axios.get`).
  * @param {number} [now] The current time in ms (for tests).
  * @return {Promise<object>} The response, shared with every caller of the same url.
  * @spec openspec/changes/related-record-read-once/specs/data-widget/spec.md#requirement-a-related-record-is-read-once-per-page-open
