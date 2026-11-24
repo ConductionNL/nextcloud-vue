@@ -3232,7 +3232,8 @@
     "Destruction date": "Vernietigingsdatum",
     "Selection list rule": "Selectielijstregel",
     "Recorded on": "Vastgelegd op",
-    "Set when it closes": "Bepaald bij afsluiten"
+    "Set when it closes": "Bepaald bij afsluiten",
+    "The form could not be saved: {message}": "Het formulier kon niet worden opgeslagen: {message}"
   },
   "plurals": {
     "{count} member": [

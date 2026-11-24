@@ -5638,16 +5638,31 @@ export default {
 			// that ignores the second argument therefore still posts a clean
 			// payload rather than losing declared fields to undeclared ones.
 			// Publishing a draft runs the full validation above and clears the marker.
-			const submit = this.buildSubmitPayload()
-			if (this.isDraftRecord) {
-				submit[this.draftField] = false
+			//
+			// Building the payload runs before any listener sees it. If it
+			// throws, nothing is sent and only `setResult` would ever clear
+			// `loading`, so Save would spin forever with the dialog locked open
+			// (`no-close` is bound to `loading`). Hand the failure back instead.
+			let base
+			let answers
+			try {
+				const submit = this.buildSubmitPayload()
+				if (this.isDraftRecord) {
+					submit[this.draftField] = false
+				}
+				const split = splitDynamicFormData(submit)
+				base = split.base
+				answers = split.answers.map((answer) => ({
+					...answer,
+					declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',
+				}))
+				this.foldStoredAnswers(base, answers)
+			} catch (error) {
+				console.error('CnFormDialog: the form could not be prepared for saving', error)
+				this.loading = false
+				this.formError = t('nextcloud-vue', 'The form could not be saved: {message}', { message: (error && error.message) || String(error) })
+				return
 			}
-			const { base, answers: raw } = splitDynamicFormData(submit)
-			const answers = raw.map((answer) => ({
-				...answer,
-				declarationKey: this.dynamicOwners[DYNAMIC_KEY_PREFIX + answer.definitionId] || '',
-			}))
-			this.foldStoredAnswers(base, answers)
 			/**
 			 * @event confirm Emitted when the user confirms the form.
 			 * Payload: form data object. Includes `id` when editing. A second
