@@ -1001,7 +1001,9 @@ export default {
 				cellHeight: this.cellHeight / this.rowSplit,
 				margin: this.margin,
 				...(this.marginBottom !== null ? { marginBottom: this.marginBottom } : {}),
+				// GridStack 14 replaced `float` with `mode`; 12 and 13 read `float`.
 				float: this.float,
+				mode: this.float ? 'float' : 'top',
 				animate: true,
 				disableDrag: !this.editable,
 				disableResize: !this.editable,

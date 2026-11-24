@@ -31,6 +31,7 @@ export function initGridStack(el, opts) {
 		cellHeight,
 		margin,
 		float: true,
+		mode: 'float',
 		animate: true,
 		disableDrag: !editable,
 		disableResize: !editable,
