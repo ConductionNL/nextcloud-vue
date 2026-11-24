@@ -14,10 +14,11 @@ const entries = [
 	{ id: 2, action: 'update', created: '2026-01-02T10:00:00Z', userName: 'Anna', changed: {} },
 ]
 
-async function mountTab(propsData = {}) {
+async function mountTab(propsData = {}, provide = {}) {
 	global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ results: entries, total: 2 }) })
 	const w = shallowMount(CnAuditTrailTab, {
 		propsData: { objectId: 'abc', register: 'catalogue', schema: 'module', ...propsData },
+		provide,
 		stubs: { CnConfirmDialog: { template: '<div />' } },
 	})
 	await new Promise((resolve) => setTimeout(resolve, 0))
@@ -34,6 +35,12 @@ describe('CnAuditTrailTab action labels', () => {
 		const w = await mountTab({ actionLabels: { 'mcp.*': 'Assistant: {toolId}' } })
 		expect(w.vm.actionText(entries[0])).toBe('Assistant: stackiq.module.search')
 		expect(w.vm.actionText(entries[1])).toBe('update')
+	})
+
+	it('shows the label in the user\'s language through the app lookup', async () => {
+		const cnTranslate = (text) => ({ 'Assistant: {toolId}': 'Assistent: {toolId}' })[text] || text
+		const w = await mountTab({ actionLabels: { 'mcp.*': 'Assistant: {toolId}' } }, { cnTranslate })
+		expect(w.vm.actionText(entries[0])).toBe('Assistent: stackiq.module.search')
 	})
 
 	it('fills the actor', async () => {
