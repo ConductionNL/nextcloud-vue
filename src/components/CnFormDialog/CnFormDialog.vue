@@ -2314,6 +2314,7 @@ export default {
 					? this.pendingUserEdits()
 					: null
 				this.initFormData(newItem)
+				this.reseedDynamicAnswers()
 				this.restoreUserEdits(pending)
 			},
 		},
@@ -4776,6 +4777,29 @@ export default {
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
 			this.dynamicLoading = false
+			this.seedStoredAnswers(active, properties)
+			this.seedDynamicDefaults(properties)
+		},
+
+		/**
+		 * Put the stored answers and defaults back after the record was
+		 * seeded again. The data-driven fields load once per driving value,
+		 * so a record read again with the same driver (the detail page does
+		 * so once it holds the edit lock) would otherwise leave them empty.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+		 */
+		reseedDynamicAnswers() {
+			if (this.dynamicLoading || this.dynamicToken !== this.dynamicDriverToken) {
+				return
+			}
+			const properties = this.dynamicProperties || {}
+			if (Object.keys(properties).length === 0) {
+				return
+			}
+			const active = this.extendsDeclarations
+				.filter(({ key }) => this.dynamicDriverValue(this.formData[key]) !== '')
 			this.seedStoredAnswers(active, properties)
 			this.seedDynamicDefaults(properties)
 		},
