@@ -55,3 +55,7 @@ The assistant bubble container has `aria-live="polite"` for screen-reader stream
 ## Attachments and notices
 
 A message may carry `attachments` (`{ name, fileId?, mimeType?, size? }[]`) and an assistant message may carry `attachmentNotices` (`string[]`). Attachments on a question show as chips under it. On an answer, an `image/*` attachment with a `fileId` shows as a Nextcloud preview thumbnail linked to the file in Files (opens in a new tab); other attachments show as chips (linked when they have a `fileId`). Each notice shows as one line above the answer. Messages without these fields render as before. `useAiChatStream` fills both from the `final` frame.
+
+## Sources
+
+An assistant message with `sources` (in citation order, so marker `[n]` is the n-th entry) gets a source list under the answer. A source with `type: 'file'` and a `file_id` (or `fileId`/`id`) is a link to `/f/{fileId}` with its `page` when known; a file marked `available: false` and every other source show their name only.
