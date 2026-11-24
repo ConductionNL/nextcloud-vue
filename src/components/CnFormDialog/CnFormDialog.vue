@@ -2303,6 +2303,7 @@ export default {
 		 *
 		 * @param {object|null} newItem The record now bound.
 		 * @param {object|null} oldItem The record previously bound.
+		 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
 		 */
 		item: {
 			immediate: true,
