@@ -1018,12 +1018,19 @@ export default {
 	letter-spacing: -0.01em;
 }
 
+/* The greeting line under the heading (LpVandaag): a 44px emblem, a 26px
+   heading and a 14px line. */
+.cn-header-widget--greeting-line {
+	--cn-header-emblem-size: 44px;
+	--cn-header-emblem-gap: 14px;
+}
+
 .cn-header-widget--greeting-line .cn-header-widget__title {
 	font-size: var(--cn-header-line-title-size, 26px);
 	line-height: 1.15;
 }
 
-.cn-header-widget__line {
+.cn-header-widget--greeting-line .cn-header-widget__line {
 	margin-top: 2px;
 	font-size: 14px;
 	opacity: 1;
@@ -1074,6 +1081,16 @@ export default {
 .cn-header-widget__cta:hover {
 	transform: translateY(-1px);
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-header-widget__cta {
+		transition: none;
+	}
+
+	.cn-header-widget__cta:hover {
+		transform: none;
+	}
 }
 
 .cn-header-widget__cta--primary {
