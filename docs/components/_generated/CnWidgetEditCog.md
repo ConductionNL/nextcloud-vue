@@ -14,6 +14,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `editLabel`   | `string`  |          | `'Edit widget'`   | Label for the Edit action item.                                                                                                                                          |
 | `deleteLabel` | `string`  |          | `'Delete widget'` | Label for the Delete action item.                                                                                                                                        |
 | `canDelete`   | `boolean` |          | `true`            | Whether the Delete action is offered. Pass `false` for a widget the user may not remove, such as a compulsory widget on a dashboard held with less than full permission. |
+| `icon`        | `string`  |          | `'cog'`           | The trigger's glyph: `cog` (default) or `kebab`, the three dots the Launchpad boards draw on a widget in edit mode (LpBewerken).                                         |
 
 ### Events
 

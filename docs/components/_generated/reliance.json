@@ -402,8 +402,8 @@
 		},
 		"CnAppTileWidget": {
 			"direct": 0,
-			"transitive": 0,
-			"tier": "none",
+			"transitive": 4,
+			"tier": "medium",
 			"via": [],
 			"page": "cn-app-tile-widget"
 		},

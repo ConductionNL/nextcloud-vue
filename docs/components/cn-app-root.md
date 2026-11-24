@@ -340,6 +340,7 @@ Nextcloud offers no extension point for apps in `#header`, so this is unsupporte
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `aiCompanion` (`ai-companion`) | Boolean | `false` | Opt-in floating AI-chat companion (`CnAiCompanion`). Off by default; pass `true` to mount it. When enabled it still self-gates on its own backend health probe and hides on chat pages. The companion is an AI capability provided by the Hermiq app — apps opt in explicitly rather than every app auto-mounting it whenever a chat backend is reachable. |
+| `aiDefaultAgent` (`ai-default-agent`) | String | `''` | The agent the companion starts on, by its uuid or its name, forwarded as `CnAiCompanion`'s `defaultAgent`. An app may change it per route (a self-service area preselecting its own question assistant); an agent the user picked stays. |
 | `commandPalette` (`command-palette`) | Boolean \| Object | `false` | Opt-in Ctrl/Cmd+K command palette (`CnCommandPalette`, see its own doc page). Off by default; pass `true` for zero-config navigation + registered actions, or an object to override any `CnCommandPalette` prop (most commonly `{ objectSearch: createObjectSearchSource({...}) }` to wire live OpenRegister search). |
 
 ## Scoped theming (`runtime.theme`)

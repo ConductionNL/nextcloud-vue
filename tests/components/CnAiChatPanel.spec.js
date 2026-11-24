@@ -278,5 +278,60 @@ describe('CnAiChatPanel', () => {
 
 			expect(wrapper.vm.selectedAgentUuid).toBe('agent-general')
 		})
+
+		it('starts on the agent defaultAgent names by name, over the page-relevance default', async () => {
+			serveAgents([
+				{ uuid: 'agent-buildiq', name: 'Buildiq builder', tools: ['buildiq_listApps'] },
+				{ uuid: 'agent-hr', name: 'HR-vraagbaak', tools: [] },
+			])
+
+			const wrapper = mountPanel({ defaultAgent: 'hr-vraagbaak' }, {}, { appId: 'buildiq' })
+			await flushPromises()
+
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-hr')
+		})
+
+		it('matches defaultAgent on the uuid', async () => {
+			serveAgents([
+				{ uuid: 'agent-general', name: 'General assistant', tools: [] },
+				{ uuid: 'agent-hr', name: 'HR-vraagbaak', tools: [] },
+			])
+
+			const wrapper = mountPanel({ defaultAgent: 'agent-hr' })
+			await flushPromises()
+
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-hr')
+		})
+
+		it('keeps the relevance default when defaultAgent names no agent', async () => {
+			serveAgents([
+				{ uuid: 'agent-general', name: 'General assistant', tools: ['docudesk.summarise'] },
+				{ uuid: 'agent-buildiq', name: 'Buildiq builder', tools: ['buildiq_listApps'] },
+			])
+
+			const wrapper = mountPanel({ defaultAgent: 'HR-vraagbaak' }, {}, { appId: 'buildiq' })
+			await flushPromises()
+
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-buildiq')
+		})
+
+		it('follows a changed defaultAgent until the user picks an agent', async () => {
+			serveAgents([
+				{ uuid: 'agent-general', name: 'General assistant', tools: [] },
+				{ uuid: 'agent-hr', name: 'HR-vraagbaak', tools: [] },
+			])
+
+			const wrapper = mountPanel()
+			await flushPromises()
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-general')
+
+			await wrapper.setProps({ defaultAgent: 'HR-vraagbaak' })
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-hr')
+
+			wrapper.vm.onAgentSelected('agent-general')
+			await wrapper.setProps({ defaultAgent: '' })
+			await wrapper.setProps({ defaultAgent: 'HR-vraagbaak' })
+			expect(wrapper.vm.selectedAgentUuid).toBe('agent-general')
+		})
 	})
 })

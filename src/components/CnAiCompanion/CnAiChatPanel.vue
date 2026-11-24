@@ -549,6 +549,18 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * The agent to start on, by its uuid or its name, as the mounting app
+		 * chooses for the page (a self-service area preselects its own
+		 * question assistant). It wins over the page-relevance default while
+		 * the user has not picked an agent; an agent the user picked stays.
+		 * Empty, or a value no agent matches, keeps the relevance default.
+		 */
+		defaultAgent: {
+			type: String,
+			default: '',
+		},
 	},
 
 	/**
@@ -586,6 +598,8 @@ export default {
 			agentsLoading: false,
 			agentsFetchError: false,
 			selectedAgentUuid: null,
+			/** Whether the user picked the agent; then `defaultAgent` no longer moves it. */
+			agentPickedByUser: false,
 			/**
 			 * Whether the backend's own speech service answered its probe.
 			 *
@@ -707,6 +721,23 @@ export default {
 			}))
 
 			return matches.length > 0 ? matches : this.agentOptions
+		},
+
+		/**
+		 * The agent `defaultAgent` names, matched on uuid first and then on
+		 * name (case-insensitive), or null when it names none.
+		 *
+		 * @return {object|null} The agent option.
+		 */
+		defaultAgentOption() {
+			const wanted = String(this.defaultAgent || '').trim()
+			if (wanted === '') {
+				return null
+			}
+			const lower = wanted.toLowerCase()
+			return this.agentOptions.find((agent) => agent.id === wanted)
+				|| this.agentOptions.find((agent) => String(agent.label).toLowerCase() === lower)
+				|| null
 		},
 
 		/**
@@ -838,6 +869,19 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * The mounting app changed which agent the page starts on (the user
+		 * moved into or out of an area with its own assistant): follow it,
+		 * unless the user picked an agent.
+		 *
+		 * @param {object|null} option The agent option `defaultAgent` now names.
+		 */
+		defaultAgentOption(option) {
+			if (option && !this.agentPickedByUser) {
+				this.selectedAgentUuid = option.id
+			}
+		},
+
 		menuActions: {
 			immediate: true,
 			handler(actions) {
@@ -1269,6 +1313,7 @@ export default {
 		},
 
 		onAgentSelected(uuid) {
+			this.agentPickedByUser = true
 			this.selectedAgentUuid = uuid
 		},
 
@@ -1322,7 +1367,7 @@ export default {
 				const list = Array.isArray(data) ? data : (data.results || [])
 				this.agents = list
 				if (!this.selectedAgentUuid && list.length > 0) {
-					const preferred = this.relevantAgentOptions[0]
+					const preferred = this.defaultAgentOption || this.relevantAgentOptions[0]
 					this.selectedAgentUuid = (preferred && preferred.id) || list[0].uuid || list[0].id || null
 				}
 			} catch {

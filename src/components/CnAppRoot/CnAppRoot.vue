@@ -430,7 +430,7 @@
 			  Gating (health probe, pageKind overrides) happens inside the
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion v-if="aiCompanion" :chatAppId="chatAppId" />
+			<CnAiCompanion v-if="aiCompanion" :chatAppId="chatAppId" :defaultAgent="aiDefaultAgent" />
 
 			<!--
 			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
@@ -1411,6 +1411,19 @@ export default {
 		aiCompanion: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The agent the companion starts on, by its uuid or its name. The app
+		 * may change it per route (a self-service area preselecting its own
+		 * question assistant); an agent the user picked stays. Empty keeps the
+		 * page-relevance default.
+		 *
+		 * @type {string}
+		 */
+		aiDefaultAgent: {
+			type: String,
+			default: '',
 		},
 
 		/**
