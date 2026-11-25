@@ -1473,7 +1473,9 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.197.0 lets a detail page read its primary action from the record (primaryActionFrom) and its quick actions from more than one path (detail-header-row-from-record).
 		// 2.198.0 lets a header pill read its value from an endpoint (headerPill.endpointSource; detail-pill-from-endpoint).
 		// 2.199.0 lets an index header note read a value from an endpoint (headerMetaSource; index-header-meta-from-endpoint).
-		expect(schema.version).toBe('2.199.0')
+		// 2.200.0 lets a page view carry a visibleWhen, so a view shows only to the readers it is for (view-visible-when).
+		// 2.201.0 lets a dashboard keep sections the layout panel may not hide (layoutPanelLocked; dashboard-layout-panel-locked).
+		expect(schema.version).toBe('2.201.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
@@ -2973,6 +2975,15 @@ describe('app-manifest-v2: the connections page type (connection-registry-page, 
 
 describe('app-manifest-v2: the dashboard layout panel (dashboard-layout-panel, 2.189.0)', () => {
 	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config }] })
+
+	it('declares config.layoutPanelLocked as a list of widget ids (2.201.0)', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		const locked = schema.$defs.page.properties.config.properties.layoutPanelLocked
+		expect(locked.type).toBe('array')
+		expect(locked.items.type).toBe('string')
+		expect(validateManifestV2(page({ layoutPanel: true, layoutPanelLocked: ['my-work-list'] })).valid).toBe(true)
+		expect(validateManifestV2(page({ layoutPanel: true, layoutPanelLocked: [3] })).valid).toBe(false)
+	})
 
 	it('declares config.layoutPanel as a boolean', () => {
 		const schema = require('../../src/schemas/app-manifest-v2.schema.json')

@@ -326,6 +326,33 @@ function hasInputFields(inputs) {
 	return Boolean(inputs && typeof inputs === 'object' && inputs.properties && Object.keys(inputs.properties).length > 0)
 }
 
+/**
+ * What a remote condition's answer depends on: the record and the action list,
+ * without the record's lock (taken and dropped around an edit) and without the
+ * page's visibility rows.
+ *
+ * @param {object} objectCtx The merged object token context.
+ * @param {Array} actions The actions.
+ * @return {string} The key.
+ * @spec openspec/changes/remote-conditions-read-once-per-record/specs/action-buttons/spec.md#requirement-a-header-actions-remote-conditions-are-read-once-per-record
+ */
+function recordReadKey(objectCtx, actions) {
+	const object = objectCtx && objectCtx.object && typeof objectCtx.object === 'object' ? { ...objectCtx.object } : null
+	if (object) {
+		delete object.locked
+		if (object['@self'] && typeof object['@self'] === 'object') {
+			object['@self'] = { ...object['@self'] }
+			delete object['@self'].locked
+		}
+	}
+	try {
+		return JSON.stringify([objectCtx?.objectId ?? null, objectCtx?.register ?? '', objectCtx?.schema ?? '', object, actions || []])
+	} catch {
+		// A record that cannot be written out (a cycle) is never reused.
+		return String(Math.random())
+	}
+}
+
 export default {
 	name: 'CnActionButtons',
 
@@ -837,6 +864,28 @@ export default {
 		},
 
 		/**
+		 * The remote reads of this record's conditions: one map per record, so a
+		 * condition's endpoint or source is asked once however often the page
+		 * refreshes its object context. A detail page replaces that context when
+		 * the record loads, when its visibility rows arrive and when a lock is
+		 * taken for an edit, and each used to ask every endpoint again (a dossiq
+		 * case read `/lifecycle` three times while its Edit dialog opened). A
+		 * change of the record itself, or of the action list, starts a new map;
+		 * the record's lock and the page's visibility rows do not.
+		 *
+		 * @return {Map<string, Promise<unknown>>}
+		 * @spec openspec/changes/remote-conditions-read-once-per-record/specs/action-buttons/spec.md#requirement-a-header-actions-remote-conditions-are-read-once-per-record
+		 */
+		remoteReadsForRecord() {
+			const key = recordReadKey(this.objectCtx, this.actions)
+			if (!this._remoteReads || this._remoteReadsKey !== key) {
+				this._remoteReads = new Map()
+				this._remoteReadsKey = key
+			}
+			return this._remoteReads
+		},
+
+		/**
 		 * Evaluate every action's `visibleWhen` against the current context.
 		 * Fail-safe (a broken predicate hides its action); actions without a
 		 * predicate are always visible.
@@ -856,6 +905,7 @@ export default {
 					flat.push(...action.children.filter((c) => c && c.id))
 				}
 			}
+			const ctx = { ...this.tokenCtx, remoteReads: this.remoteReadsForRecord() }
 			for (const action of flat) {
 				// An object action OpenRegister lists as not available now is
 				// drawn disabled with the server's reason.
@@ -863,9 +913,9 @@ export default {
 					this.disabledByCondition[action.id] = true
 				}
 				if (action.disabledWhen) {
-					this.disabledByCondition[action.id] = await evaluateVisibleWhen(action.disabledWhen, this.tokenCtx)
+					this.disabledByCondition[action.id] = await evaluateVisibleWhen(action.disabledWhen, ctx)
 				}
-				const ok = action.visibleWhen ? await evaluateVisibleWhen(action.visibleWhen, this.tokenCtx) : true
+				const ok = action.visibleWhen ? await evaluateVisibleWhen(action.visibleWhen, ctx) : true
 				this.visibility[action.id] = ok && await this.resolveFor(action)
 			}
 		},
@@ -1096,6 +1146,10 @@ export default {
 			if (this.disabledByCondition[entry.id] === true) {
 				return
 			}
+			// An action may change what the conditions read (a request for
+			// information makes the case wait) without changing the record, so
+			// the next evaluation asks again.
+			this._remoteReads = null
 			if (entry.confirm === true) {
 				this.confirmEntry = entry
 				return

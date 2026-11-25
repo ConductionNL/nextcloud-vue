@@ -51,3 +51,20 @@ describe('readRelatedOnce', () => {
 		expect(get).toHaveBeenCalledTimes(2)
 	})
 })
+
+describe('the visibility rows share the data cards\' read', () => {
+	beforeEach(() => forgetRelatedReads())
+
+	it('reads a case type once for a data card and the visibility rows of one page', async () => {
+		const { fetchVisibilityRows } = await import('../../src/utils/detailWidgetVisibility.js')
+		const cnFetch = await import('../../src/utils/cnFetch.js')
+		const spy = jest.spyOn(cnFetch, 'cnFetchJson')
+		const card = jest.fn(async () => ({ id: 'type-1', title: 'Woo request' }))
+		await readRelatedOnce('dossiq/caseType/type-1', card)
+		const rows = await fetchVisibilityRows([{ key: 'caseType', register: 'dossiq', schema: 'caseType', id: 'type-1' }])
+		expect(card).toHaveBeenCalledTimes(1)
+		expect(spy).not.toHaveBeenCalled()
+		expect(rows.caseType).toEqual({ id: 'type-1', title: 'Woo request' })
+		spy.mockRestore()
+	})
+})

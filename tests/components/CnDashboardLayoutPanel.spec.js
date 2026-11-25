@@ -70,6 +70,25 @@ describe('CnDashboardLayoutPanel', () => {
 		expect(w.emitted('save')[0][0].map((entry) => entry.id)).toEqual(['week', 'urgent', 'waiting'])
 	})
 
+	it('keeps a locked section shown: its box stays checked and disabled, and it saves as shown', async () => {
+		const items = [
+			{ id: 'list', label: 'Work list', hidden: true, locked: true },
+			{ id: 'week', label: 'Your week', hidden: false },
+		]
+		const w = mount(CnDashboardLayoutPanel, { props: { items } })
+		const check = w.find('[data-testid="cn-dashboard-layout-panel-check-list"]')
+		expect(check.element.checked).toBe(true)
+		expect(check.element.disabled).toBe(true)
+		expect(w.findAll('.cn-dashboard-layout-panel__state')[0].text()).toBe('Always shown')
+		expect(w.find('[data-testid="cn-dashboard-layout-panel-check-week"]').element.disabled).toBe(false)
+		await w.find('[data-testid="cn-dashboard-layout-panel-handle-week"]').trigger('keydown', { key: 'ArrowUp' })
+		await w.find('[data-testid="cn-dashboard-layout-panel-save"]').trigger('click')
+		expect(w.emitted('save')[0][0]).toEqual([
+			{ id: 'week', label: 'Your week', hidden: false },
+			{ id: 'list', label: 'Work list', hidden: false },
+		])
+	})
+
 	it('asks for the default and closes on request', async () => {
 		const w = mount(CnDashboardLayoutPanel, { props: { items: ITEMS } })
 		await w.find('[data-testid="cn-dashboard-layout-panel-reset"]').trigger('click')
@@ -183,6 +202,34 @@ describe('CnDashboardPage: layoutPanel', () => {
 		expect(saved.find((item) => item.widgetId === 'side').hidden).toBe(true)
 		expect(w.vm.renderedLayout.map((item) => item.widgetId)).toEqual(['waiting', 'urgent'])
 		expect(w.findComponent(CnDashboardLayoutPanel).exists()).toBe(false)
+		w.unmount()
+	})
+
+	it('lists a locked section as locked, never stores it hidden, and draws it even when an older record hid it', async () => {
+		const store = layoutStore()
+		store.loadDashboardLayout.mockResolvedValue({ items: [
+			{ id: '1', widgetId: 'urgent', gridX: 0, gridY: 0, gridWidth: 8, gridHeight: 3, hidden: true },
+			{ id: '2', widgetId: 'side', gridX: 8, gridY: 0, gridWidth: 4, gridHeight: 4 },
+			{ id: '3', widgetId: 'waiting', gridX: 0, gridY: 3, gridWidth: 8, gridHeight: 2 },
+		] })
+		const w = mountPage({ layoutPanel: true, layoutPanelLocked: ['urgent'], userLayoutStore: store })
+		await panelLoaded()
+		expect(w.vm.renderedLayout.map((item) => item.widgetId)).toContain('urgent')
+		await w.find('[data-testid="cn-dashboard-page-layout-panel-button"]').trigger('click')
+		await panelLoaded()
+		const panel = w.findComponent(CnDashboardLayoutPanel)
+		expect(panel.props('items').find((entry) => entry.id === 'urgent')).toMatchObject({ hidden: false, locked: true })
+		expect(panel.props('items').find((entry) => entry.id === 'side').locked).toBe(false)
+		panel.vm.$emit('save', [
+			{ id: 'urgent', hidden: true },
+			{ id: 'side', hidden: true },
+			{ id: 'waiting', hidden: false },
+		])
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		const saved = store.saveDashboardLayout.mock.calls[0][2]
+		expect(saved.find((item) => item.widgetId === 'urgent').hidden).toBeUndefined()
+		expect(saved.find((item) => item.widgetId === 'side').hidden).toBe(true)
+		expect(w.vm.renderedLayout.map((item) => item.widgetId)).toEqual(['urgent', 'waiting'])
 		w.unmount()
 	})
 
