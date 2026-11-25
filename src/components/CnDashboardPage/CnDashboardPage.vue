@@ -6339,6 +6339,11 @@ export default {
 	gap: 8px;
 	flex-wrap: wrap;
 	flex-shrink: 0;
+	/* Never wider than the header: without it the box keeps its one-line width
+	   (flex-shrink: 0) and its own wrap never happens, so on a phone the actions
+	   run off the screen (decidiq MyActions and two report pages at 360 pixels). */
+	max-width: 100%;
+	min-width: 0;
 	/* Keeps the actions hard right even when a wide action set (pipelinq's six
 	   buttons) wraps onto its own line. The header's `justify-content:
 	   space-between` only distributes items WITHIN a line, so once the actions
