@@ -4976,8 +4976,15 @@ export default {
 				let outcome
 				try {
 					// `sink` keeps the first row of a source query, for a banner that names it.
-					if (isComposition(cond)) {
+					// `appInstalled` is a precondition: on its own it is the whole
+					// condition, which readVisibleWhenValue() cannot read (it has no
+					// endpoint, source or field), so it goes to evaluateVisibleWhen()
+					// like a composition; next to a query it gates that query.
+					const needsApp = typeof cond.appInstalled === 'string' && cond.appInstalled !== ''
+					if (isComposition(cond) || (needsApp && !cond.endpoint && !cond.source && !cond.field)) {
 						outcome = { met: await evaluateVisibleWhen(cond), value: null }
+					} else if (needsApp && !isAppInstalled(cond.appInstalled)) {
+						outcome = { met: false, value: null }
 					} else {
 						const sink = {}
 						const value = await readVisibleWhenValue(cond, undefined, sink)
