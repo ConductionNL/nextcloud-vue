@@ -1091,6 +1091,7 @@ import { readPath } from '../../utils/readPath.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
+import { resolveSemanticType } from '../../utils/semanticResolve.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 /**
@@ -1141,17 +1142,6 @@ const BUILT_IN_WIDGETS = new Set([
 
 /** Largest file carried inline in the saved payload; bigger ones upload after save. */
 const INLINE_FILE_CAP = 1024 * 1024
-
-/**
- * OpenRegister semantic-type discovery endpoint (ADR-048). Resolves a
- * canonical semantic-type URI to the provider schema that implements it.
- * Returns HTTP 200 with `{ resolved, registerSlug, schemaSlug, appId }` even
- * when nothing implements the URI (`resolved: false`). The exact route path
- * is still being finalised on the OpenRegister side — this path is the small,
- * single point of truth; a 404 (route absent) degrades to `resolved: false`
- * (see `resolveSemanticReference`), never a crash.
- */
-const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-implements'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -2673,37 +2663,18 @@ export default {
 		},
 
 		/**
-		 * Call the OpenRegister discovery endpoint for one semantic-type URI.
-		 * Degrades to `{ resolved: false }` on any error (including a 404 when
-		 * the route isn't present yet) — never crashes the form.
+		 * Resolve one semantic-type URI through the page-wide answer
+		 * (`utils/semanticResolve.js`). Degrades to `{ resolved: false }` on
+		 * any error (including a 404 when the route isn't present yet) —
+		 * never crashes the form.
 		 *
+		 * @spec openspec/changes/semantic-resolve-once-per-page/specs/semantic-resolve-once-per-page/spec.md#requirement-a-semantic-type-is-resolved-once-per-page
 		 * @param {string} uri The canonical semantic-type URI.
 		 * @return {Promise<{resolved: boolean, registerSlug: string|null, schemaSlug: string|null, appId: string|null}>}
 		 */
-		async resolveSemanticReference(uri) {
-			const empty = { resolved: false, registerSlug: null, schemaSlug: null, appId: null }
-			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const url = generateUrl(SEMANTIC_RESOLVE_ENDPOINT)
-				const res = await axios.get(url, { params: { uri } })
-				const data = (res && res.data) || {}
-				if (data.resolved === true && data.registerSlug && data.schemaSlug) {
-					return {
-						resolved: true,
-						registerSlug: String(data.registerSlug),
-						schemaSlug: String(data.schemaSlug),
-						appId: data.appId !== null && data.appId !== undefined ? String(data.appId) : null,
-					}
-				}
-				return empty
-			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error(`CnFormDialog: semantic reference resolve failed for "${uri}":`, err)
-				return empty
-			}
+		resolveSemanticReference(uri) {
+			// One request per URI per page, shared by every form (semanticResolve.js).
+			return resolveSemanticType(uri)
 		},
 
 		/**

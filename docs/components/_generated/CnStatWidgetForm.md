@@ -2,7 +2,7 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 4 direct references, 2 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 4 direct references, 3 files reached through imports.
 
 Through: `CnRegisterSchemaSelect`.
 
