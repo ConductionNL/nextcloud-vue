@@ -7,6 +7,7 @@ import postcssImport from 'postcss-import'
 import postcss from 'rollup-plugin-postcss'
 import vue from 'rollup-plugin-vue'
 import { fileURLToPath } from 'url'
+import { trimEnglishCatalogue } from './rollup.l10n.mjs'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 import { installLibraryStyle } from './src/utils/libraryStyle.js'
 
@@ -407,6 +408,7 @@ export default {
 		// MUST come after vue() — it rewrites that plugin's generated trailer.
 		anchorSfcDefaultExport(),
 		postcss({ extract: 'nextcloud-vue.css', minimize: true, plugins: [postcssImport(), unwrapVueDeep()] }),
+		trimEnglishCatalogue(),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
 		// `esmExternals: ['vue']` makes the commonjs plugin treat the external
