@@ -268,6 +268,7 @@ export {
 	CnNoticeWidget,
 	CnNotificationMatrix,
 	CnNotificationPreferences,
+	CnNotificationsBadge,
 	CnObjectAccessTab,
 	CnObjectCalendar,
 	CnObjectCard,

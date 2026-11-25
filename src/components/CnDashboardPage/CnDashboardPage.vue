@@ -164,6 +164,11 @@
 					v-else-if="boardSecondaryHeaderActions.length"
 					:actions="boardSecondaryHeaderActions"
 					data-testid="cn-dashboard-page-header-actions-secondary" />
+				<!-- `notificationsBadge`: the user's unread notifications of the
+				     app, as a count that opens their list; nothing at 0. -->
+				<CnNotificationsBadge
+					v-if="notificationsBadgeAppId"
+					:appId="notificationsBadgeAppId" />
 				<!-- `autoRefresh`: a refresh button in the header that reads
 				     every widget again at once; it spins while they read. -->
 				<NcButton
@@ -1231,6 +1236,8 @@ import '../CnWidgetGrid/registerDashboardWidgets.js'
 /** Surfaces understood by the pluggable integration registry (AD-19). */
 // The layout panel loads when the user first opens it (`layoutPanel`).
 const CnDashboardLayoutPanel = defineAsyncComponent(() => import('../CnDashboardLayoutPanel/CnDashboardLayoutPanel.vue').then((m) => m.default))
+// The notifications badge loads on a page that asks for it (`notificationsBadge`).
+const CnNotificationsBadge = defineAsyncComponent(() => import('../CnNotificationsBadge/CnNotificationsBadge.vue').then((m) => m.default))
 
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
@@ -1446,6 +1453,7 @@ export default {
 		Download,
 		CnDashboardGrid,
 		CnDashboardLayoutPanel,
+		CnNotificationsBadge,
 		CnWidgetWrapper,
 		CnWidgetRenderer,
 		CnTileWidget,
@@ -2325,6 +2333,20 @@ export default {
 		},
 
 		/**
+		 * A badge in the header with the signed-in user's unread Nextcloud
+		 * notifications of an app (manifest `config.notificationsBadge`):
+		 * `true` for this page's app (`appId`), or another app id. It opens
+		 * their list; opening one marks it read. Nothing shows at 0.
+		 *
+		 * @spec openspec/changes/dashboard-notifications-badge/specs/dashboard-page/spec.md#requirement-a-dashboard-header-counts-the-users-unread-notifications-of-the-app
+		 * @type {boolean|string}
+		 */
+		notificationsBadge: {
+			type: [Boolean, String],
+			default: false,
+		},
+
+		/**
 		 * The Nextcloud app id the user layout is stored under.
 		 *
 		 * Required for `userLayout` to do anything: a preference has to be
@@ -2592,6 +2614,19 @@ export default {
 		 */
 		autoRefreshConfig() {
 			return normalizeAutoRefresh(this.autoRefresh)
+		},
+
+		/**
+		 * The app whose notifications the header badge counts, or '' for no badge.
+		 *
+		 * @spec openspec/changes/dashboard-notifications-badge/specs/dashboard-page/spec.md#requirement-a-dashboard-header-counts-the-users-unread-notifications-of-the-app
+		 * @return {string}
+		 */
+		notificationsBadgeAppId() {
+			if (typeof this.notificationsBadge === 'string') {
+				return this.notificationsBadge.trim()
+			}
+			return this.notificationsBadge === true ? String(this.appId || '') : ''
 		},
 
 		/**
