@@ -3307,7 +3307,8 @@
     "Check passed: {checks}.": "Controle geslaagd: {checks}.",
     "Check passed.": "Controle geslaagd.",
     "Check found a problem: {checks}.": "Controle vond een probleem: {checks}.",
-    "Check found a problem.": "Controle vond een probleem."
+    "Check found a problem.": "Controle vond een probleem.",
+    "Fits: {target}": "Past bij: {target}"
   },
   "plurals": {
     "{count} member": [

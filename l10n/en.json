@@ -3013,7 +3013,8 @@
     "Check passed: {checks}.": "Check passed: {checks}.",
     "Check passed.": "Check passed.",
     "Check found a problem: {checks}.": "Check found a problem: {checks}.",
-    "Check found a problem.": "Check found a problem."
+    "Check found a problem.": "Check found a problem.",
+    "Fits: {target}": "Fits: {target}"
   },
   "plurals": {
     "{count} member": [

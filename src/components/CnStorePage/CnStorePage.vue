@@ -193,6 +193,24 @@
 			</div>
 		</div>
 
+		<!-- `activeTarget`: the list narrows to the items that fit the active
+		     target (a world), shown as a chip the user can clear. -->
+		<div v-if="!showsPackages && fitsFilterActive"
+			class="cn-store-page__active-filters"
+			data-testid="store-active-filters">
+			<span class="cn-store-page__active-filters-label">{{ t('nextcloud-vue', 'Active:') }}</span>
+			<span class="cn-store-page__active-filter" data-testid="store-fits-target">
+				{{ t('nextcloud-vue', 'Fits: {target}', { target: activeTargetLabel }) }}
+			</span>
+			<NcButton
+				variant="tertiary"
+				:disabled="offline"
+				data-testid="store-fits-target-clear"
+				@click="fitsActiveTarget = false">
+				{{ t('nextcloud-vue', 'Clear all') }}
+			</NcButton>
+		</div>
+
 		<!-- `targets`: where an install goes (a world, an administration); the
 		     chosen id travels in the install body as `target`. -->
 		<div v-if="!showsPackages && showInstall && targetOptions.length > 0"
@@ -547,6 +565,8 @@ export default {
 		cnTranslate: { default: null },
 		/** The look CnAppRoot provides; `board` draws the catalogue cards of the screens. */
 		cnLook: { default: 'nextcloud' },
+		/** The app's workspace bag, for an `activeTarget` given as `@workspace.<key>`. */
+		cnWorkspaceContext: { default: null },
 	},
 
 	props: {
@@ -656,6 +676,22 @@ export default {
 		targets: {
 			type: [Array, Object],
 			default: null,
+		},
+
+		/**
+		 * The active target (`config.activeTarget`): a target id, or a
+		 * `@workspace.<key>` token (a trailing `?` is allowed) read from the
+		 * app's workspace context, such as larpinq's active world. With one,
+		 * the install picker starts on it and the list narrows to the items
+		 * that fit it, as a "Fits: {target}" chip the user can clear. An item
+		 * fits unless the engine reports it installed only into other targets.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 * @type {string}
+		 */
+		activeTarget: {
+			type: String,
+			default: '',
 		},
 
 		/** The picker's label (`config.targetLabel`), through the app's translate; default "Install into". */
@@ -794,6 +830,8 @@ export default {
 			// The targets read from a `targets` source, and the chosen one.
 			sourcedTargets: [],
 			targetId: '',
+			// Whether the "Fits: {target}" filter is on; the user can clear it.
+			fitsActiveTarget: true,
 			// When the registry last answered (`checkedAt` from the engine).
 			checkedAt: '',
 			// The register the items response names (`registry`), for the banner.
@@ -893,9 +931,70 @@ export default {
 			return this.sourcedTargets
 		},
 
-		/** @return {{id: string, label: string}|null} The chosen target, the first by default. */
+		/**
+		 * The chosen target: the picked one, else the active target, else the first.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-install-picker-starts-on-the-active-target
+		 * @return {{id: string, label: string}|null}
+		 */
 		selectedTarget() {
-			return this.targetOptions.find((target) => target.id === this.targetId) || this.targetOptions[0] || null
+			return this.targetOptions.find((target) => target.id === this.targetId)
+				|| this.targetOptions.find((target) => target.id === this.resolvedActiveTarget)
+				|| this.targetOptions[0]
+				|| null
+		},
+
+		/**
+		 * The active target's id: `activeTarget` as written, or the workspace
+		 * value its `@workspace.<key>` token names. Empty when it resolves to nothing.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 * @return {string}
+		 */
+		resolvedActiveTarget() {
+			const raw = typeof this.activeTarget === 'string' ? this.activeTarget.trim() : ''
+			if (!raw.startsWith('@workspace.')) {
+				return raw.startsWith('@') ? '' : raw
+			}
+			const key = raw.slice('@workspace.'.length).replace(/\?$/, '')
+			const bag = this.cnWorkspaceContext
+			const workspace = (bag && typeof bag === 'object' && 'value' in bag) ? bag.value : bag
+			const value = (workspace && typeof workspace === 'object') ? workspace[key] : undefined
+			return (typeof value === 'string' || typeof value === 'number') ? String(value) : ''
+		},
+
+		/**
+		 * The active target's label, its id where no label is known.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 * @return {string}
+		 */
+		activeTargetLabel() {
+			const option = this.targetOptions.find((target) => target.id === this.resolvedActiveTarget)
+			return option ? option.label : this.resolvedActiveTarget
+		},
+
+		/**
+		 * Whether the list is narrowed to the active target.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 * @return {boolean}
+		 */
+		fitsFilterActive() {
+			return this.fitsActiveTarget && this.resolvedActiveTarget !== ''
+		},
+
+		/**
+		 * The cards the "Fits: {target}" filter keeps: every card when it is off.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 * @return {Array<object>}
+		 */
+		fittingCards() {
+			if (!this.fitsFilterActive) {
+				return this.cards
+			}
+			return this.cards.filter((card) => this.fitsTarget(card, this.resolvedActiveTarget))
 		},
 
 		/** @return {string} The picker's label. */
@@ -1087,25 +1186,28 @@ export default {
 		 * @return {string} The built-in section heading.
 		 */
 		/**
-		 * The cards the chosen lens shows (board look); every card otherwise.
+		 * The cards the chosen lens shows (board look); every card otherwise,
+		 * within the cards that fit the active target.
 		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
 		 * @return {Array<object>}
 		 */
 		visibleCards() {
+			const cards = this.fittingCards
 			if (!this.isBoardLook || this.lens === 'all') {
-				return this.cards
+				return cards
 			}
 			if (this.lens === 'installed') {
-				return this.installedCards
+				return cards.filter((card) => card.installed === true)
 			}
 			if (this.lens === 'updates') {
-				return this.cards.filter((card) => card.updateAvailable === true)
+				return cards.filter((card) => card.updateAvailable === true)
 			}
 			if (this.lens.startsWith('category:')) {
 				const category = this.lens.slice('category:'.length)
-				return this.cards.filter((card) => this.categoriesOf(card).includes(category))
+				return cards.filter((card) => this.categoriesOf(card).includes(category))
 			}
-			return this.cards.filter((card) => card.kind === this.lens)
+			return cards.filter((card) => card.kind === this.lens)
 		},
 
 		/**
@@ -1643,6 +1745,23 @@ export default {
 		},
 
 		/**
+		 * Whether a card fits a target: its item is not installed anywhere,
+		 * installed without a target (it serves every target), or installed
+		 * into this one. An item the engine reports installed only into other
+		 * targets does not fit.
+		 *
+		 * @param {{slug: string}} card The card.
+		 * @param {string} target The target id.
+		 *
+		 * @return {boolean} Whether the card fits.
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 */
+		fitsTarget(card, target) {
+			const targets = this.servedInstalled[card?.slug] ?? []
+			return targets.length === 0 || targets.includes('') || targets.includes(target)
+		},
+
+		/**
 		 * The "Installed in" line of a card: the labels of the targets the
 		 * engine reports the item installed into. Empty when it is installed
 		 * into none, or only without a target.
@@ -1746,6 +1865,25 @@ export default {
 </script>
 
 <style scoped>
+.cn-store-page__active-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 8px 0;
+}
+
+.cn-store-page__active-filters-label {
+	color: var(--color-text-maxcontrast);
+}
+
+.cn-store-page__active-filter {
+	padding: 2px 10px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+}
+
 .cn-store-page__card-installed-in {
 	margin: 2px 0 0;
 	font-size: var(--cn-font-size-small, 13px);
