@@ -6,6 +6,14 @@
     "View": "Προβολή",
     "Edit": "Επεξεργασία",
     "Copy": "Αντιγραφή",
-    "Delete": "Διαγραφή"
+    "Delete": "Διαγραφή",
+    "The administrator has not set a start date field.": "Ο διαχειριστής δεν έχει ορίσει πεδίο ημερομηνίας έναρξης.",
+    "Starts {weekday}": "Ξεκινά {weekday}",
+    "Selection": "Επιλογή",
+    "People by filter": "Άτομα κατά φίλτρο",
+    "New colleagues": "Νέοι συνάδελφοι",
+    "Started in the last (days, 1–90)": "Ξεκίνησαν τις τελευταίες (ημέρες, 1–90)",
+    "Starts within (days, 0–30)": "Ξεκινούν τις επόμενες (ημέρες, 0–30)",
+    "Must be between {min} and {max}": "Πρέπει να είναι μεταξύ {min} και {max}"
   }
 }

@@ -6,6 +6,14 @@
     "View": "Visualitza",
     "Edit": "Edita",
     "Copy": "Copia",
-    "Delete": "Suprimeix"
+    "Delete": "Suprimeix",
+    "The administrator has not set a start date field.": "L'administrador no ha definit cap camp de data d'incorporació.",
+    "Starts {weekday}": "Comença {weekday}",
+    "Selection": "Selecció",
+    "People by filter": "Persones per filtre",
+    "New colleagues": "Companys nous",
+    "Started in the last (days, 1–90)": "Incorporats en els darrers (dies, 1–90)",
+    "Starts within (days, 0–30)": "S'incorporen en els propers (dies, 0–30)",
+    "Must be between {min} and {max}": "Ha d'estar entre {min} i {max}"
   }
 }

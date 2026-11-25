@@ -6,6 +6,14 @@
     "View": "Zobraziť",
     "Edit": "Upraviť",
     "Copy": "Kopírovať",
-    "Delete": "Odstrániť"
+    "Delete": "Odstrániť",
+    "The administrator has not set a start date field.": "Správca nenastavil pole s dátumom nástupu.",
+    "Starts {weekday}": "Nastupuje {weekday}",
+    "Selection": "Výber",
+    "People by filter": "Ľudia podľa filtra",
+    "New colleagues": "Noví kolegovia",
+    "Started in the last (days, 1–90)": "Nastúpili za posledných (dní, 1–90)",
+    "Starts within (days, 0–30)": "Nastúpia počas nasledujúcich (dní, 0–30)",
+    "Must be between {min} and {max}": "Musí byť medzi {min} a {max}"
   }
 }
