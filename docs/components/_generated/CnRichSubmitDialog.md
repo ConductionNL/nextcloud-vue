@@ -42,3 +42,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | --------- | ------- | ------------------------------------------------------------------------- |
 | `close`   | —       | Emitted when the dialog should close.                                     |
 | `confirm` | —       | Emitted when the user clicks Submit. Payload: `{ reason, notes, files }`. |
+
+### Slots
+
+| Name           | Bindings   | Description |
+| -------------- | ---------- | ----------- |
+| `file-sources` | `addFiles` |             |
