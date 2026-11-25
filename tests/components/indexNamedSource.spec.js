@@ -196,8 +196,9 @@ describe('a named source supplies its row actions', () => {
 
 		const acts = mergedActions({ isNamedSource: true, namedSource: source })
 
-		expect(acts.length).toBe(1)
+		expect(acts.length).toBe(2)
 		expect(acts[0].label).toBe('Edit')
+		expect(acts[1].label).toBe('Force run')
 	})
 
 	it('lets an explicit manifest action list win over the source', () => {
@@ -232,7 +233,7 @@ describe('a named source supplies its row actions', () => {
 			defaultActions: [{ id: 'view', label: 'View' }],
 		})
 
-		expect(acts.map((a) => a.label)).toEqual(['Edit', 'View'])
+		expect(acts.map((a) => a.label)).toEqual(['Edit', 'Force run', 'View'])
 	})
 })
 
@@ -495,7 +496,7 @@ describe('the source Edit action navigates', () => {
 			openSourceRow: (row) => opened.push(row),
 		})
 
-		expect(acts.map((a) => a.label)).toEqual(['Edit'])
+		expect(acts.map((a) => a.label)).toEqual(['Edit', 'Force run'])
 		// The defect this pins: the action carried `action: 'open'`, dispatch
 		// read only `handler`/`type`, and the entry rendered dead in the menu.
 		expect(typeof acts[0].handler).toBe('function')

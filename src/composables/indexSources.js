@@ -14,6 +14,7 @@ import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Play from 'vue-material-design-icons/Play.vue'
 import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
@@ -305,6 +306,14 @@ function flowsSource(config = {}) {
 		// render empty).
 		rowActions: [
 			{ id: 'edit', label: t('nextcloud-vue', 'Edit'), icon: Pencil, action: 'open' },
+			// `handler` is a REGISTRY NAME, not a function: a named source is
+			// shared across apps (Integriq, Hermiq, ...) and must not import one
+			// app's handler. Each consuming app registers 'runFlowHandler'
+			// against its own run-action modal (Integriq: see
+			// handlers/actionHandlers.js + modals/v2/runTargets.js's
+			// 'flow/run' descriptor, which POSTs the existing
+			// `/api/flows/{id}/run` endpoint and renders the FlowRun result).
+			{ id: 'run', label: t('nextcloud-vue', 'Force run'), icon: Play, handler: 'runFlowHandler' },
 		],
 
 		/**
