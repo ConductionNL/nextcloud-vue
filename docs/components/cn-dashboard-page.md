@@ -698,6 +698,7 @@ leave a single view, the page draws no switch, and an address naming a hidden vi
 |---|---|---|---|
 | `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.189.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
 | `layoutPanelLocked` | `Array<string>` | `[]` | Manifest `config.layoutPanelLocked` (schema 2.201.0). Widget ids the layout panel lists but does not let the user hide, such as the page's main work list. They can still be moved; their checkbox stays checked and disabled and reads "Always shown". Saving never stores them hidden, and a stored layout that hid one draws it anyway. |
+| widget `collapsible` | `boolean` | `false` | On a widget definition (or layout entry): the card draws a chevron that folds it to its header. With `userLayout` / `layoutPanel` the fold is stored with the user's layout and survives a reload; Back to default opens it again. See CnWidgetWrapper `collapsible`. |
 
 The board PqMijnWerkIndelen draws this. The sections swap places: the first section in the new order takes the place
 (column, row, width) of the first section in the old order, and so on, each keeping its own height, so the page keeps

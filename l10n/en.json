@@ -2947,6 +2947,8 @@
     "Shown": "Shown",
     "Hidden": "Hidden",
     "Always shown": "Always shown",
+    "Collapse {title}": "Collapse {title}",
+    "Expand {title}": "Expand {title}",
     "Back to default": "Back to default",
     "Save layout": "Save layout",
     "Use the arrow keys to move this part up or down.": "Use the arrow keys to move this part up or down.",

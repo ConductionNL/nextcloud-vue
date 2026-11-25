@@ -676,6 +676,8 @@
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -696,6 +698,7 @@
 						:showActions="widgetShowActions(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -760,6 +763,8 @@
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
@@ -781,6 +786,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
@@ -843,6 +849,8 @@
 				<template v-else-if="isStatsBlock(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -860,6 +868,7 @@
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<CnStatsBlockWidget
@@ -874,6 +883,8 @@
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -894,6 +905,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
@@ -917,6 +929,8 @@
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -932,6 +946,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -946,6 +961,8 @@
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -965,6 +982,7 @@
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
@@ -2409,6 +2427,11 @@ export default {
 			userLayoutItems: null,
 			/** Whether the layout panel (`layoutPanel`) is open. */
 			layoutPanelOpen: false,
+			/**
+			 * Folded state the user set in this session, by widget id
+			 * (`collapsible` widgets), over what the stored layout says.
+			 */
+			collapsedOverrides: {},
 			/** Whether a stored record has been asked for yet. */
 			userLayoutLoaded: false,
 			/** Whether this edit session changed anything worth saving. */
@@ -4359,6 +4382,80 @@ export default {
 		},
 
 		/**
+		 * Whether a widget can fold to its header: `collapsible: true` on its
+		 * layout entry or its widget definition.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-widget-can-fold-to-its-header
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		isWidgetCollapsible(item) {
+			if (!item) {
+				return false
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.collapsible !== undefined ? item.collapsible : def?.collapsible
+			return value === true
+		},
+
+		/**
+		 * Whether a collapsible widget is folded: what the user chose in this
+		 * session, else what their stored layout says. A widget starts open.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		isWidgetCollapsed(item) {
+			if (!this.isWidgetCollapsible(item)) {
+				return false
+			}
+			const id = String(item.widgetId)
+			if (Object.hasOwn(this.collapsedOverrides, id)) {
+				return this.collapsedOverrides[id] === true
+			}
+			const stored = Array.isArray(this.userLayoutItems)
+				? this.userLayoutItems.find((entry) => entry && String(entry.widgetId) === id)
+				: null
+			return (stored || item).collapsed === true
+		},
+
+		/**
+		 * Fold or open a collapsible widget, and store it with the user's
+		 * layout when the page keeps one (`userLayout` / `layoutPanel`), so
+		 * it is still folded after a reload. Without a user layout the state
+		 * lasts for this visit.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
+		 * @param {object} item Layout item.
+		 * @param {boolean} collapsed The state asked for.
+		 * @return {Promise<void>}
+		 */
+		async onWidgetToggleCollapse(item, collapsed) {
+			const id = String(item.widgetId)
+			const next = collapsed === true
+			this.collapsedOverrides = { ...this.collapsedOverrides, [id]: next }
+			if (!this.keepsUserLayout || !this.appId) {
+				return
+			}
+			const base = Array.isArray(this.userLayoutItems) ? this.userLayoutItems : mergeUserLayout(this.layout, null)
+			this.userLayoutItems = base.map((entry) => {
+				if (!entry || String(entry.widgetId) !== id) {
+					return entry
+				}
+				const updated = { ...entry }
+				if (next) {
+					updated.collapsed = true
+				} else {
+					delete updated.collapsed
+				}
+				return updated
+			})
+			this.userLayoutDirty = true
+			await this.saveUserLayout()
+		},
+
+		/**
 		 * Whether a widget is one the layout panel may not hide
 		 * (`layoutPanelLocked`).
 		 *
@@ -4456,6 +4553,7 @@ export default {
 
 			this.userLayoutDirty = false
 			this.userLayoutItems = mergeUserLayout(this.layout, null)
+			this.collapsedOverrides = {}
 			/**
 			 * @event user-layout-reset Emitted when the user drops their own arrangement and the page returns to the manifest layout.
 			 */

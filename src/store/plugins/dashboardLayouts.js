@@ -78,6 +78,7 @@ export const LAYOUT_GEOMETRY_FIELDS = ['gridX', 'gridY', 'gridWidth', 'gridHeigh
  *
  * @param {object} item The layout item.
  * @return {object} The stored entry.
+ * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
  */
 function geometryOf(item) {
 	const entry = { widgetId: String(item?.widgetId ?? '') }
@@ -88,6 +89,10 @@ function geometryOf(item) {
 	}
 	if (item?.hidden === true) {
 		entry.hidden = true
+	}
+	// A collapsible widget the user folded (widget-collapsible-section).
+	if (item?.collapsed === true) {
+		entry.collapsed = true
 	}
 
 	return entry
@@ -114,6 +119,7 @@ function geometryOf(item) {
  * @param {Array<object>} manifestLayout The layout the manifest ships.
  * @param {object|Array<object>|null} record The user's stored record, or its items.
  * @return {Array<object>} The merged layout.
+ * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
  */
 export function mergeUserLayout(manifestLayout, record) {
 	const base = Array.isArray(manifestLayout) ? manifestLayout : []
@@ -152,6 +158,9 @@ export function mergeUserLayout(manifestLayout, record) {
 		}
 		if (entry.hidden === true) {
 			merged.hidden = true
+		}
+		if (entry.collapsed === true) {
+			merged.collapsed = true
 		}
 		arranged.push(merged)
 	}
