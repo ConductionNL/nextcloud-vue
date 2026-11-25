@@ -3225,6 +3225,8 @@
     "Shown": "Zichtbaar",
     "Hidden": "Verborgen",
     "Always shown": "Altijd zichtbaar",
+    "Collapse {title}": "{title} inklappen",
+    "Expand {title}": "{title} uitklappen",
     "Back to default": "Terug naar standaard",
     "Save layout": "Indeling opslaan",
     "Use the arrow keys to move this part up or down.": "Gebruik de pijltjestoetsen om dit onderdeel omhoog of omlaag te zetten.",
