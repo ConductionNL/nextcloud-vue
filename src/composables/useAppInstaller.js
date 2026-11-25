@@ -6,11 +6,6 @@
 // → `addPasswordConfirmationInterceptors(axios)` crashes ("reading 'request'").
 // Unwrap the default ourselves so it works under either resolution.
 import * as axiosModule from '@nextcloud/axios'
-import {
-	addPasswordConfirmationInterceptors,
-	confirmPassword,
-	PwdConfirmationMode,
-} from '@nextcloud/password-confirmation'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import { ref } from 'vue'
 
@@ -108,12 +103,28 @@ const axios = axiosModule.default || axiosModule
  * }
  */
 
-// Register the strict/lax password-confirmation interceptors on the shared
-// `@nextcloud/axios` instance ONCE at module load. The package guards against
-// double-registration internally, and the interceptor is a no-op for any
-// request that does NOT carry a `confirmPassword` config flag — so this never
-// affects unrelated requests.
-addPasswordConfirmationInterceptors(axios)
+let passwordConfirmation = null
+
+/**
+ * Load @nextcloud/password-confirmation on the first install, not with every
+ * app's first chunk, and register its strict/lax interceptors on the shared
+ * `@nextcloud/axios` instance once. The interceptors only act on requests that
+ * carry a `confirmPassword` config flag, so other requests are unaffected.
+ *
+ * @return {Promise<object>} The password-confirmation module.
+ */
+function loadPasswordConfirmation() {
+	if (!passwordConfirmation) {
+		passwordConfirmation = import('@nextcloud/password-confirmation').then((module) => {
+			module.addPasswordConfirmationInterceptors(axios)
+			return module
+		}).catch((err) => {
+			passwordConfirmation = null
+			throw err
+		})
+	}
+	return passwordConfirmation
+}
 
 // Message the password-confirmation dialog (strict interceptor AND the
 // session `confirmPassword()`) rejects with when the admin dismisses it.
@@ -167,6 +178,7 @@ export function useAppInstaller() {
 		error.value = null
 		installing.value = true
 		try {
+			const { confirmPassword, PwdConfirmationMode } = await loadPasswordConfirmation()
 			try {
 				// NC34+ — bundled `appstore` OCS API (singular appId), STRICT
 				// password confirmation. The registered interceptor prompts and
