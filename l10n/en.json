@@ -3014,7 +3014,11 @@
     "Check passed.": "Check passed.",
     "Check found a problem: {checks}.": "Check found a problem: {checks}.",
     "Check found a problem.": "Check found a problem.",
-    "Fits: {target}": "Fits: {target}"
+    "Fits: {target}": "Fits: {target}",
+    "Delete \"{name}\"?": "Delete \"{name}\"?",
+    "Name of the view": "Name of the view",
+    "The view could not be saved.": "The view could not be saved.",
+    "The view could not be deleted.": "The view could not be deleted."
   },
   "plurals": {
     "{count} member": [
