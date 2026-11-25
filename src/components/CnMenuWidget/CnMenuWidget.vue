@@ -1277,28 +1277,31 @@ export default {
 	list-style: none;
 }
 
-/* Active-item highlight variants. */
-.cn-menu-widget--highlight-underline .cn-menu-widget__item--active {
+/* Active-item highlight variants. :deep() because the tree style's rows are
+   rendered by CnMenuTreeNode, outside this component's scope; without it no
+   tree row, active or in the current path, got the configured highlight
+   (REQ-MENU-006). */
+.cn-menu-widget--highlight-underline :deep(.cn-menu-widget__item--active) {
 	border-bottom: 3px solid var(--color-primary);
 }
 
-.cn-menu-widget--highlight-underline .cn-menu-widget__item--in-path {
+.cn-menu-widget--highlight-underline :deep(.cn-menu-widget__item--in-path) {
 	border-bottom: 2px solid var(--color-primary);
 	opacity: 0.85;
 }
 
-.cn-menu-widget--highlight-background .cn-menu-widget__item--active,
-.cn-menu-widget--highlight-background .cn-menu-widget__item--in-path {
+.cn-menu-widget--highlight-background :deep(.cn-menu-widget__item--active),
+.cn-menu-widget--highlight-background :deep(.cn-menu-widget__item--in-path) {
 	background: var(--color-primary-element-light, rgba(0, 112, 192, 0.1));
 	color: var(--color-primary);
 }
 
-.cn-menu-widget--highlight-left-bar .cn-menu-widget__item--active {
+.cn-menu-widget--highlight-left-bar :deep(.cn-menu-widget__item--active) {
 	border-left: 5px solid var(--color-primary);
 	padding-left: 6px;
 }
 
-.cn-menu-widget--highlight-left-bar .cn-menu-widget__item--in-path {
+.cn-menu-widget--highlight-left-bar :deep(.cn-menu-widget__item--in-path) {
 	border-left: 4px solid var(--color-primary);
 	padding-left: 7px;
 	opacity: 0.85;
