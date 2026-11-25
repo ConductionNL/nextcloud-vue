@@ -16,6 +16,23 @@
 
 <script>
 /**
+ * Call `reveal` when `event` is a Tab press: a keyboard user is moving
+ * through the page and needs every cell's controls in the tab order.
+ *
+ * @spec openspec/changes/properties-table-by-keyboard/specs/properties-table-by-keyboard/spec.md#requirement-a-detail-page-s-widgets-are-in-the-tab-order
+ * @param {KeyboardEvent} event The key event.
+ * @param {() => void} reveal Mounts the cell's content.
+ * @return {boolean} Whether the cell was revealed.
+ */
+export function revealOnTab(event, reveal) {
+	if (event.key !== 'Tab') {
+		return false
+	}
+	reveal()
+	return true
+}
+
+/**
  * CnDetailGridCell — one cell of a detail page's body grid that mounts its
  * content only once the cell comes near the screen.
  *
@@ -29,7 +46,10 @@
  * does not collapse the row and then jump when the content arrives.
  *
  * The content mounts at once when `eager` is set, when there is no
- * IntersectionObserver, and before the page is printed.
+ * IntersectionObserver, before the page is printed, and on the first Tab
+ * key: an empty placeholder holds nothing to focus and Tab does not scroll
+ * to it, so without that a keyboard user never reaches the widgets below
+ * the fold.
  */
 export default {
 	name: 'CnDetailGridCell',
@@ -86,6 +106,8 @@ export default {
 		this.observer.observe(this.$refs.cell)
 		this.onBeforePrint = () => this.reveal()
 		window.addEventListener('beforeprint', this.onBeforePrint)
+		this.onKeydown = (event) => revealOnTab(event, () => this.reveal())
+		document.addEventListener('keydown', this.onKeydown, true)
 	},
 
 	beforeUnmount() {
@@ -116,6 +138,10 @@ export default {
 			if (this.onBeforePrint) {
 				window.removeEventListener('beforeprint', this.onBeforePrint)
 				this.onBeforePrint = null
+			}
+			if (this.onKeydown) {
+				document.removeEventListener('keydown', this.onKeydown, true)
+				this.onKeydown = null
 			}
 		},
 	},
