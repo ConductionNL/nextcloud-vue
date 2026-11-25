@@ -283,6 +283,7 @@
 							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
 							<span class="cn-setup-summary__label">{{ item.title }}</span>
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
+							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 							<NcButton v-if="step.summaryEditable === true && item.editable"
 								variant="tertiary"
 								class="cn-setup-summary__change"
@@ -291,7 +292,6 @@
 								@click="openStep(item.id)">
 								{{ t('nextcloud-vue', 'Change') }}
 							</NcButton>
-							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 						</li>
 					</ul>
 					<p v-if="healthLine(step)"
@@ -1859,16 +1859,24 @@ export default {
 	flex-direction: column;
 }
 
+/* The recap is a table of aligned columns, as the boards draw it (humaniq
+   HuInrichten): mark, step, answer, explanation, Change. Every row takes the
+   list's columns through subgrid, so answers line up and an answer wraps at
+   a word, never inside one ("Niet ingestel d" when each row sized itself). */
 .cn-setup-summary {
 	list-style: none;
 	padding: 0;
 	margin: 0;
+	display: grid;
+	grid-template-columns: auto max-content fit-content(16em) minmax(0, 1fr) auto;
+	column-gap: 12px;
 }
 
 .cn-setup-summary__item {
-	display: flex;
+	display: grid;
+	grid-column: 1 / -1;
+	grid-template-columns: subgrid;
 	align-items: center;
-	gap: 8px;
 	padding: 4px 0;
 	color: var(--color-text-maxcontrast);
 }
@@ -1878,17 +1886,17 @@ export default {
 }
 
 .cn-setup-summary__mark {
+	grid-column: 1;
 	font-weight: bold;
 	color: var(--color-success);
 }
 
 .cn-setup-summary__label {
-	flex: 0 0 auto;
+	grid-column: 2;
 }
 
 .cn-setup-summary__hint {
-	flex-basis: 100%;
-	margin-inline-start: 24px;
+	grid-column: 4;
 	color: var(--color-text-maxcontrast);
 	font-size: var(--font-size-small, 13px);
 }
@@ -1915,18 +1923,41 @@ export default {
 }
 
 .cn-setup-summary__value {
+	grid-column: 3;
 	min-width: 0;
-	margin-inline-start: auto;
 	font-weight: 600;
 	color: var(--color-main-text);
-	text-align: end;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
 }
 
-/* The Change button keeps its full label; a long value wraps instead
+/* The Change button keeps its full label in the last column
    (humaniq HuInrichten rendered "Wi…" for Wijzigen). */
 .cn-setup-summary__change {
-	flex: none;
+	grid-column: 5;
+	justify-self: end;
+}
+
+/* Narrow dialog: three columns (mark, step, Change); the answer and then the
+   explanation take their own lines under the step. */
+@media (width <= 600px) {
+	.cn-setup-summary {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+	}
+
+	.cn-setup-summary__value {
+		grid-column: 2 / -1;
+		grid-row: 2;
+	}
+
+	.cn-setup-summary__hint {
+		grid-column: 2 / -1;
+		grid-row: 3;
+	}
+
+	.cn-setup-summary__change {
+		grid-column: 3;
+		grid-row: 1;
+	}
 }
 
 .cn-setup-health {
