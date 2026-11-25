@@ -1475,7 +1475,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.199.0 lets an index header note read a value from an endpoint (headerMetaSource; index-header-meta-from-endpoint).
 		// 2.200.0 lets a page view carry a visibleWhen, so a view shows only to the readers it is for (view-visible-when).
 		// 2.201.0 lets a dashboard keep sections the layout panel may not hide (layoutPanelLocked; dashboard-layout-panel-locked).
-		expect(schema.version).toBe('2.201.0')
+		// 2.202.0 lets a dashboard read its widgets again on a timer (autoRefresh; dashboard-auto-refresh).
+		expect(schema.version).toBe('2.202.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
@@ -2983,6 +2984,14 @@ describe('app-manifest-v2: the dashboard layout panel (dashboard-layout-panel, 2
 		expect(locked.items.type).toBe('string')
 		expect(validateManifestV2(page({ layoutPanel: true, layoutPanelLocked: ['my-work-list'] })).valid).toBe(true)
 		expect(validateManifestV2(page({ layoutPanel: true, layoutPanelLocked: [3] })).valid).toBe(false)
+	})
+
+	// @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+	it('declares config.autoRefresh as true or its three settings (2.202.0)', () => {
+		expect(validateManifestV2(page({ autoRefresh: true })).valid).toBe(true)
+		expect(validateManifestV2(page({ autoRefresh: { intervalSeconds: 300, staleAfterSeconds: 600, button: true } })).valid).toBe(true)
+		expect(validateManifestV2(page({ autoRefresh: { intervalSeconds: 0 } })).valid).toBe(false)
+		expect(validateManifestV2(page({ autoRefresh: { every: 5 } })).valid).toBe(false)
 	})
 
 	it('declares config.layoutPanel as a boolean', () => {
