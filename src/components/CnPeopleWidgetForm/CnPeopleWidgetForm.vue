@@ -14,6 +14,46 @@
 			:clearable="false"
 			@update:modelValue="updateField('layout', $event)" />
 
+		<!-- "New colleagues" is offered only when the source has a start date field. -->
+		<NcSelect
+			v-if="selectionOptions.length > 1"
+			:modelValue="selectionMode"
+			:options="selectionOptions"
+			:inputLabel="t('nextcloud-vue', 'Selection')"
+			:reduce="(option) => option.value"
+			label="label"
+			:clearable="false"
+			data-testid="cn-people-form-selection"
+			@update:modelValue="updateField('selectionMode', $event)" />
+
+		<template v-if="selectionMode === 'new'">
+			<label class="cn-people-widget-form__field">
+				{{ t('nextcloud-vue', 'Started in the last (days, 1–90)') }}
+				<input
+					type="number"
+					class="cn-people-widget-form__input"
+					min="1"
+					max="90"
+					data-testid="cn-people-form-new-since"
+					:value="newSinceDays"
+					@input="updateWindow('newSinceDays', $event.target.value, 1, 90)">
+			</label>
+			<label class="cn-people-widget-form__field">
+				{{ t('nextcloud-vue', 'Starts within (days, 0–30)') }}
+				<input
+					type="number"
+					class="cn-people-widget-form__input"
+					min="0"
+					max="30"
+					data-testid="cn-people-form-new-until"
+					:value="newUntilDays"
+					@input="updateWindow('newUntilDays', $event.target.value, 0, 30)">
+			</label>
+			<span v-if="windowError" class="cn-people-widget-form__error" role="alert">
+				{{ windowError }}
+			</span>
+		</template>
+
 		<NcSelect
 			:modelValue="sortBy"
 			:options="sortByOptions"
@@ -101,6 +141,8 @@ const DEFAULT_CONTENT = Object.freeze({
 	excludeDisabled: true,
 	showBirthdays: true,
 	birthdayWindowDays: 7,
+	newSinceDays: 30,
+	newUntilDays: 14,
 	sortBy: 'displayName',
 	columns: 3,
 	showFields: {
@@ -131,6 +173,11 @@ export default {
 
 	components: {
 		NcSelect,
+	},
+
+	inject: {
+		/** The people source; `hasStartDateField()` decides whether New colleagues is offered. */
+		cnPeopleSource: { default: null },
 	},
 
 	props: {
@@ -198,6 +245,11 @@ export default {
 				: [],
 
 			birthdayWindowError: '',
+			newSinceDays: typeof initial.newSinceDays === 'number' ? initial.newSinceDays : DEFAULT_CONTENT.newSinceDays,
+			newUntilDays: typeof initial.newUntilDays === 'number' ? initial.newUntilDays : DEFAULT_CONTENT.newUntilDays,
+			windowError: '',
+			// Whether the source has a start date field; null until it answered.
+			startDateField: null,
 		}
 	},
 
@@ -209,6 +261,21 @@ export default {
 				{ value: 'grid', label: t('nextcloud-vue', 'Grid') },
 				{ value: 'list', label: t('nextcloud-vue', 'List') },
 			]
+		},
+
+		/**
+		 * The selections: by filter, and New colleagues when the source has a
+		 * start date field (or the placement already uses it).
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		selectionOptions() {
+			const options = [{ value: 'filter', label: t('nextcloud-vue', 'People by filter') }]
+			if (this.startDateField === true || this.selectionMode === 'new') {
+				options.push({ value: 'new', label: t('nextcloud-vue', 'New colleagues') })
+			}
+			return options
 		},
 
 		/** Sort select options. */
@@ -247,6 +314,8 @@ export default {
 				excludeDisabled: this.excludeDisabled,
 				showBirthdays: this.showBirthdays,
 				birthdayWindowDays: this.birthdayWindowDays,
+				newSinceDays: this.newSinceDays,
+				newUntilDays: this.newUntilDays,
 				sortBy: this.sortBy,
 				columns: this.columns,
 				showFields: this.showFields,
@@ -254,8 +323,51 @@ export default {
 		},
 	},
 
+	async mounted() {
+		await this.loadStartDateField()
+	},
+
 	methods: {
 		t,
+		/**
+		 * Ask the source whether a start date field exists; no answer offers none.
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @return {Promise<void>}
+		 */
+		async loadStartDateField() {
+			const source = this.cnPeopleSource
+			if (!source || typeof source.hasStartDateField !== 'function') {
+				this.startDateField = false
+				return
+			}
+			try {
+				this.startDateField = (await source.hasStartDateField()) === true
+			} catch {
+				this.startDateField = false
+			}
+		},
+
+		/**
+		 * Set a new colleagues window in days; outside [min, max] keeps the last
+		 * valid value and shows a message, which keeps `validate()` failing.
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @param {string} field `newSinceDays` or `newUntilDays`.
+		 * @param {string|number} raw The input value.
+		 * @param {number} min The lowest allowed.
+		 * @param {number} max The highest allowed.
+		 * @return {void}
+		 */
+		updateWindow(field, raw, min, max) {
+			const numeric = Number(raw)
+			if (raw === '' || !Number.isInteger(numeric) || numeric < min || numeric > max) {
+				this.windowError = t('nextcloud-vue', 'Must be between {min} and {max}', { min, max })
+				return
+			}
+			this.windowError = ''
+			this.updateField(field, numeric)
+		},
 
 		/**
 		 * Set a field and notify the parent.
@@ -339,6 +451,9 @@ export default {
 			}
 			if (!SORT_KEYS.includes(this.sortBy)) {
 				errors.push(t('nextcloud-vue', 'Invalid sort key'))
+			}
+			if (this.windowError) {
+				errors.push(this.windowError)
 			}
 			return errors
 		},

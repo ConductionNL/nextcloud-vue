@@ -2995,7 +2995,15 @@
     "Connect a register": "Connect a register",
     "Not reachable": "Not reachable",
     "Only administrators install for the whole organisation.": "Only administrators install for the whole organisation.",
-    "Page {page} of {pages}": "Page {page} of {pages}"
+    "Page {page} of {pages}": "Page {page} of {pages}",
+    "The administrator has not set a start date field.": "The administrator has not set a start date field.",
+    "Starts {weekday}": "Starts {weekday}",
+    "Selection": "Selection",
+    "People by filter": "People by filter",
+    "New colleagues": "New colleagues",
+    "Started in the last (days, 1–90)": "Started in the last (days, 1–90)",
+    "Starts within (days, 0–30)": "Starts within (days, 0–30)",
+    "Must be between {min} and {max}": "Must be between {min} and {max}"
   },
   "plurals": {
     "{count} member": [
