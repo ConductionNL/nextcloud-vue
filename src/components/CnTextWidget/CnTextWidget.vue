@@ -120,6 +120,25 @@ const SANITIZE_CONFIG = {
 	ALLOW_DATA_ATTR: false,
 }
 
+// Raw-text elements whose content is never author text. In markdown a line
+// that opens with one of them is a CommonMark HTML block, so the markdown
+// after it on that line would stay unparsed even though DOMPurify later drops
+// the element. Removing them before parsing keeps that markdown parsed; the
+// sanitiser still runs on the result, so this is not the security boundary.
+const RAW_TEXT_ELEMENTS = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
+
+/**
+ * Remove `<script>` and `<style>` elements (with their content) from markdown
+ * source before it is parsed.
+ *
+ * @spec openspec/specs/text-display-widget/spec.md#REQ-TXMD-003
+ * @param {string} text The markdown source.
+ * @return {string} The source without those elements.
+ */
+function stripRawTextElements(text) {
+	return typeof text === 'string' ? text.replace(RAW_TEXT_ELEMENTS, '') : text
+}
+
 /**
  * Sanitise author HTML with the widget's own config.
  *
@@ -288,7 +307,7 @@ export default {
 			let html
 			if (this.contentMode === 'markdown') {
 				try {
-					html = markedInstance.parse(this.text)
+					html = markedInstance.parse(stripRawTextElements(this.text))
 					if (typeof html !== 'string') {
 						html = String(html)
 					}
