@@ -37,6 +37,8 @@ every key below can be written in the manifest.
 
 The engine stamps the chosen target only where the app's manifest declares it: `store.installTarget: { "property": "setting", "schemas": ["larping_skill"] }` writes the id into `setting` on every installed object of those schemas (manifest schema 2.196.0). A `target` the manifest does not declare is refused by the engine.
 
+Where each item is installed comes from the engine: a store search that answers `installed` (item slug to target ids, `""` for an install without target) puts "Installed in &lt;targets&gt;" on the card, each target named by its label from `targets`. A whole install adds its target at once. Without `installed` no card shows the line.
+
 ## Who sees Install and Publish
 
 The page does not know your app's groups. Your app resolves who may install and who may

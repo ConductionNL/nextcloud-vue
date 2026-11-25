@@ -261,6 +261,9 @@
 									<p v-if="cardKindLine(card)" class="cn-store-page__card-kind" data-testid="store-card-kind">
 										{{ cardKindLine(card) }}
 									</p>
+									<p v-if="cardInstalledIn(card)" class="cn-store-page__card-installed-in" data-testid="store-card-installed-in">
+										{{ cardInstalledIn(card) }}
+									</p>
 									<span
 										class="cn-store-page__card-state"
 										:class="`cn-store-page__card-state--${cardState(card) || 'available'}`"
@@ -302,6 +305,9 @@
 							</h3>
 							<p v-if="card.typeName || card.kind" class="cn-store-page__card-kind">
 								{{ card.typeName || kindLabel(card.kind) }}
+							</p>
+							<p v-if="cardInstalledIn(card)" class="cn-store-page__card-installed-in" data-testid="store-card-installed-in">
+								{{ cardInstalledIn(card) }}
 							</p>
 							<p class="cn-store-page__card-description">
 								{{ card.description }}
@@ -489,6 +495,30 @@ export const DEFAULT_STORE_KINDS = [
 	'configuration-template',
 	'agent-template',
 ]
+
+/**
+ * The engine's `installed` answer as a map of slug to target ids.
+ *
+ * Anything else reads as nothing installed: a list, a string, or an entry
+ * whose targets are not a list of strings.
+ *
+ * @param {*} value The `installed` key of a search response.
+ *
+ * @return {Object<string, string[]>}
+ * @spec openspec/changes/store-installed-in/specs/store-page/spec.md#requirement-a-card-says-where-its-item-is-installed
+ */
+function installedMap(value) {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return {}
+	}
+	const map = {}
+	for (const [slug, targets] of Object.entries(value)) {
+		if (Array.isArray(targets)) {
+			map[slug] = targets.filter((id) => typeof id === 'string')
+		}
+	}
+	return map
+}
 
 export default {
 	name: 'CnStorePage',
@@ -753,6 +783,11 @@ export default {
 			// manifest block. Null until the first response, so "not asked
 			// yet" stays distinguishable from "the app declares none".
 			servedBuiltIn: null,
+			// Where each item is installed, as the ENGINE served it: item
+			// slug to the targets it went into ('' for an install without
+			// target). Empty until the first response, or from an engine that
+			// does not report it.
+			servedInstalled: {},
 			// The board look's lens: all, installed, updates or an item kind.
 			lens: 'all',
 			publishOpen: false,
@@ -1576,6 +1611,7 @@ export default {
 				// answers, so an app's own items survive a registry that is
 				// down — which is exactly when they are all there is to show.
 				this.servedBuiltIn = Array.isArray(body.builtIn) ? body.builtIn : null
+				this.servedInstalled = installedMap(body.installed)
 				this.checkedAt = typeof body.checkedAt === 'string' ? body.checkedAt : ''
 				// The register the banner names; never its token (the app sends none).
 				this.registry = body.registry !== null && typeof body.registry === 'object' ? body.registry : null
@@ -1602,6 +1638,41 @@ export default {
 				this.sourcedTargets = options.map((option) => ({ id: String(option.id), label: option.label }))
 			} catch {
 				this.sourcedTargets = []
+			}
+		},
+
+		/**
+		 * The "Installed in" line of a card: the labels of the targets the
+		 * engine reports the item installed into. Empty when it is installed
+		 * into none, or only without a target.
+		 *
+		 * @param {{slug: string}} card The card.
+		 *
+		 * @return {string} The line, or an empty string.
+		 * @spec openspec/changes/store-installed-in/specs/store-page/spec.md#requirement-a-card-says-where-its-item-is-installed
+		 */
+		cardInstalledIn(card) {
+			const targets = (this.servedInstalled[card?.slug] ?? []).filter((id) => id !== '')
+			if (targets.length === 0) {
+				return ''
+			}
+			const labels = targets.map((id) => this.targetOptions.find((option) => option.id === id)?.label || id)
+			return t('nextcloud-vue', 'Installed in {targets}', { targets: labels.join(', ') })
+		},
+
+		/**
+		 * Remember a whole install, so its card says where it went at once.
+		 *
+		 * @param {string} slug The installed item.
+		 * @param {string} target The target it went into, '' for none.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/store-installed-in/specs/store-page/spec.md#requirement-a-card-says-where-its-item-is-installed
+		 */
+		rememberInstall(slug, target) {
+			const targets = this.servedInstalled[slug] ?? []
+			if (!targets.includes(target)) {
+				this.servedInstalled = { ...this.servedInstalled, [slug]: [...targets, target] }
 			}
 		},
 
@@ -1641,6 +1712,10 @@ export default {
 					return
 				}
 
+				if (body.success === true) {
+					this.rememberInstall(card.slug, target ? target.id : '')
+				}
+
 				const refused = (body.components ?? []).filter((c) => c.status !== 'installed')
 				if (refused.length === 0) {
 					showSuccess(t('nextcloud-vue', 'Installed.'))
@@ -1669,6 +1744,12 @@ export default {
 </script>
 
 <style scoped>
+.cn-store-page__card-installed-in {
+	margin: 2px 0 0;
+	font-size: var(--cn-font-size-small, 13px);
+	color: var(--color-text-maxcontrast);
+}
+
 .cn-store-page {
 	padding: 16px;
 	max-width: 1200px;
