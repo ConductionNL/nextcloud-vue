@@ -24,8 +24,9 @@
 		     text ("Request failed with status code 404") — the real error is
 		     logged to the console (ADR-062: an error surface is never a leaked
 		     stack). Takes precedence over the empty state so the two never
-		     stack. -->
-		<p v-else-if="error" class="cn-object-list-widget__error">
+		     stack. A 5xx says "Temporarily unavailable", announced politely,
+		     because the next read may well succeed. -->
+		<p v-else-if="error" class="cn-object-list-widget__error" aria-live="polite">
 			{{ loadErrorLabel }}
 		</p>
 		<!-- Designed empty state. This used to be a bare CnDataTable with no
@@ -462,6 +463,9 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
  * }
  * ```
  */
+/** How long after a 5xx the list reads again (the default poll interval). */
+const UNAVAILABLE_RETRY_MS = 60 * 1000
+
 export default {
 	name: 'CnObjectListWidget',
 
@@ -648,6 +652,8 @@ export default {
 			readOnlyRows: [],
 			loading: false,
 			error: '',
+			// HTTP status of the failed list read, so a 5xx reads as temporary.
+			errorStatus: null,
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
 			total: 0,
 			/** The card header's Download action once `content.export` offered it; null before. */
@@ -847,7 +853,13 @@ export default {
 		 * @return {string}
 		 */
 		loadErrorLabel() {
-			return this.content.errorText || t('nextcloud-vue', 'Could not load these records')
+			if (this.content.errorText) {
+				return this.content.errorText
+			}
+			if (Number(this.errorStatus) >= 500) {
+				return t('nextcloud-vue', 'Temporarily unavailable')
+			}
+			return t('nextcloud-vue', 'Could not load these records')
 		},
 
 		/**
@@ -1874,6 +1886,7 @@ export default {
 	},
 
 	beforeUnmount() {
+		clearTimeout(this._unavailableRetry)
 		if (this._onPageRefresh) {
 			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 			this._onPageRefresh = null
@@ -2302,6 +2315,8 @@ export default {
 			}
 			this.loading = true
 			this.error = ''
+			this.errorStatus = null
+			clearTimeout(this._unavailableRetry)
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -2373,8 +2388,15 @@ export default {
 				// eslint-disable-next-line no-console
 				console.warn('[CnObjectListWidget] failed to load objects:', e)
 				this.error = (e && e.message) || 'error'
+				this.errorStatus = (e && e.response && e.response.status) || null
 				this.rows = []
 				this.total = 0
+				// A 5xx is temporary: read again on the next poll interval
+				// (REQ-OR 5xx scenario, default 60 s) instead of staying
+				// unavailable until the page reloads.
+				if (Number(this.errorStatus) >= 500) {
+					this._unavailableRetry = setTimeout(() => this.fetchRows(), UNAVAILABLE_RETRY_MS)
+				}
 			} finally {
 				this.loading = false
 			}

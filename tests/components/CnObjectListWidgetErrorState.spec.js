@@ -34,6 +34,31 @@ describe('CnObjectListWidget — error + empty copy', () => {
 		expect(w.find('.cn-object-list-widget__empty').exists()).toBe(false)
 	})
 
+	it('says "Temporarily unavailable" in a polite live region when the read answered 5xx', async () => {
+		const w = mountWidget({ content: { register: 'r', schema: 's' } })
+		w.vm.error = 'Request failed with status code 503'
+		w.vm.errorStatus = 503
+		w.vm.rows = []
+		w.vm.loading = false
+		await w.vm.$nextTick()
+		const errEl = w.find('.cn-object-list-widget__error')
+		expect(errEl.text()).toBe('Temporarily unavailable')
+		expect(errEl.attributes('aria-live')).toBe('polite')
+	})
+
+	it('keeps "Could not load these records" for a 4xx, and a configured errorText wins', async () => {
+		const w = mountWidget({ content: { register: 'r', schema: 's' } })
+		w.vm.error = 'Request failed with status code 403'
+		w.vm.errorStatus = 403
+		w.vm.loading = false
+		await w.vm.$nextTick()
+		expect(w.find('.cn-object-list-widget__error').text()).toBe('Could not load these records')
+		await w.setProps({ content: { register: 'r', schema: 's', errorText: 'Geen toegang' } })
+		w.vm.errorStatus = 503
+		await w.vm.$nextTick()
+		expect(w.find('.cn-object-list-widget__error').text()).toBe('Geen toegang')
+	})
+
 	it('defaults to "Nothing here yet" on a detail-page object context', () => {
 		const w = mountWidget(
 			{ content: { register: 'r', schema: 's', filter: { case: '@workspace.selected' } } },
