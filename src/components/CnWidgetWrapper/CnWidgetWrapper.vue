@@ -17,6 +17,7 @@
 			'cn-widget-wrapper--nc-dashboard': chrome === 'nc-dashboard',
 			'cn-widget-wrapper--high-contrast': highContrast,
 			'cn-widget-wrapper--side-title': titleTone === 'side',
+			'cn-widget-wrapper--collapsed': isCollapsed,
 		}"
 		:data-cn-high-contrast="highContrast ? 'true' : undefined"
 		:style="wrapperStyles">
@@ -111,6 +112,21 @@
 				<!-- @slot actions Custom action buttons rendered before the
 				     built-in overflow menu. -->
 				<slot name="actions" />
+				<!-- `collapsible`: a chevron that folds the card to its header.
+				     The host keeps the state (`collapsed`) and hears the toggle. -->
+				<button
+					v-if="collapsible"
+					type="button"
+					class="cn-widget-wrapper__collapse"
+					data-testid="cn-widget-wrapper-collapse"
+					:aria-expanded="collapsed ? 'false' : 'true'"
+					:aria-controls="contentId"
+					:aria-label="collapsed ? resolvedExpandLabel : resolvedCollapseLabel"
+					:title="collapsed ? resolvedExpandLabel : resolvedCollapseLabel"
+					@click="onToggleCollapse">
+					<ChevronDown v-if="collapsed" :size="20" />
+					<ChevronUp v-else :size="20" />
+				</button>
 				<CnActionsMenu
 					v-if="showActions"
 					:showRefresh="effectiveShowRefresh"
@@ -171,6 +187,8 @@
 		  region is never anonymous.
 		-->
 		<div
+			v-show="!isCollapsed"
+			:id="contentId"
 			class="cn-widget-wrapper__content"
 			tabindex="0"
 			role="region"
@@ -193,7 +211,7 @@
 		</div>
 
 		<!-- Footer -->
-		<div v-if="$slots.footer || (buttons && buttons.length > 0)" class="cn-widget-wrapper__footer">
+		<div v-if="!isCollapsed && ($slots.footer || (buttons && buttons.length > 0))" class="cn-widget-wrapper__footer">
 			<slot name="footer">
 				<a
 					v-for="button in buttons"
@@ -209,6 +227,8 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
@@ -261,6 +281,8 @@ export default {
 	name: 'CnWidgetWrapper',
 
 	components: {
+		ChevronDown,
+		ChevronUp,
 		CnActionsMenu,
 		CnCardNotices,
 		CnWidgetHeaderActionButtons,
@@ -771,9 +793,46 @@ export default {
 			type: Function,
 			default: null,
 		},
+
+		/**
+		 * Draw a chevron in the header that folds the card to its header
+		 * (widget definition `collapsible: true`). The host owns the state:
+		 * it passes `collapsed` and hears `toggle-collapse`.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-widget-can-fold-to-its-header
+		 * @type {boolean}
+		 */
+		collapsible: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Whether a `collapsible` card is folded: only its header shows.
+		 * Ignored without `collapsible`.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-widget-can-fold-to-its-header
+		 * @type {boolean}
+		 */
+		collapsed: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** Pre-translated label of the chevron on an open card. */
+		collapseLabel: {
+			type: String,
+			default: '',
+		},
+
+		/** Pre-translated label of the chevron on a folded card. */
+		expandLabel: {
+			type: String,
+			default: '',
+		},
 	},
 
-	emits: ['refresh', 'request-feature', 'notice-action', 'notice-dismiss'],
+	emits: ['refresh', 'request-feature', 'notice-action', 'notice-dismiss', 'toggle-collapse'],
 
 	data() {
 		return {
@@ -935,6 +994,35 @@ export default {
 		 */
 		titleId() {
 			return `cn-widget-wrapper-title-${this.resolvedWidgetId}${this.titleIdSuffix}`
+		},
+
+		/**
+		 * The content region's id, which the collapse chevron controls.
+		 *
+		 * @return {string}
+		 */
+		contentId() {
+			return `cn-widget-wrapper-content-${this.resolvedWidgetId}${this.titleIdSuffix}`
+		},
+
+		/**
+		 * Whether the card is folded to its header right now.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-widget-can-fold-to-its-header
+		 * @return {boolean}
+		 */
+		isCollapsed() {
+			return this.collapsible && this.collapsed
+		},
+
+		/** @return {string} The chevron's label on an open card. */
+		resolvedCollapseLabel() {
+			return this.collapseLabel || t('nextcloud-vue', 'Collapse {title}', { title: this.resolvedTitle })
+		},
+
+		/** @return {string} The chevron's label on a folded card. */
+		resolvedExpandLabel() {
+			return this.expandLabel || t('nextcloud-vue', 'Expand {title}', { title: this.resolvedTitle })
 		},
 
 		/**
@@ -1170,7 +1258,7 @@ export default {
 		 * @return {boolean} True when the header should render.
 		 */
 		headerIsWorthIt() {
-			if (this.titleVisible) {
+			if (this.titleVisible || this.collapsible) {
 				return true
 			}
 			if (this.actionsSlotRenders() || this.declaredHeaderActions.length > 0) {
@@ -1189,7 +1277,22 @@ export default {
 		 * @return {boolean} True when the group would hold a visible control.
 		 */
 		actionsAreVisible() {
-			return this.showActions || this.actionsSlotRenders() || (Boolean(this.headerLinkTag) && !this.headerLinkUnderTitle) || this.declaredHeaderActions.length > 0
+			return this.showActions || this.collapsible || this.actionsSlotRenders() || (Boolean(this.headerLinkTag) && !this.headerLinkUnderTitle) || this.declaredHeaderActions.length > 0
+		},
+
+		/**
+		 * The chevron was clicked: tell the host the state it asks for.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-widget-can-fold-to-its-header
+		 * @return {void}
+		 */
+		onToggleCollapse() {
+			/**
+			 * @event toggle-collapse The collapse chevron was clicked. Payload: the
+			 * state asked for (`true` = fold the card).
+			 * @type {boolean}
+			 */
+			this.$emit('toggle-collapse', !this.collapsed)
 		},
 
 		/**
@@ -1483,6 +1586,31 @@ export default {
 
 /* The header's text link (`headerLink`). Theme hooks: --cn-widget-header-link-size
    and --cn-widget-header-link-weight. */
+.cn-widget-wrapper__collapse {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: var(--default-clickable-area, 34px);
+	min-height: var(--default-clickable-area, 34px);
+	padding: 0;
+	margin: 0;
+	border: none;
+	border-radius: var(--border-radius-element, var(--border-radius-large));
+	background: transparent;
+	color: var(--color-main-text);
+	cursor: pointer;
+}
+
+.cn-widget-wrapper__collapse:hover,
+.cn-widget-wrapper__collapse:focus-visible {
+	background: var(--color-background-hover);
+}
+
+/* A folded card is its header alone: no gap left where the body was. */
+.cn-widget-wrapper--collapsed {
+	height: auto;
+}
+
 .cn-widget-wrapper__header-link {
 	align-self: center;
 	padding: 0 calc(1 * var(--default-grid-baseline));

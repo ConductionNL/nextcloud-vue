@@ -221,6 +221,16 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
 }
 ```
 
+## A card that folds to its header (`collapsible`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `collapsible` | `Boolean` | `false` | Draws a chevron in the header that folds the card to its header. In a manifest: `collapsible: true` on the widget definition (or its layout entry); CnDashboardPage passes it on. |
+| `collapsed` | `Boolean` | `false` | Whether the card is folded. The host owns the state. Ignored without `collapsible`. |
+| `collapseLabel` / `expandLabel` | `String` | `''` | The chevron's label; defaults to "Collapse {title}" / "Expand {title}". |
+
+Event `toggle-collapse` carries the state asked for (`true` = fold). On a dashboard page that keeps a per-user layout (`userLayout` or `layoutPanel`), CnDashboardPage stores the fold with the user's layout (`collapsed: true` on the layout record), so the card is still folded after a reload; Back to default opens it again. Without a user layout the fold lasts for the visit. Give a collapsible widget `sizeToContent: true`, so the grid row shrinks with it.
+
 ## A side-card title (`titleTone`)
 
 | Prop | Type | Default | Description |

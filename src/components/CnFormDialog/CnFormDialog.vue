@@ -5078,9 +5078,12 @@ export default {
 		/**
 		 * Resolve a single reference UUID to its `{ id, label }` option,
 		 * fetching the object by id when its label isn't cached yet (edit mode).
+		 * An object the store already holds (a caller read it before the form
+		 * opened) gives the label without a second read.
 		 *
 		 * @param {object} field The field definition.
 		 * @param {string} uuid The stored UUID.
+		 * @spec openspec/changes/reference-label-from-the-store-cache/specs/reference-label-from-the-store-cache/spec.md#requirement-a-reference-label-comes-from-the-stores-cached-object-first
 		 */
 		async resolveReferenceLabel(field, uuid) {
 			const register = this.referenceRegister(field)
@@ -5096,7 +5099,8 @@ export default {
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
 				}
-				const obj = await store.fetchObject(slug, uuid)
+				const cached = typeof store.getCachedObject === 'function' ? store.getCachedObject(slug, uuid) : null
+				const obj = cached && cached.id ? cached : await store.fetchObject(slug, uuid)
 				if (obj && obj.id) {
 					this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
 				}
