@@ -283,8 +283,9 @@
 							'cn-object-data-widget__value--empty': isValueEmpty(field.key),
 						}"
 						:tabindex="isEditable(field) ? 0 : -1"
+						:id="isEditable(field) ? editValueId(field) : undefined"
 						:role="isEditable(field) ? 'button' : undefined"
-						:aria-label="isEditable(field) ? t('nextcloud-vue', 'Edit {title}', { title: field.label }) : undefined"
+						:aria-labelledby="isEditable(field) ? editValueId(field) + ' ' + editHintId(field) : undefined"
 						@click="isEditable(field) && startEdit(field)"
 						@keydown.enter="isEditable(field) && startEdit(field)">
 						<!-- Per-field display slot override -->
@@ -438,6 +439,14 @@
 							class="cn-object-data-widget__edit-icon"
 							:size="14" />
 					</div>
+					<!-- The button is named by the value people see, then this hint
+					     (aria-labelledby). An aria-label of only "Edit {title}" left the
+					     visible value out of the name (WCAG 2.5.3 Label in Name). -->
+					<span
+						v-if="isEditable(field) && editingField !== field.key"
+						:id="editHintId(field)"
+						class="hidden-visually"
+						data-testid="cn-object-data-widget-edit-hint">{{ t('nextcloud-vue', 'Edit {title}', { title: field.label }) }}</span>
 					<span v-if="hintFor(field)" class="cn-object-data-widget__hint">{{ hintFor(field) }}</span>
 				</div>
 			</div>
@@ -2037,6 +2046,26 @@ export default {
 				return null
 			}
 			return this.cnTranslate(words)
+		},
+
+		/**
+		 * The id of an editable value, which names its button together with the edit hint.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @return {string}
+		 */
+		editValueId(field) {
+			return `cn-object-data-widget-${this._uid}-${String(field.key).replace(/[^A-Za-z0-9_-]/g, '-')}-value`
+		},
+
+		/**
+		 * The id of the visually hidden "Edit {title}" hint that completes an editable value's name.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @return {string}
+		 */
+		editHintId(field) {
+			return `cn-object-data-widget-${this._uid}-${String(field.key).replace(/[^A-Za-z0-9_-]/g, '-')}-hint`
 		},
 
 		/**
