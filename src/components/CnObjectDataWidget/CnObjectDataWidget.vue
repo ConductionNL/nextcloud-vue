@@ -277,13 +277,13 @@
 					<!-- Display mode -->
 					<div
 						v-else
+						:id="isEditable(field) ? editValueId(field) : undefined"
 						class="cn-object-data-widget__value"
 						:class="{
 							'cn-object-data-widget__value--editable': isEditable(field),
 							'cn-object-data-widget__value--empty': isValueEmpty(field.key),
 						}"
 						:tabindex="isEditable(field) ? 0 : -1"
-						:id="isEditable(field) ? editValueId(field) : undefined"
 						:role="isEditable(field) ? 'button' : undefined"
 						:aria-labelledby="isEditable(field) ? editValueId(field) + ' ' + editHintId(field) : undefined"
 						@click="isEditable(field) && startEdit(field)"
