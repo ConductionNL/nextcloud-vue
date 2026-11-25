@@ -3040,6 +3040,7 @@
     "The packages could not be read.": "De pakketten konden niet worden gelezen.",
     "In development": "In ontwikkeling",
     "Install into": "Installeren in",
+    "Installed in {targets}": "Geïnstalleerd in {targets}",
     "Change {step}": "{step} wijzigen",
     "Remove row {number}": "Rij {number} verwijderen",
     "The step could not be saved.": "De stap kon niet worden opgeslagen.",
