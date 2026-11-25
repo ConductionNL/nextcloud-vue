@@ -85,6 +85,7 @@
 </template>
 
 <script>
+import axios from '@nextcloud/axios'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
@@ -94,6 +95,7 @@ import CnConversationThread from './CnConversationThread.vue'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { formatTimeOfDay } from '../../utils/boardDate.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
+import { prefixUrl } from '../../utils/headers.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedDeepTokens, resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
@@ -139,6 +141,16 @@ import { userDisplayName } from '../../utils/userDisplayName.js'
  *
  * `channelChips: true` draws a chip per channel above the thread (every
  * `channelMap` label, in map order, then any other channel a message uses).
+ * `source` may instead name an endpoint (`{ url, responsePath? }`): `url`
+ * takes `@objectId` and `@object.<path>` anywhere in it, and `responsePath`
+ * is where the messages sit in the answer (the answer itself when unset). A
+ * url whose token does not resolve sends no request. After a send through
+ * `endpoint` the endpoint is read again. `pollSeconds` (2 or more) reads the
+ * source again on that interval while the widget is shown, without the
+ * loading state, keeping the last messages when a read fails; `pollUntil`
+ * (`{ path, in }`) stops it once the endpoint's answer holds one of those
+ * values at `path` (a chat that ended).
+ *
  * `headerAction` is a button beside the title (`{ label, icon?, ...action }`,
  * DqZaakContact's "Contact vastleggen"), dispatched like `replyAction` with
  * `args: [{ objectId }]`; after it the source is read again.
@@ -205,6 +217,8 @@ export default {
 			draftStatus: '',
 			/** Whether a draft is being saved. */
 			savingDraft: false,
+			/** The `pollSeconds` timer, or null. */
+			pollTimer: null,
 		}
 	},
 
@@ -213,6 +227,28 @@ export default {
 		source() {
 			const source = this.content?.source
 			return source && typeof source === 'object' && source.register && source.schema ? source : null
+		},
+
+		/**
+		 * The endpoint the messages come from (`source: { url, responsePath? }`), or null.
+		 *
+		 * @spec openspec/changes/conversation-endpoint-poll/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-an-endpoint-and-reads-them-again
+		 * @return {object|null}
+		 */
+		endpointSource() {
+			const source = this.content?.source
+			return source && typeof source === 'object' && typeof source.url === 'string' && source.url !== '' ? source : null
+		},
+
+		/**
+		 * The polling interval in milliseconds (`pollSeconds`, at least 2), or 0 for none.
+		 *
+		 * @spec openspec/changes/conversation-endpoint-poll/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-an-endpoint-and-reads-them-again
+		 * @return {number}
+		 */
+		pollMs() {
+			const seconds = Number(this.content?.pollSeconds)
+			return Number.isFinite(seconds) && seconds >= 2 ? Math.round(seconds * 1000) : 0
 		},
 
 		/** @return {object|null} The header action, or null without a label. */
@@ -384,9 +420,11 @@ export default {
 		objectId: {
 			immediate: true,
 			handler() {
+				this.stopPolling()
 				this.loadSource()
 				this.loadBadge()
 				this.loadDraft()
+				this.startPolling()
 			},
 		},
 	},
@@ -399,6 +437,7 @@ export default {
 	beforeUnmount() {
 		unsubscribe('cn:page:refresh', this.onPageRefresh)
 		unsubscribe('cn:conversation:reply-sent', this.onReplySentElsewhere)
+		this.stopPolling()
 	},
 
 	methods: {
@@ -526,9 +565,10 @@ export default {
 		 */
 		rawMessages() {
 			const c = this.content || {}
-			const lists = !this.source && Array.isArray(c.fields) && c.fields.length > 0
+			const listed = Boolean(this.source || this.endpointSource)
+			const lists = !listed && Array.isArray(c.fields) && c.fields.length > 0
 				? c.fields.filter((entry) => entry && typeof entry.field === 'string').map((entry) => ({ list: readPath(this.objectData || {}, entry.field), side: entry.side === 'us' ? 'us' : 'them', prefix: entry.field }))
-				: [{ list: this.source ? this.listed : readPath(this.objectData || {}, c.field || 'messages'), side: '', prefix: 'message' }]
+				: [{ list: listed ? this.listed : readPath(this.objectData || {}, c.field || 'messages'), side: '', prefix: 'message' }]
 			return lists.flatMap(({ list, side, prefix }) => (Array.isArray(list) ? list : [])
 				.filter((message) => message && typeof message === 'object')
 				.map((message, index) => ({ message, side, key: String(message.id ?? `${prefix}-${index}`) })))
@@ -767,6 +807,10 @@ export default {
 		 * @spec openspec/changes/conversation-source/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-a-list-and-maps-their-parts
 		 */
 		async loadSource() {
+			if (this.endpointSource) {
+				await this.loadEndpointSource(false)
+				return
+			}
 			if (!this.source) {
 				return
 			}
@@ -785,6 +829,105 @@ export default {
 				this.listed = []
 			} finally {
 				this.loading = false
+			}
+		},
+
+		/**
+		 * Read the messages from `source.url`. A url whose token does not
+		 * resolve sends no request and stops polling. A first read that fails
+		 * leaves the thread empty; a poll that fails keeps the last messages.
+		 *
+		 * @spec openspec/changes/conversation-endpoint-poll/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-an-endpoint-and-reads-them-again
+		 * @param {boolean} polled Whether this is a poll (no loading state).
+		 * @return {Promise<void>}
+		 */
+		async loadEndpointSource(polled) {
+			const url = this.fillUrl(this.endpointSource.url)
+			if (url === '') {
+				this.listed = []
+				this.stopPolling()
+				return
+			}
+			if (!polled) {
+				this.loading = true
+			}
+			try {
+				const { data } = await axios.get(prefixUrl(url))
+				const path = this.endpointSource.responsePath
+				const list = typeof path === 'string' && path !== '' ? readPath(data, path) : data
+				this.listed = Array.isArray(list) ? list : []
+				this.sentHere = []
+				if (this.pollStops(data)) {
+					this.stopPolling()
+				}
+			} catch {
+				if (!polled) {
+					this.listed = []
+				}
+			} finally {
+				this.loading = false
+			}
+		},
+
+		/**
+		 * Fill `@objectId` and `@object.<path>` anywhere in a url.
+		 *
+		 * @spec openspec/changes/conversation-endpoint-poll/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-an-endpoint-and-reads-them-again
+		 * @param {string} url The url with tokens.
+		 * @return {string} The url, or '' when a token has no value.
+		 */
+		fillUrl(url) {
+			let missing = false
+			const filled = url.replace(/@objectId\b|@object\.([A-Za-z0-9_.]+[A-Za-z0-9_])/g, (token, path) => {
+				const value = path === undefined ? this.objectId : readPath(this.objectData || {}, path)
+				if (value === undefined || value === null || value === '') {
+					missing = true
+					return ''
+				}
+				return encodeURIComponent(String(value))
+			})
+			return missing ? '' : filled
+		},
+
+		/**
+		 * Whether the endpoint's answer ends the polling (`pollUntil: { path, in }`).
+		 *
+		 * @spec openspec/changes/conversation-endpoint-poll/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-an-endpoint-and-reads-them-again
+		 * @param {object} data The answer.
+		 * @return {boolean}
+		 */
+		pollStops(data) {
+			const until = this.content?.pollUntil
+			if (!until || typeof until.path !== 'string' || !Array.isArray(until.in)) {
+				return false
+			}
+			const value = readPath(data || {}, until.path)
+			return until.in.map(String).includes(String(value))
+		},
+
+		/**
+		 * Start reading the source again every `pollSeconds`.
+		 *
+		 * @spec openspec/changes/conversation-endpoint-poll/specs/conversation-source/spec.md#requirement-a-conversation-reads-its-messages-from-an-endpoint-and-reads-them-again
+		 */
+		startPolling() {
+			if (this.pollMs === 0 || this.pollTimer !== null || !(this.source || this.endpointSource)) {
+				return
+			}
+			this.pollTimer = setInterval(() => {
+				if (this.endpointSource) {
+					this.loadEndpointSource(true)
+				} else {
+					this.loadSource()
+				}
+			}, this.pollMs)
+		},
+
+		/** Stop the `pollSeconds` timer. */
+		stopPolling() {
+			if (this.pollTimer !== null) {
+				clearInterval(this.pollTimer)
+				this.pollTimer = null
 			}
 		},
 
@@ -816,7 +959,7 @@ export default {
 			} catch {
 				return
 			}
-			if (this.source) {
+			if (this.source || this.endpointSource) {
 				await this.loadSource()
 				return
 			}
@@ -856,6 +999,14 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
 		 */
 		async onSent(data) {
+			if (this.endpointSource) {
+				// The endpoint holds the thread: read it again for the stored reply.
+				if (this.draftUrl) {
+					this.storeDraft('')
+				}
+				await this.loadSource()
+				return
+			}
 			const text = data?.message ?? data?.text
 			if (typeof text !== 'string' || text === '') {
 				// The answer does not echo the reply: read the record again so the stored message shows.
