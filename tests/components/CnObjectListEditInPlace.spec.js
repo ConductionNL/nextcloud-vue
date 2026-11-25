@@ -53,8 +53,27 @@ describe('a list that edits a row in its own form', () => {
 		await flush()
 		await w.vm.openEdit(STATUS)
 		await w.vm.onEditConfirm({ name: 'Intake en triage', order: 1 })
-		expect(axios.patch).toHaveBeenCalledWith('/apps/openregister/api/objects/dossiq/statusType/s1', { name: 'Intake en triage' })
+		expect(axios.patch).toHaveBeenCalledWith(
+			'/apps/openregister/api/objects/dossiq/statusType/s1',
+			{ name: 'Intake en triage' },
+			{ headers: { 'X-Translation-Target-Language': 'en' } },
+		)
 		expect(w.emitted('updated')[0][0]).toEqual({ id: 's1', changes: { name: 'Intake en triage' } })
+	})
+
+	it('names the page language as the write target, the values plain strings', async () => {
+		document.documentElement.lang = 'nl'
+		try {
+			const w = mountList()
+			await flush()
+			await w.vm.openEdit(STATUS)
+			await w.vm.onEditConfirm({ name: 'Intake en triage', order: 1 })
+			const [, body, config] = axios.patch.mock.calls[0]
+			expect(config.headers['X-Translation-Target-Language']).toBe('nl')
+			expect(typeof body.name).toBe('string')
+		} finally {
+			document.documentElement.lang = ''
+		}
 	})
 
 	it('writes nothing when nothing changed', async () => {
