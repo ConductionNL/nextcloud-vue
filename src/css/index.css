@@ -26,11 +26,9 @@
 @import 'gridstack/dist/gridstack.min.css';
 
 @import './main.css';
-@import './look-board.css';
 @import './dialog.css';
 @import './form-field.css';
 @import './board.css';
-@import './look-board-index.css';
 @import './table.css';
 @import './card.css';
 @import './pagination.css';
@@ -47,10 +45,22 @@
 @import './index-sidebar.css';
 @import './dashboard.css';
 @import './detail-page.css';
-@import './look-board-detail.css';
-@import './look-board-reports.css';
 @import './reference-preview.css';
 @import './CnSchemaFormDialog.css';
 @import './timeline-stages.css';
 @import './context-menu.css';
 @import './patches.css';
+
+/* The board look, last and between markers: the published ESM build cuts
+ * this block out into its own sheet that stays switched off until a component
+ * resolves the board look (src/utils/boardLookStyle.js). Its ~260 `:has()`
+ * rules otherwise cost every page style invalidation work. Every rule in these
+ * files is scoped to `.cn-look-board`, so their place after the other files
+ * changes no cascade outcome (no selector in a later file repeats one of
+ * theirs with the same property). */
+@import './look-board-sheet-start.css';
+@import './look-board.css';
+@import './look-board-index.css';
+@import './look-board-detail.css';
+@import './look-board-reports.css';
+@import './look-board-sheet-end.css';

@@ -1452,6 +1452,7 @@ import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
 import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import {
@@ -6295,6 +6296,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Switch the board-look rules on before the first render in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		isBoard: {
+			immediate: true,
+			handler(value) {
+				if (value === true) {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
 		objectActionsKey: {
 			immediate: true,
 			handler() {
