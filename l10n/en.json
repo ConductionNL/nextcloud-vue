@@ -1627,6 +1627,7 @@
     "Started": "Started",
     "Every run of this app's flows since Monday, newest first.": "Every run of this app's flows since Monday, newest first.",
     "New flow": "New flow",
+    "Force run": "Force run",
     "1 step": "1 step",
     "Check": "Check",
     "Delete step": "Delete step",

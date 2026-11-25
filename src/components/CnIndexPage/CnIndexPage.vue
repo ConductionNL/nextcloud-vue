@@ -8850,6 +8850,27 @@ export default {
 					if (!manifestDeclared && a.action === 'open' && typeof a.handler !== 'function') {
 						return { ...a, handler: (row) => this.openSourceRow(row) }
 					}
+					// A source-declared action with a STRING handler names a
+					// registry entry the consuming app is expected to supply
+					// (a source is shared across apps and cannot import one
+					// app's handler) — see indexSources.js's flowsSource().
+					// Unlike a manifest action's `handler: 'emit'`/`'none'`,
+					// nothing here bubbles an `@action` event a page might
+					// still listen for, so an app that never registered it
+					// would otherwise get a menu item that silently does
+					// nothing on click. Drop it instead, with a dev warning so
+					// the gap is visible before a user finds it.
+					if (!manifestDeclared && typeof a.handler === 'string') {
+						const fn = resolveRegisteredHandler(a.handler, ctx.registry, ctx.customComponents)
+						if (typeof fn !== 'function') {
+							if (process.env.NODE_ENV !== 'production') {
+								// eslint-disable-next-line no-console
+								console.warn(`[CnIndexPage] "${this.title}": source action ${JSON.stringify(a.id ?? a.label)} `
+									+ `names handler "${a.handler}", which this app has not registered; hiding the action.`)
+							}
+							return null
+						}
+					}
 					return dispatchAction(a, ctx)
 				},
 			})

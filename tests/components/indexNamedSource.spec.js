@@ -196,9 +196,12 @@ describe('a named source supplies its row actions', () => {
 
 		const acts = mergedActions({ isNamedSource: true, namedSource: source })
 
-		expect(acts.length).toBe(2)
+		// No `effectiveRegistry` in this context: 'runFlowHandler' resolves to
+		// nothing, so the source's "Force run" entry is dropped (see "a
+		// source-declared action with an unresolvable handler" below) and
+		// only its one function-handler action (Edit) survives.
+		expect(acts.length).toBe(1)
 		expect(acts[0].label).toBe('Edit')
-		expect(acts[1].label).toBe('Force run')
 	})
 
 	it('lets an explicit manifest action list win over the source', () => {
@@ -233,7 +236,58 @@ describe('a named source supplies its row actions', () => {
 			defaultActions: [{ id: 'view', label: 'View' }],
 		})
 
-		expect(acts.map((a) => a.label)).toEqual(['Edit', 'Force run', 'View'])
+		expect(acts.map((a) => a.label)).toEqual(['Edit', 'View'])
+	})
+})
+
+describe('a source-declared action with an unresolvable handler is dropped', () => {
+	/**
+	 * `flowsSource()`'s "Force run" entry names `handler: 'runFlowHandler'` —
+	 * a registry entry the CONSUMING APP supplies, since this source is
+	 * shared across apps and cannot import one app's handler. An app that
+	 * never registers it must not get a menu item that silently does nothing
+	 * on click: unlike a manifest action's `handler: 'emit'`/`'none'`, there is
+	 * no page listening for a bare `@action` event here.
+	 */
+	const mergedActions = (ctx) => {
+		const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+		return CnIndexPage.computed.mergedActions.call({
+			$router: null,
+			rowKey: 'id',
+			effectiveCustomComponents: {},
+			effectiveRegistry: {},
+			defaultActions: [],
+			actions: [],
+			isNamedSource: true,
+			...ctx,
+		})
+	}
+
+	it('hides the action when the app registers nothing', () => {
+		const { indexSources } = require('../../src/composables/indexSources.js')
+
+		const acts = mergedActions({ namedSource: indexSources.flows() })
+
+		expect(acts.map((a) => a.id)).not.toContain('run')
+		expect(acts.map((a) => a.label)).not.toContain('Force run')
+	})
+
+	it('calls the registered function with { actionId, item } once the app supplies one', () => {
+		const { indexSources } = require('../../src/composables/indexSources.js')
+		const runFlowHandler = jest.fn()
+
+		const acts = mergedActions({
+			namedSource: indexSources.flows(),
+			effectiveRegistry: { runFlowHandler },
+		})
+
+		const run = acts.find((a) => a.id === 'run')
+		expect(run.label).toBe('Force run')
+		expect(typeof run.handler).toBe('function')
+
+		const row = { id: 'f1' }
+		run.handler(row)
+		expect(runFlowHandler).toHaveBeenCalledWith({ actionId: 'run', item: row })
 	})
 })
 
@@ -496,7 +550,9 @@ describe('the source Edit action navigates', () => {
 			openSourceRow: (row) => opened.push(row),
 		})
 
-		expect(acts.map((a) => a.label)).toEqual(['Edit', 'Force run'])
+		// No `effectiveRegistry` in this context: 'runFlowHandler' resolves to
+		// nothing, so "Force run" is dropped and only Edit survives.
+		expect(acts.map((a) => a.label)).toEqual(['Edit'])
 		// The defect this pins: the action carried `action: 'open'`, dispatch
 		// read only `handler`/`type`, and the entry rendered dead in the menu.
 		expect(typeof acts[0].handler).toBe('function')

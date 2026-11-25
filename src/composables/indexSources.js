@@ -308,11 +308,12 @@ function flowsSource(config = {}) {
 			{ id: 'edit', label: t('nextcloud-vue', 'Edit'), icon: Pencil, action: 'open' },
 			// `handler` is a REGISTRY NAME, not a function: a named source is
 			// shared across apps (Integriq, Hermiq, ...) and must not import one
-			// app's handler. Each consuming app registers 'runFlowHandler'
-			// against its own run-action modal (Integriq: see
-			// handlers/actionHandlers.js + modals/v2/runTargets.js's
-			// 'flow/run' descriptor, which POSTs the existing
-			// `/api/flows/{id}/run` endpoint and renders the FlowRun result).
+			// app's handler. An app enables this action by registering
+			// 'runFlowHandler', which is called with { actionId, item } (the
+			// clicked row) — same contract as any other app-registered row
+			// action. An app that registers nothing never sees the action: an
+			// unresolvable source handler is dropped rather than rendered dead
+			// (see CnIndexPage's mergedActions).
 			{ id: 'run', label: t('nextcloud-vue', 'Force run'), icon: Play, handler: 'runFlowHandler' },
 		],
 
