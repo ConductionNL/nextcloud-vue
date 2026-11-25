@@ -74,8 +74,8 @@ describe('CnPageRenderer — lifted fields on type:"custom" pages', () => {
 })
 
 describe('CnPageRenderer — lifted fields on a lazily registered custom page', () => {
-	const { defineAsyncComponent } = require('vue')
 	const { flushPromises } = require('@vue/test-utils')
+	const { defineAsyncComponent } = require('vue')
 	const { lazyComponent } = require('../../src/utils/lazyComponent.js')
 
 	it('forwards title to a defineAsyncComponent page once it resolves', async () => {
