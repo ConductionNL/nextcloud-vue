@@ -1501,7 +1501,6 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -1552,6 +1551,7 @@ import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
@@ -1590,35 +1590,19 @@ import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnBoardView } from '../CnBoardView/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
-import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
-import { CnDateAxisView } from '../CnDateAxisView/index.js'
-import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnExpandableRow } from '../CnExpandableRow/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
-import { CnMapWidget } from '../CnMapWidget/index.js'
-import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
-import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
-import { CnObjectCalendar } from '../CnObjectCalendar/index.js'
 import { CnObjectList } from '../CnObjectList/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
-import { CnSavedViewEditDialog } from '../CnSavedViewEditDialog/index.js'
-import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
-import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
-import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { CnScanField } from '../CnScanField/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
@@ -1630,6 +1614,26 @@ import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { declaredSearchFields, useNamedSource } from './useNamedSource.js'
 import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
+
+// Dialogs and the alternate list views render only once opened or chosen, so
+// they load on first render instead of riding in the index page's chunk.
+const CnAdvancedFormDialog = lazyComponent(() => import('../CnAdvancedFormDialog/CnAdvancedFormDialog.vue'), 'CnAdvancedFormDialog')
+const CnBoardView = lazyComponent(() => import('../CnBoardView/CnBoardView.vue'), 'CnBoardView')
+const CnCopyDialog = lazyComponent(() => import('../CnCopyDialog/CnCopyDialog.vue'), 'CnCopyDialog')
+const CnDateAxisView = lazyComponent(() => import('../CnDateAxisView/CnDateAxisView.vue'), 'CnDateAxisView')
+const CnDeleteDialog = lazyComponent(() => import('../CnDeleteDialog/CnDeleteDialog.vue'), 'CnDeleteDialog')
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
+const CnMapWidget = lazyComponent(() => import('../CnMapWidget/CnMapWidget.vue'), 'CnMapWidget')
+const CnMassCopyDialog = lazyComponent(() => import('../CnMassCopyDialog/CnMassCopyDialog.vue'), 'CnMassCopyDialog')
+const CnMassDeleteDialog = lazyComponent(() => import('../CnMassDeleteDialog/CnMassDeleteDialog.vue'), 'CnMassDeleteDialog')
+const CnMassExportDialog = lazyComponent(() => import('../CnMassExportDialog/CnMassExportDialog.vue'), 'CnMassExportDialog')
+const CnMassImportDialog = lazyComponent(() => import('../CnMassImportDialog/CnMassImportDialog.vue'), 'CnMassImportDialog')
+const CnObjectCalendar = lazyComponent(() => import('../CnObjectCalendar/CnObjectCalendar.vue'), 'CnObjectCalendar')
+const CnQuickEditDialog = lazyComponent(() => import('../../dialogs/CnQuickEditDialog.vue'), 'CnQuickEditDialog')
+const CnSaveViewDialog = lazyComponent(() => import('../CnSaveViewDialog/CnSaveViewDialog.vue'), 'CnSaveViewDialog')
+const CnSavedViewEditDialog = lazyComponent(() => import('../CnSavedViewEditDialog/CnSavedViewEditDialog.vue'), 'CnSavedViewEditDialog')
+const CnSavedViewPresentationDialog = lazyComponent(() => import('../CnSavedViewPresentationDialog/CnSavedViewPresentationDialog.vue'), 'CnSavedViewPresentationDialog')
+const CnSavedViewShareDialog = lazyComponent(() => import('../CnSavedViewShareDialog/CnSavedViewShareDialog.vue'), 'CnSavedViewShareDialog')
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
