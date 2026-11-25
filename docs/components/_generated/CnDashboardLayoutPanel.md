@@ -8,9 +8,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name    | Type    | Required | Default | Description                                                          |
-| ------- | ------- | -------- | ------- | -------------------------------------------------------------------- |
-| `items` | `array` |          | `[]`    | The page's sections in their current order: `{ id, label, hidden }`. |
+| Name    | Type    | Required | Default | Description                                                                                                 |
+| ------- | ------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `items` | `array` |          | `[]`    | The page's sections in their current order: `{ id, label, hidden, locked }`; a locked one cannot be hidden. |
 
 ### Events
 

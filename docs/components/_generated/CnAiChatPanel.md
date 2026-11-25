@@ -21,10 +21,10 @@
 
 ### Events
 
-| Name                | Payload                  | Description                                                  |
-| ------------------- | ------------------------ | ------------------------------------------------------------ |
-| `close`             | —                        |                                                              |
-| `send`              | `undefined`, `undefined` |                                                              |
-| `new-thread`        | —                        |                                                              |
-| `load-conversation` | —                        |                                                              |
-| `menu`              | —                        | The session controls of a titled panel, for its card's menu. |
+| Name                | Payload                               | Description                                                  |
+| ------------------- | ------------------------------------- | ------------------------------------------------------------ |
+| `close`             | —                                     |                                                              |
+| `send`              | `undefined`, `undefined`, `undefined` |                                                              |
+| `new-thread`        | —                                     |                                                              |
+| `load-conversation` | —                                     |                                                              |
+| `menu`              | —                                     | The session controls of a titled panel, for its card's menu. |
