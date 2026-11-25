@@ -505,6 +505,22 @@ describe('useEndpointSource — reactive binding', () => {
 		expect(axios.get).toHaveBeenCalledTimes(2)
 	})
 
+	// @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-says-when-its-data-may-be-outdated
+	it('hands a page refresh the outcome of its read: true when it answered, false when it failed', async () => {
+		axios.get.mockResolvedValue({ data: { v: 1 } })
+		useEndpointSource({ url: '/api/outcome' })
+		await flush()
+
+		const answered = []
+		fireBus('cn:page:refresh', { waitUntil: (p) => answered.push(p) })
+		expect(await answered[0]).toBe(true)
+
+		axios.get.mockRejectedValue(Object.assign(new Error('down'), { response: { status: 503 } }))
+		const failed = []
+		fireBus('cn:page:refresh', { waitUntil: (p) => failed.push(p) })
+		expect(await failed[0]).toBe(false)
+	})
+
 	it('force-refetches on cn:widget:refresh ONLY for a matching non-empty widgetId', async () => {
 		axios.get.mockResolvedValue({ data: { v: 1 } })
 		useEndpointSource({ url: '/api/x' }, { widgetId: 'kpi-1' })

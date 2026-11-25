@@ -2947,6 +2947,7 @@
     "Shown": "Shown",
     "Hidden": "Hidden",
     "Always shown": "Always shown",
+    "Data may be outdated. Last updated: {time}": "Data may be outdated. Last updated: {time}",
     "Collapse {title}": "Collapse {title}",
     "Expand {title}": "Expand {title}",
     "Back to default": "Back to default",
