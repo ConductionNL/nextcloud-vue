@@ -963,7 +963,12 @@ export default {
 			return (typeof value === 'string' || typeof value === 'number') ? String(value) : ''
 		},
 
-		/** @return {string} The active target's label, its id where no label is known. */
+		/**
+		 * The active target's label, its id where no label is known.
+		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
+		 * @return {string}
+		 */
 		activeTargetLabel() {
 			const option = this.targetOptions.find((target) => target.id === this.resolvedActiveTarget)
 			return option ? option.label : this.resolvedActiveTarget
@@ -1181,8 +1186,10 @@ export default {
 		 * @return {string} The built-in section heading.
 		 */
 		/**
-		 * The cards the chosen lens shows (board look); every card otherwise.
+		 * The cards the chosen lens shows (board look); every card otherwise,
+		 * within the cards that fit the active target.
 		 *
+		 * @spec openspec/changes/store-fits-active-target/specs/store-page/spec.md#requirement-the-list-narrows-to-the-items-that-fit-the-active-target
 		 * @return {Array<object>}
 		 */
 		visibleCards() {
