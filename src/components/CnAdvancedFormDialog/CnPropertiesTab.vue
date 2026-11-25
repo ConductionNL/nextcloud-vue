@@ -63,7 +63,16 @@
 									class="cn-advanced-form-dialog__validation-icon cn-advanced-form-dialog__validation-icon--lock"
 									:size="16"
 									:title="getEditabilityWarning(key, resolvedValue(key, value)) || ''" />
-								<span :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
+								<button
+									v-if="isPropertySelectable(key, value)"
+									type="button"
+									class="cn-advanced-form-dialog__prop-name-button"
+									:title="getPropertyTooltip(key)"
+									:aria-expanded="selectedProperty === key ? 'true' : 'false'"
+									@click.stop="selectProperty(key)">
+									{{ getPropertyDisplayName(key) }}
+								</button>
+								<span v-else :title="getPropertyTooltip(key)">{{ getPropertyDisplayName(key) }}</span>
 								<span
 									v-if="isRequired(key) && !isBoardLook"
 									class="cn-advanced-form-dialog__required-indicator"
@@ -647,14 +656,39 @@ export default {
 			if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.closest('.cn-advanced-form-dialog__value-input-container')) {
 				return
 			}
-			const value = this.resolvedValue(key, this.objectProperties.find(([k]) => k === key)?.[1])
-			if (!this.isPropertyEditable(key, value)) {
+			const value = this.objectProperties.find(([k]) => k === key)?.[1]
+			if (!this.isPropertySelectable(key, value)) {
 				return
+			}
+			this.selectProperty(key)
+		},
+
+		/**
+		 * Whether a row can be opened for editing: its value is editable and its
+		 * type is one the table edits inline.
+		 *
+		 * @spec openspec/changes/properties-table-by-keyboard/specs/properties-table-by-keyboard/spec.md#requirement-a-property-row-opens-from-the-keyboard
+		 * @param {string} key The property key.
+		 * @param {object|string|number|boolean|null} value The row's raw value.
+		 * @return {boolean}
+		 */
+		isPropertySelectable(key, value) {
+			if (!this.isPropertyEditable(key, this.resolvedValue(key, value))) {
+				return false
 			}
 			const prop = this.schema?.properties?.[key]
-			if (prop && !this.editableTypes.includes(prop.type || 'string')) {
-				return
-			}
+			return !(prop && !this.editableTypes.includes(prop.type || 'string'))
+		},
+
+		/**
+		 * Open a row for editing and move focus into its input. A click on the
+		 * row and Enter or Space on its name both land here.
+		 *
+		 * @spec openspec/changes/properties-table-by-keyboard/specs/properties-table-by-keyboard/spec.md#requirement-a-property-row-opens-from-the-keyboard
+		 * @param {string} key The property key.
+		 * @return {void}
+		 */
+		selectProperty(key) {
 			this.$emit('update:selected-property', key)
 			this.$nextTick(() => {
 				const ref = this.$refs['cell-' + key]
@@ -811,6 +845,18 @@ export default {
 
 .cn-advanced-form-dialog__validation-icon {
 	flex-shrink: 0;
+}
+
+/* The property name is the row's keyboard handle: it looks like the label it replaces. */
+.cn-advanced-form-dialog__prop-name-button {
+	all: unset;
+	cursor: pointer;
+	border-radius: var(--border-radius, 3px);
+}
+
+.cn-advanced-form-dialog__prop-name-button:focus-visible {
+	outline: 2px solid var(--color-main-text);
+	outline-offset: 2px;
 }
 
 .cn-advanced-form-dialog__validation-icon--error {
