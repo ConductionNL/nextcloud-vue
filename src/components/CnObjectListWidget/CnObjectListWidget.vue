@@ -2561,7 +2561,11 @@ export default {
 		/**
 		 * Save an edited row: a PATCH of the keys the form changed, so every
 		 * key it does not show keeps its stored value; nothing when nothing
-		 * changed. A refusal shows the server's message in the dialog.
+		 * changed. A refusal shows the server's message in the dialog. The
+		 * PATCH names the language the values were typed in with
+		 * `X-Translation-Target-Language` (the same language the rows were
+		 * read in with `?_lang=`), so OpenRegister files a translatable
+		 * string under that language; the values stay plain strings.
 		 *
 		 * @param {object} formData The edited values.
 		 * @return {Promise<void>}
@@ -2575,7 +2579,11 @@ export default {
 			try {
 				if (id !== '' && Object.keys(changes).length > 0) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
-					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }),
+						changes,
+						{ headers: { 'X-Translation-Target-Language': requestLanguage() } },
+					)
 				}
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })
