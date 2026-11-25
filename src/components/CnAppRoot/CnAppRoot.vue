@@ -755,6 +755,7 @@ import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { appShownName } from '../../utils/appShownName.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
@@ -3380,6 +3381,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Switch the board-look rules on before the first render in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		resolvedLook: {
+			immediate: true,
+			handler(value) {
+				if (value === 'board') {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
 		// Only an app with a page that offers saved views reads the list,
 		// once, when such a page first appears in the manifest.
 		offersSavedViews: {

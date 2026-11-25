@@ -361,6 +361,7 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	}
 	return entityDescriptorCache.get(key).catch(() => null)
 }
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
 
 const CnWidgetGrid = defineAsyncComponent(() => import('../CnWidgetGrid/CnWidgetGrid.vue').then((m) => m.default))
@@ -1701,34 +1702,49 @@ export default {
 		},
 	},
 
-	watch: { /**
-										 * Auto-register object types for `type:"custom"` pages whose
-										 * manifest config declares `register` + `schema` (single type)
-										 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
-										 *
-										 * For `type:"index"` and `type:"detail"` pages, the underlying
-										 * CnIndexPage / CnDetailPage components self-register when
-										 * mounted with `register` + `schema` props — so the renderer
-										 * does nothing extra for those. Custom components have no such
-										 * guarantee: they are bespoke per-app Vue components and would
-										 * each have to remember to call `registerObjectType` in their
-										 * own `mounted()` hook. Mirroring index/detail's zero-config
-										 * behaviour for the manifest-driven custom case (declared
-										 * `register` + `schema`) keeps the manifest the single source
-										 * of truth and removes a per-component landmine.
-										 *
-										 * Runs `immediate: true` so first mount registers before the
-										 * custom component's mounted() hook fires; re-runs on route
-										 * change in case the same CnPageRenderer instance is reused
-										 * for a different `type:"custom"` page.
-										 *
-										 * Defensive: every step is wrapped — a Pinia-not-installed
-										 * test harness, a missing store method, or a thrown error
-										 * inside `registerObjectType` all degrade to a single
-										 * `console.warn` so the page still mounts.
-										 *
-										 * See issue ConductionNL/nextcloud-vue#341.
-										 */
+	watch: {
+		/**
+		 * Switch the board-look rules on before the first render of a page drawn in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		resolvedLook: {
+			immediate: true,
+			handler(value) {
+				if (value === 'board') {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
+		/**
+		 * Auto-register object types for `type:"custom"` pages whose
+		 * manifest config declares `register` + `schema` (single type)
+		 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
+		 *
+		 * For `type:"index"` and `type:"detail"` pages, the underlying
+		 * CnIndexPage / CnDetailPage components self-register when
+		 * mounted with `register` + `schema` props — so the renderer
+		 * does nothing extra for those. Custom components have no such
+		 * guarantee: they are bespoke per-app Vue components and would
+		 * each have to remember to call `registerObjectType` in their
+		 * own `mounted()` hook. Mirroring index/detail's zero-config
+		 * behaviour for the manifest-driven custom case (declared
+		 * `register` + `schema`) keeps the manifest the single source
+		 * of truth and removes a per-component landmine.
+		 *
+		 * Runs `immediate: true` so first mount registers before the
+		 * custom component's mounted() hook fires; re-runs on route
+		 * change in case the same CnPageRenderer instance is reused
+		 * for a different `type:"custom"` page.
+		 *
+		 * Defensive: every step is wrapped — a Pinia-not-installed
+		 * test harness, a missing store method, or a thrown error
+		 * inside `registerObjectType` all degrade to a single
+		 * `console.warn` so the page still mounts.
+		 *
+		 * See issue ConductionNL/nextcloud-vue#341.
+		 */
 		currentPage: {
 			immediate: true,
 			handler() {
