@@ -680,7 +680,7 @@ page title.
 
 ## A view for some readers only (`views[].visibleWhen`)
 
-A view can carry `visibleWhen`, the same condition a widget takes (manifest schema 2.200.0). The view is offered only when the
+A view can carry `visibleWhen`, the same condition a widget takes (manifest schema 2.201.0). The view is offered only when the
 condition holds for the reader: a school's Today offers "Mentor" only to a teacher who mentors a group. The condition is read once
 when the page opens. Until it answers, and when it cannot be read, the view is not offered (fail-safe). When the views left out
 leave a single view, the page draws no switch, and an address naming a hidden view opens the default view instead.
@@ -697,6 +697,7 @@ leave a single view, the page draws no switch, and an address naming a hidden vi
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.189.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
+| `layoutPanelLocked` | `Array<string>` | `[]` | Manifest `config.layoutPanelLocked` (schema 2.201.0). Widget ids the layout panel lists but does not let the user hide, such as the page's main work list. They can still be moved; their checkbox stays checked and disabled and reads "Always shown". Saving never stores them hidden, and a stored layout that hid one draws it anyway. |
 
 The board PqMijnWerkIndelen draws this. The sections swap places: the first section in the new order takes the place
 (column, row, width) of the first section in the old order, and so on, each keeping its own height, so the page keeps
