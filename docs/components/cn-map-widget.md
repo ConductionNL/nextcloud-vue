@@ -62,6 +62,21 @@ Not every map is the earth: a game world, a floor plan or a terrain drawing is a
 }
 ```
 
+### The picture from the record
+
+On a record's detail page (a `map` widget in the page's `widgets`), the image layer can take its picture from the record itself: `url`, `width` and `height` may be `@object.<path>` tokens (and `@objectId`). A file property resolves to its `downloadUrl`, else `accessUrl`, else `url` (the first file of a list). Until the record holds all three the map waits instead of opening as a geographic map; when the record changes the new picture replaces the old one.
+
+```json
+{
+  "id": "map-view",
+  "type": "map",
+  "content": {
+    "layers": [{ "type": "image", "url": "@object.image", "width": "@object.width", "height": "@object.height" }],
+    "markers": { "xField": "x", "yField": "y", "popupField": "label", "dataSource": { "register": "larp", "schema": "pin", "filter": { "map": "@objectId" } } }
+  }
+}
+```
+
 ## Base maps and the layer switcher
 
 `basemaps` declares the switchable **background** map(s). The first entry is live on load; when more than one is given, a Leaflet layer switcher appears in the top-right corner:

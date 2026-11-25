@@ -115,6 +115,7 @@ import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { safeHref } from '../../utils/safeHref.js'
 import { SAFE_MARKDOWN_DOMPURIFY_CONFIG } from '../../utils/safeMarkdownDompurifyConfig.js'
 import { fromImagePoint, hasImagePosition, imageBounds, paddedImageBounds, toImagePoint } from './imageCoordinates.js'
+import { resolveImageLayer } from './imageLayerSource.js'
 import { featureDetailUrl, spatialFilterRequest } from './spatialFilter.js'
 
 // Leaflet's own stylesheet positions the map panes, tiles the tile
@@ -308,7 +309,9 @@ export default {
 		 * Layer definitions. Each entry: `{ type: 'tile'|'wms'|'wfs'|'geojson'|'image', url, options }`.
 		 * `geojson` MAY supply inline `data` (FeatureCollection) instead of `url`.
 		 * `image` is `{ type: 'image', url, width, height }`: the map becomes a picture in flat
-		 * pixel coordinates ((0, 0) top left); other layers beside it are skipped.
+		 * pixel coordinates ((0, 0) top left); other layers beside it are skipped. On a record's
+		 * page `url`, `width` and `height` may be `@object.<path>` tokens (a file property gives
+		 * its download URL); the map opens once the record holds them.
 		 * Unknown types log a console.warn and are skipped.
 		 *
 		 * @type {Array<object>}
@@ -643,17 +646,52 @@ export default {
 		},
 
 		/**
+		 * The first `image` layer with its `@objectId` / `@object.<path>` tokens
+		 * resolved against the record, or null without one.
+		 *
+		 * @return {{url: unknown, width: unknown, height: unknown, pending: boolean}|null}
+		 * @spec openspec/changes/map-image-from-record/specs/manifest-map-widget/spec.md#requirement-an-image-layer-can-take-its-picture-from-the-record
+		 */
+		resolvedImageDef() {
+			return resolveImageLayer((this.cfg.layers || []).find((l) => l && l.type === 'image') || null, this.filterContext)
+		},
+
+		/**
+		 * Whether the image layer still waits for the record to hold its picture.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/map-image-from-record/specs/manifest-map-widget/spec.md#requirement-an-image-layer-can-take-its-picture-from-the-record
+		 */
+		imageLayerPending() {
+			return Boolean(this.resolvedImageDef && this.resolvedImageDef.pending)
+		},
+
+		/**
 		 * The image layer, when the map is a picture: the first `image` layer with
 		 * a safe URL and a positive width and height. Null for a geographic map.
 		 *
 		 * @return {{url: string, width: number, height: number}|null}
 		 */
 		imageLayer() {
-			const def = (this.cfg.layers || []).find((l) => l && l.type === 'image')
-			if (!def || safeHref(def.url) === '#' || !(def.width > 0) || !(def.height > 0)) {
+			const def = this.resolvedImageDef
+			if (!def || def.pending || safeHref(def.url) === '#' || !(def.width > 0) || !(def.height > 0)) {
 				return null
 			}
 			return { url: safeHref(def.url), width: Number(def.width), height: Number(def.height) }
+		},
+
+		/**
+		 * A key of the picture shown, so the record's picture opens the map and
+		 * another record's picture re-renders the layer.
+		 *
+		 * @return {string}
+		 */
+		imageLayerKey() {
+			if (this.imageLayerPending) {
+				return 'pending'
+			}
+			const image = this.imageLayer
+			return image ? `${image.url}|${image.width}|${image.height}` : ''
 		},
 
 		/**
@@ -826,6 +864,20 @@ export default {
 		},
 
 		/**
+		 * The record now holds the picture: open the map that waited for it, or
+		 * show the new picture on the open one.
+		 *
+		 * @spec openspec/changes/map-image-from-record/specs/manifest-map-widget/spec.md#requirement-an-image-layer-can-take-its-picture-from-the-record
+		 */
+		imageLayerKey() {
+			if (this.map) {
+				this.renderLayers()
+			} else if (this.L && !this.imageLayerPending && this.leafletAvailable !== false) {
+				this.initMap()
+			}
+		},
+
+		/**
 		 * @spec openspec/changes/map-layer-toggles/specs/map-layer-toggles/spec.md#requirement-a-map-can-offer-layers-to-switch-on-and-off
 		 */
 		toggleState() {
@@ -875,7 +927,10 @@ export default {
 			this.leafletAvailable = false
 			return
 		}
-		this.initMap()
+		// A picture from the record waits for the record (see `imageLayerKey`).
+		if (!this.imageLayerPending) {
+			this.initMap()
+		}
 	},
 
 	beforeUnmount() {
