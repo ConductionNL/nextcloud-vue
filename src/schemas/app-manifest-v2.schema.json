@@ -156,7 +156,7 @@
 							"summaryHint": { "type": "string", "description": "A line under this step's row in the summary recap, through the app's translate (setup-wizard-recap-and-repeatable)." },
 							"summaryEditable": { "type": "boolean", "description": "summary: each recap row gets a Change button that opens its step again (setup-wizard-recap-and-repeatable)." },
 							"onDemand": { "type": "boolean", "default": false, "description": "run-action: the step runs only when the user clicks Run, never automatically, and is never outstanding work (it does not open the wizard or decide where a resumed wizard starts). The summary ticks it only when its action succeeded in the current session and shows it as not run otherwise, whatever the server reports. For destructive steps an app reports as done on purpose so they never auto-run, such as removing example data." },
-							"healthCheck": { "type": "boolean", "default": false, "description": "summary: draw a health line under the recap from the setup status `health` block ({ ok, checks: [{ label, ok }] }): every check named when all pass, only the failing ones otherwise; no line without that block (setup-summary-health-line)." },
+							"healthCheck": { "type": "boolean", "default": false, "description": "summary: render a health recap." },
 							"component": { "type": "string", "description": "component: app-registered component name (or use the #step-<id> slot)." }
 						}
 					}

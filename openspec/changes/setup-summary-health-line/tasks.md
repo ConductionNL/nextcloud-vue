@@ -1,4 +1,4 @@
 - [x] Health line in CnSetupWizard (`healthLine()`, template, CSS)
 - [x] Change button keeps its label (`.cn-setup-summary__change`)
-- [x] Schema description for `healthCheck`, en and nl strings
+- [x] en and nl strings, docs (the schema already accepts `healthCheck`)
 - [x] Tests in tests/components/CnSetupWizardHealthLine.spec.js
