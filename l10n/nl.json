@@ -3225,6 +3225,7 @@
     "Shown": "Zichtbaar",
     "Hidden": "Verborgen",
     "Always shown": "Altijd zichtbaar",
+    "Data may be outdated. Last updated: {time}": "De gegevens zijn mogelijk verouderd. Laatst bijgewerkt: {time}",
     "Collapse {title}": "{title} inklappen",
     "Expand {title}": "{title} uitklappen",
     "Back to default": "Terug naar standaard",

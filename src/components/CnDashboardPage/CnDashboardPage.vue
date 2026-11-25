@@ -164,6 +164,23 @@
 					v-else-if="boardSecondaryHeaderActions.length"
 					:actions="boardSecondaryHeaderActions"
 					data-testid="cn-dashboard-page-header-actions-secondary" />
+				<!-- `autoRefresh`: a refresh button in the header that reads
+				     every widget again at once; it spins while they read. -->
+				<NcButton
+					v-if="autoRefreshConfig && autoRefreshConfig.button"
+					variant="tertiary"
+					class="cn-dashboard-page__refresh"
+					:class="{ 'cn-dashboard-page__refresh--busy': autoRefreshBusy }"
+					:aria-label="refreshLabel"
+					:title="refreshLabel"
+					:aria-busy="autoRefreshBusy ? 'true' : 'false'"
+					:disabled="autoRefreshBusy"
+					data-testid="cn-dashboard-page-refresh"
+					@click="runPageRefresh">
+					<template #icon>
+						<Refresh :size="20" />
+					</template>
+				</NcButton>
 				<!-- `layoutPanel`: opens the side panel where the user shows,
 				     hides and reorders the page's sections. -->
 				<NcButton
@@ -251,6 +268,23 @@
 					<slot v-if="!actionsFirst" name="actions" />
 				</template>
 			</div>
+		</div>
+
+		<!-- `autoRefresh`: the reads keep failing and what the page shows
+		     is older than `staleAfterSeconds`. The widgets stay as they are. -->
+		<div
+			v-if="autoRefreshStale"
+			class="cn-dashboard-page__stale"
+			role="status"
+			data-testid="cn-dashboard-page-stale">
+			<span>{{ staleText }}</span>
+			<NcButton
+				variant="secondary"
+				:disabled="autoRefreshBusy"
+				data-testid="cn-dashboard-page-stale-retry"
+				@click="runPageRefresh">
+				{{ t('nextcloud-vue', 'Retry') }}
+			</NcButton>
 		</div>
 
 		<!-- The layout panel (`layoutPanel`): a side panel at the right
@@ -1133,7 +1167,7 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { emit as emitOnBus, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
 import { defineAsyncComponent, inject, provide, ref, watch } from 'vue'
@@ -1142,6 +1176,7 @@ import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardEditOutline from 'vue-material-design-icons/ViewDashboardEditOutline.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
@@ -1171,6 +1206,7 @@ import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashb
 import { headerActionAsLink } from '../../utils/actionLink.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { normalizeAutoRefresh } from '../../utils/autoRefresh.js'
 import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
 import { downloadFileName, downloadPlanEntry, readDownloadRows, saveTextFile, toCsv } from '../../utils/dashboardDownload.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
@@ -1382,6 +1418,9 @@ function filledContent(content, config) {
  */
 const DESCRIPTION_REFRESH_EVENT = 'cn:dashboard:description-refresh'
 
+/** Longest a page refresh (`autoRefresh`) waits on its widgets' reads. */
+const AUTO_REFRESH_MAX_WAIT_MS = 15000
+
 export default {
 	name: 'CnDashboardPage',
 
@@ -1402,6 +1441,7 @@ export default {
 		Cog,
 		CalendarRange,
 		ViewDashboardOutline,
+		Refresh,
 		ViewDashboardEditOutline,
 		Download,
 		CnDashboardGrid,
@@ -2266,6 +2306,25 @@ export default {
 		},
 
 		/**
+		 * Read the page's widgets again on a timer, with a refresh button in
+		 * the header (manifest `config.autoRefresh`). `true` takes the
+		 * defaults; an object sets `intervalSeconds` (default 300),
+		 * `staleAfterSeconds` (default 600) and `button` (default true).
+		 * Every tick, and the button, fire `cn:page:refresh`, which the data
+		 * widgets read again on in place: no reload, the scroll position
+		 * stays. When the reads keep failing and the last good one is older
+		 * than `staleAfterSeconds`, a warning names its time and offers Retry.
+		 * `null` (the default) adds nothing.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @type {boolean|{intervalSeconds?: number, staleAfterSeconds?: number, button?: boolean}|null}
+		 */
+		autoRefresh: {
+			type: [Boolean, Object],
+			default: null,
+		},
+
+		/**
 		 * The Nextcloud app id the user layout is stored under.
 		 *
 		 * Required for `userLayout` to do anything: a preference has to be
@@ -2427,6 +2486,16 @@ export default {
 			userLayoutItems: null,
 			/** Whether the layout panel (`layoutPanel`) is open. */
 			layoutPanelOpen: false,
+			/** Whether a page refresh (`autoRefresh`) is reading. */
+			autoRefreshBusy: false,
+			/** When the widgets last read without an error (ms). */
+			autoRefreshLastGoodAt: Date.now(),
+			/** Whether the last page refresh had a read that failed. */
+			autoRefreshFailing: false,
+			/** When the last page refresh ended (ms): the clock the stale check reads. */
+			autoRefreshCheckedAt: Date.now(),
+			/** The `autoRefresh` interval timer. */
+			autoRefreshTimer: null,
 			/**
 			 * Folded state the user set in this session, by widget id
 			 * (`collapsible` widgets), over what the stored layout says.
@@ -2515,6 +2584,41 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The `autoRefresh` prop with its defaults, or null when off.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @return {{intervalSeconds: number, staleAfterSeconds: number, button: boolean}|null}
+		 */
+		autoRefreshConfig() {
+			return normalizeAutoRefresh(this.autoRefresh)
+		},
+
+		/**
+		 * Whether the page says its data may be outdated: the last refresh
+		 * failed and the last good read is older than `staleAfterSeconds`.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-says-when-its-data-may-be-outdated
+		 * @return {boolean}
+		 */
+		autoRefreshStale() {
+			const cfg = this.autoRefreshConfig
+			if (!cfg || !this.autoRefreshFailing) {
+				return false
+			}
+			return this.autoRefreshCheckedAt - this.autoRefreshLastGoodAt > cfg.staleAfterSeconds * 1000
+		},
+
+		/**
+		 * "Data may be outdated. Last updated: 14:05".
+		 *
+		 * @return {string}
+		 */
+		staleText() {
+			const time = new Date(this.autoRefreshLastGoodAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+			return t('nextcloud-vue', 'Data may be outdated. Last updated: {time}', { time })
+		},
+
 		/**
 		 * What each widget on the page contributes to the download, in the
 		 * order the page shows them: the KPI row, then the grid.
@@ -3525,9 +3629,11 @@ export default {
 		this.watchViewport()
 		this.loadDescription()
 		subscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
+		this.startAutoRefresh()
 	},
 
 	beforeUnmount() {
+		this.stopAutoRefresh()
 		unsubscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 		if (this.viewportQuery && typeof this.viewportQuery.removeEventListener === 'function') {
 			this.viewportQuery.removeEventListener('change', this.onViewportChange)
@@ -3540,6 +3646,74 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Start the `autoRefresh` timer, once.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @return {void}
+		 */
+		startAutoRefresh() {
+			const cfg = this.autoRefreshConfig
+			if (!cfg || this.autoRefreshTimer) {
+				return
+			}
+			this.autoRefreshTimer = setInterval(() => {
+				this.runPageRefresh()
+			}, cfg.intervalSeconds * 1000)
+		},
+
+		/**
+		 * Clear the `autoRefresh` timer.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @return {void}
+		 */
+		stopAutoRefresh() {
+			if (this.autoRefreshTimer) {
+				clearInterval(this.autoRefreshTimer)
+				this.autoRefreshTimer = null
+			}
+		},
+
+		/**
+		 * Read every widget again: fire `cn:page:refresh` and wait (15 s at
+		 * most) for the reads the widgets hand to `waitUntil`. A read that
+		 * answers `false` failed; any failure marks the page as failing,
+		 * otherwise the time becomes the last good read.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-says-when-its-data-may-be-outdated
+		 * @return {Promise<void>}
+		 */
+		async runPageRefresh() {
+			if (this.autoRefreshBusy) {
+				return
+			}
+			this.autoRefreshBusy = true
+			const work = []
+			const waitUntil = (promise) => {
+				work.push(Promise.resolve(promise))
+			}
+			emitOnBus('cn:page:refresh', { widgetId: this.resolvedPageId, title: this.title, waitUntil })
+			let ceiling
+			const timedOut = Symbol('timeout')
+			const settled = await Promise.race([
+				Promise.allSettled(work),
+				new Promise((resolve) => {
+					ceiling = setTimeout(() => resolve(timedOut), AUTO_REFRESH_MAX_WAIT_MS)
+				}),
+			])
+			clearTimeout(ceiling)
+			const failed = settled === timedOut
+				|| settled.some((result) => result.status === 'rejected' || result.value === false)
+			const now = Date.now()
+			this.autoRefreshFailing = failed
+			if (!failed) {
+				this.autoRefreshLastGoodAt = now
+			}
+			this.autoRefreshCheckedAt = now
+			this.autoRefreshBusy = false
+		},
+
 		/**
 		 * Read the figures of the download. A newer read wins over an older one.
 		 *
@@ -6107,6 +6281,37 @@ export default {
 </script>
 
 <style scoped>
+/* `autoRefresh`: the header button turns while the widgets read. */
+.cn-dashboard-page__refresh--busy :deep(.material-design-icon) {
+	animation: cn-dashboard-page-spin 1s linear infinite;
+}
+
+@keyframes cn-dashboard-page-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-dashboard-page__refresh--busy :deep(.material-design-icon) {
+		animation: none;
+	}
+}
+
+/* `autoRefresh`: the outdated-data warning above the grid. */
+.cn-dashboard-page__stale {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline, 4px));
+	margin: 0 0 calc(3 * var(--default-grid-baseline, 4px));
+	padding: calc(2 * var(--default-grid-baseline, 4px)) calc(3 * var(--default-grid-baseline, 4px));
+	border-radius: var(--border-radius-large);
+	border-inline-start: 4px solid var(--color-warning);
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
 .cn-dashboard-page {
 	padding: 20px;
 	max-width: 1800px;
