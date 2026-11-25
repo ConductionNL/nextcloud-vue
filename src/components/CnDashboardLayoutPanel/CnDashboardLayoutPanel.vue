@@ -56,12 +56,13 @@
 						type="checkbox"
 						class="cn-dashboard-layout-panel__check"
 						:checked="!entry.hidden"
+						:disabled="entry.locked"
 						:data-testid="`cn-dashboard-layout-panel-check-${entry.id}`"
 						@change="entry.hidden = !$event.target.checked">
 					<span class="cn-dashboard-layout-panel__name">{{ entry.label }}</span>
 				</label>
 				<span class="cn-dashboard-layout-panel__state" :class="{ 'cn-dashboard-layout-panel__state--hidden': entry.hidden }">
-					{{ entry.hidden ? t('nextcloud-vue', 'Hidden') : t('nextcloud-vue', 'Shown') }}
+					{{ stateLabel(entry) }}
 				</span>
 			</li>
 		</ol>
@@ -101,6 +102,11 @@ let panelCounter = 0
  *
  * @event close Emitted by the close button and Escape.
  * @event reset Emitted by "Back to default".
+ * A section marked `locked` can be moved but not hidden: its checkbox stays
+ * checked and disabled, and it reads "Always shown".
+ *
+ * @spec openspec/changes/dashboard-layout-panel-locked/specs/dashboard-page/spec.md#requirement-a-section-the-page-locks-stays-shown
+ *
  * @event save Emitted by "Save layout" with the entries in their new order, each `{ id, label, hidden }`.
  */
 export default {
@@ -109,7 +115,7 @@ export default {
 	components: { NcButton, Close, DragVertical },
 
 	props: {
-		/** The page's sections in their current order: `{ id, label, hidden }`. */
+		/** The page's sections in their current order: `{ id, label, hidden, locked }`; a locked one cannot be hidden. */
 		items: { type: Array, default: () => [] },
 	},
 
@@ -132,7 +138,10 @@ export default {
 		items: {
 			immediate: true,
 			handler(items) {
-				this.draft = (Array.isArray(items) ? items : []).map((entry) => ({ id: String(entry.id), label: entry.label || String(entry.id), hidden: entry.hidden === true }))
+				this.draft = (Array.isArray(items) ? items : []).map((entry) => {
+					const locked = entry.locked === true
+					return { id: String(entry.id), label: entry.label || String(entry.id), hidden: !locked && entry.hidden === true, locked }
+				})
 			},
 		},
 	},
@@ -145,6 +154,20 @@ export default {
 
 	methods: {
 		t,
+
+		/**
+		 * The state a section reads next to its name.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel-locked/specs/dashboard-page/spec.md#requirement-a-section-the-page-locks-stays-shown
+		 * @param {{hidden: boolean, locked: boolean}} entry The section.
+		 * @return {string}
+		 */
+		stateLabel(entry) {
+			if (entry.locked) {
+				return t('nextcloud-vue', 'Always shown')
+			}
+			return entry.hidden ? t('nextcloud-vue', 'Hidden') : t('nextcloud-vue', 'Shown')
+		},
 
 		/**
 		 * Move a section to another place in the draft.
@@ -201,7 +224,7 @@ export default {
 			/**
 			 * @event save Emitted by "Save layout" with the entries in their new order, each `{ id, label, hidden }`.
 			 */
-			this.$emit('save', this.draft.map((entry) => ({ ...entry })))
+			this.$emit('save', this.draft.map(({ locked, ...entry }) => ({ ...entry, hidden: !locked && entry.hidden === true })))
 		},
 
 		/** Ask to close the panel. */

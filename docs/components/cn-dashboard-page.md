@@ -683,6 +683,7 @@ page title.
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.189.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
+| `layoutPanelLocked` | `Array<string>` | `[]` | Manifest `config.layoutPanelLocked` (schema 2.200.0). Widget ids the layout panel lists but does not let the user hide, such as the page's main work list. They can still be moved; their checkbox stays checked and disabled and reads "Always shown". Saving never stores them hidden, and a stored layout that hid one draws it anyway. |
 
 The board PqMijnWerkIndelen draws this. The sections swap places: the first section in the new order takes the place
 (column, row, width) of the first section in the old order, and so on, each keeping its own height, so the page keeps

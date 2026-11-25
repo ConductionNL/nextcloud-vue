@@ -2234,6 +2234,20 @@ export default {
 		},
 
 		/**
+		 * Widget ids the layout panel lists but does not let the user hide
+		 * (manifest `config.layoutPanelLocked`): the page's main list, say.
+		 * They can still be moved, and a stored layout that hid one before
+		 * it was locked draws it all the same.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel-locked/specs/dashboard-page/spec.md#requirement-a-section-the-page-locks-stays-shown
+		 * @type {Array<string>}
+		 */
+		layoutPanelLocked: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
 		 * The Nextcloud app id the user layout is stored under.
 		 *
 		 * Required for `userLayout` to do anything: a preference has to be
@@ -2883,7 +2897,7 @@ export default {
 				return base
 			}
 
-			return base.filter((item) => !kpi.includes(item.widgetId) && item.hidden !== true)
+			return base.filter((item) => !kpi.includes(item.widgetId) && (item.hidden !== true || this.isLayoutLocked(item.widgetId)))
 		},
 
 		/**
@@ -2908,7 +2922,10 @@ export default {
 			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
 			return this.panelBaseLayout()
 				.filter((item) => item && !kpi.includes(item.widgetId))
-				.map((item) => ({ id: String(item.widgetId), label: this.getWidgetTitle(item) || String(item.widgetId), hidden: item.hidden === true }))
+				.map((item) => {
+					const locked = this.isLayoutLocked(item.widgetId)
+					return { id: String(item.widgetId), label: this.getWidgetTitle(item) || String(item.widgetId), hidden: !locked && item.hidden === true, locked }
+				})
 		},
 
 		/**
@@ -4342,6 +4359,18 @@ export default {
 		},
 
 		/**
+		 * Whether a widget is one the layout panel may not hide
+		 * (`layoutPanelLocked`).
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel-locked/specs/dashboard-page/spec.md#requirement-a-section-the-page-locks-stays-shown
+		 * @param {string} widgetId The widget id.
+		 * @return {boolean}
+		 */
+		isLayoutLocked(widgetId) {
+			return Array.isArray(this.layoutPanelLocked) && this.layoutPanelLocked.map(String).includes(String(widgetId))
+		},
+
+		/**
 		 * The page's own grid in reading order: the user's arrangement when
 		 * there is one, else the manifest layout.
 		 *
@@ -4389,7 +4418,7 @@ export default {
 			const ordered = (Array.isArray(entries) ? entries : []).filter((entry) => byId.has(String(entry.id)))
 			const arranged = ordered.map((entry, index) => {
 				const item = { ...byId.get(String(entry.id)), ...slots[index] }
-				if (entry.hidden === true) {
+				if (entry.hidden === true && !this.isLayoutLocked(entry.id)) {
 					item.hidden = true
 				} else {
 					delete item.hidden
