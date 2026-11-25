@@ -2932,13 +2932,23 @@ export default {
 				const res = await axios.get(url)
 				return (res && res.data) || null
 			}
+			const cachedOf = (id) => (store && store.objects && store.objects[type] && store.objects[type][id]) || null
+			const batched = await this.fetchAggregateRefsBatch(
+				store,
+				type,
+				{ register, schema },
+				[...new Set(keys.filter((id) => id && !cachedOf(id)))],
+			)
 			return Promise.all(keys.map(async (id) => {
 				if (!id) {
 					return { label: '', color: '' }
 				}
 				try {
-					const cached = store && store.objects && store.objects[type] && store.objects[type][id]
-					const obj = cached || (store ? await store.fetchObject(type, id) : await fetchViaAxios(id))
+					// The batch answers almost every key; a per-id read is left
+					// only for an id the batch did not return (a deleted target,
+					// or an OpenRegister that ignored `_ids`).
+					const obj = cachedOf(id) || batched.get(id)
+						|| (store ? await store.fetchObject(type, id) : await fetchViaAxios(id))
 					if (!obj || typeof obj !== 'object') {
 						return { label: '', color: '' }
 					}
@@ -2952,6 +2962,57 @@ export default {
 					return { label: '', color: '' }
 				}
 			}))
+		},
+
+		/**
+		 * Read the referenced objects of several aggregate keys in ONE list
+		 * request (`_ids=a,b,c`), instead of one GET per key. A chart of the
+		 * cases by status otherwise opens one request per status type, and on
+		 * a busy page those queue behind each other (DqDashboard: ~1.5 s each).
+		 * Rows are matched back by their own id, so a server that ignores
+		 * `_ids` labels nothing wrongly: the keys it did not return fall
+		 * through to the per-id read. Never throws.
+		 *
+		 * @param {object|null} store The shared object store, or null.
+		 * @param {string|null} type The store type of the referenced schema.
+		 * @param {{register: string, schema: string}} ref The referenced register and schema.
+		 * @param {string[]} ids Distinct ids not yet in the store.
+		 * @return {Promise<Map<string, object>>} The objects found, by id.
+		 * @spec openspec/changes/chart-label-resolve-batched/specs/chart-label-resolve-batched/spec.md#requirement-the-labels-of-a-chart-are-read-in-one-request
+		 */
+		async fetchAggregateRefsBatch(store, type, ref, ids) {
+			const found = new Map()
+			// One id costs the same as a per-id read, which also shares the
+			// store's in-flight dedup; batch only when it saves a request.
+			if (!Array.isArray(ids) || ids.length < 2) {
+				return found
+			}
+			const params = { _ids: ids.join(','), _limit: ids.length }
+			let rows = []
+			try {
+				if (store && type && typeof store.fetchCollectionForOptions === 'function') {
+					rows = await store.fetchCollectionForOptions(type, params)
+				} else if (!store) {
+					const [{ default: axios }, { generateUrl }] = await Promise.all([
+						import('@nextcloud/axios'),
+						import('@nextcloud/router'),
+					])
+					const url = generateUrl('/apps/openregister/api/objects/{register}/{schema}', ref)
+					const res = await axios.get(url, { params })
+					const data = (res && res.data) || {}
+					rows = data.results || data
+				}
+			} catch {
+				rows = []
+			}
+			const wanted = new Set(ids)
+			;(Array.isArray(rows) ? rows : []).forEach((row) => {
+				const id = row && (row.id ?? row.uuid ?? (row['@self'] && row['@self'].id))
+				if (id !== undefined && id !== null && wanted.has(String(id))) {
+					found.set(String(id), row)
+				}
+			})
+			return found
 		},
 
 		/**
