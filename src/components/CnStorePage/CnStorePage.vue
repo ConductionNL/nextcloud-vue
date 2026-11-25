@@ -1569,6 +1569,7 @@ export default {
 		 * Fetch the current page of store cards.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/store-installed-in/specs/store-page/spec.md#requirement-a-card-says-where-its-item-is-installed
 		 */
 		async search() {
 			// An unconfigured `app` cannot address any endpoint. Reporting
@@ -1686,6 +1687,7 @@ export default {
 		 * @param {{slug: string, title: string}} card The card to install.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/store-installed-in/specs/store-page/spec.md#requirement-a-card-says-where-its-item-is-installed
 		 */
 		async install(card) {
 			this.installing = card.slug
