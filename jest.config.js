@@ -98,7 +98,7 @@ module.exports = {
 		'^vue$': '<rootDir>/tests/support/vueSingleton.js',
 		'\\.(css)$': 'jest-transform-stub',
 		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
-		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
+		'^@mdi/js(/commonjs/mdi\\.js)?$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
