@@ -3286,7 +3286,24 @@
     "New colleagues": "Nieuwe collega's",
     "Started in the last (days, 1–90)": "Begonnen in de afgelopen (dagen, 1–90)",
     "Starts within (days, 0–30)": "Begint binnen (dagen, 0–30)",
-    "Must be between {min} and {max}": "Moet tussen {min} en {max} liggen"
+    "Must be between {min} and {max}": "Moet tussen {min} en {max} liggen",
+    "Border": "Rand",
+    "Border style": "Randstijl",
+    "Border width (px)": "Randdikte (px)",
+    "Border radius (px)": "Randafronding (px)",
+    "Pick border color": "Randkleur kiezen",
+    "Padding": "Binnenruimte",
+    "Padding top (px)": "Binnenruimte boven (px)",
+    "Padding right (px)": "Binnenruimte rechts (px)",
+    "Padding bottom (px)": "Binnenruimte onder (px)",
+    "Padding left (px)": "Binnenruimte links (px)",
+    "Header": "Kop",
+    "Pick header background color": "Achtergrondkleur van de kop kiezen",
+    "Pick header text color": "Tekstkleur van de kop kiezen",
+    "Solid": "Doorgetrokken",
+    "Dashed": "Gestreept",
+    "Dotted": "Gestippeld",
+    "Background": "Achtergrond"
   },
   "plurals": {
     "{count} member": [
