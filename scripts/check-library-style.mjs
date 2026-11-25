@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 //
 // After `npm run build`: the published ESM entry installs the stylesheet
-// through library-style.js (once per page, newest build wins), and component
+// through library-style.js (once per page, newest build wins; the board-look
+// rules as a second sheet that stays off until used), and component
 // scope ids hash path AND source, so two library versions of a changed
 // component never share a selector. Exits 1 with the reason otherwise.
 
@@ -31,6 +32,20 @@ if (!fs.existsSync(style)) {
 	if (!text.includes('function installLibraryStyle(') || !text.includes(JSON.stringify(sheet).slice(0, 200))) {
 		problems.push('dist/esm/library-style.js does not carry the installer and the stylesheet')
 	}
+	// The board-look rules ride as their own argument, switched off until the board look is used.
+	const call = text.match(/\ninstallLibraryStyle\(("(?:[^"\\]|\\.)*"), "[^"]*", undefined, ("(?:[^"\\]|\\.)*")\)\n$/)
+	if (!call) {
+		problems.push('dist/esm/library-style.js does not pass the board-look rules as their own sheet')
+	} else {
+		const base = JSON.parse(call[1])
+		const board = JSON.parse(call[2])
+		if (base.includes('cn-look-board .') && base.includes('cn-board-look')) {
+			problems.push('the library sheet still holds the board-look block')
+		}
+		if (!board.includes('.cn-look-board') || !board.includes(':has(')) {
+			problems.push('the board-look sheet does not hold the board-look :has() rules')
+		}
+	}
 }
 
 // One component whose scope id is known: path + source, as rollup-plugin-vue's production mode hashes it.
@@ -50,4 +65,4 @@ if (problems.length > 0) {
 	console.error('check-library-style:\n  ' + problems.join('\n  '))
 	process.exit(1)
 }
-console.log('check-library-style: the entry installs the stylesheet once per page; scope ids hash path and source.')
+console.log('check-library-style: the entry installs the stylesheet once per page, the board-look rules as their own sheet; scope ids hash path and source.')

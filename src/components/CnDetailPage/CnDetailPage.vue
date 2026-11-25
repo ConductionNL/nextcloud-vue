@@ -1416,9 +1416,6 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
-import CnAccessPurposeDialog from '../../dialogs/CnAccessPurposeDialog.vue'
-import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
-import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
@@ -1426,7 +1423,6 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnFollowingWidgetHost from '../CnFollowingWidgetHost/CnFollowingWidgetHost.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
@@ -1452,6 +1448,7 @@ import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
 import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import {
@@ -1478,6 +1475,7 @@ import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { parentCrumb } from '../../utils/parentCrumb.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
@@ -1505,6 +1503,13 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 import '../CnWidgetGrid/registerDashboardWidgets.js'
+
+// The dialogs render only once opened, so they load on first render instead of
+// riding in the detail page's chunk.
+const CnAccessPurposeDialog = lazyComponent(() => import('../../dialogs/CnAccessPurposeDialog.vue'), 'CnAccessPurposeDialog')
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
+const CnRelationLinkModal = lazyComponent(() => import('../../dialogs/CnRelationLinkModal.vue'), 'CnRelationLinkModal')
+const CnWidgetStyleEditorModal = lazyComponent(() => import('../../dialogs/CnWidgetStyleEditorModal.vue'), 'CnWidgetStyleEditorModal')
 
 /**
  * Responsive column table for a detail body, measured against the GRID element.
@@ -6295,6 +6300,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Switch the board-look rules on before the first render in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		isBoard: {
+			immediate: true,
+			handler(value) {
+				if (value === true) {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
 		objectActionsKey: {
 			immediate: true,
 			handler() {
