@@ -678,7 +678,6 @@
 						:widgetId="item.widgetId"
 						:collapsible="isWidgetCollapsible(item)"
 						:collapsed="isWidgetCollapsed(item)"
-						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -699,6 +698,7 @@
 						:showActions="widgetShowActions(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -765,7 +765,6 @@
 						:widgetId="item.widgetId"
 						:collapsible="isWidgetCollapsible(item)"
 						:collapsed="isWidgetCollapsed(item)"
-						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
@@ -787,6 +786,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
@@ -851,7 +851,6 @@
 						:widgetId="item.widgetId"
 						:collapsible="isWidgetCollapsible(item)"
 						:collapsed="isWidgetCollapsed(item)"
-						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -869,6 +868,7 @@
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<CnStatsBlockWidget
@@ -885,7 +885,6 @@
 						:widgetId="item.widgetId"
 						:collapsible="isWidgetCollapsible(item)"
 						:collapsed="isWidgetCollapsed(item)"
-						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -906,6 +905,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
@@ -931,7 +931,6 @@
 						:widgetId="item.widgetId"
 						:collapsible="isWidgetCollapsible(item)"
 						:collapsed="isWidgetCollapsed(item)"
-						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -947,6 +946,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -963,7 +963,6 @@
 						:widgetId="item.widgetId"
 						:collapsible="isWidgetCollapsible(item)"
 						:collapsed="isWidgetCollapsed(item)"
-						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -983,6 +982,7 @@
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for

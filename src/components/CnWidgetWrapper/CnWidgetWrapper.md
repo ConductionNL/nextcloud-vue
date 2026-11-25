@@ -116,6 +116,10 @@ export default {
 | `titleIconPosition` | String | `'right'` | Where to render the `title-icon` slot: `'left'` (before title) or `'right'` (after actions) |
 | `titleIconColor` | String | `null` | CSS color applied to the `title-icon` slot container |
 | `styleConfig` | Object | `{}` | Visual overrides: `{ backgroundColor, borderStyle, borderWidth, borderColor, borderRadius, padding: { top, right, bottom, left } }` |
+| `collapsible` | Boolean | `false` | Draw a chevron in the header that folds the card to its header (`aria-expanded`, `aria-controls` on the body). Emits `toggle-collapse` with the state asked for; the host keeps the state. Manifest: `collapsible: true` on the widget definition. |
+| `collapsed` | Boolean | `false` | Whether a `collapsible` card is folded: only its header shows, no body and no footer. Ignored without `collapsible`. |
+| `collapseLabel` | String | `''` | Pre-translated chevron label on an open card; defaults to "Collapse {title}". |
+| `expandLabel` | String | `''` | Pre-translated chevron label on a folded card; defaults to "Expand {title}". |
 
 ## Slots
 
