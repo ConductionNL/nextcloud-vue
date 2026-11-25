@@ -234,7 +234,7 @@
     "@nextcloud/router": "^2.0.0 || ^3.0.0",
     "@nextcloud/stylelint-config": "^3.2.2",
     "@nextcloud/vue": "^9.0.0",
-    "@vueuse/core": "^11.0.0 || ^14.0.0",
+    "@vueuse/core": "^11.0.0 || ^14.0.0 || ^15.0.0",
     "axe-core": "^4.10.0",
     "dexie": "^4.0.8",
     "dompurify": "^3.0.0",
