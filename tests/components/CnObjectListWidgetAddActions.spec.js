@@ -18,6 +18,8 @@ jest.mock('@nextcloud/axios', () => ({
 const { shallowMount, mount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnObjectListWidget = require('../../src/components/CnObjectListWidget/CnObjectListWidget.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnFormDialogComponent = require('../../src/components/CnFormDialog/CnFormDialog.vue').default
 
 const LINE = {
 	id: 13,
@@ -53,13 +55,13 @@ async function flush() {
 
 describe('CnObjectListWidget addActions', () => {
 	it('opens the create form with the extra add\'s defaults over the list\'s', async () => {
-		const w = shallowMount(CnObjectListWidget, { propsData: { content: CONTENT }, stubs: { CnDataTable: true } })
+		const w = shallowMount(CnObjectListWidget, { propsData: { content: CONTENT }, stubs: { CnFormDialog: lazyStub(CnFormDialogComponent), CnDataTable: true } })
 		await w.vm.openCreateWith({ kind: 'own' })
 		expect(w.findComponent({ name: 'CnFormDialog' }).props('initialData')).toEqual({ quote: 'q-1', kind: 'own' })
 	})
 
 	it('keeps the list\'s own defaults on the plain Add', async () => {
-		const w = shallowMount(CnObjectListWidget, { propsData: { content: CONTENT }, stubs: { CnDataTable: true } })
+		const w = shallowMount(CnObjectListWidget, { propsData: { content: CONTENT }, stubs: { CnFormDialog: lazyStub(CnFormDialogComponent), CnDataTable: true } })
 		await w.vm.openCreateWith({ kind: 'own' })
 		w.vm.showCreate = false
 		await w.vm.openCreate()
@@ -69,7 +71,7 @@ describe('CnObjectListWidget addActions', () => {
 	it('draws a button per extra add beside the list\'s Add, labels translated', async () => {
 		const w = mount(CnObjectListWidget, {
 			propsData: { content: CONTENT },
-			global: { provide: { cnTranslate: (key) => `T(${key})` }, stubs: { CnDataTable: true, CnFormDialog: true } },
+			global: { provide: { cnTranslate: (key) => `T(${key})` }, stubs: { CnFormDialog: lazyStub(CnFormDialogComponent), CnDataTable: true } },
 		})
 		await flush()
 		const buttons = w.findAll('[data-testid="cn-object-list-widget-add-action"]')
