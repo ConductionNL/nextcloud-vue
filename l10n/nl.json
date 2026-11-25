@@ -3272,15 +3272,7 @@
     "Connect a register": "Een register verbinden",
     "Not reachable": "Niet bereikbaar",
     "Only administrators install for the whole organisation.": "Alleen beheerders installeren voor de hele organisatie.",
-    "Page {page} of {pages}": "Pagina {page} van {pages}",
-    "%n widget": [
-      "%n widget",
-      "%n widgets"
-    ],
-    "Used by %n organisation": [
-      "Gebruikt door %n organisatie",
-      "Gebruikt door %n organisaties"
-    ]
+    "Page {page} of {pages}": "Pagina {page} van {pages}"
   },
   "plurals": {
     "{count} member": [
@@ -3554,6 +3546,14 @@
     "{app}, %n new item": [
       "{app}, %n nieuw item",
       "{app}, %n nieuwe items"
+    ],
+    "%n widget": [
+      "%n widget",
+      "%n widgets"
+    ],
+    "Used by %n organisation": [
+      "Gebruikt door %n organisatie",
+      "Gebruikt door %n organisaties"
     ]
   }
 }
