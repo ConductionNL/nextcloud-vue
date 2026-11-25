@@ -3955,7 +3955,22 @@ export default {
 		headerMetaCountKey() {
 			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
 			const valid = Object.entries(sources).filter(([, from]) => from && ((from.register && from.schema) || from.entitySource))
-			return valid.length > 0 ? JSON.stringify([valid, this.objectId]) : ''
+			if (valid.length === 0) {
+				return ''
+			}
+			// A filter that names the record (`portal: '@object.slug'`) can only
+			// be counted once the record is here: read before it, the token went
+			// out as the literal text and every count read 0 (portaliq PtPortal
+			// header, seen live 25 Nov 2026). Wait for it, and read again when
+			// the record does.
+			if (!JSON.stringify(valid).includes('@object.')) {
+				return JSON.stringify([valid, this.objectId])
+			}
+			const record = this.resolvedObject
+			if (!record || typeof record !== 'object') {
+				return ''
+			}
+			return JSON.stringify([valid, this.objectId, this.headerMetaRecordTokens(valid, record)])
 		},
 
 		/**
@@ -7075,6 +7090,26 @@ export default {
 				this.pillRefLabels = labels
 				this.pillRefLooks = looks
 			}
+		},
+
+		/**
+		 * The values of the record tokens (`@object.<path>`) the count filters
+		 * name, so the counts are read again when one of them changes.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @param {Array} valid The `[name, from]` count entries.
+		 * @param {object} record The loaded record.
+		 * @return {Array<string>} One value per token, in order.
+		 */
+		headerMetaRecordTokens(valid, record) {
+			const tokens = JSON.stringify(valid).match(/@object\.[A-Za-z0-9_.]+/g) || []
+			return tokens.map((token) => {
+				let value = record
+				for (const part of token.slice('@object.'.length).split('.')) {
+					value = value && typeof value === 'object' ? value[part] : undefined
+				}
+				return value === undefined || value === null ? '' : String(value)
+			})
 		},
 
 		/**

@@ -84,4 +84,22 @@ describe('CnDetailPage headerMetaCounts', () => {
 		await settle()
 		expect(w.vm.headerMetaText).toBe('')
 	})
+
+	it('counts a list filtered on the record only once the record is here', async () => {
+		// portaliq's portal header: `portal: '@object.slug'` went out as the
+		// literal token before the record loaded, and every count read 0.
+		const w = mountPage({ headerMeta: '{count:pages} pages', headerMetaCounts: { pages: { register: 'portaliq', schema: 'page', filter: { portal: '@object.title' } } } })
+		await settle()
+		expect(mockTotal).toHaveBeenCalledTimes(1)
+		const ctx = mockTotal.mock.calls[0][3]
+		expect(ctx.object).toEqual(expect.objectContaining({ title: 'Omgevingsvergunning' }))
+		expect(w.vm.headerMetaText).toBe('14 pages')
+	})
+
+	it('reads no count filtered on the record while the record is missing', async () => {
+		const w = mountPage({ objectId: 'not-loaded', headerMeta: '{count:pages} pages', headerMetaCounts: { pages: { register: 'portaliq', schema: 'page', filter: { portal: '@object.slug' } } } })
+		await settle()
+		expect(mockTotal).not.toHaveBeenCalled()
+		expect(w.vm.headerMetaText).toBe('')
+	})
 })
