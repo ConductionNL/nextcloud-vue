@@ -23,6 +23,7 @@ multi-compiler array form.
 | every `css-loader` (in `use`, `loader`, `oneOf`, nested `rules`) | `sourceMap` follows `devtool` | `sourceMap: false` |
 | `optimization.splitChunks.chunks` | `'all'` | `'initial'` |
 | each cache group with `chunks: 'all'`, set or inherited | takes async chunks too | `chunks: 'initial'` |
+| `@nextcloud/vue`'s `dist/index.mjs` | has side effects (the package declares none) | `sideEffects: false` (rule appended to `module.rules`) |
 
 Cache groups with `chunks: 'async'`, a function, or `false` are left alone.
 The JavaScript `devtool` is not touched: JS source maps stay.
@@ -57,3 +58,28 @@ that module with the app's own `import { mdiAccount } from '@mdi/js'`, so the
 whole 2.5 MB pack landed in the app's main bundle. A separate file keeps the
 app's imports tree-shaken; the full set is only in the lazy `cn-icons-mdi`
 chunk. Nothing to do in the app for this part: raise the library version.
+
+## One `@nextcloud/vue` import, the whole of `@nextcloud/vue`
+
+`@nextcloud/vue` 9 has no `sideEffects` field in its `package.json`, so webpack
+must keep every module its index imports. One
+`import { NcButton } from '@nextcloud/vue'` therefore bundled every component
+it lists, with emoji-mart, the date picker and the markdown stack: 2.2 MB
+minified for one button (measured 25 Nov 2026, @nextcloud/vue 9.9.0). The
+index module only imports and re-exports, so `withLeanBundles` appends a rule
+marking that one file free of side effects; webpack then links each name to
+the component's own module, and a button costs 5 KB. Each component's own
+modules and stylesheets keep their side effects.
+
+The library's own dist already imports every Nc* component from its entry
+(`@nextcloud/vue/components/<Name>`, rewritten at build time by
+`rollup.nextcloud-vue-deep.mjs`), so this rule matters for the app's own
+imports and for Nc* names an app takes from `@conduction/nextcloud-vue`.
+Eager chunk of a one-line app, minified, everything but `vue` bundled:
+
+| Entry imports | Before | After |
+|---|---|---|
+| `CnAppRoot` | 3.03 MB | 1.11 MB |
+| `CnIndexPage` | 3.78 MB | 2.21 MB |
+| `CnDetailPage` | 4.21 MB | 2.37 MB |
+| `CnDashboardPage` | 3.44 MB | 1.89 MB |

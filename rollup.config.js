@@ -8,6 +8,7 @@ import postcss from 'rollup-plugin-postcss'
 import vue from 'rollup-plugin-vue'
 import { fileURLToPath } from 'url'
 import { trimEnglishCatalogue } from './rollup.l10n.mjs'
+import { nextcloudVueDeepImports } from './rollup.nextcloud-vue-deep.mjs'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 import { installLibraryStyle, splitBoardLook } from './src/utils/libraryStyle.js'
 
@@ -425,5 +426,7 @@ export default {
 		commonjs({ esmExternals: ['vue'] }),
 		// After postcss(), whose generateBundle emits the stylesheet this reads.
 		libraryStyleModule(),
+		// Per-component @nextcloud/vue imports, so an app keeps only the Nc* it uses.
+		nextcloudVueDeepImports(),
 	],
 }

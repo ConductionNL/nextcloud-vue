@@ -236,6 +236,12 @@ function withoutCssMaps(rule) {
 	return out
 }
 
+// @nextcloud/vue's index: imports and re-exports only, safe to skip.
+const NEXTCLOUD_VUE_INDEX_RULE = Object.freeze({
+	test: /[\\/]node_modules[\\/]@nextcloud[\\/]vue[\\/]dist[\\/]index\.mjs$/,
+	sideEffects: false,
+})
+
 /**
  * Return a copy of a webpack config that keeps the library's lazy chunks lazy
  * and stops css-loader writing source maps into the JavaScript.
@@ -261,6 +267,12 @@ function withoutCssMaps(rule) {
  *   inherited) gets `chunks: 'initial'`, so modules only an `import()` needs
  *   stay in their own chunk. A group that sets `chunks: 'async'` or a
  *   function is left alone.
+ * - `@nextcloud/vue`'s index module is marked free of side effects. That
+ *   package declares no `sideEffects`, so one `import { NcButton } from
+ *   '@nextcloud/vue'` kept every component it lists, with emoji-mart, the date
+ *   picker and the markdown stack: 2.2 MB minified for one button. The index
+ *   only imports and re-exports, so webpack can link each name to its own
+ *   module; each component's own modules and CSS keep their side effects.
  *
  * USAGE
  * -----
@@ -287,9 +299,8 @@ function withLeanBundles(config) {
 	}
 
 	const out = { ...config }
-	if (config.module && Array.isArray(config.module.rules)) {
-		out.module = { ...config.module, rules: config.module.rules.map(withoutCssMaps) }
-	}
+	const rules = config.module && Array.isArray(config.module.rules) ? config.module.rules.map(withoutCssMaps) : []
+	out.module = { ...(config.module || {}), rules: [...rules, { ...NEXTCLOUD_VUE_INDEX_RULE }] }
 
 	const splitChunks = config.optimization && config.optimization.splitChunks
 	if (splitChunks && typeof splitChunks === 'object') {
@@ -313,6 +324,7 @@ function withLeanBundles(config) {
 
 module.exports = {
 	AUTO_PUBLIC_PATH,
+	NEXTCLOUD_VUE_INDEX_RULE,
 	appVersionDefine,
 	withLeanBundles,
 	withPublicPath,

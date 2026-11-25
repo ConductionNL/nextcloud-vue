@@ -31,6 +31,7 @@ import postcssImport from 'postcss-import'
 import postcss from 'rollup-plugin-postcss'
 import { fileURLToPath } from 'url'
 import { trimEnglishCatalogue } from './rollup.l10n.mjs'
+import { nextcloudVueDeepImports } from './rollup.nextcloud-vue-deep.mjs'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -154,5 +155,7 @@ export default {
 		// Naming 'vue' here makes it a namespace import instead, which is what a
 		// UMD factory expecting the Vue global actually wants.
 		commonjs({ esmExternals: (id) => id === 'vue' || id === '@vue/compat' }),
+		// Per-component @nextcloud/vue imports, so an app keeps only the Nc* it uses.
+		nextcloudVueDeepImports(),
 	],
 }

@@ -2,6 +2,8 @@
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
  *
+ * @jest-environment node
+ *
  * Proof for `withLeanBundles` in `@conduction/nextcloud-vue/webpack`.
  *
  * Measured on opencatalogi's prod build (25 Nov 2026): the shared nc-vue chunk
@@ -12,7 +14,7 @@
 
 const fs = require('fs')
 const path = require('path')
-const { withLeanBundles } = require('../../webpack/index.js')
+const { NEXTCLOUD_VUE_INDEX_RULE, withLeanBundles } = require('../../webpack/index.js')
 
 // The shape @nextcloud/webpack-vue-config ships, plus an app's shared groups.
 function upstream() {
@@ -89,9 +91,23 @@ describe('withLeanBundles', () => {
 		expect(split.cacheGroups.default).toBe(false)
 	})
 
-	it('does not touch a config without splitChunks', () => {
+	it('does not touch the optimization of a config without splitChunks', () => {
 		const result = withLeanBundles({ entry: './x.js' })
-		expect(result).toEqual({ entry: './x.js' })
+		expect(result.entry).toBe('./x.js')
+		expect(result.optimization).toBeUndefined()
+		expect(result.module.rules).toEqual([NEXTCLOUD_VUE_INDEX_RULE])
+	})
+
+	it('marks only the @nextcloud/vue index free of side effects, after the app rules', () => {
+		const rules = withLeanBundles(upstream()).module.rules
+		expect(rules).toHaveLength(4)
+		expect(rules[3]).toEqual({ test: NEXTCLOUD_VUE_INDEX_RULE.test, sideEffects: false })
+		const { test } = rules[3]
+		expect(test.test('/app/node_modules/@nextcloud/vue/dist/index.mjs')).toBe(true)
+		expect(test.test('C:\\app\\node_modules\\@nextcloud\\vue\\dist\\index.mjs')).toBe(true)
+		expect(test.test('/app/node_modules/@nextcloud/vue/dist/chunks/NcButton-x.mjs')).toBe(false)
+		expect(test.test('/app/node_modules/@nextcloud/vue/dist/components/NcButton/index.mjs')).toBe(false)
+		expect(test.test('/app/node_modules/@conduction/nextcloud-vue/dist/esm/index.js')).toBe(false)
 	})
 
 	it('does NOT mutate the config it was given', () => {
@@ -131,5 +147,39 @@ describe('the lazy @mdi/js catalogue', () => {
 
 	it('the CommonJS file is the one @mdi/js ships', () => {
 		expect(fs.existsSync(require.resolve('@mdi/js/commonjs/mdi.js', { paths: [path.join(__dirname, '../..')] }))).toBe(true)
+	})
+})
+
+describe('one Nc* import from the @nextcloud/vue index', () => {
+	// @nextcloud/vue 9 declares no sideEffects, so without the rule one
+	// `import { NcButton } from '@nextcloud/vue'` bundled every component
+	// (2.2 MB minified, emoji-mart and the date picker included).
+	jest.setTimeout(120000)
+
+	it('bundles that component only under withLeanBundles', async () => {
+		const os = require('os')
+		const webpack = require('webpack')
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lean-ncvue-'))
+		fs.writeFileSync(path.join(dir, 'entry.mjs'), "import { NcButton } from '@nextcloud/vue'\nconsole.log(NcButton)\n")
+		const root = path.join(__dirname, '../..')
+		const config = withLeanBundles({
+			context: dir,
+			entry: path.join(dir, 'entry.mjs'),
+			output: { path: path.join(dir, 'out'), filename: 'main.js' },
+			mode: 'production',
+			devtool: false,
+			resolve: { modules: [path.join(root, 'node_modules')] },
+			optimization: { minimize: false },
+			// Everything but @nextcloud/vue itself stays outside the bundle.
+			externals: ({ request }, callback) => (/^[^./]/.test(request) && !request.startsWith('@nextcloud/vue') ? callback(null, 'commonjs ' + request) : callback()),
+			module: { rules: [{ test: /\.css$/, type: 'asset/resource' }] },
+		})
+		const stats = await new Promise((resolve, reject) => webpack(config).run((err, result) => (err ? reject(err) : resolve(result))))
+		expect(stats.hasErrors()).toBe(false)
+		const bundle = fs.readFileSync(path.join(dir, 'out', 'main.js'), 'utf8')
+		expect(bundle).toContain('button-vue')
+		expect(bundle).not.toMatch(/NcEmojiPicker|NcDateTimePicker\b|NcRichText/)
+		expect(bundle.length).toBeLessThan(200000)
+		fs.rmSync(dir, { recursive: true, force: true })
 	})
 })
