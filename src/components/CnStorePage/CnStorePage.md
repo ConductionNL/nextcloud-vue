@@ -13,6 +13,9 @@
 | `canPublish` | Boolean | `null` | Whether the app lets this viewer publish; `null` falls back to administrators |
 | `publishRoute` | String, Object | `null` | Where Publish leads; without it there is no Publish button |
 | `kindLenses` | Array | `[]` | Board look: extra lens chips per item kind, `[{ kind, label }]` (for example Connectors) |
+| `categoryLenses` | Boolean | `false` | Board look: a lens per served `card.category`, with its count |
+| `pageSize` | Number | `0` | Board look: cards per page, with a pager; 0 shows all |
+| `banner` | Object | `null` | Board look: the register banner `{ settingsUrl?, settingsLabel?, installNote? }` over `registry: { name, url }` from the items response |
 | `publishable` | Boolean | `false` | The app accepts a publish: Publish opens the publish dialog instead of following `publishRoute` |
 
 See the component source for the title and description props.
