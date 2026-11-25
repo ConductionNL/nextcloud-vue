@@ -232,6 +232,14 @@
 
 /* The selected folder's heading above the list. */
 /* A sort option whose endpoint failed: the note above the fallen-back list. */
+.cn-index-page__offline-status {
+	margin: 0 0 8px;
+	padding: 8px 12px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
 .cn-index-page__sort-source-note {
 	margin: 0 0 8px;
 	color: var(--color-text-maxcontrast);

@@ -3314,7 +3314,11 @@
     "The view could not be saved.": "De weergave kon niet worden opgeslagen.",
     "The view could not be deleted.": "De weergave kon niet worden verwijderd.",
     "Saved on this device. It will be sent when you are back online.": "Opgeslagen op dit apparaat. Het wordt verstuurd zodra je weer online bent.",
-    "Files cannot be sent offline.": "Bestanden kunnen niet offline worden verstuurd."
+    "Files cannot be sent offline.": "Bestanden kunnen niet offline worden verstuurd.",
+    "You are offline. Showing {count} records downloaded at {time}.": "Je bent offline. {count} records getoond, gedownload om {time}.",
+    "You are offline. Downloaded at {time}.": "Je bent offline. Gedownload om {time}.",
+    "The records on this device have expired. Connect to download them again.": "De records op dit apparaat zijn verlopen. Maak verbinding om ze opnieuw te downloaden.",
+    "Not available offline.": "Niet beschikbaar offline."
   },
   "plurals": {
     "{count} member": [
