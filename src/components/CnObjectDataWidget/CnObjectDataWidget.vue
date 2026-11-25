@@ -354,8 +354,8 @@
 								:title="userIdsOf(field).join(', ')">
 								{{ userIdsOf(field).map((uid) => personLabel(field, uid)).join(', ') }}
 							</span>
-							<img v-else-if="isImageField(field) && rawOf(field)"
-								:src="rawOf(field)"
+							<img v-else-if="isImageField(field) && imageSrcOf(field)"
+								:src="imageSrcOf(field)"
 								:alt="field.label"
 								class="cn-object-data-widget__image">
 							<!-- Relation name still resolving: a quiet skeleton bar,
@@ -512,6 +512,7 @@ import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { fileHref } from '../CnMapWidget/imageLayerSource.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
 
@@ -1495,6 +1496,21 @@ export default {
 		rawOf(field) {
 			const o = this.objectData || {}
 			return (field.key in this.dirtyFields) ? this.dirtyFields[field.key] : o[field.key]
+		},
+
+		/**
+		 * The `<img src>` of an image field: a string as stored, a file
+		 * object's `downloadUrl`, `accessUrl` or `url`, or the first file of a
+		 * list. An OpenRegister file property holds the file object, which
+		 * would otherwise render as `src="[object Object]"`.
+		 *
+		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
+		 * @return {string} The URL, or '' when the value has none.
+		 *
+		 * @spec openspec/changes/data-widget-file-image/specs/data-widget/spec.md#requirement-an-image-field-holding-a-file-shows-the-file
+		 */
+		imageSrcOf(field) {
+			return fileHref(this.rawOf(field))
 		},
 
 		/**
