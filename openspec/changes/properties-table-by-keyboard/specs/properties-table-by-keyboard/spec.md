@@ -16,3 +16,14 @@ cannot be edited SHALL have no such button.
 - **GIVEN** OpenCatalogi's Create Publication dialog
 - **WHEN** the officer tabs to "Title" and presses Enter
 - **THEN** the title input has focus and takes what the officer types
+
+### Requirement: A detail page's widgets are in the tab order
+
+A CnDetailGridCell that holds its content back until it nears the viewport SHALL mount it on the first Tab key press,
+so a keyboard user reaches every widget's controls, including those below the fold.
+
+#### Scenario: an officer withdraws from the publication status widget
+
+- **GIVEN** OpenCatalogi's publication detail page, whose publication status widget sits below the fold
+- **WHEN** the officer tabs through the page
+- **THEN** the widget's Withdraw button is reached
