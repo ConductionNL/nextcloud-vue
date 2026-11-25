@@ -34,6 +34,7 @@ Schema-driven create/edit form dialog. Auto-generates form fields from a schema,
 | `excludeFields` | Array | `[]` | Fields to hide |
 | `includeFields` | Array | `null` | Fields to show (whitelist) |
 | `fieldOverrides` | Object | `{}` | Per-field overrides (see [Field Overrides](#field-overrides)) |
+| `preloadedDefinitions` | Object | `{}` | Definition records the caller already read, per driving field: `{ caseType: { value: '<uuid>', records: [...] } }`. While the field holds that `value` the form uses the records instead of reading them again; any other value is read as usual. See [Fields the data decides](#fields-the-data-decides). |
 | `nameField` | String | `'title'` | |
 | `size` | String | `'normal'` | Dialog size |
 | `columns` | Number | `1` | How many columns the auto-generated fields flow into. `2` pairs them up; textareas, JSON and code editors still span the full width, and the layout collapses to one column below 700px. Pair it with `size="large"`. |

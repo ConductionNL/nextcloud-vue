@@ -1486,6 +1486,22 @@ export default {
 		},
 
 		/**
+		 * Definition records the caller has already read, per driving field,
+		 * so the form does not read them again when it opens:
+		 * `{ caseType: { value: '<uuid>', records: [...] } }`. They are used
+		 * only while the field holds exactly that `value`; any other value is
+		 * read as usual. Pass the records the field's
+		 * `x-openregister-extends-form` query answers, unchanged.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/preloaded-form-definitions/specs/preloaded-form-definitions/spec.md#requirement-a-form-takes-definitions-its-caller-already-read
+		 */
+		preloadedDefinitions: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * Field keys rendered read-only (disabled) and immutable — typically the
 		 * parent reference seeded via `initialData` so the user can't repoint a
 		 * child away from the record it was created under.
@@ -4702,6 +4718,26 @@ export default {
 		},
 
 		/**
+		 * The definition records the caller handed over for a driving field,
+		 * when the field holds the value they were read for; null otherwise.
+		 *
+		 * @param {string} key The driving field.
+		 * @return {Array<object>|null} The records, or null to read them.
+		 * @spec openspec/changes/preloaded-form-definitions/specs/preloaded-form-definitions/spec.md#requirement-a-form-takes-definitions-its-caller-already-read
+		 */
+		preloadedRecordsFor(key) {
+			const preloaded = this.preloadedDefinitions && this.preloadedDefinitions[key]
+			if (!preloaded || typeof preloaded !== 'object' || !Array.isArray(preloaded.records)) {
+				return null
+			}
+			const value = this.dynamicDriverValue(preloaded.value)
+			if (value === '' || value !== this.dynamicDriverValue(this.formData[key])) {
+				return null
+			}
+			return preloaded.records
+		},
+
+		/**
 		 * Fetch and install the extra fields the current driving values ask
 		 * for. A driver that is unset clears them; a fetch that fails leaves
 		 * them cleared rather than half-populated, because a form missing a
@@ -4750,7 +4786,8 @@ export default {
 						this.dynamicDriverValue(this.formData[key]),
 						this.formData,
 					)
-					const records = await store.fetchCollectionForOptions(slug, params)
+					const records = this.preloadedRecordsFor(key)
+						|| await store.fetchCollectionForOptions(slug, params)
 					// Kept for the confirm payload. Array-mode declarations
 					// store the definition's NAME beside its value on the
 					// parent, and the answers alone carry only ids.

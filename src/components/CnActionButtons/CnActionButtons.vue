@@ -188,6 +188,7 @@
 			:includeFields="formEntry.includeFields || null"
 			:excludeFields="formEntry.excludeFields || []"
 			:fieldOverrides="formEntry.fieldOverrides || {}"
+			:preloadedDefinitions="formEntry.preloadedDefinitions || {}"
 			:size="formEntry.size || 'normal'"
 			:columns="formEntry.columns || 1"
 			@confirm="onFormConfirm"
