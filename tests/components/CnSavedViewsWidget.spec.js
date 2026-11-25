@@ -8,10 +8,16 @@
  * @spec openspec/changes/screens-own-saved-views/specs/own-saved-views/spec.md
  */
 import { flushPromises, mount } from '@vue/test-utils'
+import { reactive, ref } from 'vue'
 import CnSavedViewsWidget from '@/components/CnSavedViewsWidget/CnSavedViewsWidget.vue'
+import { fetchEndpointSource } from '@/composables/useEndpointSource.js'
 import { fetchListTotal } from '@/utils/fetchFilterCounts.js'
 
 jest.mock('@nextcloud/auth', () => ({ getCurrentUser: () => ({ uid: 'pieter' }) }))
+jest.mock('@/composables/useEndpointSource.js', () => ({
+	...jest.requireActual('@/composables/useEndpointSource.js'),
+	fetchEndpointSource: jest.fn(),
+}))
 jest.mock('@/utils/fetchFilterCounts.js', () => ({
 	...jest.requireActual('@/utils/fetchFilterCounts.js'),
 	fetchListTotal: jest.fn(),
@@ -87,5 +93,132 @@ describe('CnSavedViewsWidget', () => {
 		const rows = w.findAll('[data-testid="cn-saved-views-link"]')
 		expect(rows).toHaveLength(1)
 		expect(rows[0].element.tagName).toBe('SPAN')
+	})
+})
+
+/**
+ * Workspace mode: a dashboard page saves, applies and deletes its own
+ * workspace filters as views (workspace-saved-views).
+ *
+ * @spec openspec/changes/workspace-saved-views/specs/workspace-saved-views/spec.md
+ */
+describe('CnSavedViewsWidget workspace mode', () => {
+	const WS_VIEWS = [
+		{ id: 11, name: 'Urgent tickets', owner: 'pieter', query: { scope: 'pipelinq/my-work', filters: { lens: 'tickets', priority: 'urgent' } } },
+		{ id: 12, name: 'Mine, resolved', owner: 'pieter', query: { scope: 'pipelinq/my-work', filters: { lens: 'all', showDone: true } } },
+		{ id: 13, name: 'Tickets list view', owner: 'pieter', query: { scope: 'pipelinq/ticket', filters: { status: 'new' } } },
+		{ id: 14, name: 'From a colleague', owner: 'sanne', isPublic: true, query: { scope: 'pipelinq/my-work', filters: { lens: 'leads' } } },
+	]
+	const setError = jest.fn()
+	const WORKSPACE = {
+		keys: ['lens', '@workspace.showDone', 'priority'],
+		countSource: { url: '/apps/pipelinq/api/worklist/items?lens=@workspace.lens&done=@workspace.showDone&priority=@workspace.priority', responsePath: 'items' },
+	}
+
+	/**
+	 * @param {object} content extra content
+	 * @param {object} api the views API stub
+	 * @param {object} bag the page workspace
+	 * @return {object} wrapper
+	 */
+	function mountWorkspace(content, api, bag) {
+		return mount(CnSavedViewsWidget, {
+			props: { content: { scope: 'pipelinq/my-work', workspace: WORKSPACE, ...content }, api },
+			global: {
+				stubs: {
+					RouterLink,
+					NcLoadingIcon: true,
+					CnSaveViewDialog: { name: 'CnSaveViewDialog', template: '<div data-testid="save-dialog" />', methods: { setError(...args) { setError(...args) } } },
+					CnConfirmDialog: { name: 'CnConfirmDialog', props: ['message'], template: '<div data-testid="confirm-dialog">{{ message }}</div>', methods: { setResult: jest.fn() } },
+				},
+				provide: { cnWorkspaceContext: bag },
+			},
+		})
+	}
+
+	beforeEach(() => fetchEndpointSource.mockReset())
+
+	it('lists the reader\'s own views of the page scope, with the count the endpoint answers for each view\'s values', async () => {
+		fetchEndpointSource.mockImplementation(async (source, ctx) => (ctx.workspace.lens === 'tickets' ? [1, 2, 3] : { total: 9 }))
+		const api = { fetchViews: jest.fn().mockResolvedValue(WS_VIEWS) }
+		const w = mountWorkspace({ showCounts: true }, api, reactive({}))
+		await flushPromises()
+		const rows = w.findAll('[data-testid="cn-saved-views-link"]')
+		expect(rows.map((r) => r.text())).toEqual(['Urgent tickets (3)', 'Mine, resolved (9)'])
+		expect(rows[0].element.tagName).toBe('BUTTON')
+		expect(fetchEndpointSource.mock.calls[0][1]).toEqual({ workspace: { lens: 'tickets', showDone: '', priority: 'urgent' } })
+		expect(fetchEndpointSource.mock.calls[1][1]).toEqual({ workspace: { lens: 'all', showDone: true, priority: '' } })
+	})
+
+	it('applies a view by writing every stored key into the page workspace and clearing the rest', async () => {
+		const api = { fetchViews: jest.fn().mockResolvedValue(WS_VIEWS) }
+		const bag = reactive({ lens: 'leads', showDone: true, priority: 'low', sort: 'newest' })
+		const w = mountWorkspace({}, api, bag)
+		await flushPromises()
+		await w.findAll('[data-testid="cn-saved-views-link"]')[0].trigger('click')
+		expect(bag).toEqual({ lens: 'tickets', showDone: '', priority: 'urgent', sort: 'newest' })
+		expect(w.findAll('[data-testid="cn-saved-views-link"]')[0].attributes('aria-pressed')).toBe('true')
+		expect(w.emitted('apply')[0][0].values).toEqual({ lens: 'tickets', showDone: '', priority: 'urgent' })
+	})
+
+	it('applies into a raw ref workspace too', async () => {
+		const api = { fetchViews: jest.fn().mockResolvedValue(WS_VIEWS) }
+		const bag = ref({ sort: 'deadline' })
+		const w = mountWorkspace({}, api, bag)
+		await flushPromises()
+		await w.findAll('[data-testid="cn-saved-views-link"]')[1].trigger('click')
+		expect(bag.value).toEqual({ sort: 'deadline', lens: 'all', showDone: true, priority: '' })
+	})
+
+	it('saves the current values of the configured keys under the page scope', async () => {
+		const created = { id: 20, name: 'Urgent leads', owner: 'pieter', query: { scope: 'pipelinq/my-work', filters: { lens: 'leads', priority: 'urgent' } } }
+		const api = { fetchViews: jest.fn().mockResolvedValue([]), createView: jest.fn().mockResolvedValue(created) }
+		const w = mountWorkspace({}, api, reactive({ lens: 'leads', priority: 'urgent', showDone: '', sort: 'newest' }))
+		await flushPromises()
+		expect(w.find('[data-testid="cn-saved-views-empty"]').exists()).toBe(true)
+		await w.find('[data-testid="cn-saved-views-control"]').trigger('click')
+		expect(w.find('[data-testid="save-dialog"]').exists()).toBe(true)
+		await w.findComponent({ name: 'CnSaveViewDialog' }).vm.$emit('confirm', { name: 'Urgent leads', isPublic: false, sharedWith: [] })
+		await flushPromises()
+		const body = api.createView.mock.calls[0][0]
+		expect(body.name).toBe('Urgent leads')
+		expect(body.query.scope).toBe('pipelinq/my-work')
+		expect(body.query.filters).toEqual({ lens: 'leads', priority: 'urgent' })
+		expect(w.findAll('[data-testid="cn-saved-views-link"]').map((r) => r.text())).toEqual(['Urgent leads'])
+		expect(w.find('[data-testid="save-dialog"]').exists()).toBe(false)
+	})
+
+	it('keeps the save dialog open with the reason when the save is refused', async () => {
+		const api = { fetchViews: jest.fn().mockResolvedValue([]), createView: jest.fn().mockRejectedValue({ response: { data: { error: 'Name taken' } } }) }
+		const w = mountWorkspace({}, api, reactive({ lens: 'all' }))
+		await flushPromises()
+		await w.find('[data-testid="cn-saved-views-control"]').trigger('click')
+		const dialog = w.findComponent({ name: 'CnSaveViewDialog' })
+		await dialog.vm.$emit('confirm', { name: 'X' })
+		await flushPromises()
+		expect(w.find('[data-testid="save-dialog"]').exists()).toBe(true)
+		expect(setError).toHaveBeenCalledWith('Name taken')
+	})
+
+	it('deletes an own view after the confirmation, and offers no delete on a colleague\'s view', async () => {
+		const api = { fetchViews: jest.fn().mockResolvedValue(WS_VIEWS), deleteView: jest.fn().mockResolvedValue() }
+		const w = mountWorkspace({ own: false }, api, reactive({}))
+		await flushPromises()
+		expect(w.findAll('[data-testid="cn-saved-views-link"]').map((r) => r.text())).toEqual(['Urgent tickets', 'Mine, resolved', 'From a colleague'])
+		const deletes = w.findAll('[data-testid="cn-saved-views-delete"]')
+		expect(deletes).toHaveLength(2)
+		await deletes[0].trigger('click')
+		expect(w.find('[data-testid="confirm-dialog"]').text()).toContain('Urgent tickets')
+		await w.findComponent({ name: 'CnConfirmDialog' }).vm.$emit('confirm')
+		await flushPromises()
+		expect(api.deleteView).toHaveBeenCalledWith(11)
+		expect(w.findAll('[data-testid="cn-saved-views-link"]').map((r) => r.text())).toEqual(['Mine, resolved', 'From a colleague'])
+	})
+
+	it('without keys it stays the index-page link list', async () => {
+		const w = await mountWidget({ workspace: { keys: [] } })
+		await flushPromises()
+		expect(w.find('[data-testid="cn-saved-views-control"]').exists()).toBe(false)
+		expect(w.findAll('[data-testid="cn-saved-views-link"]')[0].element.tagName).toBe('A')
 	})
 })

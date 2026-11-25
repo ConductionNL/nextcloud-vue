@@ -16,15 +16,57 @@
 		</p>
 		<ul v-else class="cn-saved-views-widget__list">
 			<li v-for="item in items" :key="item.key" class="cn-saved-views-widget__item">
+				<button
+					v-if="isWorkspaceMode"
+					type="button"
+					class="cn-saved-views-widget__link cn-saved-views-widget__apply"
+					:class="{ 'cn-saved-views-widget__apply--selected': item.key === appliedKey }"
+					:aria-pressed="item.key === appliedKey ? 'true' : 'false'"
+					data-testid="cn-saved-views-link"
+					@click="applyView(item.view)">
+					{{ item.label }}
+				</button>
 				<component
 					:is="item.to ? 'router-link' : 'span'"
+					v-else
 					class="cn-saved-views-widget__link"
 					:to="item.to || undefined"
 					data-testid="cn-saved-views-link">
 					{{ item.label }}
 				</component>
+				<NcButton
+					v-if="isWorkspaceMode && item.own"
+					variant="tertiary"
+					class="cn-saved-views-widget__delete"
+					:aria-label="t('nextcloud-vue', 'Delete view {name}', { name: item.view.name })"
+					data-testid="cn-saved-views-delete"
+					@click="viewPendingDelete = item.view">
+					<template #icon>
+						<DeleteOutline :size="20" />
+					</template>
+				</NcButton>
 			</li>
 		</ul>
+		<CnSavedViewsControl
+			v-if="isWorkspaceMode && !error && !loading"
+			:chips="false"
+			class="cn-saved-views-widget__save"
+			@saveRequest="showSaveDialog = true" />
+		<CnSaveViewDialog
+			v-if="showSaveDialog"
+			ref="saveViewDialog"
+			@confirm="onSaveConfirm"
+			@close="showSaveDialog = false" />
+		<CnConfirmDialog
+			v-if="viewPendingDelete"
+			ref="deleteViewConfirmDialog"
+			variant="error"
+			:dialogTitle="t('nextcloud-vue', 'Delete view?')"
+			:message="deleteMessage"
+			:confirmLabel="t('nextcloud-vue', 'Delete view')"
+			confirmIcon="DeleteOutline"
+			@confirm="onDeleteConfirm"
+			@close="viewPendingDelete = null" />
 	</div>
 </template>
 
@@ -32,10 +74,15 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
-import { NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import DeleteOutline from 'vue-material-design-icons/DeleteOutline.vue'
+import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
+import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
-import { buildRouteQueryFromViewState, extractViewState, isOwnView, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { buildRouteQueryFromViewState, buildViewCreatePayload, extractViewState, isOwnView, viewMatchesScope } from '../../utils/savedViewHelpers.js'
+import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
+import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
 
@@ -54,15 +101,36 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
  * ```js
  * { type: 'saved-views', content: { register: 'pipelinq', schema: 'ticket', route: 'Tickets', showCounts: true } }
  * ```
+ *
+ * Workspace mode (`content.workspace`): on a dashboard page whose filters are
+ * workspace keys (a `workspace-filter` bar) the widget saves, applies and
+ * deletes the page's own views. A view stores the workspace keys named in
+ * `workspace.keys` as its filters, under `scope`; clicking it writes them back
+ * into the page workspace (a key the view does not hold is cleared), so every
+ * control and list follows. "Save view" (CnSavedViewsControl) saves the
+ * current values; an own view has a delete button with a confirmation. With
+ * `showCounts`, `workspace.countSource` (an `endpointSource`, its `@workspace`
+ * tokens filled with the view's values) counts each view: an array answer
+ * counts its entries, a number or an object's `total` is used as is.
+ *
+ * ```js
+ * { type: 'saved-views', content: { scope: 'pipelinq/my-work', showCounts: true,
+ *   workspace: { keys: ['lens', 'showDone', 'priority'], countSource: { url: '/apps/pipelinq/api/worklist/items?lens=@workspace.lens', responsePath: 'items' } } } }
+ * ```
  */
 export default {
 	name: 'CnSavedViewsWidget',
 
-	components: { NcLoadingIcon },
+	components: { CnConfirmDialog, CnSavedViewsControl, CnSaveViewDialog, DeleteOutline, NcButton, NcLoadingIcon },
 
 	inject: {
 		/** The host app's translate function. */
 		cnTranslate: { default: () => (key) => key },
+		/**
+		 * The dashboard page's workspace bag (CnDashboardPage), read and written
+		 * in workspace mode; null elsewhere.
+		 */
+		cnWorkspaceContext: { default: null },
 	},
 
 	props: {
@@ -92,16 +160,59 @@ export default {
 		},
 	},
 
+	emits: ['apply'],
+
 	data() {
 		return {
 			views: [],
 			counts: {},
 			loading: true,
 			error: false,
+			/** Whether the save dialog is open (workspace mode). */
+			showSaveDialog: false,
+			/** The view waiting for the delete confirmation, or null. */
+			viewPendingDelete: null,
+			/** The key of the view applied last, or ''. */
+			appliedKey: '',
 		}
 	},
 
 	computed: {
+		/**
+		 * The delete confirmation's message, naming the view.
+		 *
+		 * @return {string}
+		 */
+		deleteMessage() {
+			const name = this.viewPendingDelete ? String(this.viewPendingDelete.name ?? '') : ''
+			return t('nextcloud-vue', 'The view "{name}" leaves your list. The items themselves stay. This cannot be undone.', { name })
+		},
+
+		/**
+		 * Whether the widget saves and applies the page's workspace filters.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/workspace-saved-views/specs/workspace-saved-views/spec.md#requirement-a-dashboard-saves-and-applies-its-workspace-filters-as-views
+		 */
+		isWorkspaceMode() {
+			const ws = this.content?.workspace
+			return !!ws && typeof ws === 'object' && Array.isArray(ws.keys) && ws.keys.length > 0
+		},
+
+		/**
+		 * The workspace keys a view stores, as bare keys (`@workspace.lens` → `lens`).
+		 *
+		 * @return {string[]}
+		 */
+		workspaceKeys() {
+			if (!this.isWorkspaceMode) {
+				return []
+			}
+			return this.content.workspace.keys
+				.map((key) => String(key || '').replace(/^@workspace\./, ''))
+				.filter((key) => key !== '')
+		},
+
 		/**
 		 * The views to show: the reader's own (unless `own: false`) that belong to
 		 * the configured source, newest first, capped at `limit`.
@@ -135,6 +246,8 @@ export default {
 					key: this.keyOf(view),
 					label: Number.isFinite(count) ? `${view.name} (${count})` : String(view.name ?? ''),
 					to: location && this.$router ? location : null,
+					view,
+					own: isOwnView(view, this.userId()),
 				}
 			})
 		},
@@ -229,6 +342,10 @@ export default {
 		 */
 		async loadCounts() {
 			const c = this.content || {}
+			if (this.isWorkspaceMode) {
+				await this.loadWorkspaceCounts()
+				return
+			}
 			if (c.showCounts !== true || !c.register || !c.schema) {
 				this.counts = {}
 				return
@@ -246,7 +363,174 @@ export default {
 			}))
 			this.counts = next
 		},
+
+		/**
+		 * Count each shown view through `workspace.countSource`, its
+		 * `@workspace` tokens filled with the view's stored values.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/workspace-saved-views/specs/workspace-saved-views/spec.md#requirement-a-workspace-view-shows-how-many-items-it-holds
+		 */
+		async loadWorkspaceCounts() {
+			const c = this.content || {}
+			const source = c.workspace?.countSource
+			if (c.showCounts !== true || !source || typeof source !== 'object' || !source.url) {
+				this.counts = {}
+				return
+			}
+			const next = {}
+			await Promise.all(this.shown.map(async (view) => {
+				try {
+					const answer = await fetchEndpointSource(source, { workspace: this.viewValues(view) }, { force: true })
+					const total = countOfAnswer(answer)
+					if (total !== null) {
+						next[this.keyOf(view)] = total
+					}
+				} catch {
+					// No count for this view.
+				}
+			}))
+			this.counts = next
+		},
+
+		/**
+		 * The workspace values a view stores: every configured key, '' for one
+		 * the view does not hold.
+		 *
+		 * @param {object} view The View API object.
+		 * @return {object} The values by key.
+		 */
+		viewValues(view) {
+			const filters = extractViewState(view).filters
+			const values = {}
+			for (const key of this.workspaceKeys) {
+				values[key] = Object.hasOwn(filters, key) ? filters[key] : ''
+			}
+			return values
+		},
+
+		/**
+		 * The unwrapped workspace bag, or null on a page without one.
+		 *
+		 * @return {object|null}
+		 */
+		workspaceBag() {
+			const holder = this.cnWorkspaceContext
+			if (!holder || typeof holder !== 'object') {
+				return null
+			}
+			return ('value' in holder) ? (holder.value || {}) : holder
+		},
+
+		/**
+		 * Apply a view: write its stored values into the page workspace, so the
+		 * page's controls and lists follow.
+		 *
+		 * @param {object} view The View API object.
+		 * @return {void}
+		 * @spec openspec/changes/workspace-saved-views/specs/workspace-saved-views/spec.md#requirement-a-dashboard-saves-and-applies-its-workspace-filters-as-views
+		 */
+		applyView(view) {
+			const holder = this.cnWorkspaceContext
+			const values = this.viewValues(view)
+			if (holder && typeof holder === 'object') {
+				if ('value' in holder) {
+					holder.value = { ...(holder.value || {}), ...values }
+				} else {
+					for (const [key, value] of Object.entries(values)) {
+						holder[key] = value
+					}
+				}
+			}
+			this.appliedKey = this.keyOf(view)
+			this.$emit('apply', { view, values })
+		},
+
+		/**
+		 * Save the page's current workspace values as a view (CnSaveViewDialog
+		 * `@confirm`). A refusal keeps the dialog open with the reason.
+		 *
+		 * @param {{name: string, isPublic?: boolean, sharedWith?: Array, description?: string}} input The dialog's answer.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/workspace-saved-views/specs/workspace-saved-views/spec.md#requirement-a-dashboard-saves-and-applies-its-workspace-filters-as-views
+		 */
+		async onSaveConfirm({ name, isPublic = false, sharedWith = [], description = '' }) {
+			const bag = this.workspaceBag() || {}
+			const filters = {}
+			for (const key of this.workspaceKeys) {
+				const value = bag[key]
+				if (value !== undefined && value !== null && value !== '') {
+					filters[key] = value
+				}
+			}
+			const payload = buildViewCreatePayload({
+				name,
+				description,
+				isPublic,
+				isDefault: false,
+				state: { filters },
+				scope: String(this.content?.scope || ''),
+				sharedWith,
+			})
+			try {
+				const api = this.api || useSavedViewsApi()
+				const view = await api.createView(payload)
+				if (!view) {
+					throw new Error(t('nextcloud-vue', 'The server did not return the saved view'))
+				}
+				this.views = [...this.views, view]
+				this.showSaveDialog = false
+				this.appliedKey = this.keyOf(view)
+				await this.loadCounts()
+			} catch (error) {
+				this.$refs.saveViewDialog?.setError?.(error?.response?.data?.error || error?.message)
+			}
+		},
+
+		/**
+		 * Delete the view waiting for confirmation (CnConfirmDialog `@confirm`).
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/workspace-saved-views/specs/workspace-saved-views/spec.md#requirement-a-dashboard-saves-and-applies-its-workspace-filters-as-views
+		 */
+		async onDeleteConfirm() {
+			const view = this.viewPendingDelete
+			if (!view) {
+				return
+			}
+			try {
+				const api = this.api || useSavedViewsApi()
+				await api.deleteView(view.id ?? view.uuid)
+				this.views = this.views.filter((candidate) => this.keyOf(candidate) !== this.keyOf(view))
+				if (this.appliedKey === this.keyOf(view)) {
+					this.appliedKey = ''
+				}
+				this.$refs.deleteViewConfirmDialog?.setResult?.({ success: true })
+			} catch (error) {
+				this.$refs.deleteViewConfirmDialog?.setResult?.({ error: error?.response?.data?.error || error?.message || t('nextcloud-vue', 'Could not delete the view') })
+			}
+		},
 	},
+}
+
+/**
+ * How many items an endpoint answer holds: an array's length, a number, or an
+ * object's `total`; null otherwise.
+ *
+ * @param {unknown} answer The plucked endpoint answer.
+ * @return {number|null}
+ */
+function countOfAnswer(answer) {
+	if (Array.isArray(answer)) {
+		return answer.length
+	}
+	if (typeof answer === 'number' && Number.isFinite(answer)) {
+		return answer
+	}
+	if (answer && typeof answer === 'object' && typeof answer.total === 'number') {
+		return answer.total
+	}
+	return null
 }
 </script>
 
@@ -272,6 +556,30 @@ export default {
 .cn-saved-views-widget__link:hover,
 .cn-saved-views-widget__link:focus-visible {
 	text-decoration: underline;
+}
+
+.cn-saved-views-widget__item {
+	align-items: center;
+	display: flex;
+	gap: 4px;
+	justify-content: space-between;
+}
+
+.cn-saved-views-widget__apply {
+	background: none;
+	border: none;
+	cursor: pointer;
+	margin: 0;
+	padding: 0;
+	text-align: start;
+}
+
+.cn-saved-views-widget__apply--selected {
+	text-decoration: underline;
+}
+
+.cn-saved-views-widget__save {
+	margin-top: 8px;
 }
 
 .cn-saved-views-widget__note {

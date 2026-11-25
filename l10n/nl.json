@@ -3308,7 +3308,10 @@
     "Check passed.": "Controle geslaagd.",
     "Check found a problem: {checks}.": "Controle vond een probleem: {checks}.",
     "Check found a problem.": "Controle vond een probleem.",
-    "Fits: {target}": "Past bij: {target}"
+    "Fits: {target}": "Past bij: {target}",
+    "Delete view {name}": "Weergave {name} verwijderen",
+    "The view \"{name}\" leaves your list. The items themselves stay. This cannot be undone.": "De weergave \"{name}\" verdwijnt uit uw lijst. De items zelf blijven. Dit kan niet ongedaan worden gemaakt.",
+    "Could not delete the view": "De weergave kon niet worden verwijderd"
   },
   "plurals": {
     "{count} member": [
