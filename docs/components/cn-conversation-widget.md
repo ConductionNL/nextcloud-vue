@@ -98,6 +98,35 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 | `messageActions[].onStatus` | `{ "<status>": <action> }`: when the answer's status (at `errors.path`) is listed, that action runs (dispatched like `headerAction`, `@objectId` and `@object.<field>` resolved) instead of the refusal showing, such as opening the composer with a template when the WhatsApp session closed. |
 | `statusBadge` | `{ source: { register, schema, filter?, limit? }, sortField?, path?, map? }`: a badge in the header with the status of the most recent row of that list (by `sortField`), mapped and translated, such as the latest conversation thread's Open, Assigned or Closed. No row, no badge. |
 
+## Messages from an endpoint, read again on an interval
+
+A live thread, such as a website chat on its ticket, reads its messages from an endpoint and reads them again while it is shown.
+
+| Key | Meaning |
+|---|---|
+| `source.url` | The endpoint the messages come from, in place of `source.register`/`source.schema`. `@objectId` and `@object.<path>` are filled in anywhere in the url (encoded); a url whose token has no value sends no request. |
+| `source.responsePath` | Where the messages sit in the answer (`messages`); the answer itself when unset. |
+| `pollSeconds` | Read the source again on this interval (2 seconds or more) while the widget is shown, without the loading state. A poll that fails keeps the last messages. Works for a register `source` too. |
+| `pollUntil` | `{ path, in }`: stop polling once the endpoint's answer holds one of these values at `path` (`{ "path": "status", "in": ["closed"] }`). |
+
+After a reply through `endpoint`, the endpoint is read again, so the stored reply shows.
+
+```json
+{
+  "id": "ticket-web-chat",
+  "type": "conversation",
+  "content": {
+    "title": "Website chat",
+    "source": { "url": "/apps/pipelinq/api/web-chat/conversations/@object.threadKey", "responsePath": "messages" },
+    "pollSeconds": 3,
+    "pollUntil": { "path": "status", "in": ["closed"] },
+    "sideField": "author", "usValue": "agent", "textField": "body", "timeField": "at",
+    "endpoint": "/apps/pipelinq/api/web-chat/conversations/@object.threadKey/reply",
+    "messageKey": "text"
+  }
+}
+```
+
 ## Reference (auto-generated)
 
 import GeneratedRef from './_generated/CnConversationWidget.md'
