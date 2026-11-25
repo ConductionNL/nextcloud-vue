@@ -2,7 +2,9 @@
 
 ### OpenRegister reliance
 
-**medium**: this component relies on OpenRegister for part of what it does. 0 direct references, 5 files reached through imports.
+**heavy**: this component cannot work without OpenRegister. 0 direct references, 15 files reached through imports.
+
+Through: `CnActionDialog`, `CnAssignDialog`, `CnBulkJobProgress`, `CnIndexPage`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
@@ -12,3 +14,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | --------- | ---------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content` | `union`                            |          | `\{\}`  | The configuration: `{ register, schema, scope?, route, own?, showCounts?, limit?, emptyText?, errorText? }`. `register` and `schema` (or `scope`, the index page's `savedViewsScope`) pick the views of one list page; `route` is the name of that index page's route; `own` (default true) keeps the signed-in user's views only; `showCounts` adds how many records each view matches; `limit` caps the list (default 10). |
 | `api`     | `{fetchViews: Function}&#124;null` |          | `null`  | Injected views API, for tests and hosts that stub the transport.                                                                                                                                                                                                                                                                                                                                                             |
+
+### Events
+
+| Name    | Payload | Description |
+| ------- | ------- | ----------- |
+| `apply` | —       |             |
