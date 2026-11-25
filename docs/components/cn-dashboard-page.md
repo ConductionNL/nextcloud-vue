@@ -678,6 +678,20 @@ page title.
 { "views": [{ "id": "mine", "label": "My work" }, { "id": "team", "label": "My team", "title": "My team" }] }
 ```
 
+## A view for some readers only (`views[].visibleWhen`)
+
+A view can carry `visibleWhen`, the same condition a widget takes (manifest schema 2.200.0). The view is offered only when the
+condition holds for the reader: a school's Today offers "Mentor" only to a teacher who mentors a group. The condition is read once
+when the page opens. Until it answers, and when it cannot be read, the view is not offered (fail-safe). When the views left out
+leave a single view, the page draws no switch, and an address naming a hidden view opens the default view instead.
+
+```json
+{ "views": [
+  { "id": "teacher", "label": "Teacher" },
+  { "id": "mentor", "label": "Mentor", "visibleWhen": { "endpoint": "/apps/learniq/api/timetable/mentor-classes", "field": "classes", "op": "notEmpty" } }
+] }
+```
+
 ## Arrange the page in a side panel (`layoutPanel`)
 
 | Prop | Type | Default | Description |
