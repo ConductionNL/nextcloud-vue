@@ -3042,7 +3042,6 @@
     "In development": "In ontwikkeling",
     "Install into": "Installeren in",
     "Installed in {targets}": "Geïnstalleerd in {targets}",
-    "Fits: {target}": "Past bij: {target}",
     "Change {step}": "{step} wijzigen",
     "Remove row {number}": "Rij {number} verwijderen",
     "The step could not be saved.": "De stap kon niet worden opgeslagen.",
@@ -3304,7 +3303,12 @@
     "Solid": "Doorgetrokken",
     "Dashed": "Gestreept",
     "Dotted": "Gestippeld",
-    "Background": "Achtergrond"
+    "Background": "Achtergrond",
+    "Check passed: {checks}.": "Controle geslaagd: {checks}.",
+    "Check passed.": "Controle geslaagd.",
+    "Check found a problem: {checks}.": "Controle vond een probleem: {checks}.",
+    "Check found a problem.": "Controle vond een probleem.",
+    "Fits: {target}": "Past bij: {target}"
   },
   "plurals": {
     "{count} member": [

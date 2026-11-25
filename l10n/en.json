@@ -2777,7 +2777,6 @@
     "In development": "In development",
     "Install into": "Install into",
     "Installed in {targets}": "Installed in {targets}",
-    "Fits: {target}": "Fits: {target}",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
     "The step could not be saved.": "The step could not be saved.",
@@ -3010,7 +3009,12 @@
     "Started in the last (days, 1–90)": "Started in the last (days, 1–90)",
     "Starts within (days, 0–30)": "Starts within (days, 0–30)",
     "Must be between {min} and {max}": "Must be between {min} and {max}",
-    "Notifications": "Notifications"
+    "Notifications": "Notifications",
+    "Check passed: {checks}.": "Check passed: {checks}.",
+    "Check passed.": "Check passed.",
+    "Check found a problem: {checks}.": "Check found a problem: {checks}.",
+    "Check found a problem.": "Check found a problem.",
+    "Fits: {target}": "Fits: {target}"
   },
   "plurals": {
     "{count} member": [

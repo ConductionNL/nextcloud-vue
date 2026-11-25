@@ -204,6 +204,21 @@ Every step can carry a `summaryHint`, a muted line under its row in the
 again, without validating the step the reader is on. In the board look the
 same button sits on a readiness row that names a `step` and has no `link`.
 
+A `summary` step with `healthCheck: true` draws one line under the recap from
+the `health` block of the app's setup status:
+
+```json
+{ "health": { "ok": true, "checks": [
+  { "id": "register", "label": "register imported with 54 schemas", "ok": true },
+  { "id": "jobs", "label": "background jobs running", "ok": true }
+] } }
+```
+
+When every check passes the line reads "Check passed:" and names them all.
+Otherwise it reads "Check found a problem:" and names only the failing checks.
+Labels go through the app's translations. Without a `health` block no line is
+drawn.
+
 ## Try it
 
 ```vue
