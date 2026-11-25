@@ -14,4 +14,6 @@ A detail page draws several data cards over one record, and every card read the 
 
 ## Out of scope
 
-- The visibility-row read and the object store's own read of the same record; they use other clients and caches.
+- The object store's own read of the record a page shows; it has its own cache.
+
+Round 2: the visibility rows (`src/utils/detailWidgetVisibility.js`) share the same read, keyed by `register/schema/id`.

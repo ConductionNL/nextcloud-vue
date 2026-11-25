@@ -10,7 +10,7 @@
 
 ### Requirement: A related record is read once per page open
 
-When several data widgets on a page name the same related record (the same register, schema and id), the library SHALL send one read for it and give every widget the same answer. An answered read SHALL be shared for 30 seconds; after that the next widget reads it again. A failed read SHALL NOT be shared: the next widget that needs the record SHALL read it again.
+When several data widgets on a page, or a data widget and the detail page's visibility rows (`visibilityContext`), name the same related record (the same register, schema and id), the library SHALL send one read for it and give every reader the same answer. An answered read SHALL be shared for 30 seconds; after that the next widget reads it again. A failed read SHALL NOT be shared: the next widget that needs the record SHALL read it again.
 
 #### Scenario: Five cards name the same case type
 
@@ -24,3 +24,9 @@ When several data widgets on a page name the same related record (the same regis
 - GIVEN the read of a related record failed for the first widget
 - WHEN a second widget needs the same record
 - THEN the second widget sends its own read
+
+#### Scenario: The visibility rows and a card name the same case type
+
+- GIVEN a detail page whose `visibilityContext` reads the case type and a data card that names it
+- WHEN the page opens
+- THEN the case type is read once for both

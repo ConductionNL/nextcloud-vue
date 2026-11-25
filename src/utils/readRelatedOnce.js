@@ -7,9 +7,10 @@
  * A detail page draws several data cards over the same record, and each card
  * names the records its relation fields point at. Each card read them on its
  * own, so a case page with five cards read its case type five times on open.
- * This keeps the read (in flight or answered) for a short while, keyed by its
- * url, so the cards share one request. A failed read is not kept: the next
- * card tries again.
+ * This keeps the read (in flight or answered) for a short while, keyed by the
+ * record (`register/schema/id`), so the cards and the visibility rows of a
+ * detail page share one request. A failed read is not kept: the next caller
+ * tries again.
  *
  * @module utils/readRelatedOnce
  */
@@ -23,22 +24,22 @@ const reads = new Map()
 /**
  * Read a related record once for every caller within the TTL.
  *
- * @param {string} url The record's url.
- * @param {(url: string) => Promise<object>} get Reads the url and resolves to the response (e.g. `axios.get`).
+ * @param {string} key The record's key, `register/schema/id` (or its url).
+ * @param {(key: string) => Promise<object>} get Reads the record and resolves to its body.
  * @param {number} [now] The current time in ms (for tests).
- * @return {Promise<object>} The response, shared with every caller of the same url.
+ * @return {Promise<object>} The body, shared with every caller of the same key.
  * @spec openspec/changes/related-record-read-once/specs/data-widget/spec.md#requirement-a-related-record-is-read-once-per-page-open
  */
-export function readRelatedOnce(url, get, now = Date.now()) {
-	const kept = reads.get(url)
+export function readRelatedOnce(key, get, now = Date.now()) {
+	const kept = reads.get(key)
 	if (kept && now - kept.at < RELATED_READ_TTL) {
 		return kept.promise
 	}
-	const promise = Promise.resolve().then(() => get(url))
-	reads.set(url, { promise, at: now })
+	const promise = Promise.resolve().then(() => get(key))
+	reads.set(key, { promise, at: now })
 	promise.catch(() => {
-		if (reads.get(url)?.promise === promise) {
-			reads.delete(url)
+		if (reads.get(key)?.promise === promise) {
+			reads.delete(key)
 		}
 	})
 	return promise
