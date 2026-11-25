@@ -184,6 +184,21 @@ export function parsePhpQuery(qs) {
 }
 
 /**
+ * A filter as the batch count endpoint takes it: the structure the list
+ * endpoint would receive from the filter's query string, without `_limit`.
+ *
+ * @param {object} filter The filter map.
+ * @param {object} [ctx] Token-resolution context for the filter.
+ * @return {object} The filter parameters.
+ * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
+ */
+export function countFilterParams(filter, ctx) {
+	const params = parsePhpQuery(listCountQuery(filter, ctx))
+	delete params._limit
+	return params
+}
+
+/**
  * Count several lists in ONE request: OpenRegister's batch count endpoint,
  * which counts each filter with the same search the list endpoint runs.
  *
@@ -204,11 +219,7 @@ export async function fetchListTotals(lists, ctx) {
 		return eachOnItsOwn()
 	}
 	try {
-		const counts = lists.map(({ register, schema, filter }) => {
-			const params = parsePhpQuery(listCountQuery(filter, ctx))
-			delete params._limit
-			return { register, schema, filter: params }
-		})
+		const counts = lists.map(({ register, schema, filter }) => ({ register, schema, filter: countFilterParams(filter, ctx) }))
 		const response = await fetch(prefixUrl('/apps/openregister/api/objects/counts'), {
 			method: 'POST',
 			headers: buildHeaders(),
