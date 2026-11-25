@@ -396,7 +396,7 @@
 
 <script>
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
@@ -422,6 +422,7 @@ import { createActionState, listAddActions } from '../../utils/listCreateAction.
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
+import { requestLanguage } from '../../utils/requestLanguage.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { actionForRow, fillRowTokens, hasRowTokens, resolveRowFilter, rowTokenField } from '../../utils/rowTokens.js'
@@ -2026,7 +2027,7 @@ export default {
 				return
 			}
 			const register = children.register || (this.content || {}).register
-			const params = { [link.key]: values, _lang: getLanguage() }
+			const params = { [link.key]: values, _lang: requestLanguage() }
 			for (const [k, v] of Object.entries(resolveFilterTokens(children.filter || {}, this.tokenCtx))) {
 				if (k !== link.key && rowTokenField(v) === '' && v !== '' && v !== null && v !== undefined && typeof v !== 'object') {
 					params[k] = v
@@ -2316,8 +2317,8 @@ export default {
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
 				// `_lang` asks OpenRegister for translatable fields in the
-				// user's language (REQ-OR-003).
-				const params = { _limit: this.pageSize, _page: this.page, _lang: getLanguage() }
+				// page's language, `en` when the page names none (REQ-OR-003).
+				const params = { _limit: this.pageSize, _page: this.page, _lang: requestLanguage() }
 				if (this.reorderField !== '') {
 					// A reorderable list is always shown in its stored order.
 					params[`_order[${this.reorderField}]`] = 'asc'
