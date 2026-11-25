@@ -514,7 +514,7 @@ import { lensUnavailableText, readLensReports } from '../../utils/lensAvailabili
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { cellsOf, fetchRowAggregate } from '../../utils/rowAggregate.js'
+import { cellsOf, fetchRowAggregates } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { ruleHolds } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
@@ -2652,28 +2652,27 @@ export default {
 			const next = new Map()
 			const jobs = []
 			for (const row of this.rows) {
-				const rowKey = String(row[this.rowKey])
-				const cells = cellsOf(next, rowKey)
-				for (const col of aggCols) {
-					const agg = col.aggregate
-					if (isEndpointAggregate(col)) {
-						continue
-					}
-					if (!agg.register || !agg.schema) {
-						continue
-					}
-					// `max`: the highest `field` among the related objects, as the
-					// first of them sorted on it descending ("Laatste contact").
-					jobs.push(fetchRowAggregate(agg, row, (r, path) => this.getCellValue(r, path))
-						.then((value) => {
-							cells[col.key] = value
-						})
-						.catch((e) => {
-							// eslint-disable-next-line no-console
-							console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
-							cells[col.key] = undefined
-						}))
+				cellsOf(next, String(row[this.rowKey]))
+			}
+			for (const col of aggCols) {
+				const agg = col.aggregate
+				if (isEndpointAggregate(col) || !agg.register || !agg.schema) {
+					continue
 				}
+				// One request per column: every row's count in one batch.
+				// `max` (the highest `field`, "Laatste contact") stays per row.
+				const rows = this.rows
+				jobs.push(fetchRowAggregates(agg, rows, (r, path) => this.getCellValue(r, path))
+					.then((outcomes) => {
+						outcomes.forEach((outcome, index) => {
+							const rowKey = String(rows[index][this.rowKey])
+							if ('error' in outcome) {
+								// eslint-disable-next-line no-console
+								console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, outcome.error)
+							}
+							cellsOf(next, rowKey)[col.key] = 'error' in outcome ? undefined : outcome.value
+						})
+					}))
 			}
 			for (const col of aggCols.filter(isEndpointAggregate)) {
 				jobs.push(this.loadEndpointAggregate(col, next, id))
