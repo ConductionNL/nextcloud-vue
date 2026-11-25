@@ -7,13 +7,16 @@
  * of the semantic vocabulary, besides the exact PascalCase name.
  */
 import { mount } from '@vue/test-utils'
-import Calendar from 'vue-material-design-icons/Calendar.vue'
-import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import HelpCircleOutline from 'vue-material-design-icons/HelpCircleOutline.vue'
-import LinkVariant from 'vue-material-design-icons/LinkVariant.vue'
 import CnIcon, { resolveIcon } from '../../src/components/CnIcon/CnIcon.vue'
 import CnQuicklinksWidget from '../../src/components/CnQuicklinksWidget/CnQuicklinksWidget.vue'
 import CnWidgetIcon from '../../src/components/CnWidgetGrid/CnWidgetIcon.vue'
+import { mdiIcon } from '../../src/components/CnIcon/mdiIcon.js'
+
+// The lookup tables hold mdiIcon() components (same DOM as the package SFCs).
+const Calendar = mdiIcon('Calendar')
+const FolderOutline = mdiIcon('FolderOutline')
+const LinkVariant = mdiIcon('LinkVariant')
 
 /**
  * Mount CnIcon and read the component it resolved.
