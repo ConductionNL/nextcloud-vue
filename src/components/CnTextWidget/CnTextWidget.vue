@@ -136,7 +136,19 @@ const RAW_TEXT_ELEMENTS = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
  * @return {string} The source without those elements.
  */
 function stripRawTextElements(text) {
-	return typeof text === 'string' ? text.replace(RAW_TEXT_ELEMENTS, '') : text
+	if (typeof text !== 'string') {
+		return text
+	}
+	// Repeat until nothing changes: removing one element can join the text
+	// around it into a new opening tag (a script tag nested inside the word
+	// "script" leaves a whole one behind).
+	let previous
+	let current = text
+	do {
+		previous = current
+		current = previous.replace(RAW_TEXT_ELEMENTS, '')
+	} while (current !== previous)
+	return current
 }
 
 /**

@@ -35,6 +35,13 @@ describe('CnTextWidget markdown with raw-text elements', () => {
 		expect(body.find('script').exists()).toBe(false)
 	})
 
+	it('strips a script that removing an inner one would form', () => {
+		const body = render('<scr<script></script>ipt>window.__y = 1</script> and **bold**')
+		expect(body.find('script').exists()).toBe(false)
+		expect(body.html()).not.toContain('__y')
+		expect(body.find('strong').text()).toBe('bold')
+	})
+
 	it('leaves other inline HTML to the sanitiser', () => {
 		const body = render('<a href="http://example.com" data-x="1">link</a>')
 		expect(body.find('a').attributes('href')).toBe('http://example.com')
