@@ -6,6 +6,14 @@
     "View": "Ara",
     "Edit": "Editja",
     "Copy": "Ikkopja",
-    "Delete": "Ħassar"
+    "Delete": "Ħassar",
+    "The administrator has not set a start date field.": "L-amministratur ma ssettjax qasam għad-data tal-bidu.",
+    "Starts {weekday}": "Jibda {weekday}",
+    "Selection": "Għażla",
+    "People by filter": "Nies skont il-filtru",
+    "New colleagues": "Kollegi ġodda",
+    "Started in the last (days, 1–90)": "Bdew fl-aħħar (jiem, 1–90)",
+    "Starts within (days, 0–30)": "Jibdew fil-(jiem, 0–30) li ġejjin",
+    "Must be between {min} and {max}": "Għandu jkun bejn {min} u {max}"
   }
 }

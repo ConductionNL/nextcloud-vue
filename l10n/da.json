@@ -6,6 +6,14 @@
     "View": "Vis",
     "Edit": "Rediger",
     "Copy": "Kopiér",
-    "Delete": "Slet"
+    "Delete": "Slet",
+    "The administrator has not set a start date field.": "Administratoren har ikke angivet et felt til startdato.",
+    "Starts {weekday}": "Starter {weekday}",
+    "Selection": "Udvalg",
+    "People by filter": "Personer efter filter",
+    "New colleagues": "Nye kolleger",
+    "Started in the last (days, 1–90)": "Startet inden for de sidste (dage, 1–90)",
+    "Starts within (days, 0–30)": "Starter inden for de næste (dage, 0–30)",
+    "Must be between {min} and {max}": "Skal være mellem {min} og {max}"
   }
 }

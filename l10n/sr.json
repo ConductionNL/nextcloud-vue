@@ -6,6 +6,14 @@
     "View": "Преглед",
     "Edit": "Уреди",
     "Copy": "Копирај",
-    "Delete": "Обриши"
+    "Delete": "Обриши",
+    "The administrator has not set a start date field.": "Администратор није поставио поље за датум почетка рада.",
+    "Starts {weekday}": "Почиње {weekday}",
+    "Selection": "Избор",
+    "People by filter": "Особе по филтеру",
+    "New colleagues": "Нове колеге",
+    "Started in the last (days, 1–90)": "Почели у последњих (дана, 1–90)",
+    "Starts within (days, 0–30)": "Почињу у наредних (дана, 0–30)",
+    "Must be between {min} and {max}": "Мора бити између {min} и {max}"
   }
 }

@@ -6,6 +6,14 @@
     "View": "Görüntüle",
     "Edit": "Düzenle",
     "Copy": "Kopyala",
-    "Delete": "Sil"
+    "Delete": "Sil",
+    "The administrator has not set a start date field.": "Yönetici bir başlangıç tarihi alanı belirlemedi.",
+    "Starts {weekday}": "{weekday} başlıyor",
+    "Selection": "Seçim",
+    "People by filter": "Filtreye göre kişiler",
+    "New colleagues": "Yeni çalışma arkadaşları",
+    "Started in the last (days, 1–90)": "Son (gün, 1–90) içinde başlayanlar",
+    "Starts within (days, 0–30)": "Önümüzdeki (gün, 0–30) içinde başlayacaklar",
+    "Must be between {min} and {max}": "{min} ile {max} arasında olmalıdır"
   }
 }
