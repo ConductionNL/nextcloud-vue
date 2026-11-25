@@ -98,6 +98,10 @@ const ITEM_TONES = ['success', 'info', 'neutral', 'warning', 'error']
 
 const API_ITEM_LIMIT = 7
 
+/** How often, and how many times, a late native callback is looked for (REQ-WDG-019: 200 ms x 15, ~3 s). */
+const CALLBACK_POLL_MS = 200
+const CALLBACK_POLL_TRIES = 15
+
 /**
  * Read the global `OCA.Dashboard` registry without assuming it exists.
  *
@@ -353,6 +357,10 @@ export default {
 		this.tryMount()
 	},
 
+	beforeUnmount() {
+		this.stopCallbackPoll()
+	},
+
 	methods: {
 		/**
 		 * Whether an item belongs to an app or type the content leaves out: its
@@ -450,6 +458,52 @@ export default {
 			}
 			this.mode = 'api'
 			this.loadApiItems()
+			if (this.displayMode !== 'horizontal' && this.itemLimit === 0 && !this.hasExclusions) {
+				this.startCallbackPoll()
+			}
+		},
+
+		/**
+		 * Watch for a native callback that registers after mount: every 200 ms,
+		 * at most 15 times. When it appears the widget switches to native mode
+		 * and the API list is hidden; after the last try the API list stays and
+		 * no further checks happen.
+		 *
+		 * @spec openspec/specs/widgets/spec.md#REQ-WDG-019
+		 * @return {void}
+		 */
+		startCallbackPoll() {
+			this.stopCallbackPoll()
+			let tries = 0
+			this.callbackPoll = setInterval(() => {
+				tries++
+				if (this.mode === 'native') {
+					this.stopCallbackPoll()
+					return
+				}
+				const callback = this.resolveNativeCallback()
+				if (typeof callback === 'function') {
+					this.stopCallbackPoll()
+					this.mountNative(callback)
+					return
+				}
+				if (tries >= CALLBACK_POLL_TRIES) {
+					this.stopCallbackPoll()
+				}
+			}, CALLBACK_POLL_MS)
+		},
+
+		/**
+		 * Stop the late-callback watch, if it runs.
+		 *
+		 * @spec openspec/specs/widgets/spec.md#REQ-WDG-019
+		 * @return {void}
+		 */
+		stopCallbackPoll() {
+			if (this.callbackPoll) {
+				clearInterval(this.callbackPoll)
+				this.callbackPoll = null
+			}
 		},
 
 		/**
@@ -479,6 +533,7 @@ export default {
 		 * @return {void}
 		 */
 		mountNative(callback) {
+			this.stopCallbackPoll()
 			this.mode = 'native'
 			this.$nextTick(() => {
 				const container = this.$refs.nativeContainer
@@ -548,7 +603,8 @@ export default {
 			// "no items right now" — that would render a false empty state for
 			// a widget that actually has content. Fall back to native
 			// rendering rather than lying about there being nothing to show.
-			if (this.items.length === 0) {
+			// The late-callback poll may already have switched to native.
+			if (this.items.length === 0 && this.mode !== 'native') {
 				const callback = this.resolveNativeCallback()
 				if (typeof callback === 'function') {
 					this.mountNative(callback)
@@ -760,6 +816,18 @@ export default {
 	height: 32px;
 	object-fit: cover;
 	border-radius: 50%;
+}
+
+/* Horizontal cards carry a 44px icon on top (REQ-WDG-020); rows keep 32px. */
+.cn-nc-widget-widget__item--horizontal .cn-nc-widget-widget__item-icon-wrap {
+	width: 44px;
+	height: 44px;
+	flex: 0 0 44px;
+}
+
+.cn-nc-widget-widget__item--horizontal .cn-nc-widget-widget__item-icon {
+	width: 44px;
+	height: 44px;
 }
 
 .cn-nc-widget-widget__item-overlay {
