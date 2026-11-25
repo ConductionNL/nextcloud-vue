@@ -6,6 +6,14 @@
     "View": "Poglej",
     "Edit": "Uredi",
     "Copy": "Kopiraj",
-    "Delete": "Izbriši"
+    "Delete": "Izbriši",
+    "The administrator has not set a start date field.": "Skrbnik ni nastavil polja za datum začetka dela.",
+    "Starts {weekday}": "Začne {weekday}",
+    "Selection": "Izbor",
+    "People by filter": "Ljudje po filtru",
+    "New colleagues": "Novi sodelavci",
+    "Started in the last (days, 1–90)": "Začeli v zadnjih (dneh, 1–90)",
+    "Starts within (days, 0–30)": "Začnejo v naslednjih (dneh, 0–30)",
+    "Must be between {min} and {max}": "Mora biti med {min} in {max}"
   }
 }

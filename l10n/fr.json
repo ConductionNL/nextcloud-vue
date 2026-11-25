@@ -6,6 +6,14 @@
     "View": "Afficher",
     "Edit": "Modifier",
     "Copy": "Copier",
-    "Delete": "Supprimer"
+    "Delete": "Supprimer",
+    "The administrator has not set a start date field.": "L'administrateur n'a pas défini de champ de date d'entrée.",
+    "Starts {weekday}": "Commence {weekday}",
+    "Selection": "Sélection",
+    "People by filter": "Personnes par filtre",
+    "New colleagues": "Nouveaux collègues",
+    "Started in the last (days, 1–90)": "Arrivés au cours des derniers (jours, 1–90)",
+    "Starts within (days, 0–30)": "Arrivent dans les prochains (jours, 0–30)",
+    "Must be between {min} and {max}": "Doit être compris entre {min} et {max}"
   }
 }

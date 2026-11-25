@@ -6,6 +6,14 @@
     "View": "Прагляд",
     "Edit": "Рэдагаваць",
     "Copy": "Капіяваць",
-    "Delete": "Выдаліць"
+    "Delete": "Выдаліць",
+    "The administrator has not set a start date field.": "Адміністратар не задаў поле даты пачатку працы.",
+    "Starts {weekday}": "Пачынае {weekday}",
+    "Selection": "Выбар",
+    "People by filter": "Людзі па фільтры",
+    "New colleagues": "Новыя калегі",
+    "Started in the last (days, 1–90)": "Пачалі за апошнія (дзён, 1–90)",
+    "Starts within (days, 0–30)": "Пачнуць у бліжэйшыя (дзён, 0–30)",
+    "Must be between {min} and {max}": "Павінна быць ад {min} да {max}"
   }
 }
