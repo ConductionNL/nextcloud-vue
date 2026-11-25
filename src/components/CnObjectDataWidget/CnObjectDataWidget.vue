@@ -500,7 +500,6 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
@@ -511,6 +510,7 @@ import { parseDateValue } from '../../utils/dateVariant.js'
 import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { readPath } from '../../utils/readPath.js'
 import { readRelatedOnce } from '../../utils/readRelatedOnce.js'
@@ -524,6 +524,9 @@ import { CnIcon } from '../CnIcon/index.js'
 import { fileHref } from '../CnMapWidget/imageLayerSource.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+
+// The form renders only once opened, so it loads on first render.
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
 
 // Widgets whose value the inline text fallback would corrupt.
 const STRUCTURED_WIDGETS = ['json', 'code', 'file', 'sub-objects', 'child-records']

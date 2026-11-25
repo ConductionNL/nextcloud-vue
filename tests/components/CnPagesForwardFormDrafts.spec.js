@@ -41,7 +41,8 @@ async function editFormOf(object, extra = {}) {
 			allowDraft: true,
 			...extra,
 		},
-		global: { mocks: MOCKS },
+		// The page loads its form dialog lazily; this stub carries the dialog's props.
+		global: { mocks: MOCKS, stubs: { CnFormDialog: lazyStub(CnFormDialog) } },
 	})
 	await wrapper.setData({ editFormOpen: true })
 	await flushPromises()
