@@ -30,6 +30,7 @@ import path from 'path'
 import postcssImport from 'postcss-import'
 import postcss from 'rollup-plugin-postcss'
 import { fileURLToPath } from 'url'
+import { trimEnglishCatalogue } from './rollup.l10n.mjs'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -139,6 +140,7 @@ export default {
 		},
 		// DELTA 4: no unwrapVueDeep — Vue 3 SFC compiler handles :deep() natively.
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport()] }),
+		trimEnglishCatalogue(),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
 		// `esmExternals` MUST list 'vue'. Without it the plugin assumes every
