@@ -44,3 +44,15 @@ export interface CnAppVersionDefineOptions {
  * @param options Which initial-state key to read.
  */
 export function appVersionDefine(appId: string, fallback?: string, options?: CnAppVersionDefineOptions): string
+
+/**
+ * Return a copy of a webpack config that turns css-loader source maps off
+ * (they embed every stylesheet a second time in the JavaScript) and narrows
+ * every `splitChunks` cache group that takes all chunks to `chunks: 'initial'`
+ * (so the library's lazy chunks stay lazy). Apply it last.
+ *
+ * Does not mutate the input. Accepts the multi-compiler array form.
+ *
+ * @param config The webpack configuration, or the multi-compiler array form.
+ */
+export function withLeanBundles<T extends object | object[]>(config: T): T

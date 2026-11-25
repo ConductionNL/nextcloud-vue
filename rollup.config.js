@@ -338,7 +338,7 @@ export default {
 			// Optional @mdi/js pack (loaded only by CnIconPicker's enriched MDI
 			// source) — kept external so it stays lazy at the consumer and the
 			// library ships no icon pack.
-			|| id === '@mdi/js'
+			|| id === '@mdi/js' || id.startsWith('@mdi/js/')
 			// All other @nextcloud/* packages resolve at consumer build time.
 			|| /^@nextcloud\//.test(id)
 			|| /^vue-material-design-icons\//.test(id)

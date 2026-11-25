@@ -94,7 +94,7 @@ export default {
 			id === 'vue'
 			|| id === '@vue/compat'
 			|| id === 'pinia'
-			|| id === '@mdi/js'
+			|| id === '@mdi/js' || id.startsWith('@mdi/js/')
 			|| /^@nextcloud\//.test(id)
 			|| /^vue-material-design-icons\//.test(id)
 			|| /^@toast-ui\//.test(id)
