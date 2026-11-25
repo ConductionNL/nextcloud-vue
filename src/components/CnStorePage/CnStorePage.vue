@@ -502,9 +502,9 @@ export const DEFAULT_STORE_KINDS = [
  * Anything else reads as nothing installed: a list, a string, or an entry
  * whose targets are not a list of strings.
  *
- * @param {*} value The `installed` key of a search response.
+ * @param {unknown} value The `installed` key of a search response.
  *
- * @return {Object<string, string[]>}
+ * @return {{[slug: string]: string[]}}
  * @spec openspec/changes/store-installed-in/specs/store-page/spec.md#requirement-a-card-says-where-its-item-is-installed
  */
 function installedMap(value) {
