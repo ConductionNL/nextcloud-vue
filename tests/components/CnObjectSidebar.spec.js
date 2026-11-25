@@ -103,7 +103,8 @@ describe('CnObjectSidebar — useRegistry default (ADR-019)', () => {
 				CnAuditTrailTab: true,
 			},
 		})
-		expect(wrapper.findAll('.default-registry-tab').length).toBe(2)
+		// Only the open tab's content mounts (sidebar-tab-mounts-on-open).
+		expect(wrapper.findAll('.default-registry-tab').length).toBe(1)
 		// The legacy hardcoded built-in tabs MUST NOT render in registry mode.
 		const html = wrapper.html()
 		expect(html).toContain('id="files"')
@@ -476,6 +477,20 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		const html = wrapper.html()
 		expect(html).toContain('id="files"')
 		expect(html).toContain('id="notes"')
+		// Both tabs are listed; only the open one's content mounts.
+		expect(wrapper.findAll('.registry-tab').length).toBe(1)
+		wrapper.unmount()
+	})
+
+	it('mounts a registry tab\'s content when it is opened and keeps the one left mounted', async () => {
+		integrations.register({ id: 'files', label: 'Files', order: 1, tab: RegistryTab, widget: RegistryWidget })
+		integrations.register({ id: 'notes', label: 'Notes', order: 2, tab: RegistryTab, widget: RegistryWidget })
+		const wrapper = mountRegistrySidebar()
+		expect(wrapper.findAll('.registry-tab').length).toBe(1)
+		const other = wrapper.vm.activeTab === 'files' ? 'notes' : 'files'
+		wrapper.vm.activeTab = other
+		await wrapper.vm.$nextTick()
+		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.registry-tab').length).toBe(2)
 		wrapper.unmount()
 	})
@@ -503,6 +518,9 @@ describe('CnObjectSidebar — pluggable integration registry mode', () => {
 		const wrapper = mountRegistrySidebar()
 		expect(wrapper.findAll('.registry-tab').length).toBe(1)
 		integrations.register({ id: 'late', label: 'Late', tab: RegistryTab, widget: RegistryWidget })
+		await wrapper.vm.$nextTick()
+		expect(wrapper.html()).toContain('id="late"')
+		wrapper.vm.activeTab = 'late'
 		await wrapper.vm.$nextTick()
 		expect(wrapper.findAll('.registry-tab').length).toBe(2)
 		wrapper.unmount()
