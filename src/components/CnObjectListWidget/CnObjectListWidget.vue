@@ -412,6 +412,7 @@ import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
 import { useObjectStore } from '../../store/index.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
+import { createConfirmationFor } from '../../utils/createConfirmation.js'
 import { fillCountLabel } from '../../utils/fillCountLabel.js'
 import { formatMoney } from '../../utils/formatMetric.js'
 import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
@@ -2822,6 +2823,32 @@ export default {
 		 * @param {object} formData Confirmed form values.
 		 * @return {Promise<void>}
 		 */
+		/**
+		 * Ask the question `content.confirmCreate` declares for these values,
+		 * if any. True when there is nothing to ask or the user said yes.
+		 *
+		 * @param {object} payload The values the create is about to send.
+		 * @return {Promise<boolean>} Whether the create may go ahead.
+		 */
+		async confirmCreate(payload) {
+			const rule = createConfirmationFor((this.content || {}).confirmCreate, payload)
+			if (rule === null) {
+				return true
+			}
+			const tr = typeof this.cnTranslate === 'function' ? this.cnTranslate : (k) => k
+			try {
+				const { showConfirmation } = await import('@nextcloud/dialogs')
+				return (await showConfirmation({
+					name: this.addLabel || t('nextcloud-vue', 'Create'),
+					text: tr(rule.text),
+					labelConfirm: tr(rule.confirmLabel || '') || t('nextcloud-vue', 'Create'),
+					labelReject: t('nextcloud-vue', 'Cancel'),
+				})) === true
+			} catch {
+				return false
+			}
+		},
+
 		async onCreateConfirm(formData) {
 			const c = this.content || {}
 			try {
@@ -2835,6 +2862,15 @@ export default {
 					if (v && typeof v !== 'object' && (payload[k] === undefined || payload[k] === null || payload[k] === '')) {
 						payload[k] = v
 					}
+				}
+				// `content.confirmCreate`: some values need a yes first (a
+				// document shared with everyone, say). No means back to the
+				// form with the typing intact, not an error.
+				if (await this.confirmCreate(payload) === false) {
+					if (this.$refs.createDialog && typeof this.$refs.createDialog.setValidationErrors === 'function') {
+						this.$refs.createDialog.setValidationErrors({}, null)
+					}
+					return
 				}
 				const endpoint = c.createEndpoint && typeof c.createEndpoint === 'object' && c.createEndpoint.url ? c.createEndpoint : null
 				const url = endpoint ? generateUrl(endpoint.url) : generateUrl('/apps/openregister/api/objects/{register}/{schema}', { register: c.register, schema: c.schema })

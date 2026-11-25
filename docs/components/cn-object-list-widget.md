@@ -271,6 +271,20 @@ A column's `cellClass` reaches the table: `"cn-cell--wrap"` wraps a column of pr
 
 The table never scrolls sideways inside its card. When its columns are wider than the card it is squeezed in two steps, each taken only while it still overflows: first the fit (one column takes what is left and is cut with an ellipsis, the others keep their content on one line; `grow: true` on a column picks which one), then a fixed layout (every column an equal share, text wrapped). `content.fitWidth: true` forces the first step on, `false` keeps the table's own layout (and its scrollbar).
 
+#### A question before some creates: `confirmCreate`
+
+Some values deserve a yes before they are written, such as a document that anyone may read. `content.confirmCreate` is a list of `{ when, text, confirmLabel? }`. `when` is a local visibleWhen condition (`{ field, op, value }`, `{ all: [...] }`, `{ any: [...] }`) evaluated against the values the create form is about to send. The first entry that holds is asked in a confirmation dialog, with `text` as the question and `confirmLabel` on the confirm button (default *Create*). Cancel returns to the form with everything still filled in. Nothing is posted until the user confirms. An entry without a `when` never matches. Edits are not asked.
+
+```json
+"confirmCreate": [
+  {
+    "when": { "all": [{ "field": "audience", "op": "eq", "value": "public" }, { "field": "documentType", "op": "eq", "value": "pentest" }] },
+    "text": "Anyone can read this pentest report, also without an account. Publish it publicly?",
+    "confirmLabel": "Publish publicly"
+  }
+]
+```
+
 ## More than one Add, and totals under the list
 
 `content.addActions` (`[{ label, icon?, createDefaults? }]`) offers extra adds beside the list's own. Each opens the same create form with its `createDefaults` merged over the list's, so one list of quote lines offers "Add product" (`createDefaults: { "kind": "catalogue" }`) and "Add own line" (`{ "kind": "own" }`), as board PqOfferte draws. In the board look they stand in the card's title row next to the Add; in the Nextcloud look they join the card's Actions menu and the footer. Labels go through the host translate.
