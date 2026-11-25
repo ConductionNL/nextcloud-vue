@@ -1,6 +1,6 @@
 <template>
 	<div
-		v-if="totalPages > 1 || totalItems > minItemsToShow || (isBoardVariant && totalItems > 0)"
+		v-if="totalPages > 1 || totalItems > minItemsToShow || (isBoardVariant && totalItems > 0) || defaultNoteOnly"
 		class="cn-pagination"
 		:class="{ 'cn-pagination--compact': compact, 'cn-pagination--board': isBoardVariant }"
 		data-testid="cn-pagination">
@@ -56,8 +56,12 @@
 
 		<!-- Page info -->
 		<div v-if="!isBoardVariant" class="cn-pagination__info">
-			<span class="cn-pagination__page-info">
+			<span v-if="!defaultNoteOnly" class="cn-pagination__page-info">
 				{{ pageInfoText }}
+			</span>
+			<!-- The default look's footer note: alone when the list needs no pager, else after the page info. -->
+			<span v-if="footerNote !== ''" class="cn-pagination__note" data-testid="cn-pagination-note">
+				{{ footerNote }}
 			</span>
 		</div>
 
@@ -130,7 +134,7 @@
 		</div>
 
 		<!-- Page size selector -->
-		<div v-if="!compact && !isBoardVariant" class="cn-pagination__page-size">
+		<div v-if="!compact && !isBoardVariant && !defaultNoteOnly" class="cn-pagination__page-size">
 			<label :for="pageSizeId">{{ itemsPerPageLabel }}</label>
 			<NcSelect
 				:inputId="pageSizeId"
@@ -249,7 +253,9 @@ export default {
 
 		/**
 		 * Free text appended to the board variant's count text ("20 of 48 ·
-		 * click a column header to sort"). Manifest key `config.footerNote`.
+		 * click a column header to sort"). The default look shows it after the
+		 * page info, or alone when the list needs no pager. Manifest key
+		 * `config.footerNote`.
 		 */
 		footerNote: {
 			type: String,
@@ -353,6 +359,20 @@ export default {
 		 */
 		noteOnly() {
 			return this.isBoardVariant && !this.pagerOnOnePage && this.totalPages <= 1 && this.footerNote !== ''
+		},
+
+		/**
+		 * Whether the default look shows its footer note alone: a non-empty
+		 * list that needs no pager (one page, no more rows than
+		 * `minItemsToShow`) and has a note. Without a note the footer stays
+		 * hidden there, as before.
+		 *
+		 * @spec openspec/changes/footer-note-in-the-default-look/specs/index-list-board-look/spec.md#requirement-the-default-look-shows-its-footer-note
+		 * @return {boolean}
+		 */
+		defaultNoteOnly() {
+			return !this.isBoardVariant && this.footerNote !== '' && this.totalPages <= 1
+				&& this.totalItems > 0 && this.totalItems <= this.minItemsToShow
 		},
 
 		/**
