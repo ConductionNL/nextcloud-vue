@@ -22,6 +22,8 @@
 const { mount } = require('@vue/test-utils')
 
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnFormDialogComponent = require('../../src/components/CnFormDialog/CnFormDialog.vue').default
 const CnDetailPage = require('../../src/components/CnDetailPage/CnDetailPage.vue').default
 const CnObjectListWidget = require('../../src/components/CnObjectListWidget/CnObjectListWidget.vue').default
 const CnObjectDataWidget = require('../../src/components/CnObjectDataWidget/CnObjectDataWidget.vue').default
@@ -57,7 +59,7 @@ const stubs = {
 	CnWidgetGrid: true,
 	CnObjectSidebar: true,
 	CnTabs: true,
-	CnFormDialog: true,
+	CnFormDialog: lazyStub(CnFormDialogComponent),
 }
 
 const mocks = { $route: { params: {}, query: {} }, $router: { push: jest.fn() } }

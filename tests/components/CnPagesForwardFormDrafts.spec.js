@@ -10,7 +10,9 @@
  */
 import { flushPromises, shallowMount } from '@vue/test-utils'
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
+import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
 import CnIndexPage from '../../src/components/CnIndexPage/CnIndexPage.vue'
+import { lazyStub } from '../support/lazyStub.js'
 
 const SCHEMA = { slug: 'case', title: 'Case', properties: { title: { type: 'string' }, isDraft: { type: 'boolean' } } }
 
@@ -65,7 +67,8 @@ describe('CnIndexPage: form drafts', () => {
 	function indexPage() {
 		return shallowMount(CnIndexPage, {
 			props: { title: 'Cases', schema: SCHEMA, objects: [], draftAppId: 'dossiq', allowDraft: true },
-			global: { mocks: MOCKS },
+			// The page loads its form dialog lazily; this stub carries the dialog's props.
+			global: { mocks: MOCKS, stubs: { CnFormDialog: lazyStub(CnFormDialog) } },
 		})
 	}
 

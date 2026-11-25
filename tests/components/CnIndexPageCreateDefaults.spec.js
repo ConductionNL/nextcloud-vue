@@ -19,6 +19,9 @@ jest.mock('@nextcloud/auth', () => ({
 const { mount } = require('@vue/test-utils')
 
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnFormDialogComponent = require('../../src/components/CnFormDialog/CnFormDialog.vue').default
+const CnAdvancedFormDialogComponent = require('../../src/components/CnAdvancedFormDialog/CnAdvancedFormDialog.vue').default
 
 const SCHEMA = {
 	title: 'Case',
@@ -42,7 +45,7 @@ const stubs = {
 	CnMassImportDialog: true,
 	CnDeleteDialog: true,
 	CnCopyDialog: true,
-	CnAdvancedFormDialog: true,
+	CnAdvancedFormDialog: lazyStub(CnAdvancedFormDialogComponent),
 	NcLoadingIcon: true,
 	NcEmptyContent: true,
 	CnPageHeader: true,
@@ -50,7 +53,7 @@ const stubs = {
 	CnWidgetGrid: true,
 	CnObjectSidebar: true,
 	CnTabs: true,
-	CnFormDialog: true,
+	CnFormDialog: lazyStub(CnFormDialogComponent),
 }
 
 const mocks = { $route: { params: {}, query: {} }, $router: { push: jest.fn() } }
@@ -145,7 +148,7 @@ describe('CnIndexPage createDefaults', () => {
 				useAdvancedFormDialog: true,
 				createDefaults: { assignee: '@me' },
 			},
-			global: { stubs: { ...stubs, CnAdvancedFormDialog: true }, mocks },
+			global: { stubs: { ...stubs, CnAdvancedFormDialog: lazyStub(CnAdvancedFormDialogComponent) }, mocks },
 		})
 		await wrapper.setData({ showFormDialogVisible: true })
 
