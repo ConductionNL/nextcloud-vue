@@ -748,6 +748,7 @@ import {
 	persistWalkthroughSeenVersion,
 	readLocalWalkthroughProgress,
 	readLocalWalkthroughSeenVersion,
+	readPreloadedWalkthroughPreferences,
 	useWalkthrough,
 } from '../../composables/useWalkthrough.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
@@ -4163,6 +4164,7 @@ export default {
 		 * the localStorage mirror inside the loader.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-walkthrough/spec.md#requirement-a-page-may-carry-the-walkthrough-preferences
 		 */
 		async resolveWalkthroughSeenVersion() {
 			if (!this.walkthroughEnabled || !this.walkthroughConfigKey) {
@@ -4170,9 +4172,12 @@ export default {
 				return
 			}
 			try {
+				// A page that carries both preferences in its initial state
+				// (`walkthrough_preferences`) needs neither GET.
+				const preloaded = readPreloadedWalkthroughPreferences(this.appId)
 				const [seen, progress] = await Promise.all([
-					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey),
-					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey),
+					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, { preloaded: preloaded.seen }),
+					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey, { preloaded: preloaded.progress }),
 				])
 				this.walkthroughSeenVersionValue = seen
 				this.walkthroughProgressValue = progress
