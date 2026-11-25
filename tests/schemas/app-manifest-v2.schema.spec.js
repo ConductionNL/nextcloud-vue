@@ -1476,7 +1476,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.200.0 lets a page view carry a visibleWhen, so a view shows only to the readers it is for (view-visible-when).
 		// 2.201.0 lets a dashboard keep sections the layout panel may not hide (layoutPanelLocked; dashboard-layout-panel-locked).
 		// 2.202.0 lets a dashboard read its widgets again on a timer (autoRefresh; dashboard-auto-refresh).
-		expect(schema.version).toBe('2.202.0')
+		// 2.203.0 lets a dashboard header count the user's unread notifications of an app (notificationsBadge; dashboard-notifications-badge).
+		expect(schema.version).toBe('2.203.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
@@ -2992,6 +2993,14 @@ describe('app-manifest-v2: the dashboard layout panel (dashboard-layout-panel, 2
 		expect(validateManifestV2(page({ autoRefresh: { intervalSeconds: 300, staleAfterSeconds: 600, button: true } })).valid).toBe(true)
 		expect(validateManifestV2(page({ autoRefresh: { intervalSeconds: 0 } })).valid).toBe(false)
 		expect(validateManifestV2(page({ autoRefresh: { every: 5 } })).valid).toBe(false)
+	})
+
+	// @spec openspec/changes/dashboard-notifications-badge/specs/dashboard-page/spec.md#requirement-a-dashboard-header-counts-the-users-unread-notifications-of-the-app
+	it('declares config.notificationsBadge as true or an app id (2.203.0)', () => {
+		expect(validateManifestV2(page({ notificationsBadge: true })).valid).toBe(true)
+		expect(validateManifestV2(page({ notificationsBadge: 'pipelinq' })).valid).toBe(true)
+		expect(validateManifestV2(page({ notificationsBadge: '' })).valid).toBe(false)
+		expect(validateManifestV2(page({ notificationsBadge: 3 })).valid).toBe(false)
 	})
 
 	it('declares config.layoutPanel as a boolean', () => {

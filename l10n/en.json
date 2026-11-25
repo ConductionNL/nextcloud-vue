@@ -3008,7 +3008,8 @@
     "New colleagues": "New colleagues",
     "Started in the last (days, 1–90)": "Started in the last (days, 1–90)",
     "Starts within (days, 0–30)": "Starts within (days, 0–30)",
-    "Must be between {min} and {max}": "Must be between {min} and {max}"
+    "Must be between {min} and {max}": "Must be between {min} and {max}",
+    "Notifications": "Notifications"
   },
   "plurals": {
     "{count} member": [
@@ -3269,6 +3270,10 @@
     "Used by %n organisation": [
       "Used by %n organisation",
       "Used by %n organisations"
+    ],
+    "%n unread notification": [
+      "%n unread notification",
+      "%n unread notifications"
     ]
   }
 }

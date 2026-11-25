@@ -3568,6 +3568,10 @@
     "Used by %n organisation": [
       "Gebruikt door %n organisatie",
       "Gebruikt door %n organisaties"
+    ],
+    "%n unread notification": [
+      "%n ongelezen melding",
+      "%n ongelezen meldingen"
     ]
   }
 }
