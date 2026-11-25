@@ -125,4 +125,4 @@ Compact mode names the **items**, not the pages: in a widget the row range is wh
 
 ## Board variant
 
-`variant="board"` draws the card footer of the board look. `footerNote` (String, default `''`) is free text after its count text.
+`variant="board"` draws the card footer of the board look. `footerNote` (String, default `''`) is free text after its count text. In the default look the note follows the page info, and a non-empty list that needs no pager (one page, no more rows than `minItemsToShow`) shows the note alone.

@@ -403,7 +403,6 @@ import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
@@ -418,6 +417,7 @@ import { formatMoney } from '../../utils/formatMetric.js'
 import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState, listAddActions } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
@@ -433,6 +433,9 @@ import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { HOST_WIDGET_ID, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
 import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+
+// The form renders only once opened, so it loads on first render.
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's Actions
@@ -2561,7 +2564,11 @@ export default {
 		/**
 		 * Save an edited row: a PATCH of the keys the form changed, so every
 		 * key it does not show keeps its stored value; nothing when nothing
-		 * changed. A refusal shows the server's message in the dialog.
+		 * changed. A refusal shows the server's message in the dialog. The
+		 * PATCH names the language the values were typed in with
+		 * `X-Translation-Target-Language` (the same language the rows were
+		 * read in with `?_lang=`), so OpenRegister files a translatable
+		 * string under that language; the values stay plain strings.
 		 *
 		 * @param {object} formData The edited values.
 		 * @return {Promise<void>}
@@ -2575,7 +2582,11 @@ export default {
 			try {
 				if (id !== '' && Object.keys(changes).length > 0) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
-					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }),
+						changes,
+						{ headers: { 'X-Translation-Target-Language': requestLanguage() } },
+					)
 				}
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })

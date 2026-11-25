@@ -129,16 +129,24 @@ function idOf(body) {
  *                                 filed. Omitted, conflicts stay on the device
  *                                 and the queue row says so.
  *
+ * @param {object} [options]       Drain options.
+ * @param {function(object): boolean} [options.filter] Keeps a row: only rows it keeps
+ *                                 are replayed, in the same order. An app's
+ *                                 root passes one so it sends its own rows
+ *                                 and leaves another app's on the device.
+ *
+ * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it
  * @return {Promise<{ processed: number, synced: number, conflicts: number, failed: number }>}
  */
-export async function drainQueue(deviceId, offlineConfig = {}) {
+export async function drainQueue(deviceId, offlineConfig = {}, options = {}) {
 	if (typeof navigator !== 'undefined' && navigator.onLine === false) {
 		return { processed: 0, synced: 0, conflicts: 0, failed: 0 }
 	}
 
 	const db = await openDb()
 	const rows = await db.mutationQueue.where('deviceId').equals(deviceId).toArray()
-	const ordered = orderForReplay(rows)
+	const keep = typeof options.filter === 'function' ? options.filter : null
+	const ordered = orderForReplay(keep === null ? rows : rows.filter((row) => keep(row)))
 
 	const tally = { processed: 0, synced: 0, conflicts: 0, failed: 0 }
 	for (const operation of ordered) {

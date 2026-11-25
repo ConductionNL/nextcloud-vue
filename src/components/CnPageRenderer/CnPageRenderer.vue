@@ -309,6 +309,7 @@ import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { resolveLazyComponent } from '../../utils/lazyComponent.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
+import { hasOfflineBlock, offlineForms, takeAlongFor } from '../../utils/offlineManifest.js'
 import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
@@ -362,6 +363,7 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	}
 	return entityDescriptorCache.get(key).catch(() => null)
 }
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
 
 const CnWidgetGrid = defineAsyncComponent(() => import('../CnWidgetGrid/CnWidgetGrid.vue').then((m) => m.default))
@@ -1481,6 +1483,21 @@ export default {
 					topLevel.notFoundRouteLabel = this.tr(listPage.title || listPage.id)
 				}
 			}
+			// manifest-offline-block: a form page listed in `offline.forms` is an
+			// offline form (it queues its submission without a connection), and
+			// an index or detail page over a take-along register and schema reads
+			// that set from the device while offline. Only a manifest with an
+			// `offline` block sets either, so no other page opens the offline
+			// database.
+			const manifest = this.effectiveManifest
+			if (page && hasOfflineBlock(manifest)) {
+				if (page.type === 'form' && offlineForms(manifest).some((form) => form.id === page.id)) {
+					topLevel.offline = true
+				}
+				if ((isIndex || isDetail) && takeAlongFor(manifest, normalizedConfig.register, normalizedConfig.schema) !== null) {
+					topLevel.offlineTakeAlong = true
+				}
+			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
 			// expand to the nine read-only flags MERGED UNDER `config.*`
 			// so explicit `config.showAdd:true` still wins. Strip the
@@ -1747,6 +1764,20 @@ export default {
 					Promise.resolve(component.__asyncLoader())
 						.then(() => { this.asyncPageResolved += 1 })
 						.catch(() => {})
+				}
+			},
+		},
+
+		/**
+		 * Switch the board-look rules on before the first render of a page drawn in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		resolvedLook: {
+			immediate: true,
+			handler(value) {
+				if (value === 'board') {
+					enableBoardLookStyle()
 				}
 			},
 		},

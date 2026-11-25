@@ -1477,7 +1477,8 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.201.0 lets a dashboard keep sections the layout panel may not hide (layoutPanelLocked; dashboard-layout-panel-locked).
 		// 2.202.0 lets a dashboard read its widgets again on a timer (autoRefresh; dashboard-auto-refresh).
 		// 2.203.0 lets a dashboard header count the user's unread notifications of an app (notificationsBadge; dashboard-notifications-badge).
-		expect(schema.version).toBe('2.203.0')
+		// 2.204.0 adds the top-level offline block: what an app takes along and which forms work offline (manifest-offline-block).
+		expect(schema.version).toBe('2.204.0')
 	})
 
 	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {

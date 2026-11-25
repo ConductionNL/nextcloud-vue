@@ -27,6 +27,8 @@ jest.mock('@nextcloud/axios', () => ({
 const { shallowMount } = require('@vue/test-utils')
 const axios = jest.requireMock('@nextcloud/axios').default
 const CnObjectListWidget = require('../../src/components/CnObjectListWidget/CnObjectListWidget.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnFormDialogComponent = require('../../src/components/CnFormDialog/CnFormDialog.vue').default
 
 const LEAD_PRODUCT = {
 	id: 12,
@@ -53,7 +55,7 @@ describe('CnObjectListWidget: create dialog references', () => {
 				columns: [{ key: 'product', label: 'Product' }],
 			},
 		},
-		stubs: { CnDataTable: true },
+		stubs: { CnFormDialog: lazyStub(CnFormDialogComponent), CnDataTable: true },
 	})
 
 	it('passes the list register to the create form', async () => {
@@ -76,7 +78,7 @@ describe('CnObjectListWidget: create dialog references', () => {
 describe('CnObjectListWidget: create form in context', () => {
 	const mountWith = (content) => shallowMount(CnObjectListWidget, {
 		propsData: { content: { register: 'pipelinq', schema: 'lead-product', columns: [{ key: 'product', label: 'Product' }], ...content } },
-		stubs: { CnDataTable: true },
+		stubs: { CnFormDialog: lazyStub(CnFormDialogComponent), CnDataTable: true },
 	})
 	const dialogOf = async (w) => {
 		await w.vm.openCreate()
@@ -92,7 +94,7 @@ describe('CnObjectListWidget: create form in context', () => {
 		const w = shallowMount(CnObjectListWidget, {
 			propsData: { content: { register: 'pipelinq', schema: 'lead-product', filter: { lead: '@workspace.leadId' }, columns: [] } },
 			provide: { cnWorkspaceContext: { leadId: 'lead-9' } },
-			stubs: { CnDataTable: true },
+			stubs: { CnFormDialog: lazyStub(CnFormDialogComponent), CnDataTable: true },
 		})
 		const dialog = await dialogOf(w)
 		expect(dialog.props('initialData')).toEqual({ lead: 'lead-9' })

@@ -755,6 +755,7 @@ import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { appShownName } from '../../utils/appShownName.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
@@ -765,6 +766,7 @@ import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTran
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { loadMyTeam } from '../../utils/myTeam.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
+import { offlineForms } from '../../utils/offlineManifest.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
@@ -2008,6 +2010,8 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// The running send of this app's offline-form queue (drainOfflineForms), or null.
+			offlineDrain: null,
 			// Saved views this user added to the menu (per-user preference).
 			// One object for the whole session, so the provide hands out a
 			// live reference: `entries` changes, the holder does not.
@@ -3380,6 +3384,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Switch the board-look rules on before the first render in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		resolvedLook: {
+			immediate: true,
+			handler(value) {
+				if (value === 'board') {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
 		// Only an app with a page that offers saved views reads the list,
 		// once, when such a page first appears in the manifest.
 		offersSavedViews: {
@@ -3517,6 +3535,11 @@ export default {
 		window.addEventListener('beforeunload', this.onBeforeUnload)
 		window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 
+		// manifest-offline-block D7: an app with offline forms sends what they
+		// queued, on mount while online and each time the connection returns.
+		window.addEventListener('online', this.drainOfflineForms)
+		this.drainOfflineForms()
+
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
@@ -3562,6 +3585,7 @@ export default {
 		}
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
 		window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
+		window.removeEventListener('online', this.drainOfflineForms)
 		this.cnScopedTheme.teardown(this.appId)
 		// Scope the side effect to the shell's lifetime. Layers already written
 		// stay on screen (see `uninstallModalStack`), so a dialog outliving the
@@ -3990,6 +4014,45 @@ export default {
 		 * @param {BeforeUnloadEvent} event The browser beforeunload event.
 		 * @return {string|undefined} A non-empty string triggers the native prompt.
 		 */
+		/**
+		 * Send the submissions this app's offline forms queued on the device.
+		 *
+		 * Only rows whose register and schema one of the manifest's offline
+		 * forms writes are replayed: another app's rows on the same device
+		 * wait for that app. A manifest without offline forms does nothing
+		 * and never loads the offline core; nor does a browser that is
+		 * offline. One drain at a time: an `online` event during a drain
+		 * returns the running one.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it
+		 * @return {Promise<object|null>} The drain tally, or null when nothing was sent.
+		 */
+		drainOfflineForms() {
+			const pairs = new Set(offlineForms(this.manifest).map((form) => `${form.register}::${form.schema}`))
+			if (pairs.size === 0 || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+				return Promise.resolve(null)
+			}
+			if (this.offlineDrain) {
+				return this.offlineDrain
+			}
+			this.offlineDrain = (async () => {
+				try {
+					const [{ drainQueue }, { resolveDeviceId }] = await Promise.all([
+						import('../../integrations/offline/syncReplayService.js'),
+						import('../../integrations/offline/offlineDb.js'),
+					])
+					return await drainQueue(resolveDeviceId(), {}, { filter: (row) => pairs.has(`${row.register}::${row.schema}`) })
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.warn('[CnAppRoot] Sending the offline queue failed; it is tried again when the connection returns:', error)
+					return null
+				} finally {
+					this.offlineDrain = null
+				}
+			})()
+			return this.offlineDrain
+		},
+
 		onBeforeUnload(event) {
 			const editor = this.manifestEditor
 			const dirtyRef = editor && editor.dirty
