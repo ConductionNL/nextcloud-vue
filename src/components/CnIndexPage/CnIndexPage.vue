@@ -146,7 +146,7 @@
 			:bulkCancel="Boolean(viewBulkBand && viewBulkBand.cancel === true)"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
-			:selectable="selectable"
+			:selectable="selectable && !takeAlongActive"
 			:selectedIds="internalSelectedIds"
 			:addLabel="resolvedAddLabel"
 			:addIcon="resolvedIcon"
@@ -827,8 +827,16 @@
 					{{ sourceNote }}
 				</p>
 
+				<!-- Offline: the rows downloaded to this device, and when (manifest offline.takeAlong). -->
+				<p v-if="takeAlongActive"
+					class="cn-index-page__offline-status"
+					role="status"
+					data-testid="cn-index-page-offline">
+					{{ takeAlongText }}
+				</p>
+
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
-				<div v-if="showInitialLoader" class="cn-index-page__loading">
+				<div v-if="showInitialLoader && !takeAlongActive" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
@@ -867,7 +875,7 @@
 				</div>
 
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="(selfFetchFailed && !searchRefusalAsNotice) || sourceFailed"
+				<div v-else-if="((selfFetchFailed && !searchRefusalAsNotice) || sourceFailed) && !takeAlongActive"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -910,7 +918,7 @@
 					:sortKey="effectiveSortKey"
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
 					:rowClickRoute="rowLinkRoute"
@@ -1098,7 +1106,7 @@
 					:statusField="boardColumnField"
 					:columnKeyOf="boardColumnKeyOf"
 					:wrapColumns="board.wrap === true"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:selectedIds="internalSelectedIds"
 					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
@@ -1179,7 +1187,7 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:config="renderedListConfig"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -1253,7 +1261,7 @@
 					v-else
 					:objects="displayObjects"
 					:schema="effectiveSchema"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
 					:cardLayout="cardLayout"
@@ -1517,6 +1525,7 @@ import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/u
 import { useLook } from '../../composables/useLook.js'
 import { actionLabelText, fetchSelectionActions, runSelectionAction } from '../../composables/useObjectActions.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
+import { searchAndSortLocally, takeAlongIndexText, useOfflineTakeAlong } from '../../composables/useOfflineTakeAlong.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
@@ -4863,6 +4872,17 @@ export default {
 		},
 
 		/**
+		 * Whether the manifest takes this page's register and schema along
+		 * (`offline.takeAlong`; CnPageRenderer sets it). Offline, the page then
+		 * shows the downloaded rows with their download time, searched and
+		 * sorted on the device. False: the offline database is never opened.
+		 */
+		offlineTakeAlong: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Optional name of a consumer-provided card component (registered
 		 * in the `customComponents` registry on `CnAppRoot`) to render in
 		 * place of the default `CnObjectCard` when the page is in
@@ -5052,6 +5072,13 @@ export default {
 		// `cnLook` CnAppRoot (or the page renderer) provides.
 		const { isBoard: isBoardLook, lookClass } = useLook(props)
 
+		// manifest-offline-block D5: the downloaded rows while offline.
+		const takeAlong = useOfflineTakeAlong({
+			register: () => props.register,
+			schema: () => (typeof props.schema === 'string' ? props.schema : (props.schema && props.schema.slug) || ''),
+			enabled: () => props.offlineTakeAlong,
+		})
+
 		const {
 			isOpen: contextMenuOpen,
 			targetItem: contextMenuRow,
@@ -5107,6 +5134,9 @@ export default {
 			isBoard: isBoardLook,
 			isBoardLook,
 			lookClass,
+			takeAlongActive: takeAlong.active,
+			takeAlongSet: takeAlong.set,
+			markTakeAlongOffline: takeAlong.markOffline,
 			isNamedSource,
 			namedSource,
 			namedRows,
@@ -5713,6 +5743,16 @@ export default {
 		},
 
 		/**
+		 * The offline status bar's sentence, or '' while online.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-index-and-detail-pages-read-from-the-device-when-offline
+		 * @return {string}
+		 */
+		takeAlongText() {
+			return this.takeAlongActive ? takeAlongIndexText({ ...this.takeAlongSet, rows: this.effectiveObjects }) : ''
+		},
+
+		/**
 		 * The failed fetch as a refused search, or null when it is not one.
 		 *
 		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
@@ -5825,6 +5865,9 @@ export default {
 		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
 		 */
 		effectiveObjects() {
+			if (this.takeAlongActive) {
+				return searchAndSortLocally(this.takeAlongSet.rows, { search: this.effectiveSearchValue, sortKey: this.effectiveSortKey, sortOrder: this.effectiveSortOrder })
+			}
 			if (this.isNamedSource) {
 				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
 				const key = sortsRows && this.namedSort ? this.namedSort.key : ''
@@ -9700,7 +9743,8 @@ export default {
 		barShowsSavedViews() {
 			// Under the board look the saved views stay in the toolbar as chips
 			// even when the header carries the buttons.
-			return Boolean(this.allowSavedViews) && (!this.headerButtonsShown || this.isBoardLook)
+			// Offline the saved views cannot load or save: hidden.
+			return Boolean(this.allowSavedViews) && !this.takeAlongActive && (!this.headerButtonsShown || this.isBoardLook)
 		},
 
 		/**
@@ -10176,6 +10220,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * A list request that failed without any answer counts as offline
+		 * (manifest-offline-block D4): show the downloaded rows instead.
+		 *
+		 * @param {boolean} failed Whether the latest self-fetch failed.
+		 * @return {void}
+		 */
+		selfFetchFailed(failed) {
+			const error = failed ? this.list.error?.value : null
+			if (error && this.offlineTakeAlong && !error.response) {
+				this.markTakeAlongOffline()
+			}
+		},
+
 		actionsFrom: {
 			immediate: true,
 			handler() {

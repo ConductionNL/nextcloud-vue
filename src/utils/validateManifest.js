@@ -6,6 +6,7 @@
 // names exist.
 import { BUILT_IN_FILE_COLUMNS } from '../components/CnFilesBrowser/filesBrowserColumns.js'
 import { LIBRARY_WIDGET_KEYS } from './libraryWidgetKeys.js'
+import { offlineFormProblem, registersBySchema } from './offlineManifest.js'
 // The same resolver CnIndexPage orders row actions with, so the placement warnings measure the order that actually renders.
 import { resolveRowActions } from './resolveRowActions.js'
 // Shared slot→columns resolution so the validator's grid bound matches the
@@ -812,6 +813,14 @@ export function validateManifestV2(manifest) {
 		})
 	}
 
+	// 8. The `offline` block (manifest-offline-block D1, D2): a take-along
+	//     entry without a register must leave exactly one register to take,
+	//     and every offline form is a form page that writes to a register and
+	//     schema through the object API (the queue replays nothing else).
+	if (isPlainObject(clone.offline)) {
+		validateOfflineBlock(clone, errors)
+	}
+
 	// --- Post-schema warnings (never affect `valid`) ---
 	const warnings = []
 
@@ -836,6 +845,50 @@ export function validateManifestV2(manifest) {
 	}
 
 	return { valid: errors.length === 0, errors, warnings }
+}
+
+/**
+ * The post-schema checks of the `offline` block (manifest-offline-block D1, D2).
+ *
+ * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-the-manifest-declares-what-goes-offline
+ * @param {object} manifest The (cloned) manifest.
+ * @param {string[]} errors Collected errors, appended to.
+ * @return {void}
+ */
+function validateOfflineBlock(manifest, errors) {
+	const offline = manifest.offline
+	if (Array.isArray(offline.takeAlong)) {
+		const bound = registersBySchema(manifest)
+		offline.takeAlong.forEach((entry, index) => {
+			if (!isPlainObject(entry) || typeof entry.schema !== 'string' || (typeof entry.register === 'string' && entry.register !== '')) {
+				return
+			}
+			const registers = bound.get(entry.schema)
+			const count = registers ? registers.size : 0
+			if (count === 0) {
+				errors.push(`offline/takeAlong[${index}]/register: no page binds schema "${entry.schema}", so name the register to take it along from`)
+			} else if (count > 1) {
+				errors.push(`offline/takeAlong[${index}]/register: pages bind schema "${entry.schema}" in ${count} registers (${[...registers].join(', ')}), so name the register to take it along from`)
+			}
+		})
+	}
+	if (Array.isArray(offline.forms)) {
+		const pages = Array.isArray(manifest.pages) ? manifest.pages : []
+		offline.forms.forEach((id, index) => {
+			if (typeof id !== 'string') {
+				return
+			}
+			const page = pages.find((p) => isPlainObject(p) && p.id === id)
+			if (!page || page.type !== 'form') {
+				errors.push(`offline/forms[${index}]: "${id}" is not a type: form page`)
+				return
+			}
+			const problem = offlineFormProblem(page)
+			if (problem !== null) {
+				errors.push(`offline/forms[${index}]: page "${id}" ${problem}; an offline form writes to a register and schema`)
+			}
+		})
+	}
 }
 
 /**

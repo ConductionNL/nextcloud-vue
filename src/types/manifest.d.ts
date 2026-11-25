@@ -374,6 +374,29 @@ export interface TManifestMcp {
 	}
 }
 
+/**
+ * What an app takes along offline and which forms work offline
+ * (manifest-offline-block). See the `offline` property in the v2 schema and
+ * docs/integrations/offline-manifest.md.
+ */
+export interface TManifestOffline {
+	/** Records downloaded to the device and read back by index and detail pages while offline. */
+	takeAlong?: Array<{
+		/** Register slug; may be left out when pages bind the schema in one register. */
+		register?: string
+		/** Schema slug of the records to take along. */
+		schema: string
+		/** Exact-match filters in the shared token grammar (`@me`, `@today`, ...). */
+		filter?: Record<string, unknown>
+		/** At most this many records, 1 to 500 (100 when left out). */
+		limit?: number
+		/** Hours the copy stays usable, 1 to 72 (24 when left out). */
+		ttlHours?: number
+	}>
+	/** Ids of `type: form` pages whose submission is queued while offline. */
+	forms?: string[]
+}
+
 export interface TManifest {
 	$schema?: string
 	version: string
@@ -475,4 +498,9 @@ export interface TManifest {
 	 * `TManifestMcp`. Nothing in nextcloud-vue reads this field.
 	 */
 	mcp?: TManifestMcp
+	/**
+	 * What the app takes along offline and which forms work offline; see
+	 * `TManifestOffline`. A manifest without it never opens the offline database.
+	 */
+	offline?: TManifestOffline
 }

@@ -308,6 +308,7 @@ import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
+import { hasOfflineBlock, offlineForms, takeAlongFor } from '../../utils/offlineManifest.js'
 import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
@@ -1452,6 +1453,21 @@ export default {
 				if (listPage) {
 					topLevel.notFoundRoute = { name: listPage.id }
 					topLevel.notFoundRouteLabel = this.tr(listPage.title || listPage.id)
+				}
+			}
+			// manifest-offline-block: a form page listed in `offline.forms` is an
+			// offline form (it queues its submission without a connection), and
+			// an index or detail page over a take-along register and schema reads
+			// that set from the device while offline. Only a manifest with an
+			// `offline` block sets either, so no other page opens the offline
+			// database.
+			const manifest = this.effectiveManifest
+			if (page && hasOfflineBlock(manifest)) {
+				if (page.type === 'form' && offlineForms(manifest).some((form) => form.id === page.id)) {
+					topLevel.offline = true
+				}
+				if ((isIndex || isDetail) && takeAlongFor(manifest, normalizedConfig.register, normalizedConfig.schema) !== null) {
+					topLevel.offlineTakeAlong = true
 				}
 			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):

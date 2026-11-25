@@ -50,6 +50,13 @@
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
 			:separator="breadcrumbSeparator"
 			data-testid="cn-detail-page-breadcrumbs" />
+		<!-- Offline: the record is the copy downloaded to this device (manifest offline.takeAlong). -->
+		<p v-if="takeAlongActive"
+			class="cn-detail-page__offline-status"
+			role="status"
+			data-testid="cn-detail-page-offline">
+			{{ takeAlongText }}
+		</p>
 		<!-- Header -->
 		<div
 			v-if="!objectNotFound && !contentWithheld"
@@ -375,6 +382,8 @@
 				<NcButton
 					v-if="canEditRecord && !foldsEditIntoActions"
 					variant="secondary"
+					:disabled="takeAlongActive"
+					:title="takeAlongActive ? t('nextcloud-vue', 'Not available offline.') : undefined"
 					data-testid="cn-detail-page-edit"
 					:aria-label="editActionLabel"
 					@click="openEditForm">
@@ -446,6 +455,7 @@
 									:key="entry.id"
 									:data-testid="entry.testid"
 									:disabled="entry.disabled"
+									:title="entry.disabledReason || undefined"
 									:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
 									:closeAfterClick="true"
 									:data-cn-admin-tag="adminTagFor(group)"
@@ -1441,6 +1451,7 @@ import { actionLabelText, fetchObjectActions } from '../../composables/useObject
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { takeAlongDetailText, useOfflineTakeAlong } from '../../composables/useOfflineTakeAlong.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageFilters } from '../../mixins/pageFilters.js'
@@ -2385,6 +2396,18 @@ export default {
 		schema: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Whether the manifest takes this page's register and schema along
+		 * (`offline.takeAlong`; CnPageRenderer sets it). Offline, the page
+		 * then opens the record from the device with its download time, and
+		 * edit, the menu's actions and transitions are disabled. False: the
+		 * offline database is never opened.
+		 */
+		offlineTakeAlong: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -3562,6 +3585,16 @@ export default {
 		)
 		registryExposed.presentOthers = presentOthers
 
+		// manifest-offline-block D5: the record from the device while offline.
+		const takeAlong = useOfflineTakeAlong({
+			register: () => props.register,
+			schema: () => props.schema,
+			enabled: () => props.offlineTakeAlong,
+		})
+		registryExposed.takeAlongActive = takeAlong.active
+		registryExposed.takeAlongSet = takeAlong.set
+		registryExposed.markTakeAlongOffline = takeAlong.markOffline
+
 		// Object context for detail-page abstract widgets (ADR-041): a reactive
 		// `{ objectId, object, register, schema }` holder kept current by the
 		// Options watcher below. Provided so CnObjectListWidget / CnStatWidget
@@ -4414,7 +4447,16 @@ export default {
 				isAdmin: this.viewerIsAdmin,
 				adminLabel: t('nextcloud-vue', 'Administration'),
 			})
-			return groups.map((group) => ({ ...group, label: group.label ? this.effectiveTranslate(group.label) : '' }))
+			const labelled = groups.map((group) => ({ ...group, label: group.label ? this.effectiveTranslate(group.label) : '' }))
+			if (!this.takeAlongActive) {
+				return labelled
+			}
+			// Offline nothing in the menu can reach the server: each entry is disabled, saying why.
+			const reason = t('nextcloud-vue', 'Not available offline.')
+			return labelled.map((group) => ({
+				...group,
+				entries: group.entries.map((entry) => (entry.href ? entry : { ...entry, disabled: true, disabledReason: reason })),
+			}))
 		},
 
 		/**
@@ -5478,6 +5520,10 @@ export default {
 		 * @return {object|null}
 		 */
 		currentObject() {
+			// Offline with a take-along set: the device's copy of the record.
+			if (this.takeAlongRecord) {
+				return this.takeAlongRecord
+			}
 			if (this.recordSource) {
 				return this.objectId ? (this.recordSource.record(this.objectId) ?? null) : null
 			}
@@ -5490,6 +5536,29 @@ export default {
 				return null
 			}
 			return store.objects?.[type]?.[this.objectId] ?? null
+		},
+
+		/**
+		 * The record from the take-along set while offline, or null.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-index-and-detail-pages-read-from-the-device-when-offline
+		 * @return {object|null}
+		 */
+		takeAlongRecord() {
+			if (!this.takeAlongActive || !this.objectId) {
+				return null
+			}
+			const id = String(this.objectId)
+			return (this.takeAlongSet.rows || []).find((row) => row && String(row.id ?? row['@self']?.id ?? row.uuid ?? '') === id) || null
+		},
+
+		/**
+		 * The offline status bar's sentence, or '' while online.
+		 *
+		 * @return {string}
+		 */
+		takeAlongText() {
+			return this.takeAlongActive ? takeAlongDetailText(this.takeAlongSet) : ''
 		},
 
 		/**
@@ -6413,6 +6482,18 @@ export default {
 
 		objectNotFound() {
 			this.syncSidebarState()
+		},
+
+		/**
+		 * The device's copy of the record arrived: the page is not a not-found page.
+		 *
+		 * @param {object|null} record The take-along record.
+		 * @return {void}
+		 */
+		takeAlongRecord(record) {
+			if (record) {
+				this.objectNotFound = false
+			}
 		},
 
 		contentWithheld() {
@@ -7644,7 +7725,7 @@ export default {
 			} finally {
 				// A newer fetch for another id owns the flags now.
 				if (fetchesObject && objectId === this.objectId) {
-					this.objectNotFound = !store.objects?.[type]?.[objectId]
+					this.objectNotFound = !store.objects?.[type]?.[objectId] && !this.takeAlongRecord
 						&& store.getError?.(type)?.status === 404
 					this.objectFetchPending = false
 				}

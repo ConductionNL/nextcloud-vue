@@ -253,6 +253,34 @@ export async function getPlanningMeta(register, schema, collection = 'planning')
 }
 
 /**
+ * Remove one cached collection of a register and schema, and its meta row.
+ *
+ * The database is shared by every app on the origin, so clearing one app's
+ * downloaded set must not touch another set or anything in the queue: an
+ * app that deleted the database would also wipe another app's field work
+ * that is still waiting to be sent.
+ *
+ * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-the-offline-core-downloads-reads-and-clears-a-take-along-set
+ * @param {string} register   Register slug or id.
+ * @param {string} schema     Schema slug.
+ * @param {string} collection Collection name.
+ *
+ * @return {Promise<number>} The number of cached objects removed.
+ */
+export async function clearCollection(register, schema, collection) {
+	const db = await openDb()
+	let removed = 0
+	await db.transaction('rw', db.objectCache, db.meta, async () => {
+		removed = await db.objectCache
+			.where('collection').equals(collection)
+			.and((row) => row.register === register && row.schema === schema)
+			.delete()
+		await db.meta.delete(`planning::${register}::${schema}::${collection}`)
+	})
+	return removed
+}
+
+/**
  * Enqueue one offline mutation against the OR object API.
  *
  * @param {object} operation                  The mutation operation.

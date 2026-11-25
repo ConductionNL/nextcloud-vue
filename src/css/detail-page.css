@@ -181,6 +181,14 @@
 
 /* Error and not-found states */
 .cn-detail-page__error,
+.cn-detail-page__offline-status {
+	margin: 0 0 8px;
+	padding: 8px 12px;
+	border-radius: var(--border-radius-large, 8px);
+	background: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
 .cn-detail-page__not-found {
 	padding: calc(8 * var(--default-grid-baseline)) calc(4 * var(--default-grid-baseline));
 }
