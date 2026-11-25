@@ -3267,7 +3267,20 @@
     "About this folder": "Over deze map",
     "Ask without this scope": "Vraag zonder deze afbakening",
     "Sources": "Bronnen",
-    "page {page}": "pagina {page}"
+    "page {page}": "pagina {page}",
+    "No register is connected, so the marketplace has nothing to show.": "Er is geen register verbonden, dus de marktplaats heeft niets te tonen.",
+    "Connect a register": "Een register verbinden",
+    "Not reachable": "Niet bereikbaar",
+    "Only administrators install for the whole organisation.": "Alleen beheerders installeren voor de hele organisatie.",
+    "Page {page} of {pages}": "Pagina {page} van {pages}",
+    "%n widget": [
+      "%n widget",
+      "%n widgets"
+    ],
+    "Used by %n organisation": [
+      "Gebruikt door %n organisatie",
+      "Gebruikt door %n organisaties"
+    ]
   },
   "plurals": {
     "{count} member": [
