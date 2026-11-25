@@ -2777,6 +2777,7 @@
     "In development": "In development",
     "Install into": "Install into",
     "Installed in {targets}": "Installed in {targets}",
+    "Fits: {target}": "Fits: {target}",
     "Change {step}": "Change {step}",
     "Remove row {number}": "Remove row {number}",
     "The step could not be saved.": "The step could not be saved.",
