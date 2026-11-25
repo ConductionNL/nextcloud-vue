@@ -306,6 +306,7 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
 import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { resolveLazyComponent } from '../../utils/lazyComponent.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
 import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
@@ -410,6 +411,31 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 	showMassCopy: false,
 	showMassDelete: false,
 })
+
+/**
+ * The definition whose props a custom page declares: the component itself,
+ * the component a `lazyComponent()` wrapper has loaded (a reactive ref, so a
+ * computed reading it updates once it loads), or the component a
+ * `defineAsyncComponent` wrapper resolved. Null while a wrapper has not
+ * loaded yet, so the page receives none of the lifted fields until then.
+ *
+ * @param {object|null} component The dispatched component.
+ * @param {number} _tick The renderer's async-resolution counter, read so a
+ *   computed calling this re-runs once an async page resolves.
+ * @return {object|null} The definition, or null.
+ */
+function customPageDefinition(component, _tick) {
+	if (!component) {
+		return null
+	}
+	if (component.__cnLazy) {
+		return resolveLazyComponent(component)
+	}
+	if (typeof component.__asyncLoader === 'function') {
+		return component.__asyncResolved || null
+	}
+	return component
+}
 
 export default {
 	name: 'CnPageRenderer',
@@ -681,6 +707,9 @@ export default {
 		// `provide()` returns the same references so descendant injects
 		// observe each update.
 		return {
+			// Bumped when an async custom page (defineAsyncComponent) resolves, so the
+			// props it declares are read again: `__asyncResolved` is not reactive.
+			asyncPageResolved: 0,
 			pageSidebarVisible: { value: true },
 			pageSidebarComponent: { value: null },
 			// Whether the per-page config modal (edit-mode cog) is open.
@@ -1311,8 +1340,7 @@ export default {
 				// are withheld, which is the safe default here: withheld
 				// means no stray root attributes, and the async component
 				// renders nothing yet anyway.
-				const resolved = this.resolvedComponent
-				const declared = (resolved?.__asyncResolved ?? resolved)?.props
+				const declared = customPageDefinition(this.resolvedComponent, this.asyncPageResolved)?.props
 				const declares = (key) => (Array.isArray(declared)
 					? declared.includes(key)
 					: Boolean(declared && key in declared))
@@ -1701,34 +1729,56 @@ export default {
 		},
 	},
 
-	watch: { /**
-										 * Auto-register object types for `type:"custom"` pages whose
-										 * manifest config declares `register` + `schema` (single type)
-										 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
-										 *
-										 * For `type:"index"` and `type:"detail"` pages, the underlying
-										 * CnIndexPage / CnDetailPage components self-register when
-										 * mounted with `register` + `schema` props — so the renderer
-										 * does nothing extra for those. Custom components have no such
-										 * guarantee: they are bespoke per-app Vue components and would
-										 * each have to remember to call `registerObjectType` in their
-										 * own `mounted()` hook. Mirroring index/detail's zero-config
-										 * behaviour for the manifest-driven custom case (declared
-										 * `register` + `schema`) keeps the manifest the single source
-										 * of truth and removes a per-component landmine.
-										 *
-										 * Runs `immediate: true` so first mount registers before the
-										 * custom component's mounted() hook fires; re-runs on route
-										 * change in case the same CnPageRenderer instance is reused
-										 * for a different `type:"custom"` page.
-										 *
-										 * Defensive: every step is wrapped — a Pinia-not-installed
-										 * test harness, a missing store method, or a thrown error
-										 * inside `registerObjectType` all degrade to a single
-										 * `console.warn` so the page still mounts.
-										 *
-										 * See issue ConductionNL/nextcloud-vue#341.
-										 */
+	watch: {
+		/**
+		 * An async custom page that has not resolved yet receives none of the
+		 * lifted fields (see `resolvedProps`). Load it here and bump the
+		 * counter once it resolves, so its declared props (title, icon, ...)
+		 * are forwarded. A `lazyComponent()` page needs nothing: its resolved
+		 * component sits in a reactive ref.
+		 *
+		 * @param {object|null} component The dispatched component.
+		 * @return {void}
+		 */
+		resolvedComponent: {
+			immediate: true,
+			handler(component) {
+				if (component && typeof component.__asyncLoader === 'function' && !component.__asyncResolved) {
+					Promise.resolve(component.__asyncLoader())
+						.then(() => { this.asyncPageResolved += 1 })
+						.catch(() => {})
+				}
+			},
+		},
+
+		/**
+		 * Auto-register object types for `type:"custom"` pages whose
+		 * manifest config declares `register` + `schema` (single type)
+		 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
+		 *
+		 * For `type:"index"` and `type:"detail"` pages, the underlying
+		 * CnIndexPage / CnDetailPage components self-register when
+		 * mounted with `register` + `schema` props — so the renderer
+		 * does nothing extra for those. Custom components have no such
+		 * guarantee: they are bespoke per-app Vue components and would
+		 * each have to remember to call `registerObjectType` in their
+		 * own `mounted()` hook. Mirroring index/detail's zero-config
+		 * behaviour for the manifest-driven custom case (declared
+		 * `register` + `schema`) keeps the manifest the single source
+		 * of truth and removes a per-component landmine.
+		 *
+		 * Runs `immediate: true` so first mount registers before the
+		 * custom component's mounted() hook fires; re-runs on route
+		 * change in case the same CnPageRenderer instance is reused
+		 * for a different `type:"custom"` page.
+		 *
+		 * Defensive: every step is wrapped — a Pinia-not-installed
+		 * test harness, a missing store method, or a thrown error
+		 * inside `registerObjectType` all degrade to a single
+		 * `console.warn` so the page still mounts.
+		 *
+		 * See issue ConductionNL/nextcloud-vue#341.
+		 */
 		currentPage: {
 			immediate: true,
 			handler() {

@@ -72,3 +72,42 @@ describe('CnPageRenderer — lifted fields on type:"custom" pages', () => {
 		expect(stub.attributes('title')).toBeUndefined()
 	})
 })
+
+describe('CnPageRenderer — lifted fields on a lazily registered custom page', () => {
+	const { defineAsyncComponent } = require('vue')
+	const { flushPromises } = require('@vue/test-utils')
+	const { lazyComponent } = require('../../src/utils/lazyComponent.js')
+
+	it('forwards title to a defineAsyncComponent page once it resolves', async () => {
+		const AsyncTitled = defineAsyncComponent(() => Promise.resolve(TitledCustomStub))
+		const wrapper = mountRenderer('AsyncTitled', { AsyncTitled })
+		await flushPromises()
+		await flushPromises()
+
+		const stub = wrapper.find('.titled-custom-stub')
+		expect(stub.exists()).toBe(true)
+		expect(stub.text()).toBe('Vault')
+	})
+
+	it('forwards title to a lazyComponent() page once it loads', async () => {
+		const LazyTitled = lazyComponent(() => Promise.resolve({ default: TitledCustomStub }), 'Titled')
+		const wrapper = mountRenderer('LazyTitled', { LazyTitled })
+		await flushPromises()
+		await flushPromises()
+
+		const stub = wrapper.find('.titled-custom-stub')
+		expect(stub.exists()).toBe(true)
+		expect(stub.text()).toBe('Vault')
+	})
+
+	it('still leaks nothing onto a lazily loaded page that declares no lifted props', async () => {
+		const AsyncPlain = defineAsyncComponent(() => Promise.resolve(PlainCustomStub))
+		const wrapper = mountRenderer('AsyncPlain', { AsyncPlain })
+		await flushPromises()
+		await flushPromises()
+
+		const root = wrapper.find('.plain-custom-stub')
+		expect(root.exists()).toBe(true)
+		expect(root.attributes('title')).toBeUndefined()
+	})
+})
