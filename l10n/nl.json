@@ -3273,7 +3273,15 @@
     "Connect a register": "Een register verbinden",
     "Not reachable": "Niet bereikbaar",
     "Only administrators install for the whole organisation.": "Alleen beheerders installeren voor de hele organisatie.",
-    "Page {page} of {pages}": "Pagina {page} van {pages}"
+    "Page {page} of {pages}": "Pagina {page} van {pages}",
+    "The administrator has not set a start date field.": "De beheerder heeft geen veld voor de begindatum ingesteld.",
+    "Starts {weekday}": "begint {weekday}",
+    "Selection": "Selectie",
+    "People by filter": "Mensen op filter",
+    "New colleagues": "Nieuwe collega's",
+    "Started in the last (days, 1–90)": "Begonnen in de afgelopen (dagen, 1–90)",
+    "Starts within (days, 0–30)": "Begint binnen (dagen, 0–30)",
+    "Must be between {min} and {max}": "Moet tussen {min} en {max} liggen"
   },
   "plurals": {
     "{count} member": [

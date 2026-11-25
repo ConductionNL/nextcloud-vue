@@ -37,6 +37,12 @@
 			{{ t('nextcloud-vue', 'No people directory available') }}
 		</div>
 
+		<div v-else-if="isNewMode && newConfigured === false"
+			class="cn-people-widget__state"
+			data-testid="cn-people-no-start-field">
+			{{ t('nextcloud-vue', 'The administrator has not set a start date field.') }}
+		</div>
+
 		<div v-else-if="displayedUsers.length === 0" class="cn-people-widget__state">
 			{{ search.trim() ? t('nextcloud-vue', 'No users match your search') : t('nextcloud-vue', 'No matching users.') }}
 		</div>
@@ -63,6 +69,9 @@
 						<strong class="cn-people-widget__name">{{ user.displayName || user.uid }}</strong>
 						<template v-if="layout !== 'grid'">
 							<span v-if="shows('role') && user.role" class="cn-people-widget__sub">{{ user.role }}</span>
+							<span v-if="startsLabel(user)" class="cn-people-widget__sub cn-people-widget__starts" data-testid="cn-people-starts">
+								{{ startsLabel(user) }}
+							</span>
 							<span v-if="shows('organisation') && (user.organisation || user.department)" class="cn-people-widget__sub">
 								{{ user.organisation || user.department }}
 							</span>
@@ -109,7 +118,7 @@
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { clearPeoplePages, readPeoplePage, storePeoplePage } from './peopleCache.js'
 
 const ALLOWED_LAYOUTS = ['card', 'grid', 'list']
@@ -117,6 +126,26 @@ const DEFAULT_LAYOUT = 'grid'
 const PAGE_SIZE = 50
 const MIN_SERVER_QUERY = 2
 const SEARCH_DEBOUNCE_MS = 300
+const NEW_SINCE_DEFAULT = 30
+const NEW_UNTIL_DEFAULT = 14
+
+/**
+ * A whole number of days inside [min, max], or the default when unset.
+ *
+ * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+ * @param {number|string|undefined} value The stored value.
+ * @param {number} fallback The default.
+ * @param {number} min The lowest allowed.
+ * @param {number} max The highest allowed.
+ * @return {number}
+ */
+function clampDays(value, fallback, min, max) {
+	const number = Number(value)
+	if (value === undefined || value === null || value === '' || !Number.isFinite(number)) {
+		return fallback
+	}
+	return Math.min(max, Math.max(min, Math.round(number)))
+}
 
 /**
  * CnPeopleWidget — renders a paginated, group-filterable user directory in one
@@ -199,6 +228,8 @@ export default {
 			searchTimer: null,
 			searchSeq: 0,
 			pageSeq: 0,
+			// New colleagues mode: whether a start date field exists (null until asked).
+			newConfigured: null,
 		}
 	},
 
@@ -368,8 +399,28 @@ export default {
 		 *
 		 * @return {object} the fetch argument shape.
 		 */
+		/**
+		 * Whether the placement lists new colleagues (`selectionMode: 'new'`)
+		 * and the source can answer it (`fetchNewPeople`).
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @return {boolean}
+		 */
+		isNewMode() {
+			return this.content?.selectionMode === 'new' && this.source !== null && typeof this.source.fetchNewPeople === 'function'
+		},
+
 		fetchArgs() {
 			const filters = Array.isArray(this.content && this.content.filters) ? this.content.filters : []
+			if (this.content?.selectionMode === 'new') {
+				return {
+					selectionMode: 'new',
+					since: clampDays(this.content.newSinceDays, NEW_SINCE_DEFAULT, 1, 90),
+					until: clampDays(this.content.newUntilDays, NEW_UNTIL_DEFAULT, 0, 30),
+					filters,
+					excludeDisabled: !(this.content && this.content.excludeDisabled === false),
+				}
+			}
 			return {
 				filters,
 				excludeDisabled: !(this.content && this.content.excludeDisabled === false),
@@ -535,6 +586,10 @@ export default {
 				this.users = []
 				return
 			}
+			if (this.isNewMode) {
+				await this.fetchNew()
+				return
+			}
 			const cacheKey = this.cacheKey
 			const cached = readPeoplePage(cacheKey, offset)
 			if (cached) {
@@ -573,6 +628,59 @@ export default {
 					this.loading = false
 				}
 			}
+		},
+
+		/**
+		 * Read the new colleagues: one answer, newest start first, never paged.
+		 * `configured: false` means no start date field exists.
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @return {Promise<void>}
+		 */
+		async fetchNew() {
+			const seq = ++this.pageSeq
+			this.loading = true
+			this.error = null
+			try {
+				const data = await this.source.fetchNewPeople({ ...this.fetchArgs }) || {}
+				if (seq !== this.pageSeq) {
+					return
+				}
+				this.newConfigured = data.configured !== false
+				const users = (Array.isArray(data.users) ? data.users : [])
+					.map((user) => ({ ...user, uid: user.uid || user.id }))
+					.filter((user) => typeof user.uid === 'string' && user.uid !== '')
+				this.applyPage({ users, total: users.length, hasMore: false }, 0)
+			} catch (err) {
+				if (seq !== this.pageSeq) {
+					return
+				}
+				this.error = err
+				this.users = []
+			} finally {
+				if (seq === this.pageSeq) {
+					this.loading = false
+				}
+			}
+		},
+
+		/**
+		 * "Starts Monday" for a new colleague who has not started yet, else ''.
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @param {object} user The person (`starts`, `startDate` YYYY-MM-DD).
+		 * @return {string}
+		 */
+		startsLabel(user) {
+			if (!this.isNewMode || user?.starts !== true || typeof user.startDate !== 'string') {
+				return ''
+			}
+			const date = new Date(`${user.startDate}T12:00:00Z`)
+			if (isNaN(date.getTime())) {
+				return ''
+			}
+			const weekday = date.toLocaleDateString(getLanguage(), { weekday: 'long', timeZone: 'UTC' })
+			return t('nextcloud-vue', 'Starts {weekday}', { weekday })
 		},
 
 		/**
