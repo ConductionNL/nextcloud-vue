@@ -361,3 +361,24 @@ describe('schemaSlug', () => {
 		expect(schemaSlug(null)).toBe('')
 	})
 })
+
+describe('dashboard page workspace views', () => {
+	const { workspaceViewKeys, buildWorkspaceViewPayload, extractViewWorkspace } = jest.requireActual('../../src/utils/savedViewHelpers.js')
+
+	it('cleans the keys', () => {
+		expect(workspaceViewKeys(['a', '', 'a', 3, 'b'])).toEqual(['a', 'b'])
+		expect(workspaceViewKeys(null)).toEqual([])
+	})
+
+	it('stores every key, an unset one as the empty string', () => {
+		const body = buildWorkspaceViewPayload({ name: 'V', scope: 'app/page', workspace: { a: 'x', c: 'y' }, keys: ['a', 'b'] })
+		expect(body.query).toEqual({ filters: {}, search: '', sort: null, scope: 'app/page', workspace: { a: 'x', b: '' } })
+	})
+
+	it('reads the stored values back, null for a view without a workspace', () => {
+		expect(extractViewWorkspace({ query: { workspace: { a: 'x', z: 'q' } } }, ['a', 'b'])).toEqual({ a: 'x', b: '' })
+		expect(extractViewWorkspace({ query: { filters: {} } }, ['a'])).toBeNull()
+		expect(extractViewWorkspace(null, ['a'])).toBeNull()
+		expect(extractViewWorkspace({ query: { workspace: [] } }, ['a'])).toBeNull()
+	})
+})
