@@ -37,4 +37,31 @@ The list is read on load and on a page refresh. A saved view's own filters are t
 
 The `api` prop (`{ fetchViews }`) replaces the Views API transport, for tests and hosts that stub it; by default the widget uses `useSavedViewsApi`.
 
+## Workspace mode: a dashboard's own views
+
+On a dashboard page whose filters are workspace keys (a `workspace-filter` bar), `content.workspace` makes the widget save, apply and delete the page's own views, as pipelinq's My work does:
+
+```json
+{
+  "type": "saved-views",
+  "title": "Saved views",
+  "content": {
+    "scope": "pipelinq/my-work",
+    "showCounts": true,
+    "workspace": {
+      "keys": ["lens", "showDone", "priority", "pipeline", "scope", "member"],
+      "countSource": { "url": "/apps/pipelinq/api/worklist/items?lens=@workspace.lens&done=@workspace.showDone&priority=@workspace.priority", "responsePath": "items" }
+    }
+  }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `workspace.keys` | The workspace keys a view stores (`lens` or `@workspace.lens`). Without keys the widget is the index-page link list above. |
+| `workspace.countSource` | With `showCounts`: an endpoint source, its `@workspace` tokens filled with the view's values. An array answer counts its entries; a number or an object's `total` is used as is. |
+| `scope` | The scope the views are saved under and listed by. Required in this mode. |
+
+"Save view" (`CnSavedViewsControl`) opens the save dialog and stores the current values of the keys (empty values are left out) through OpenRegister's Views API. Clicking a view writes each key into the page workspace, the view's value or the empty value, so the controls and lists follow; the widget emits `apply` with `{ view, values }`. An own view has a delete button with a confirmation. The `api` prop then also needs `createView` and `deleteView`.
+
 <GeneratedRef />
