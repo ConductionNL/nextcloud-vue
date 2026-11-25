@@ -294,6 +294,14 @@
 							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 						</li>
 					</ul>
+					<p v-if="healthLine(step)"
+						class="cn-setup-health"
+						:class="healthLine(step).ok ? 'cn-setup-health--ok' : 'cn-setup-health--problem'"
+						role="status"
+						data-testid="cn-setup-health">
+						<span class="cn-setup-health__mark" aria-hidden="true">{{ healthLine(step).ok ? '✓' : '!' }}</span>
+						<span class="cn-setup-health__text">{{ healthLine(step).text }}</span>
+					</p>
 					<NcNoteCard v-if="stepNote(step)"
 						type="info"
 						class="cn-setup-step__note-card"
@@ -540,15 +548,16 @@ export default {
 	 * host's own status fetch (CnAppRoot's setup gate) is the one that runs —
 	 * this reads the same refs rather than asking again.
 	 *
-	 * Only called when a step actually declares `optionsSource`: a wizard with
-	 * none must not start making requests it never made before.
+	 * Only called when a step actually declares `optionsSource`, `visibleWhen`
+	 * or `healthCheck`: a wizard with none must not start making requests it
+	 * never made before.
 	 *
 	 * @param {object} props The component props.
 	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
 	 */
 	setup(props) {
 		const { isBoard } = useLook()
-		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen))
+		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen || s.healthCheck === true))
 		if (!wantsSource) {
 			return { isBoard }
 		}
@@ -1163,6 +1172,38 @@ export default {
 				return node === when.equals
 			}
 			return Boolean(node)
+		},
+
+		/**
+		 * The health line under a `summary` step that sets `healthCheck`: the
+		 * `health` block of the app's setup status, `{ ok, checks: [{ label, ok }] }`.
+		 * When every check passes it names them all; otherwise it names only the
+		 * checks that failed. Labels go through the app's translate. Without a
+		 * `health` block the step draws no line, so an app that does not report
+		 * health keeps the recap it had.
+		 *
+		 * @param {object} step The summary step.
+		 * @return {{ ok: boolean, text: string }|null} The line, or null when none is drawn.
+		 * @spec openspec/changes/setup-summary-health-line/specs/setup-summary-health-line/spec.md#requirement-the-closing-step-says-whether-the-installation-checks-passed
+		 */
+		healthLine(step) {
+			if (!step || step.healthCheck !== true) {
+				return null
+			}
+			const health = this.setupStatus && this.setupStatus.health
+			if (!health || typeof health !== 'object') {
+				return null
+			}
+			const checks = Array.isArray(health.checks)
+				? health.checks.filter((c) => c && typeof c.label === 'string' && c.label !== '')
+				: []
+			const failing = checks.filter((c) => c.ok !== true)
+			const ok = typeof health.ok === 'boolean' ? health.ok && failing.length === 0 : failing.length === 0
+			const named = (ok ? checks : failing).map((c) => this.cnTranslate(c.label)).join(', ')
+			if (ok) {
+				return { ok, text: named !== '' ? t('nextcloud-vue', 'Check passed: {checks}.', { checks: named }, undefined, { escape: false }) : t('nextcloud-vue', 'Check passed.') }
+			}
+			return { ok, text: named !== '' ? t('nextcloud-vue', 'Check found a problem: {checks}.', { checks: named }, undefined, { escape: false }) : t('nextcloud-vue', 'Check found a problem.') }
 		},
 
 		/**
@@ -1874,9 +1915,38 @@ export default {
 }
 
 .cn-setup-summary__value {
+	min-width: 0;
 	margin-inline-start: auto;
 	font-weight: 600;
 	color: var(--color-main-text);
+	text-align: end;
+	overflow-wrap: anywhere;
+}
+
+/* The Change button keeps its full label; a long value wraps instead
+   (humaniq HuInrichten rendered "Wi…" for Wijzigen). */
+.cn-setup-summary__change {
+	flex: none;
+}
+
+.cn-setup-health {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin: 12px 0 0;
+}
+
+.cn-setup-health__mark {
+	flex: none;
+	font-weight: bold;
+}
+
+.cn-setup-health--ok .cn-setup-health__mark {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-setup-health--problem .cn-setup-health__mark {
+	color: var(--color-warning-text, var(--color-warning));
 }
 
 /* The closing step under the board look: one bordered row per item, with a
