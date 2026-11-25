@@ -121,3 +121,11 @@ export default {
 }
 </script>
 ```
+
+Accessible name — `label` names the editor's text area for screen readers (default "Code"). Name what the code is:
+
+```vue
+<CnJsonViewer :value="raw" read-only :label="t('myapp', 'Raw data')" />
+```
+
+A read-only viewer's text area is a tab stop, so a keyboard user can reach and scroll the code.
