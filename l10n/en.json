@@ -2945,6 +2945,7 @@
     "Choose which parts you see and drag them into your own order. Only you see this layout.": "Choose which parts you see and drag them into your own order. Only you see this layout.",
     "Shown": "Shown",
     "Hidden": "Hidden",
+    "Always shown": "Always shown",
     "Back to default": "Back to default",
     "Save layout": "Save layout",
     "Use the arrow keys to move this part up or down.": "Use the arrow keys to move this part up or down.",
@@ -2989,7 +2990,12 @@
     "About this folder": "About this folder",
     "Ask without this scope": "Ask without this scope",
     "Sources": "Sources",
-    "page {page}": "page {page}"
+    "page {page}": "page {page}",
+    "No register is connected, so the marketplace has nothing to show.": "No register is connected, so the marketplace has nothing to show.",
+    "Connect a register": "Connect a register",
+    "Not reachable": "Not reachable",
+    "Only administrators install for the whole organisation.": "Only administrators install for the whole organisation.",
+    "Page {page} of {pages}": "Page {page} of {pages}"
   },
   "plurals": {
     "{count} member": [
@@ -3242,6 +3248,14 @@
     "{app}, %n new item": [
       "{app}, %n new item",
       "{app}, %n new items"
+    ],
+    "%n widget": [
+      "%n widget",
+      "%n widgets"
+    ],
+    "Used by %n organisation": [
+      "Used by %n organisation",
+      "Used by %n organisations"
     ]
   }
 }

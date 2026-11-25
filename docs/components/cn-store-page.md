@@ -30,6 +30,9 @@ every key below can be written in the manifest.
 | `publishRoute` | `String\|Object` | `''` | Where Publish takes the user. A string is a route name; an object is a vue-router location. Empty means no Publish button. |
 | `page` | Object | `{}` | A whole manifest page, for a host that renders the component directly. The flattened props win. |
 | `kindLenses` | Array | `[]` | Extra lens chips under the board look, one per item kind (`[{ kind, label }]`); the label goes through the app's translate. |
+| `categoryLenses` | Boolean | `false` | Board look: one lens per category the served items carry (`card.category`, a string or a list), sorted, with its count. |
+| `pageSize` | Number | `0` | Board look: cards per page with a Previous / Page x of y / Next pager; 0 shows them all. |
+| `banner` | Object | `null` | Board look: the register banner, `{ settingsUrl?, settingsLabel?, installNote? }`. Names `registry: { name, url }` from the items response, its address, Last checked and Connected / Not reachable; the install note for whoever may not install; without a register a line that none is connected with a link to `settingsUrl`. |
 | `publishable` | Boolean | `false` | The app accepts a publish at `/api/store/publish`: Publish opens the publish dialog instead of following `publishRoute`. |
 
 The engine stamps the chosen target only where the app's manifest declares it: `store.installTarget: { "property": "setting", "schemas": ["larping_skill"] }` writes the id into `setting` on every installed object of those schemas (manifest schema 2.196.0). A `target` the manifest does not declare is refused by the engine.

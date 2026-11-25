@@ -52,7 +52,7 @@
 					:mountProps="sidebarMountProps" />
 				<component
 					:is="resolveRegistryTab(provider)"
-					v-else
+					v-else-if="tabOpened(provider.id)"
 					v-bind="sharedTabProps" />
 			</NcAppSidebarTab>
 			<slot name="extra-tabs" />
@@ -74,7 +74,10 @@
 				<template #icon>
 					<Paperclip :size="20" />
 				</template>
-				<slot name="tab-files" :objectId="objectId" :objectType="objectType">
+				<slot v-if="tabOpened('files')"
+					name="tab-files"
+					:objectId="objectId"
+					:objectType="objectType">
 					<CnFilesTab
 						:objectId="objectId"
 						:register="register"
@@ -93,7 +96,10 @@
 				<template #icon>
 					<CommentTextOutline :size="20" />
 				</template>
-				<slot name="tab-notes" :objectId="objectId" :objectType="objectType">
+				<slot v-if="tabOpened('notes')"
+					name="tab-notes"
+					:objectId="objectId"
+					:objectType="objectType">
 					<!-- The `mention` passthrough is the notification hook: apps
 					     mounting the full sidebar receive the mentioned user ids
 					     and dispatch NC notifications from their own backend. -->
@@ -116,7 +122,10 @@
 				<template #icon>
 					<TagOutline :size="20" />
 				</template>
-				<slot name="tab-tags" :objectId="objectId" :objectType="objectType">
+				<slot v-if="tabOpened('tags')"
+					name="tab-tags"
+					:objectId="objectId"
+					:objectType="objectType">
 					<CnTagsTab
 						:objectId="objectId"
 						:register="register"
@@ -135,7 +144,10 @@
 				<template #icon>
 					<CheckboxMarkedOutline :size="20" />
 				</template>
-				<slot name="tab-tasks" :objectId="objectId" :objectType="objectType">
+				<slot v-if="tabOpened('tasks')"
+					name="tab-tasks"
+					:objectId="objectId"
+					:objectType="objectType">
 					<CnTasksTab
 						:objectId="objectId"
 						:register="register"
@@ -155,7 +167,10 @@
 				<template #icon>
 					<History :size="20" />
 				</template>
-				<slot name="tab-audit-trail" :objectId="objectId" :objectType="objectType">
+				<slot v-if="tabOpened('auditTrail')"
+					name="tab-audit-trail"
+					:objectId="objectId"
+					:objectType="objectType">
 					<CnAuditTrailTab
 						:objectId="objectId"
 						:register="register"
@@ -190,16 +205,18 @@
 
 				<!-- Component-registry escape hatch wins when `component` is set
 				     (with a console.warn at mount time when widgets is also set). -->
+				<!-- A tab's content mounts when the tab is first opened and stays
+				     mounted after, so a page opens without every tab's reads. -->
 				<component
 					:is="resolveTabComponent(tab)"
-					v-if="tab.component"
+					v-if="tab.component && tabOpened(tab.id)"
 					v-bind="sharedTabProps" />
 
 				<!-- Widget array path. Each widget receives the shared object
 				     context plus its own `props` via `widgetBindings` (which also
 				     hands the prop-driven `data` / `metadata` built-ins the loaded
 				     object and schema); per-widget props win on overlap. -->
-				<div v-else class="cn-object-sidebar__tab-widgets">
+				<div v-else-if="!tab.component && tabOpened(tab.id)" class="cn-object-sidebar__tab-widgets">
 					<template v-for="(w, wIdx) in tab.widgets || []">
 						<component
 							:is="tabWidgetComponent(w)"
@@ -674,6 +691,8 @@ export default {
 			// The tab id already warned about, so an address naming a tab the
 			// reader cannot see says so once rather than on every render.
 			warnedTabId: null,
+			// The tabs opened so far: their content stays mounted.
+			openedTabs: {},
 		}
 	},
 
@@ -802,6 +821,10 @@ export default {
 		 * @spec openspec/changes/case-page-and-list-as-a-place/specs/index-page/spec.md
 		 */
 		activeTab(id, previous) {
+			// Keep the tab being left mounted: it was opened.
+			if (previous) {
+				this.openedTabs[previous] = true
+			}
 			if (id && previous !== undefined && id !== previous && typeof this.onTabChange === 'function') {
 				this.onTabChange(id, false)
 			}
@@ -874,6 +897,18 @@ export default {
 				return local
 			}
 			return provider.tab || null
+		},
+
+		/**
+		 * Whether a tab's content is mounted: the tab is open now or was
+		 * opened before. A tab never opened mounts nothing and reads nothing.
+		 *
+		 * @param {string} id The tab id.
+		 * @return {boolean} True when its content is mounted.
+		 * @spec openspec/changes/sidebar-tab-mounts-on-open/specs/object-sidebar/spec.md#requirement-a-sidebar-tab-mounts-its-content-when-first-opened
+		 */
+		tabOpened(id) {
+			return id === this.activeTab || this.openedTabs[id] === true
 		},
 
 		/**

@@ -104,7 +104,40 @@
 			:canInstall="showInstall"
 			:tr="shown" />
 
-		<div v-else-if="isBoardLook" class="cn-store-page__lens-row">
+		<!-- `banner`: the connected register as board LpStore draws it, above the lenses. -->
+		<section v-if="showsBanner"
+			class="cn-store-page__banner"
+			:class="`cn-store-page__banner--${bannerState}`"
+			data-testid="store-banner">
+			<template v-if="offline">
+				<p class="cn-store-page__banner-text" data-testid="store-banner-not-connected">
+					{{ t('nextcloud-vue', 'No register is connected, so the marketplace has nothing to show.') }}
+				</p>
+				<NcButton v-if="banner.settingsUrl"
+					variant="secondary"
+					:href="banner.settingsUrl"
+					data-testid="store-banner-settings">
+					{{ banner.settingsLabel ? shown(banner.settingsLabel) : t('nextcloud-vue', 'Connect a register') }}
+				</NcButton>
+			</template>
+			<template v-else>
+				<div class="cn-store-page__banner-main">
+					<strong class="cn-store-page__banner-name" data-testid="store-banner-name">{{ registryName }}</strong>
+					<span v-if="registryAddress" class="cn-store-page__banner-address" data-testid="store-banner-address">{{ registryAddress }}</span>
+					<span v-if="checkedLabel" class="cn-store-page__banner-checked" data-testid="store-banner-checked">
+						{{ t('nextcloud-vue', 'Last checked {when}', { when: checkedLabel }) }}
+					</span>
+				</div>
+				<span class="cn-store-page__banner-state" data-testid="store-banner-state">
+					{{ unreachable ? t('nextcloud-vue', 'Not reachable') : t('nextcloud-vue', 'Connected') }}
+				</span>
+			</template>
+			<p v-if="!showInstall && !offline" class="cn-store-page__banner-note" data-testid="store-banner-note">
+				{{ banner.installNote ? shown(banner.installNote) : t('nextcloud-vue', 'Only administrators install for the whole organisation.') }}
+			</p>
+		</section>
+
+		<div v-if="isBoardLook && !showsPackages && !(showsBanner && offline)" class="cn-store-page__lens-row">
 			<div
 				class="cn-store-page__lenses"
 				role="group"
@@ -136,7 +169,7 @@
 					@input="onSearchInput">
 			</div>
 		</div>
-		<div v-else class="cn-store-page__controls">
+		<div v-else-if="!isBoardLook && !showsPackages" class="cn-store-page__controls">
 			<NcTextField
 				v-model="query"
 				:label="t('nextcloud-vue', 'Search the marketplace')"
@@ -179,7 +212,7 @@
 				<NcLoadingIcon v-if="loading" :size="44" class="cn-store-page__loading" />
 
 				<NcNoteCard
-					v-else-if="offline"
+					v-else-if="offline && !showsBanner"
 					type="info"
 					data-testid="store-not-configured">
 					{{ notConfiguredMessage }}
@@ -193,7 +226,7 @@
 				</NcNoteCard>
 
 				<NcEmptyContent
-					v-else-if="visibleCards.length === 0"
+					v-else-if="visibleCards.length === 0 && !offline"
 					:name="t('nextcloud-vue', 'Nothing matches that search')"
 					:description="
 						t('nextcloud-vue', 'Try a different term, or clear the kind filter.')
@@ -205,7 +238,7 @@
 					:style="gridStyle"
 					data-testid="store-results">
 					<li
-						v-for="card in visibleCards"
+						v-for="card in pagedCards"
 						:key="card.slug"
 						class="cn-store-page__card"
 						:class="{ 'cn-store-page__card--board': isBoardLook }">
@@ -242,6 +275,12 @@
 							<div class="cn-store-page__card-footer" data-testid="store-card-footer">
 								<span v-if="card.version" class="cn-store-page__card-version">
 									{{ cardVersion(card) }}
+								</span>
+								<span v-if="cardCount(card.widgets) !== null" class="cn-store-page__card-meta" data-testid="store-card-widgets">
+									{{ n('nextcloud-vue', '%n widget', '%n widgets', cardCount(card.widgets)) }}
+								</span>
+								<span v-if="cardCount(card.usage) !== null" class="cn-store-page__card-meta" data-testid="store-card-usage">
+									{{ n('nextcloud-vue', 'Used by %n organisation', 'Used by %n organisations', cardCount(card.usage)) }}
 								</span>
 								<NcButton
 									v-if="cardAction(card)"
@@ -290,6 +329,28 @@
 						</template>
 					</li>
 				</ul>
+
+				<!-- `pageSize`: the board pages its cards (8 at a time on LpStore). -->
+				<nav v-if="!loading && pageCount > 1"
+					class="cn-store-page__pager"
+					:aria-label="t('nextcloud-vue', 'Pages')"
+					data-testid="store-pager">
+					<NcButton variant="tertiary"
+						:disabled="currentPage <= 1"
+						data-testid="store-pager-previous"
+						@click="pageIndex = currentPage - 1">
+						{{ t('nextcloud-vue', 'Previous') }}
+					</NcButton>
+					<span class="cn-store-page__pager-label" data-testid="store-pager-label">
+						{{ t('nextcloud-vue', 'Page {page} of {pages}', { page: currentPage, pages: pageCount }) }}
+					</span>
+					<NcButton variant="tertiary"
+						:disabled="currentPage >= pageCount"
+						data-testid="store-pager-next"
+						@click="pageIndex = currentPage + 1">
+						{{ t('nextcloud-vue', 'Next') }}
+					</NcButton>
+				</nav>
 
 				<div
 					v-if="!loading && visibleBuiltIn.length > 0"
@@ -625,6 +686,45 @@ export default {
 		},
 
 		/**
+		 * One lens chip per category the served items carry (`card.category`,
+		 * a string or a list of strings), after All, Installed and Updates
+		 * available, each with its count (board LpStore). Off by default.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-offers-a-lens-per-category
+		 */
+		categoryLenses: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Cards per page under the board look; 0 (the default) shows them all.
+		 * A pager under the grid moves between the pages.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-pages-its-cards
+		 */
+		pageSize: {
+			type: Number,
+			default: 0,
+		},
+
+		/**
+		 * The register banner above the lenses (board LpStore):
+		 * `{ settingsUrl?, settingsLabel?, installNote? }`. It names the
+		 * register the items response carries (`registry: { name, url }`), its
+		 * address, when it was last checked and whether it answered, and tells
+		 * whoever may not install that only administrators do. Without a
+		 * register it says none is connected and links to `settingsUrl`.
+		 * Labels go through the app's translate. Null (the default) draws none.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-names-the-connected-register
+		 */
+		banner: {
+			type: Object,
+			default: null,
+		},
+
+		/**
 		 * The app accepts a publish at `/api/store/publish` (and lists what may
 		 * be published at `/api/store/publishable`): Publish opens the publish
 		 * dialog instead of following `publishRoute`.
@@ -661,6 +761,10 @@ export default {
 			targetId: '',
 			// When the registry last answered (`checkedAt` from the engine).
 			checkedAt: '',
+			// The register the items response names (`registry`), for the banner.
+			registry: null,
+			// The page of cards shown when `pageSize` is set, 1-based.
+			pageIndex: 1,
 		}
 	},
 
@@ -962,7 +1066,118 @@ export default {
 			if (this.lens === 'updates') {
 				return this.cards.filter((card) => card.updateAvailable === true)
 			}
+			if (this.lens.startsWith('category:')) {
+				const category = this.lens.slice('category:'.length)
+				return this.cards.filter((card) => this.categoriesOf(card).includes(category))
+			}
 			return this.cards.filter((card) => card.kind === this.lens)
+		},
+
+		/**
+		 * The categories the served items carry, sorted, each with its count.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-offers-a-lens-per-category
+		 * @return {Array<{category: string, count: number}>}
+		 */
+		categoryCounts() {
+			const counts = new Map()
+			for (const card of this.cards) {
+				for (const category of this.categoriesOf(card)) {
+					counts.set(category, (counts.get(category) || 0) + 1)
+				}
+			}
+			return [...counts.entries()]
+				.sort((a, b) => a[0].localeCompare(b[0]))
+				.map(([category, count]) => ({ category, count }))
+		},
+
+		/**
+		 * The number of pages, 1 without `pageSize`.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-pages-its-cards
+		 * @return {number}
+		 */
+		pageCount() {
+			if (!this.isBoardLook || !(this.pageSize > 0)) {
+				return 1
+			}
+			return Math.max(1, Math.ceil(this.visibleCards.length / this.pageSize))
+		},
+
+		/**
+		 * The page shown, kept inside 1..pageCount.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-pages-its-cards
+		 * @return {number}
+		 */
+		currentPage() {
+			return Math.min(Math.max(1, this.pageIndex), this.pageCount)
+		},
+
+		/**
+		 * The cards of the current page; every visible card without `pageSize`.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-pages-its-cards
+		 * @return {Array<object>}
+		 */
+		pagedCards() {
+			if (!this.isBoardLook || !(this.pageSize > 0)) {
+				return this.visibleCards
+			}
+			const start = (this.currentPage - 1) * this.pageSize
+			return this.visibleCards.slice(start, start + this.pageSize)
+		},
+
+		/**
+		 * Whether the register banner shows: the board look, a `banner` config,
+		 * the first answer in, and no shipped packages standing in.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-names-the-connected-register
+		 * @return {boolean}
+		 */
+		showsBanner() {
+			return this.isBoardLook && this.banner !== null && typeof this.banner === 'object' && !this.loading && !this.showsPackages
+		},
+
+		/**
+		 * The banner's state: `not-connected`, `unreachable` or `connected`.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-names-the-connected-register
+		 * @return {string}
+		 */
+		bannerState() {
+			if (this.offline) {
+				return 'not-connected'
+			}
+			return this.unreachable ? 'unreachable' : 'connected'
+		},
+
+		/**
+		 * The register's name: the one the response carries, else its host.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-names-the-connected-register
+		 * @return {string}
+		 */
+		registryName() {
+			const name = this.registry?.name
+			if (typeof name === 'string' && name.trim() !== '') {
+				return name.trim()
+			}
+			return this.registryAddress || t('nextcloud-vue', 'Register')
+		},
+
+		/**
+		 * The register's address without its scheme, query or trailing slash.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-names-the-connected-register
+		 * @return {string}
+		 */
+		registryAddress() {
+			const url = this.registry?.url
+			if (typeof url !== 'string' || url.trim() === '') {
+				return ''
+			}
+			return url.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/[?#].*$/, '').replace(/\/+$/, '')
 		},
 
 		installedCards() {
@@ -988,6 +1203,13 @@ export default {
 					label: this.shown(entry.label),
 					count: this.cards.filter((card) => card.kind === entry.kind).length,
 				})),
+				...(this.categoryLenses
+					? this.categoryCounts.map((entry) => ({
+							value: `category:${entry.category}`,
+							label: this.shown(entry.category),
+							count: entry.count,
+						}))
+					: []),
 			]
 		},
 
@@ -1064,6 +1286,28 @@ export default {
 		},
 	},
 
+	watch: {
+		/**
+		 * Another lens starts at the first page.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-pages-its-cards
+		 * @return {void}
+		 */
+		lens() {
+			this.pageIndex = 1
+		},
+
+		/**
+		 * A new answer (a search, Check now) starts at the first page.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-pages-its-cards
+		 * @return {void}
+		 */
+		cards() {
+			this.pageIndex = 1
+		},
+	},
+
 	mounted() {
 		this.search()
 		this.loadTargets()
@@ -1102,6 +1346,31 @@ export default {
 		},
 
 		n,
+
+		/**
+		 * The categories of one item: `category` as a string or a list.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-the-board-store-offers-a-lens-per-category
+		 * @param {object} card The store item.
+		 * @return {Array<string>}
+		 */
+		categoriesOf(card) {
+			const raw = Array.isArray(card?.category) ? card.category : [card?.category]
+			return [...new Set(raw.filter((value) => typeof value === 'string' && value.trim() !== '').map((value) => value.trim()))]
+		},
+
+		/**
+		 * A card's count field (`widgets`, `usage`) as a whole number, or null
+		 * when the register does not report it.
+		 *
+		 * @spec openspec/changes/store-page-register-banner-categories-paging/specs/store-page/spec.md#requirement-a-board-store-card-shows-its-widgets-and-its-usage
+		 * @param {string|number|null|undefined} value The raw value.
+		 * @return {number|null}
+		 */
+		cardCount(value) {
+			const number = typeof value === 'string' && value.trim() !== '' ? Number(value) : value
+			return typeof number === 'number' && Number.isFinite(number) && number >= 0 ? Math.floor(number) : null
+		},
 
 		onPublishClick() {
 			if (this.publishable) {
@@ -1308,6 +1577,8 @@ export default {
 				// down — which is exactly when they are all there is to show.
 				this.servedBuiltIn = Array.isArray(body.builtIn) ? body.builtIn : null
 				this.checkedAt = typeof body.checkedAt === 'string' ? body.checkedAt : ''
+				// The register the banner names; never its token (the app sends none).
+				this.registry = body.registry !== null && typeof body.registry === 'object' ? body.registry : null
 			} catch {
 				this.outcome = 'store_unreachable'
 				this.cards = []
@@ -1496,6 +1767,81 @@ export default {
 .cn-store-page__card-version {
 	color: var(--color-text-maxcontrast);
 	font-size: 0.85rem;
+}
+
+/* Board LpStore: the widget count and the usage sit beside the version. */
+.cn-store-page__card-meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85rem;
+}
+
+/* Board LpStore: the connected register above the lenses. */
+.cn-store-page__banner {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	margin: 0 0 16px;
+	padding: 12px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large, 12px);
+	background: var(--color-main-background);
+}
+
+.cn-store-page__banner-main {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 12px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.cn-store-page__banner-address,
+.cn-store-page__banner-checked,
+.cn-store-page__banner-note {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9rem;
+}
+
+.cn-store-page__banner-address {
+	overflow-wrap: anywhere;
+}
+
+.cn-store-page__banner-note {
+	flex-basis: 100%;
+	margin: 0;
+}
+
+.cn-store-page__banner-text {
+	flex: 1 1 auto;
+	margin: 0;
+}
+
+.cn-store-page__banner-state {
+	padding: 2px 10px;
+	border-radius: var(--border-radius-pill, 999px);
+	font-size: 0.85rem;
+	background: var(--color-success-hover, var(--color-background-dark));
+	color: var(--color-success-text, var(--color-main-text));
+}
+
+.cn-store-page__banner--unreachable .cn-store-page__banner-state {
+	background: var(--color-warning-hover, var(--color-background-dark));
+	color: var(--color-warning-text, var(--color-main-text));
+}
+
+/* The pager under the cards. */
+.cn-store-page__pager {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.cn-store-page__pager-label {
+	color: var(--color-text-maxcontrast);
 }
 
 /* Who published a configuration set matters more than its version does, since

@@ -219,6 +219,41 @@ export function evaluateWorkspaceCondition(cond, workspace) {
 }
 
 /**
+ * GET a condition's url as JSON, once per `ctx.remoteReads` when the caller
+ * passes one (a `Map`).
+ *
+ * A caller that evaluates the same conditions again for the same record (a
+ * header action bar re-checked on every refresh of the page's object context)
+ * hands in one map per record, so each url is asked once and every later
+ * evaluation reuses the answer, in flight or settled. A refused read is
+ * forgotten, so the next evaluation asks again. Without a map every call
+ * fetches, as before.
+ *
+ * @param {{remoteReads?: Map<string, Promise<unknown>>}|undefined} ctx The caller's context.
+ * @param {string} url The app-relative url; it is prefixed here.
+ * @param {string} kind `endpoint` or `source`, for the error.
+ * @return {Promise<unknown>} The parsed body.
+ * @spec openspec/changes/remote-conditions-read-once-per-record/specs/action-buttons/spec.md#requirement-a-header-actions-remote-conditions-are-read-once-per-record
+ */
+function rememberedRead(ctx, url, kind) {
+	const memo = ctx && ctx.remoteReads instanceof Map ? ctx.remoteReads : null
+	if (memo && memo.has(url)) {
+		return memo.get(url)
+	}
+	const read = fetch(prefixUrl(url), { headers: buildHeaders() }).then((response) => {
+		if (!response.ok) {
+			throw new Error(`${kind} returned ${response.status}`)
+		}
+		return response.json()
+	})
+	if (memo) {
+		memo.set(url, read)
+		read.catch(() => memo.delete(url))
+	}
+	return read
+}
+
+/**
  * Resolve the condition's left-hand value from its endpoint / OpenRegister
  * source / local object context (see the module docblock for the three
  * modes). Throws on unusable conditions and failed fetches — callers that
@@ -243,11 +278,7 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 		if (/@object(Id|\.)/.test(cond.endpoint) && (ctx?.objectId === undefined || ctx?.objectId === null || ctx?.objectId === '')) {
 			throw new Error('endpoint names the record, and there is none')
 		}
-		const response = await fetch(prefixUrl(interpolateUrlTokens(cond.endpoint, ctx)), { headers: buildHeaders() })
-		if (!response.ok) {
-			throw new Error(`endpoint returned ${response.status}`)
-		}
-		const data = await response.json()
+		const data = await rememberedRead(ctx, interpolateUrlTokens(cond.endpoint, ctx), 'endpoint')
 		if (sink && typeof sink === 'object') {
 			sink.row = data && typeof data === 'object' && !Array.isArray(data) ? data : undefined
 		}
@@ -264,12 +295,7 @@ export async function readVisibleWhenValue(cond, ctx, sink) {
 		// subject can name its type rather than its type's id.
 		const extend = Array.isArray(src.extend) ? { _extend: src.extend.filter((name) => typeof name === 'string' && name !== '') } : {}
 		const qs = buildQueryString({ ...filter, ...order, ...extend, _limit: 1 })
-		const url = prefixUrl(`/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`)
-		const response = await fetch(url, { headers: buildHeaders() })
-		if (!response.ok) {
-			throw new Error(`source returned ${response.status}`)
-		}
-		const data = await response.json()
+		const data = await rememberedRead(ctx, `/apps/openregister/api/objects/${src.register}/${src.schema}${qs}`, 'source')
 		const first = Array.isArray(data.results) ? data.results[0] : data
 		if (sink && typeof sink === 'object') {
 			sink.row = first && typeof first === 'object' ? first : undefined
