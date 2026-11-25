@@ -376,7 +376,7 @@
 									<thead>
 										<tr>
 											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col" scope="col">
-												{{ col }}
+												{{ objectArrayColumnLabel(field, col) }}
 											</th>
 										</tr>
 									</thead>
@@ -1561,6 +1561,23 @@ export default {
 		 * @param {Array<object>} raw The array value.
 		 * @return {string[]} Up to five column keys.
 		 */
+		/**
+		 * The header of one column of an array-of-objects table: the title the
+		 * schema gives the item property (`items.properties[col].title`), or
+		 * the key when the schema has none.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} col The column key.
+		 * @return {string} The header.
+		 */
+		objectArrayColumnLabel(field, col) {
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			const title = prop && prop.items && prop.items.properties && prop.items.properties[col]
+				? prop.items.properties[col].title
+				: ''
+			return typeof title === 'string' && title.trim() !== '' ? title : col
+		},
+
 		objectArrayColumns(raw) {
 			if (!Array.isArray(raw)) {
 				return []
