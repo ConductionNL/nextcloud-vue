@@ -12,7 +12,7 @@ import { CnConversationWidget } from '@conduction/nextcloud-vue'
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | `{ field, endpoint?, authorField?, timeField?, textField?, sideField?, usValue?, title?, allowReply?, replyLabel?, placeholder?, sendLabel?, emptyText? }`. `field` is the dot path to the messages on the record (default `messages`); the `*Field` keys name each message's author, time, text and side. A message whose side equals `usValue` (default `us`) is drawn as ours. `@objectId` in `endpoint` is replaced by the record's id. |
+| `content` | `object` | `{}` | `{ field, endpoint?, authorField?, timeField?, textField?, sideField?, usValue?, title?, allowReply?, replyLabel?, placeholder?, sendLabel?, emptyText? }`. `field` is the dot path to the messages on the record (default `messages`); the `*Field` keys name each message's author, time, text and side. A message whose side equals `usValue` (default `us`) is drawn as ours. `@objectId` in `endpoint` is replaced by the record's id, and `@object.<path>` by that field of the record, as in `source.url`; when an `@object.` token has no value the reply box posts nowhere. |
 | `objectData` | `object` | `null` | The bound record. |
 | `objectId` | `string` \| `number` | `''` | The bound record's id, used in `endpoint`. |
 

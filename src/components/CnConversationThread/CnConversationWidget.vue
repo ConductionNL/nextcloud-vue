@@ -377,12 +377,6 @@ export default {
 		},
 
 		/**
-		 * The endpoint with the record's id filled in.
-		 *
-		 * @return {string} The URL, or '' when the content names none.
-		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
-		 */
-		/**
 		 * The reply draft's url (`content.draft.url`, `@objectId` filled in),
 		 * or '' without one.
 		 *
@@ -397,10 +391,22 @@ export default {
 			return url.replace(/@objectId/g, encodeURIComponent(String(this.objectId ?? '')))
 		},
 
+		/**
+		 * The reply endpoint, filled from the record: `@objectId`, and
+		 * `@object.<path>` like `source.url`. A url naming an `@object.` token
+		 * that has no value posts nowhere ('').
+		 *
+		 * @return {string} The URL, or '' when the content names none.
+		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-conversation-thread
+		 * @spec openspec/changes/conversation-reply-endpoint-tokens/specs/conversation-source/spec.md#requirement-the-reply-endpoint-is-filled-from-the-record-like-the-source
+		 */
 		endpoint() {
 			const url = this.content.endpoint
 			if (typeof url !== 'string' || url === '') {
 				return ''
+			}
+			if (url.includes('@object.')) {
+				return this.fillUrl(url)
 			}
 			return url.replace(/@objectId/g, encodeURIComponent(String(this.objectId ?? '')))
 		},
