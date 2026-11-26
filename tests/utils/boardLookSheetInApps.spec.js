@@ -19,7 +19,7 @@ jest.mock('../../src/utils/boardLookSheet.js', () => ({
 const { BOARD_LOOK_FLAG, BOARD_LOOK_SLOT, enableBoardLookStyle } = require('../../src/utils/boardLookStyle.js')
 
 const board = () => [...document.querySelectorAll('style[data-cn-library-board]')]
-const addStyle = (text, attrs = {}) => {
+function addStyle(text, attrs = {}) {
 	const style = document.createElement('style')
 	Object.entries(attrs).forEach(([k, v]) => style.setAttribute(k, v))
 	style.textContent = text
