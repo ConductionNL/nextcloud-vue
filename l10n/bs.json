@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Polje datuma za period",
+    "None: the widget does not follow the period": "Nijedno: widget ne prati period",
     "Report a bug": "Prijavi grešku",
     "View": "Pregled",
     "Edit": "Uredi",
     "Copy": "Kopiraj",
-    "Delete": "Izbriši"
+    "Delete": "Izbriši",
+    "The administrator has not set a start date field.": "Administrator nije postavio polje za datum početka rada.",
+    "Starts {weekday}": "Počinje {weekday}",
+    "Selection": "Odabir",
+    "People by filter": "Osobe po filteru",
+    "New colleagues": "Nove kolege",
+    "Started in the last (days, 1–90)": "Počeli u posljednjih (dana, 1–90)",
+    "Starts within (days, 0–30)": "Počinju u narednih (dana, 0–30)",
+    "Must be between {min} and {max}": "Mora biti između {min} i {max}"
   }
 }

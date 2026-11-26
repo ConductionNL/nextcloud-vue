@@ -13,6 +13,7 @@ import { mount } from '@vue/test-utils'
 import CnLinkedWidget from '../../src/components/CnLinkedWidget/CnLinkedWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { integrations } from '../../src/integrations/registry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 import { isContentOnlyWidgetDef } from '../../src/utils/widgetDispatch.js'
 
 import '../../src/components/CnLinkedWidget/index.js'
@@ -60,8 +61,8 @@ function mountCard(leaves) {
 describe('CnLinkedWidget', () => {
 	afterEach(() => integrations.__resetForTests())
 
-	it('is a content-only `linked` widget type, so the page draws its titled card', () => {
-		expect(getWidgetTypeEntry('linked').renderer).toBe(CnLinkedWidget)
+	it('is a content-only `linked` widget type, so the page draws its titled card', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('linked').renderer)).toBe(CnLinkedWidget)
 		expect(isContentOnlyWidgetDef({ type: 'linked' })).toBe(true)
 	})
 
@@ -109,6 +110,24 @@ describe('CnLinkedWidget', () => {
 		expect(wrapper.find('[data-testid="cn-linked-row"]').text()).toBe('projecten (2)')
 		expect(wrapper.find('[data-testid="cn-linked-empty"]').exists()).toBe(false)
 		expect(wrapper.findAll('[data-testid="cn-linked-action"]')).toHaveLength(0)
+	})
+
+	it('says its emptyText when no listed app is here, and once every leaf answered with nothing', async () => {
+		const absent = mount(CnLinkedWidget, {
+			props: { content: { leaves: ['absent'], emptyText: 'Nothing linked yet' }, objectId: 'case-1', register: 'dossiq', schema: 'case' },
+			global: { stubs: { CnIcon: true } },
+		})
+		expect(absent.find('[data-testid="cn-linked-empty"]').text()).toBe('Nothing linked yet')
+
+		const projects = registerLeaf('projects')
+		const waiting = mount(CnLinkedWidget, {
+			props: { content: { leaves: ['projects'], emptyText: 'Nothing linked yet' }, objectId: 'case-1', register: 'dossiq', schema: 'case' },
+			global: { stubs: { CnIcon: true } },
+		})
+		expect(waiting.find('[data-testid="cn-linked-empty"]').exists()).toBe(false)
+		projects[0].onSummary({ count: 0, noun: '' })
+		await waiting.vm.$nextTick()
+		expect(waiting.find('[data-testid="cn-linked-empty"]').text()).toBe('Nothing linked yet')
 	})
 
 	it('draws nothing for a leaf that has not reported yet', () => {

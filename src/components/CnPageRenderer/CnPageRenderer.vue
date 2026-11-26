@@ -294,13 +294,10 @@ import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcEmptyContent } from '@nextcloud/vue'
-import { computed, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
+import { computed, defineAsyncComponent, getCurrentInstance, h, markRaw, nextTick, ref } from 'vue'
 import LockOutline from 'vue-material-design-icons/LockOutline.vue'
 import ShapeOutline from 'vue-material-design-icons/ShapeOutline.vue'
-import CnPageConfigModal from '../../dialogs/CnPageConfigModal.vue'
-import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
-import CnWidgetGrid from '../CnWidgetGrid/CnWidgetGrid.vue'
 import { useListNavigation } from '../../composables/useListNavigation.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
 import { useObjectStore } from '../../store/index.js'
@@ -309,8 +306,10 @@ import { isAppInstalled } from '../../utils/appInstalled.js'
 import { pageHasSplitView, pageIdForRoute, splitIdForRoute, splitRouteName } from '../../utils/buildManifestRoutes.js'
 import { reportDiagnostic, reportDiagnosticOnce } from '../../utils/diagnostics.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
+import { resolveLazyComponent } from '../../utils/lazyComponent.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { listContextFromRoute, listContextToQuery } from '../../utils/listNavigation.js'
+import { hasOfflineBlock, offlineForms, takeAlongFor } from '../../utils/offlineManifest.js'
 import { applyQueryPreset, matchQueryPreset } from '../../utils/queryPresets.js'
 import { resolveRouteSentinels } from '../../utils/resolveRouteSentinels.js'
 import { parseSortKeys } from '../../utils/routeFilters.js'
@@ -364,8 +363,13 @@ function describeOpenRegisterEntity(kind, idOrSlug) {
 	}
 	return entityDescriptorCache.get(key).catch(() => null)
 }
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { defaultPageSidebars, defaultPageTypes } from './pageTypes.js'
+
+const CnWidgetGrid = defineAsyncComponent(() => import('../CnWidgetGrid/CnWidgetGrid.vue').then((m) => m.default))
+const CnMassExportDialog = defineAsyncComponent(() => import('../CnMassExportDialog/CnMassExportDialog.vue').then((m) => m.default))
+const CnPageConfigModal = defineAsyncComponent(() => import('../../dialogs/CnPageConfigModal.vue').then((m) => m.default))
+const CnBuildiqEditButton = defineAsyncComponent(() => import('../CnBuildiqEditButton/CnBuildiqEditButton.vue').then((m) => m.default))
 
 /** Recognised fixed slot names for v2 manifests. */
 const KNOWN_SLOTS = new Set(['body', 'sidebar', 'header-actions', 'footer', 'modal'])
@@ -409,6 +413,31 @@ const READ_ONLY_DEFAULTS = Object.freeze({
 	showMassCopy: false,
 	showMassDelete: false,
 })
+
+/**
+ * The definition whose props a custom page declares: the component itself,
+ * the component a `lazyComponent()` wrapper has loaded (a reactive ref, so a
+ * computed reading it updates once it loads), or the component a
+ * `defineAsyncComponent` wrapper resolved. Null while a wrapper has not
+ * loaded yet, so the page receives none of the lifted fields until then.
+ *
+ * @param {object|null} component The dispatched component.
+ * @param {number} _tick The renderer's async-resolution counter, read so a
+ *   computed calling this re-runs once an async page resolves.
+ * @return {object|null} The definition, or null.
+ */
+function customPageDefinition(component, _tick) {
+	if (!component) {
+		return null
+	}
+	if (component.__cnLazy) {
+		return resolveLazyComponent(component)
+	}
+	if (typeof component.__asyncLoader === 'function') {
+		return component.__asyncResolved || null
+	}
+	return component
+}
 
 export default {
 	name: 'CnPageRenderer',
@@ -680,6 +709,9 @@ export default {
 		// `provide()` returns the same references so descendant injects
 		// observe each update.
 		return {
+			// Bumped when an async custom page (defineAsyncComponent) resolves, so the
+			// props it declares are read again: `__asyncResolved` is not reactive.
+			asyncPageResolved: 0,
 			pageSidebarVisible: { value: true },
 			pageSidebarComponent: { value: null },
 			// Whether the per-page config modal (edit-mode cog) is open.
@@ -1310,8 +1342,7 @@ export default {
 				// are withheld, which is the safe default here: withheld
 				// means no stray root attributes, and the async component
 				// renders nothing yet anyway.
-				const resolved = this.resolvedComponent
-				const declared = (resolved?.__asyncResolved ?? resolved)?.props
+				const declared = customPageDefinition(this.resolvedComponent, this.asyncPageResolved)?.props
 				const declares = (key) => (Array.isArray(declared)
 					? declared.includes(key)
 					: Boolean(declared && key in declared))
@@ -1450,6 +1481,21 @@ export default {
 				if (listPage) {
 					topLevel.notFoundRoute = { name: listPage.id }
 					topLevel.notFoundRouteLabel = this.tr(listPage.title || listPage.id)
+				}
+			}
+			// manifest-offline-block: a form page listed in `offline.forms` is an
+			// offline form (it queues its submission without a connection), and
+			// an index or detail page over a take-along register and schema reads
+			// that set from the device while offline. Only a manifest with an
+			// `offline` block sets either, so no other page opens the offline
+			// database.
+			const manifest = this.effectiveManifest
+			if (page && hasOfflineBlock(manifest)) {
+				if (page.type === 'form' && offlineForms(manifest).some((form) => form.id === page.id)) {
+					topLevel.offline = true
+				}
+				if ((isIndex || isDetail) && takeAlongFor(manifest, normalizedConfig.register, normalizedConfig.schema) !== null) {
+					topLevel.offlineTakeAlong = true
 				}
 			}
 			// `config.readOnly:true` shorthand on type='index' (REQ-MIPFU-4):
@@ -1700,34 +1746,70 @@ export default {
 		},
 	},
 
-	watch: { /**
-										 * Auto-register object types for `type:"custom"` pages whose
-										 * manifest config declares `register` + `schema` (single type)
-										 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
-										 *
-										 * For `type:"index"` and `type:"detail"` pages, the underlying
-										 * CnIndexPage / CnDetailPage components self-register when
-										 * mounted with `register` + `schema` props — so the renderer
-										 * does nothing extra for those. Custom components have no such
-										 * guarantee: they are bespoke per-app Vue components and would
-										 * each have to remember to call `registerObjectType` in their
-										 * own `mounted()` hook. Mirroring index/detail's zero-config
-										 * behaviour for the manifest-driven custom case (declared
-										 * `register` + `schema`) keeps the manifest the single source
-										 * of truth and removes a per-component landmine.
-										 *
-										 * Runs `immediate: true` so first mount registers before the
-										 * custom component's mounted() hook fires; re-runs on route
-										 * change in case the same CnPageRenderer instance is reused
-										 * for a different `type:"custom"` page.
-										 *
-										 * Defensive: every step is wrapped — a Pinia-not-installed
-										 * test harness, a missing store method, or a thrown error
-										 * inside `registerObjectType` all degrade to a single
-										 * `console.warn` so the page still mounts.
-										 *
-										 * See issue ConductionNL/nextcloud-vue#341.
-										 */
+	watch: {
+		/**
+		 * An async custom page that has not resolved yet receives none of the
+		 * lifted fields (see `resolvedProps`). Load it here and bump the
+		 * counter once it resolves, so its declared props (title, icon, ...)
+		 * are forwarded. A `lazyComponent()` page needs nothing: its resolved
+		 * component sits in a reactive ref.
+		 *
+		 * @param {object|null} component The dispatched component.
+		 * @return {void}
+		 */
+		resolvedComponent: {
+			immediate: true,
+			handler(component) {
+				if (component && typeof component.__asyncLoader === 'function' && !component.__asyncResolved) {
+					Promise.resolve(component.__asyncLoader())
+						.then(() => { this.asyncPageResolved += 1 })
+						.catch(() => {})
+				}
+			},
+		},
+
+		/**
+		 * Switch the board-look rules on before the first render of a page drawn in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		resolvedLook: {
+			immediate: true,
+			handler(value) {
+				if (value === 'board') {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
+		/**
+		 * Auto-register object types for `type:"custom"` pages whose
+		 * manifest config declares `register` + `schema` (single type)
+		 * and/or `types: [{ name, register, schema }, ...]` (multi-type).
+		 *
+		 * For `type:"index"` and `type:"detail"` pages, the underlying
+		 * CnIndexPage / CnDetailPage components self-register when
+		 * mounted with `register` + `schema` props — so the renderer
+		 * does nothing extra for those. Custom components have no such
+		 * guarantee: they are bespoke per-app Vue components and would
+		 * each have to remember to call `registerObjectType` in their
+		 * own `mounted()` hook. Mirroring index/detail's zero-config
+		 * behaviour for the manifest-driven custom case (declared
+		 * `register` + `schema`) keeps the manifest the single source
+		 * of truth and removes a per-component landmine.
+		 *
+		 * Runs `immediate: true` so first mount registers before the
+		 * custom component's mounted() hook fires; re-runs on route
+		 * change in case the same CnPageRenderer instance is reused
+		 * for a different `type:"custom"` page.
+		 *
+		 * Defensive: every step is wrapped — a Pinia-not-installed
+		 * test harness, a missing store method, or a thrown error
+		 * inside `registerObjectType` all degrade to a single
+		 * `console.warn` so the page still mounts.
+		 *
+		 * See issue ConductionNL/nextcloud-vue#341.
+		 */
 		currentPage: {
 			immediate: true,
 			handler() {

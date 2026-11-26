@@ -4,6 +4,7 @@
 |---|---|---|---|
 | `targets` | `Array\|Object\|null` | `null` | Where an install can go: `[{ id, label }]` or an `optionsFrom` source; the chosen id is sent as `target`. |
 | `targetLabel` | `String` | `''` | The target picker's label; empty reads "Install into". |
+| `activeTarget` | `String` | `''` | The active target: an id or a `@workspace.<key>` token. The picker starts on it and the list narrows to the items that fit it ("Fits: {target}", clearable). |
 | `page` | Object | `{}` | The manifest page, for a host rendering the component directly; the flattened props win |
 | `app` | String | `''` | The app id, the only app-specific value in the request URL |
 | `kinds` | Array | the ADR-080 kinds | The kind quick-filters offered before the engine answers |
@@ -13,6 +14,9 @@
 | `canPublish` | Boolean | `null` | Whether the app lets this viewer publish; `null` falls back to administrators |
 | `publishRoute` | String, Object | `null` | Where Publish leads; without it there is no Publish button |
 | `kindLenses` | Array | `[]` | Board look: extra lens chips per item kind, `[{ kind, label }]` (for example Connectors) |
+| `categoryLenses` | Boolean | `false` | Board look: a lens per served `card.category`, with its count |
+| `pageSize` | Number | `0` | Board look: cards per page, with a pager; 0 shows all |
+| `banner` | Object | `null` | Board look: the register banner `{ settingsUrl?, settingsLabel?, installNote? }` over `registry: { name, url }` from the items response |
 | `publishable` | Boolean | `false` | The app accepts a publish: Publish opens the publish dialog instead of following `publishRoute` |
 
 See the component source for the title and description props.

@@ -14,6 +14,7 @@
 
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { countFilterParams } from './fetchFilterCounts.js'
 import { readPath } from './readPath.js'
 
 /**
@@ -84,4 +85,74 @@ export async function fetchRowAggregate(agg, row, readValue = readPath) {
 		return top === undefined || top === '' ? null : top
 	}
 	return (data && (data.total ?? (Array.isArray(data.results) ? data.results.length : undefined))) ?? 0
+}
+
+/**
+ * Whether a resolved filter still holds a token (`@me`, `@today`): the list
+ * endpoint resolves those itself, so such a row is asked on its own.
+ *
+ * @param {object} filter The resolved filter.
+ * @return {boolean}
+ */
+function holdsToken(filter) {
+	return Object.values(filter).some((value) => (typeof value === 'string' && value.charAt(0) === '@')
+		|| (value && typeof value === 'object' && !Array.isArray(value) && holdsToken(value)))
+}
+
+/**
+ * Ask OpenRegister for one aggregate over many rows.
+ *
+ * A `count` goes out as ONE request to the batch count endpoint
+ * (`POST /api/objects/counts`), one entry per distinct row filter, instead of
+ * one list request per row: a table of 20 clients with an "open tickets"
+ * column asked 20 times. When the endpoint fails or is not there, each row is
+ * asked on its own as before. A `max`, and a row whose filter still holds a
+ * token, is asked per row.
+ *
+ * @param {object} agg The declaration.
+ * @param {Array<object>} rows The rows.
+ * @param {Function} [readValue] How a path is read off a row.
+ * @return {Promise<Array<{value: unknown}|{error: unknown}>>} One outcome per row, in order.
+ * @spec openspec/changes/record-list-row-aggregates/specs/record-list/spec.md#requirement-a-record-list-row-can-carry-a-figure-over-its-related-objects
+ */
+export async function fetchRowAggregates(agg, rows, readValue = readPath) {
+	const list = Array.isArray(rows) ? rows : []
+	const one = (row) => fetchRowAggregate(agg, row, readValue).then((value) => ({ value }), (error) => ({ error }))
+	if (agg.op !== 'count' || list.length < 2) {
+		return Promise.all(list.map(one))
+	}
+	const filters = list.map((row) => resolveRowWhere(agg.where, row, readValue))
+	const batched = []
+	const slotOf = new Map()
+	const slots = filters.map((filter) => {
+		if (holdsToken(filter)) {
+			return -1
+		}
+		const params = countFilterParams(filter)
+		const key = JSON.stringify(params)
+		if (!slotOf.has(key)) {
+			slotOf.set(key, batched.length)
+			batched.push({ register: agg.register, schema: agg.schema, filter: params })
+		}
+		return slotOf.get(key)
+	})
+	let counts = null
+	if (batched.length > 1) {
+		try {
+			const res = await axios.post(generateUrl('/apps/openregister/api/objects/counts'), { counts: batched })
+			const results = res && res.data && res.data.results
+			if (Array.isArray(results) && results.length === batched.length) {
+				counts = results.map((result) => (result && typeof result.count === 'number' ? result.count : null))
+			}
+		} catch {
+			counts = null
+		}
+	}
+	return Promise.all(list.map((row, index) => {
+		const slot = slots[index]
+		if (counts === null || slot < 0) {
+			return one(row)
+		}
+		return counts[slot] === null ? { error: new Error('count withheld or unknown') } : { value: counts[slot] }
+	}))
 }

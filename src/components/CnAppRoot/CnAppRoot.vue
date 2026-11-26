@@ -62,7 +62,7 @@
 	<NcContent
 		:appName="appDisplayName || (manifest && manifest.name) || appId"
 		:data-nldesign-theme-scope="appId"
-		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board' }"
+		:class="{ 'cn-app-root--with-environment': environmentName, 'cn-look-board': resolvedLook === 'board', 'cn-app-root--page-ground': pageGround }"
 		data-testid="cn-app-root">
 		<!-- Names a development, test or acceptance environment on every screen; cannot be dismissed. Production shows nothing. -->
 		<CnEnvironmentBanner
@@ -430,7 +430,7 @@
 			  Gating (health probe, pageKind overrides) happens inside the
 			  component; app opt-in is via the `aiCompanion` prop (default off).
 			-->
-			<CnAiCompanion v-if="aiCompanion" :chatAppId="chatAppId" />
+			<CnAiCompanion v-if="aiCompanion" :chatAppId="chatAppId" :defaultAgent="aiDefaultAgent" />
 
 			<!--
 			  Non-gating setup wizard (REQ-SETUP-NV-012 optional path). Shown
@@ -445,6 +445,7 @@
 					:steps="manifest.setup.steps"
 					:cancellable="true"
 					:completedStepIds="setupCompletedStepIds"
+					:startStep="setupStartStep"
 					@complete="onSetupComplete"
 					@close="dismissSetupWizard" />
 			</div>
@@ -714,30 +715,20 @@ import { loadState } from '@nextcloud/initial-state'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcAppContent, NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcContent, NcEmptyContent, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
 import DatabaseSearchOutline from 'vue-material-design-icons/DatabaseSearchOutline.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import KeyOutline from 'vue-material-design-icons/KeyOutline.vue'
 import OpenInNew from 'vue-material-design-icons/OpenInNew.vue'
 import Play from 'vue-material-design-icons/Play.vue'
 import Restart from 'vue-material-design-icons/Restart.vue'
-import CnAiCompanion from '../CnAiCompanion/CnAiCompanion.vue'
 import CnAppLoading from '../CnAppLoading/CnAppLoading.vue'
 import CnAppNav from '../CnAppNav/CnAppNav.vue'
 import CnBrandBar from '../CnBrandBar/CnBrandBar.vue'
-import CnCommandPalette from '../CnCommandPalette/CnCommandPalette.vue'
-import CnCredentials from '../CnCredentials/CnCredentials.vue'
 import CnDependencyMissing from '../CnDependencyMissing/CnDependencyMissing.vue'
 import CnEnvironmentBanner from '../CnEnvironmentBanner/CnEnvironmentBanner.vue'
 import CnHeaderSearchLabel from '../CnHeaderSearchLabel/CnHeaderSearchLabel.vue'
-import CnNotificationPreferences from '../CnNotificationPreferences/CnNotificationPreferences.vue'
-import CnObjectSidebar from '../CnObjectSidebar/CnObjectSidebar.vue'
-import CnSavedViewMenuSettings from '../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue'
-import CnSetupWizard from '../CnSetupWizard/CnSetupWizard.vue'
-import CnSupportDialog from '../CnSupportDialog/CnSupportDialog.vue'
 import CnTenantBadge from '../CnTenantBadge/CnTenantBadge.vue'
-import CnUserSettingsDialog from '../CnUserSettingsDialog/CnUserSettingsDialog.vue'
-import CnWalkthrough from '../CnWalkthrough/CnWalkthrough.vue'
 import { DEFAULT_CHAT_APP_ID } from '../../composables/aiChatConfig.js'
 import { useAppInstaller } from '../../composables/useAppInstaller.js'
 import { useAppStatus } from '../../composables/useAppStatus.js'
@@ -757,12 +748,14 @@ import {
 	persistWalkthroughSeenVersion,
 	readLocalWalkthroughProgress,
 	readLocalWalkthroughSeenVersion,
+	readPreloadedWalkthroughPreferences,
 	useWalkthrough,
 } from '../../composables/useWalkthrough.js'
 import { RegistryKindError } from '../../errors/RegistryKindError.js'
 import { useObjectStore } from '../../store/index.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { appShownName } from '../../utils/appShownName.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { BUILT_IN_FORMATTERS } from '../../utils/builtInFormatters.js'
 import { resolveModalEntry } from '../../utils/builtInModals.js'
 import { addDiagnosticsListener, clearReportedDiagnostics, reportDiagnostic } from '../../utils/diagnostics.js'
@@ -773,12 +766,24 @@ import { appCatalogHas, createManifestTranslate } from '../../utils/manifestTran
 import { installModalStack, uninstallModalStack } from '../../utils/modalStack.js'
 import { loadMyTeam } from '../../utils/myTeam.js'
 import { OBJECTS_CHANGED_EVENT } from '../../utils/objectSignals.js'
+import { offlineForms } from '../../utils/offlineManifest.js'
 import { resolveBrand } from '../../utils/resolveBrand.js'
 import { dropOptionalUnresolved, MY_TEAM_TOKEN, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { pageOffersSavedViews } from '../../utils/savedViewHelpers.js'
 import { normalizeSavedViewMenu, SAVED_VIEW_MENU_KEY, SAVED_VIEW_MENU_PREFIX, syncSavedViewMenu, toggleSavedViewMenuEntry, withSavedViewMenu } from '../../utils/savedViewMenu.js'
 import { passesContextPredicates } from '../../utils/visibleIfContext.js'
 import { defaultPageSidebars } from '../CnPageRenderer/pageTypes.js'
+
+const CnAiCompanion = defineAsyncComponent(() => import('../CnAiCompanion/CnAiCompanion.vue').then((m) => m.default))
+const CnCommandPalette = defineAsyncComponent(() => import('../CnCommandPalette/CnCommandPalette.vue').then((m) => m.default))
+const CnCredentials = defineAsyncComponent(() => import('../CnCredentials/CnCredentials.vue').then((m) => m.default))
+const CnNotificationPreferences = defineAsyncComponent(() => import('../CnNotificationPreferences/CnNotificationPreferences.vue').then((m) => m.default))
+const CnObjectSidebar = defineAsyncComponent(() => import('../CnObjectSidebar/CnObjectSidebar.vue').then((m) => m.default))
+const CnSavedViewMenuSettings = defineAsyncComponent(() => import('../CnSavedViewMenuSettings/CnSavedViewMenuSettings.vue').then((m) => m.default))
+const CnSetupWizard = defineAsyncComponent(() => import('../CnSetupWizard/CnSetupWizard.vue').then((m) => m.default))
+const CnSupportDialog = defineAsyncComponent(() => import('../CnSupportDialog/CnSupportDialog.vue').then((m) => m.default))
+const CnUserSettingsDialog = defineAsyncComponent(() => import('../CnUserSettingsDialog/CnUserSettingsDialog.vue').then((m) => m.default))
+const CnWalkthrough = defineAsyncComponent(() => import('../CnWalkthrough/CnWalkthrough.vue').then((m) => m.default))
 
 /**
  * Recognised registry kinds and their required metadata fields.
@@ -1120,6 +1125,16 @@ export default {
 			},
 
 			/**
+			 * Whether the notification pane shows the quiet-hours block
+			 * (OpenRegister's per-user delivery window). A getter, as above.
+			 *
+			 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+			 */
+			get cnQuietHours() {
+				return self.quietHours === true
+			},
+
+			/**
 			 * Target repo slug for the in-product feature-request deep
 			 * link (e.g. `ConductionNL/pipelinq`). Read from the
 			 * manifest's `nav.featureRequestRepo` when set; falls back
@@ -1357,6 +1372,19 @@ export default {
 		},
 
 		/**
+		 * Paint the content area with the page ground (the NL Design System
+		 * content-surface token, or Nextcloud's hover background) instead of
+		 * the main-background panel. For a dashboard app whose canvas is the
+		 * page; widgets keep their own surfaces. Off by default.
+		 *
+		 * @spec openspec/changes/app-root-page-ground/specs/app-root-page-ground/spec.md#requirement-an-app-root-can-draw-its-content-on-the-page-ground
+		 */
+		pageGround: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Human-readable name shown in the Nextcloud top bar. When set it
 		 * overrides the technical `appId` so a virtual app shows its own name
 		 * (e.g. "Pet Store") instead of the host app id.
@@ -1397,6 +1425,19 @@ export default {
 		aiCompanion: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The agent the companion starts on, by its uuid or its name. The app
+		 * may change it per route (a self-service area preselecting its own
+		 * question assistant); an agent the user picked stays. Empty keeps the
+		 * page-relevance default.
+		 *
+		 * @type {string}
+		 */
+		aiDefaultAgent: {
+			type: String,
+			default: '',
 		},
 
 		/**
@@ -1592,6 +1633,20 @@ export default {
 		notificationLabels: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * Show the quiet-hours block in the user settings' notification
+		 * pane. It reads and saves OpenRegister's per-user delivery window
+		 * (`/api/notification-delivery-window`), which applies to every app
+		 * on the instance. Off by default.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/notification-quiet-hours-block/specs/notification-preferences/spec.md#requirement-the-notification-pane-can-show-quiet-hours-from-openregisters-delivery-window
+		 */
+		quietHours: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -1955,6 +2010,8 @@ export default {
 	data() {
 		const willCheck = Array.isArray(this.requiresApps) && this.requiresApps.length > 0
 		return {
+			// The running send of this app's offline-form queue (drainOfflineForms), or null.
+			offlineDrain: null,
 			// Saved views this user added to the menu (per-user preference).
 			// One object for the whole session, so the provide hands out a
 			// live reference: `entries` changes, the holder does not.
@@ -2122,6 +2179,8 @@ export default {
 			 * @type {boolean}
 			 */
 			setupWizardOpen: false,
+			/** The step `?setup=<stepId>` asked the setup wizard to open on; '' for its own start. */
+			setupStartStep: '',
 			/**
 			 * The user's last-seen walkthrough app version (ADR-043).
 			 *
@@ -3325,6 +3384,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Switch the board-look rules on before the first render in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		resolvedLook: {
+			immediate: true,
+			handler(value) {
+				if (value === 'board') {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
 		// Only an app with a page that offers saved views reads the list,
 		// once, when such a page first appears in the manifest.
 		offersSavedViews: {
@@ -3352,10 +3425,11 @@ export default {
 		/**
 		 * Open the setup wizard again when the address asks for it
 		 * (`?setup=open`), also after it was finished or dismissed, so a menu
-		 * entry or a link can offer "set up again". Ignored for an app without
-		 * setup steps.
+		 * entry or a link can offer "set up again". `?setup=<stepId>` opens it
+		 * at that step. Ignored for an app without setup steps.
 		 *
 		 * @spec openspec/changes/setup-wizard-opens-from-the-address/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard
+		 * @spec openspec/changes/setup-wizard-opens-at-a-step/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard-at-a-step
 		 */
 		'$route.query.setup': {
 			immediate: true,
@@ -3365,7 +3439,15 @@ export default {
 			 */
 			handler(value) {
 				const setup = this.manifest && this.manifest.setup
-				if (value === 'open' && setup && setup.enabled !== false && Array.isArray(setup.steps) && setup.steps.length > 0) {
+				if (!setup || setup.enabled === false || !Array.isArray(setup.steps) || setup.steps.length === 0) {
+					return
+				}
+				if (value === 'open') {
+					this.setupStartStep = ''
+					this.setupWizardOpen = true
+				} else if (typeof value === 'string' && setup.steps.some((step) => step && step.id === value)) {
+					// `?setup=<stepId>` opens the wizard at that step.
+					this.setupStartStep = value
 					this.setupWizardOpen = true
 				}
 			},
@@ -3453,6 +3535,11 @@ export default {
 		window.addEventListener('beforeunload', this.onBeforeUnload)
 		window.addEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
 
+		// manifest-offline-block D7: an app with offline forms sends what they
+		// queued, on mount while online and each time the connection returns.
+		window.addEventListener('online', this.drainOfflineForms)
+		this.drainOfflineForms()
+
 		// Opt-out fast-path: empty `requiresApps` already initialised
 		// `capabilitiesLoading` to `false` in data(); skip the check.
 		if (!Array.isArray(this.requiresApps) || this.requiresApps.length === 0) {
@@ -3498,6 +3585,7 @@ export default {
 		}
 		window.removeEventListener('beforeunload', this.onBeforeUnload)
 		window.removeEventListener(OBJECTS_CHANGED_EVENT, this.onObjectsChanged)
+		window.removeEventListener('online', this.drainOfflineForms)
 		this.cnScopedTheme.teardown(this.appId)
 		// Scope the side effect to the shell's lifetime. Layers already written
 		// stay on screen (see `uninstallModalStack`), so a dialog outliving the
@@ -3926,6 +4014,45 @@ export default {
 		 * @param {BeforeUnloadEvent} event The browser beforeunload event.
 		 * @return {string|undefined} A non-empty string triggers the native prompt.
 		 */
+		/**
+		 * Send the submissions this app's offline forms queued on the device.
+		 *
+		 * Only rows whose register and schema one of the manifest's offline
+		 * forms writes are replayed: another app's rows on the same device
+		 * wait for that app. A manifest without offline forms does nothing
+		 * and never loads the offline core; nor does a browser that is
+		 * offline. One drain at a time: an `online` event during a drain
+		 * returns the running one.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it
+		 * @return {Promise<object|null>} The drain tally, or null when nothing was sent.
+		 */
+		drainOfflineForms() {
+			const pairs = new Set(offlineForms(this.manifest).map((form) => `${form.register}::${form.schema}`))
+			if (pairs.size === 0 || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+				return Promise.resolve(null)
+			}
+			if (this.offlineDrain) {
+				return this.offlineDrain
+			}
+			this.offlineDrain = (async () => {
+				try {
+					const [{ drainQueue }, { resolveDeviceId }] = await Promise.all([
+						import('../../integrations/offline/syncReplayService.js'),
+						import('../../integrations/offline/offlineDb.js'),
+					])
+					return await drainQueue(resolveDeviceId(), {}, { filter: (row) => pairs.has(`${row.register}::${row.schema}`) })
+				} catch (error) {
+					// eslint-disable-next-line no-console
+					console.warn('[CnAppRoot] Sending the offline queue failed; it is tried again when the connection returns:', error)
+					return null
+				} finally {
+					this.offlineDrain = null
+				}
+			})()
+			return this.offlineDrain
+		},
+
 		onBeforeUnload(event) {
 			const editor = this.manifestEditor
 			const dirtyRef = editor && editor.dirty
@@ -3974,6 +4101,7 @@ export default {
 		dismissSetupWizard() {
 			this.persistSetupWizardDismissal(false)
 			this.setupWizardOpen = false
+			this.setupStartStep = ''
 		},
 
 		/**
@@ -4099,6 +4227,7 @@ export default {
 		 * the localStorage mirror inside the loader.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-walkthrough/spec.md#requirement-a-page-may-carry-the-walkthrough-preferences
 		 */
 		async resolveWalkthroughSeenVersion() {
 			if (!this.walkthroughEnabled || !this.walkthroughConfigKey) {
@@ -4106,9 +4235,12 @@ export default {
 				return
 			}
 			try {
+				// A page that carries both preferences in its initial state
+				// (`walkthrough_preferences`) needs neither GET.
+				const preloaded = readPreloadedWalkthroughPreferences(this.appId)
 				const [seen, progress] = await Promise.all([
-					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey),
-					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey),
+					loadWalkthroughSeenVersion(this.appId, this.walkthroughConfigKey, { preloaded: preloaded.seen }),
+					loadWalkthroughProgress(this.appId, this.walkthroughConfigKey, { preloaded: preloaded.progress }),
 				])
 				this.walkthroughSeenVersionValue = seen
 				this.walkthroughProgressValue = progress
@@ -4656,6 +4788,14 @@ export default {
 </script>
 
 <style>
+/* pageGround: the content area paints the page ground, the token the boards
+   draw as the page background (NL Design System content surface, or
+   Nextcloud's hover background), instead of the main-background panel.
+   NcAppContent's id outranks its scoped rule. */
+.cn-app-root--page-ground #app-content-vue {
+	background-color: var(--nldesign-component-content-surface-background-color, var(--color-background-hover));
+}
+
 /* The environment banner runs along the top of the shell and cannot scroll away; the shell makes room for it. */
 .cn-app-root--with-environment {
 	position: relative;

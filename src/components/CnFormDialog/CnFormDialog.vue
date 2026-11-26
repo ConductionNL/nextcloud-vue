@@ -7,7 +7,7 @@
 		:subtitle="subtitle"
 		:name="resolvedTitle"
 		:size="size"
-		:noClose="loading"
+		:noClose="loading || noClose"
 		@closing="$emit('close')">
 		<!-- Result phase -->
 		<div v-if="result !== null"
@@ -993,6 +993,9 @@
 				aria-live="polite"
 				data-testid="cn-form-dialog-draft-state">{{ draftIndicatorLabel }}</span>
 			<NcButton @click="$emit('close')">
+				<template v-if="cancelIcon" #icon>
+					<CnIcon :name="cancelIcon" :size="20" data-testid="cn-form-dialog-cancel-icon" />
+				</template>
 				{{ result !== null ? closeLabel : cancelLabel }}
 			</NcButton>
 			<NcButton
@@ -1088,6 +1091,7 @@ import { readPath } from '../../utils/readPath.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { fieldsFromSchema, isTenantProperty } from '../../utils/schema.js'
+import { resolveSemanticType } from '../../utils/semanticResolve.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 
 /**
@@ -1138,17 +1142,6 @@ const BUILT_IN_WIDGETS = new Set([
 
 /** Largest file carried inline in the saved payload; bigger ones upload after save. */
 const INLINE_FILE_CAP = 1024 * 1024
-
-/**
- * OpenRegister semantic-type discovery endpoint (ADR-048). Resolves a
- * canonical semantic-type URI to the provider schema that implements it.
- * Returns HTTP 200 with `{ resolved, registerSlug, schemaSlug, appId }` even
- * when nothing implements the URI (`resolved: false`). The exact route path
- * is still being finalised on the OpenRegister side — this path is the small,
- * single point of truth; a 404 (route absent) degrades to `resolved: false`
- * (see `resolveSemanticReference`), never a crash.
- */
-const SEMANTIC_RESOLVE_ENDPOINT = '/apps/openregister/api/schemas/resolve-by-implements'
 
 /**
  * CnFormDialog — Create/edit dialog with auto-generated form from schema.
@@ -1483,6 +1476,22 @@ export default {
 		},
 
 		/**
+		 * Definition records the caller has already read, per driving field,
+		 * so the form does not read them again when it opens:
+		 * `{ caseType: { value: '<uuid>', records: [...] } }`. They are used
+		 * only while the field holds exactly that `value`; any other value is
+		 * read as usual. Pass the records the field's
+		 * `x-openregister-extends-form` query answers, unchanged.
+		 *
+		 * @type {object}
+		 * @spec openspec/changes/preloaded-form-definitions/specs/preloaded-form-definitions/spec.md#requirement-a-form-takes-definitions-its-caller-already-read
+		 */
+		preloadedDefinitions: {
+			type: Object,
+			default: () => ({}),
+		},
+
+		/**
 		 * Field keys rendered read-only (disabled) and immutable — typically the
 		 * parent reference seeded via `initialData` so the user can't repoint a
 		 * child away from the record it was created under.
@@ -1685,6 +1694,23 @@ export default {
 		confirmDisabled: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * Leave the dialog only through its buttons: no header close button,
+		 * and Escape or a backdrop click does nothing. For a host whose dialog
+		 * was an `NcDialog` with `no-close`. Off, the dialog blocks closing
+		 * only while it saves.
+		 */
+		noClose: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** MDI icon name on the Cancel / Close button (`Cancel`). Empty draws no icon, as before. */
+		cancelIcon: {
+			type: String,
+			default: '',
 		},
 	},
 
@@ -2286,6 +2312,14 @@ export default {
 		 */
 		item: {
 			immediate: true,
+			/**
+			 * Re-seed the form from the record now bound.
+			 *
+			 * @param {object|null} newItem The record now bound.
+			 * @param {object|null} oldItem The record previously bound.
+			 * @return {void}
+			 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+			 */
 			handler(newItem, oldItem) {
 				// Scoped to the record the values were typed into. Swapping
 				// the dialog to a DIFFERENT record starts from that record,
@@ -2294,6 +2328,7 @@ export default {
 					? this.pendingUserEdits()
 					: null
 				this.initFormData(newItem)
+				this.reseedDynamicAnswers()
 				this.restoreUserEdits(pending)
 			},
 		},
@@ -2628,37 +2663,18 @@ export default {
 		},
 
 		/**
-		 * Call the OpenRegister discovery endpoint for one semantic-type URI.
-		 * Degrades to `{ resolved: false }` on any error (including a 404 when
-		 * the route isn't present yet) — never crashes the form.
+		 * Resolve one semantic-type URI through the page-wide answer
+		 * (`utils/semanticResolve.js`). Degrades to `{ resolved: false }` on
+		 * any error (including a 404 when the route isn't present yet) —
+		 * never crashes the form.
 		 *
+		 * @spec openspec/changes/semantic-resolve-once-per-page/specs/semantic-resolve-once-per-page/spec.md#requirement-a-semantic-type-is-resolved-once-per-page
 		 * @param {string} uri The canonical semantic-type URI.
 		 * @return {Promise<{resolved: boolean, registerSlug: string|null, schemaSlug: string|null, appId: string|null}>}
 		 */
-		async resolveSemanticReference(uri) {
-			const empty = { resolved: false, registerSlug: null, schemaSlug: null, appId: null }
-			try {
-				const [{ default: axios }, { generateUrl }] = await Promise.all([
-					import('@nextcloud/axios'),
-					import('@nextcloud/router'),
-				])
-				const url = generateUrl(SEMANTIC_RESOLVE_ENDPOINT)
-				const res = await axios.get(url, { params: { uri } })
-				const data = (res && res.data) || {}
-				if (data.resolved === true && data.registerSlug && data.schemaSlug) {
-					return {
-						resolved: true,
-						registerSlug: String(data.registerSlug),
-						schemaSlug: String(data.schemaSlug),
-						appId: data.appId !== null && data.appId !== undefined ? String(data.appId) : null,
-					}
-				}
-				return empty
-			} catch (err) {
-				// eslint-disable-next-line no-console
-				console.error(`CnFormDialog: semantic reference resolve failed for "${uri}":`, err)
-				return empty
-			}
+		resolveSemanticReference(uri) {
+			// One request per URI per page, shared by every form (semanticResolve.js).
+			return resolveSemanticType(uri)
 		},
 
 		/**
@@ -4673,6 +4689,26 @@ export default {
 		},
 
 		/**
+		 * The definition records the caller handed over for a driving field,
+		 * when the field holds the value they were read for; null otherwise.
+		 *
+		 * @param {string} key The driving field.
+		 * @return {Array<object>|null} The records, or null to read them.
+		 * @spec openspec/changes/preloaded-form-definitions/specs/preloaded-form-definitions/spec.md#requirement-a-form-takes-definitions-its-caller-already-read
+		 */
+		preloadedRecordsFor(key) {
+			const preloaded = this.preloadedDefinitions && this.preloadedDefinitions[key]
+			if (!preloaded || typeof preloaded !== 'object' || !Array.isArray(preloaded.records)) {
+				return null
+			}
+			const value = this.dynamicDriverValue(preloaded.value)
+			if (value === '' || value !== this.dynamicDriverValue(this.formData[key])) {
+				return null
+			}
+			return preloaded.records
+		},
+
+		/**
 		 * Fetch and install the extra fields the current driving values ask
 		 * for. A driver that is unset clears them; a fetch that fails leaves
 		 * them cleared rather than half-populated, because a form missing a
@@ -4721,7 +4757,8 @@ export default {
 						this.dynamicDriverValue(this.formData[key]),
 						this.formData,
 					)
-					const records = await store.fetchCollectionForOptions(slug, params)
+					const records = this.preloadedRecordsFor(key)
+						|| await store.fetchCollectionForOptions(slug, params)
 					// Kept for the confirm payload. Array-mode declarations
 					// store the definition's NAME beside its value on the
 					// parent, and the answers alone carry only ids.
@@ -4756,6 +4793,29 @@ export default {
 			this.dynamicRequired = required
 			this.dynamicOwners = owners
 			this.dynamicLoading = false
+			this.seedStoredAnswers(active, properties)
+			this.seedDynamicDefaults(properties)
+		},
+
+		/**
+		 * Put the stored answers and defaults back after the record was
+		 * seeded again. The data-driven fields load once per driving value,
+		 * so a record read again with the same driver (the detail page does
+		 * so once it holds the edit lock) would otherwise leave them empty.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/dynamic-answers-on-edit/specs/dynamic-answers-on-edit/spec.md#requirement-the-edit-form-shows-the-stored-answers
+		 */
+		reseedDynamicAnswers() {
+			if (this.dynamicLoading || this.dynamicToken !== this.dynamicDriverToken) {
+				return
+			}
+			const properties = this.dynamicProperties || {}
+			if (Object.keys(properties).length === 0) {
+				return
+			}
+			const active = this.extendsDeclarations
+				.filter(({ key }) => this.dynamicDriverValue(this.formData[key]) !== '')
 			this.seedStoredAnswers(active, properties)
 			this.seedDynamicDefaults(properties)
 		},
@@ -5018,9 +5078,12 @@ export default {
 		/**
 		 * Resolve a single reference UUID to its `{ id, label }` option,
 		 * fetching the object by id when its label isn't cached yet (edit mode).
+		 * An object the store already holds (a caller read it before the form
+		 * opened) gives the label without a second read.
 		 *
 		 * @param {object} field The field definition.
 		 * @param {string} uuid The stored UUID.
+		 * @spec openspec/changes/reference-label-from-the-store-cache/specs/reference-label-from-the-store-cache/spec.md#requirement-a-reference-label-comes-from-the-stores-cached-object-first
 		 */
 		async resolveReferenceLabel(field, uuid) {
 			const register = this.referenceRegister(field)
@@ -5036,7 +5099,8 @@ export default {
 				if (!store.objectTypeRegistry[slug]) {
 					store.registerObjectType(slug, field.reference.schema, register)
 				}
-				const obj = await store.fetchObject(slug, uuid)
+				const cached = typeof store.getCachedObject === 'function' ? store.getCachedObject(slug, uuid) : null
+				const obj = cached && cached.id ? cached : await store.fetchObject(slug, uuid)
 				if (obj && obj.id) {
 					this.referenceLabels = { ...this.referenceLabels, [obj.id]: this.displayLabel(obj) }
 				}

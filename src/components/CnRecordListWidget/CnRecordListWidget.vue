@@ -751,7 +751,7 @@ import { isObjectRowsSpec, objectRowsOf } from '../../utils/objectRows.js'
 import { pageFilter, pageSort } from '../../utils/pageControls.js'
 import { readPath } from '../../utils/readPath.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveDeepTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
-import { cellsOf, fetchRowAggregate, isRowAggregate } from '../../utils/rowAggregate.js'
+import { cellsOf, fetchRowAggregates, isRowAggregate } from '../../utils/rowAggregate.js'
 import { evaluateVisibleWhen, evaluateVisibleWhenLocal } from '../../utils/visibleWhen.js'
 
 const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
@@ -2796,23 +2796,24 @@ export default {
 				return
 			}
 			const next = new Map()
-			const jobs = []
+			const rows = []
 			for (const raw of this.rows.slice(0, this.limit)) {
 				const row = scalarRow(raw)
 				const rowId = row && typeof row === 'object' ? (row.id || row['@self']?.id) : null
-				if (!rowId) {
-					continue
-				}
-				const figures = cellsOf(next, rowId)
-				for (const [key, agg] of entries) {
-					jobs.push(fetchRowAggregate(agg, row)
-						.then((value) => {
-							figures[key] = this.aggregateText(agg, value)
-						})
-						.catch(() => {}))
+				if (rowId) {
+					cellsOf(next, rowId)
+					rows.push({ row, rowId })
 				}
 			}
-			await Promise.all(jobs)
+			// One request per figure: every row's count in one batch.
+			await Promise.all(entries.map(([key, agg]) => fetchRowAggregates(agg, rows.map((entry) => entry.row))
+				.then((outcomes) => {
+					outcomes.forEach((outcome, index) => {
+						if (!('error' in outcome)) {
+							cellsOf(next, rows[index].rowId)[key] = this.aggregateText(agg, outcome.value)
+						}
+					})
+				})))
 			if (id === this.aggregateRequestId) {
 				this.aggregateValues = Object.fromEntries(next)
 			}
@@ -4159,6 +4160,14 @@ export default {
 .cn-record-list__table td {
 	padding: 8px 0;
 	border-bottom: 1px solid var(--color-border);
+}
+
+/* A narrow side card's table wraps its words, as DqTeamwachtrij draws
+   "Melding openbare / ruimte": a host column can hand it a no-wrap rule, and
+   one long case type then pushed the last column out of the card. */
+.cn-record-list__table th,
+.cn-record-list__table td {
+	white-space: normal;
 }
 
 .cn-record-list__cell-sub {

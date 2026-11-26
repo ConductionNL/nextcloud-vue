@@ -120,6 +120,8 @@ const { widgets, layout, loading, onLayoutChange } = useDashboardView({
 | `widgets` | Array | `[]` | Widget definition objects (see Widget definition below) |
 | `layout` | Array | `[]` | Grid placement objects (see Layout item below) |
 | `loading` | Boolean | `false` | Show loading spinner instead of the grid |
+| `download` | Boolean | `false` | A "Download" button in the header that saves the page's figures as CSV (see *Downloading the figures*) |
+| `downloadName` | String | `''` | File name of the download before `-<yyyy-mm-dd>.csv`; `dashboard` when empty |
 | `allowEdit` | Boolean | `false` | Show the Edit/Done toggle button |
 | `columns` | Number | `12` | Number of grid columns |
 | `cellHeight` | Number | `80` | Grid cell height in pixels |
@@ -674,4 +676,56 @@ page title.
 
 ```json
 { "views": [{ "id": "mine", "label": "My work" }, { "id": "team", "label": "My team", "title": "My team" }] }
+```
+
+## A view for some readers only (`views[].visibleWhen`)
+
+A view can carry `visibleWhen`, the same condition a widget takes (manifest schema 2.201.0). The view is offered only when the
+condition holds for the reader: a school's Today offers "Mentor" only to a teacher who mentors a group. The condition is read once
+when the page opens. Until it answers, and when it cannot be read, the view is not offered (fail-safe). When the views left out
+leave a single view, the page draws no switch, and an address naming a hidden view opens the default view instead.
+
+```json
+{ "views": [
+  { "id": "teacher", "label": "Teacher" },
+  { "id": "mentor", "label": "Mentor", "visibleWhen": { "endpoint": "/apps/learniq/api/timetable/mentor-classes", "field": "classes", "op": "notEmpty" } }
+] }
+```
+
+## Arrange the page in a side panel (`layoutPanel`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `layoutPanel` | `Boolean` | `false` | Manifest `config.layoutPanel: true` (schema 2.189.0). Adds an "Arrange page" button to the header that opens a side panel, "Arrange this page", listing the grid's sections in reading order. Each has a checkbox to show or hide it and a handle to drag it into another place (or move it with the arrow keys). "Save layout" stores the result per user and "Back to default" returns to the manifest layout. Turns `userLayout` on. |
+| `layoutPanelLocked` | `Array<string>` | `[]` | Manifest `config.layoutPanelLocked` (schema 2.201.0). Widget ids the layout panel lists but does not let the user hide, such as the page's main work list. They can still be moved; their checkbox stays checked and disabled and reads "Always shown". Saving never stores them hidden, and a stored layout that hid one draws it anyway. |
+| `autoRefresh` | `boolean \| object` | `null` | Manifest `config.autoRefresh`. Reads the widgets again every `intervalSeconds` (default 300) by firing `cn:page:refresh`, in place (no reload, the scroll position stays), and draws a refresh button in the header (`button`, default true) that spins while the reads land. When the reads keep failing and the last good one is older than `staleAfterSeconds` (default 600), a warning reads "Data may be outdated. Last updated: <time>" with Retry. A widget's read counts as failed when the promise it hands to `waitUntil` answers `false` (useEndpointSource does). The timer is cleared when the page goes. |
+| `notificationsBadge` | `boolean \| string` | `false` | Manifest `config.notificationsBadge` (schema 2.203.0). A header badge with the signed-in user's unread Nextcloud notifications of an app (`true`: this page's `appId`; a string: that app id). It opens their list (icon, summary, relative time, link); opening one marks it read and lowers the count. Nothing shows at 0 or without the notifications app. See CnNotificationsBadge. |
+| widget `collapsible` | `boolean` | `false` | On a widget definition (or layout entry): the card draws a chevron that folds it to its header. With `userLayout` / `layoutPanel` the fold is stored with the user's layout and survives a reload; Back to default opens it again. See CnWidgetWrapper `collapsible`. |
+
+The board PqMijnWerkIndelen draws this. The sections swap places: the first section in the new order takes the place
+(column, row, width) of the first section in the old order, and so on, each keeping its own height, so the page keeps
+its shape. A hidden section stays in the user's record with `hidden: true` and is not drawn; the KPI row is not listed.
+The panel sits at the right edge under the Nextcloud header, over the page, and takes the full width on a phone.
+
+```json
+{ "id": "MyWork", "type": "dashboard", "config": { "layoutPanel": true, "kpiRow": ["my-lens"] } }
+```
+
+## Downloading the figures
+
+`config.download: true` puts a **Download** button in the page header. It saves
+`<downloadName>-<yyyy-mm-dd>.csv` with the header row `widget,label,value`:
+
+- a `stat` tile with an OpenRegister `source`: one row with its label and count;
+- a `chart` whose `dataSource.aggregate` counts per `groupBy`: one row per group;
+- an `object-table`: one row per record, its columns joined by ` | ` as the label.
+
+The figures are read with the same OpenRegister calls the widgets make, and the
+button stays disabled until they are in. A widget whose read fails writes one row
+with the value `error`; other widget kinds, and tiles reading an app endpoint,
+are left out. The file is UTF-8 with a byte order mark, so a spreadsheet opens
+Dutch labels correctly.
+
+```json
+{ "id": "ApplicationsReport", "type": "dashboard", "config": { "download": true, "downloadName": "buildiq-applications", "widgets": [], "layout": [] } }
 ```

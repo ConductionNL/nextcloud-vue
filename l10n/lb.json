@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Datumsfeld fir d'Period",
+    "None: the widget does not follow the period": "Keent: de Widget follegt der Period net",
     "Report a bug": "E Feeler mellen",
     "View": "Weisen",
     "Edit": "Änneren",
     "Copy": "Kopéieren",
-    "Delete": "Läschen"
+    "Delete": "Läschen",
+    "The administrator has not set a start date field.": "D'Administratioun huet kee Feld fir den Ufanksdatum festgeluecht.",
+    "Starts {weekday}": "Fänkt {weekday} un",
+    "Selection": "Auswiel",
+    "People by filter": "Leit no Filter",
+    "New colleagues": "Nei Kolleegen",
+    "Started in the last (days, 1–90)": "Ugefaang an de leschten (Deeg, 1–90)",
+    "Starts within (days, 0–30)": "Fänken an den nächsten (Deeg, 0–30) un",
+    "Must be between {min} and {max}": "Muss tëscht {min} an {max} leien"
   }
 }

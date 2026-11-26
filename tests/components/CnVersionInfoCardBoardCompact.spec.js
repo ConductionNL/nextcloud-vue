@@ -134,7 +134,7 @@ describe('CnAdminSettingsShell board version card', () => {
 		expect(wrapper.find('[data-testid="cn-admin-settings-support-row"]').exists()).toBe(false)
 		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').text()).toContain('Up to date')
 		expect(wrapper.find('[data-testid="cn-version-info-footer-row"]').classes()).toContain('cn-version-info__footer-row--divided')
-		expect(wrapper.findAll('[data-testid="cn-version-info-footer-row"] .NcButton').find((b) => b.text() === 'Re-import configuration').attributes('variant')).toBe('primary')
+		expect(wrapper.findAll('[data-testid="cn-version-info-footer-row"] .NcButton').find((b) => b.text() === 'Import configuration again').attributes('variant')).toBe('primary')
 		expect(wrapper.find('.cn-version-info--compact').exists()).toBe(false)
 	})
 
@@ -161,7 +161,7 @@ describe('CnAdminSettingsShell board version card', () => {
 		const wrapper = shell({ compact: true })
 		// NcButton is stubbed globally (tests/setup.js) as a div that keeps its props as attributes.
 		const buttons = wrapper.findAll('[data-testid="cn-version-info-footer-row"] .NcButton')
-		expect(buttons.map((b) => b.text())).toEqual(['Re-import configuration', 'Run setup wizard'])
+		expect(buttons.map((b) => b.text())).toEqual(['Import configuration again', 'Run setup wizard'])
 		expect(buttons[0].attributes('variant')).toBe('secondary')
 	})
 

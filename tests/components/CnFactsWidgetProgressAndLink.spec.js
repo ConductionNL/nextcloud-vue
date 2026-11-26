@@ -139,4 +139,18 @@ describe('CnFactsWidget — a link into another app', () => {
 		await flush()
 		expect(w.text()).toBe('')
 	})
+	it('says its emptyText when the type names no page, and only then', async () => {
+		const withEmpty = { ...INSTRUCTION, emptyText: 'No work instruction for this type yet' }
+		mockGet.mockResolvedValue({ data: { id: 't-1' } })
+		const none = mountFacts(withEmpty, {}, { id: 'r-1', itemType: 't-1' })
+		await flush()
+		expect(none.find('[data-testid="cn-facts-empty"]').text()).toBe('No work instruction for this type yet')
+		expect(none.find('[data-testid="cn-facts-link"]').exists()).toBe(false)
+
+		mockGet.mockResolvedValue({ data: { id: 't-1', knowledgeBasePage: '/Handbook/Permits' } })
+		const page = mountFacts(withEmpty, {}, { id: 'r-1', itemType: 't-1' })
+		await flush()
+		expect(page.find('[data-testid="cn-facts-link"]').exists()).toBe(true)
+		expect(page.find('[data-testid="cn-facts-empty"]').exists()).toBe(false)
+	})
 })

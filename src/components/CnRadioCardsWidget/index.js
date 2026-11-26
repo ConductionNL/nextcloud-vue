@@ -8,11 +8,13 @@
  * dashboardWidgetRegistry at module load.
  */
 
-import CnRadioCardsWidget from './CnRadioCardsWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnRadioCardsWidget = lazyComponent(() => import('./CnRadioCardsWidget.vue'), 'CnRadioCardsWidget')
+
 registerDashboardWidget('radio-cards', {
-	renderer: CnRadioCardsWidget,
+	renderer: LazyCnRadioCardsWidget,
 	form: null,
 	defaultContent: {
 		field: '',
@@ -23,5 +25,5 @@ registerDashboardWidget('radio-cards', {
 	surfaces: ['detail-page'],
 })
 
-export { CnRadioCardsWidget }
-export default CnRadioCardsWidget
+export { default as CnRadioCardsWidget } from './CnRadioCardsWidget.vue'
+export { default } from './CnRadioCardsWidget.vue'

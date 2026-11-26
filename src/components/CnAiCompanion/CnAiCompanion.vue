@@ -58,6 +58,7 @@
 			:approvalWording="approvalWording"
 			:streamState="stream.state"
 			:chatAppId="chatAppId"
+			:defaultAgent="defaultAgent"
 			:context="effectiveContext"
 			:position="position"
 			:fabRef="$refs.fabButton"
@@ -196,6 +197,16 @@ export default {
 		embedded: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The agent to start on, by uuid or name; see CnAiChatPanel `defaultAgent`.
+		 *
+		 * @type {string}
+		 */
+		defaultAgent: {
+			type: String,
+			default: '',
 		},
 
 		/** An embedded chat in a card that draws its title; see CnAiChatPanel `titled`. */
@@ -562,8 +573,8 @@ export default {
 			this.isPanelOpen = false
 		},
 
-		onSend(text, agentUuid, attachments) {
-			this.stream.send(text, { agentUuid, attachments }).catch((err) => {
+		onSend(text, agentUuid, attachments, scope = null) {
+			this.stream.send(text, { agentUuid, attachments, scope }).catch((err) => {
 				// Stream errors are tracked in stream.state.error — no extra handling needed
 				// eslint-disable-next-line no-console
 				console.info('[CnAiCompanion] send error:', err?.message)

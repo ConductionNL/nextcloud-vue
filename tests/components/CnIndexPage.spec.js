@@ -44,6 +44,8 @@ jest.mock('../../src/store/index.js', () => ({
 
 const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnFormDialogComponent = require('../../src/components/CnFormDialog/CnFormDialog.vue').default
 const { settleUntil } = require('../support/settleUntil.js')
 
 /** Stub every heavy sub-component that CnIndexPage uses internally. */
@@ -62,7 +64,7 @@ const stubs = {
 	CnMassImportDialog: true,
 	CnDeleteDialog: true,
 	CnCopyDialog: true,
-	CnFormDialog: true,
+	CnFormDialog: lazyStub(CnFormDialogComponent),
 	CnAdvancedFormDialog: true,
 	NcLoadingIcon: true,
 	NcEmptyContent: true,

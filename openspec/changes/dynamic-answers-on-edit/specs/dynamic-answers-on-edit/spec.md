@@ -24,6 +24,13 @@ stored answer SHALL open as before.
 - **THEN** "Plafond" shows 50000 and "Doelgroep" is empty
 - @e2e exclude covered by `tests/components/CnFormDialogStoredAnswers.spec.js` through the real CnFormDialog; the definition fetch needs OpenRegister
 
+#### Scenario: The record is read again while the form is open
+
+- **GIVEN** the edit form of that case is open and shows the stored answers, and a person picked a handler
+- **WHEN** the page reads the case again, as it does once it holds the edit lock, with the case type unchanged
+- **THEN** "Plafond" still shows 50000, every required question it answered still counts as filled so Save stays enabled, and the picked handler is kept
+- @e2e exclude covered by `tests/components/CnFormDialogStoredAnswers.spec.js` through the real CnFormDialog; the definition fetch needs OpenRegister
+
 ### Requirement: Saving an edit keeps what was not changed
 
 On confirm, the dialog SHALL put the declaration's answers in its payload's

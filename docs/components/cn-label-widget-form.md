@@ -20,3 +20,5 @@ Part of the dashboard widget library (v2). Registered with the dashboard widget 
 | Name             | Payload | Description                                                    |
 | ---------------- | ------- | -------------------------------------------------------------- |
 | `update:content` | —       | Emitted with the assembled content blob on every field change. |
+
+The switch "Heading above a group of tiles" sets `groupHeading` and hides the style controls.

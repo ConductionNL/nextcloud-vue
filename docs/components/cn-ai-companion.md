@@ -18,6 +18,7 @@ whenever the OpenRegister chat backend is reachable.
 | `inputPlaceholder` | String | No | `''` | The input's placeholder, already translated. |
 | `sendLabel` | String | No | `''` | A label on the send button, already translated. |
 | `openSubjectSession` | Boolean | No | `false` | Open the user's latest session about the page's record (the context's `objectUuid`) instead of an empty thread, with its pending approvals. No such session, or one about another record, leaves the thread empty. |
+| `defaultAgent` | String | No | `''` | The agent to start on, by its uuid or its name (case-insensitive). It wins over the page-relevance default while the user has not picked an agent, and the panel follows it when it changes (for example per route); an agent the user picked stays. Empty, or a value no agent matches, keeps the relevance default. |
 | `approvalWording` | Object | No | `{}` | The approval cards' wording, already translated: `titlePrefix`, `allow`, `deny`. |
 
 ## Architecture

@@ -6,15 +6,17 @@
  * Code 128 or EAN-13 code on a detail page).
  */
 
-import CnCodeWidget from './CnCodeWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnCodeWidget = lazyComponent(() => import('./CnCodeWidget.vue'), 'CnCodeWidget')
+
 registerDashboardWidget('code', {
-	renderer: CnCodeWidget,
+	renderer: LazyCnCodeWidget,
 	defaultContent: { format: 'qr', source: 'address' },
 	displayName: 'Code',
 	icon: 'QrcodeScan',
 })
 
-export { CnCodeWidget }
-export default CnCodeWidget
+export { default as CnCodeWidget } from './CnCodeWidget.vue'
+export { default } from './CnCodeWidget.vue'

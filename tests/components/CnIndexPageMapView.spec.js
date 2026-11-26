@@ -43,11 +43,13 @@ jest.mock('../../src/store/index.js', () => ({
 const { mount } = require('@vue/test-utils')
 const { toRaw } = require('vue')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnMapWidgetComponent = require('../../src/components/CnMapWidget/CnMapWidget.vue').default
 
 const stubs = {
 	CnDataTable: true,
 	CnCardGrid: true,
-	CnMapWidget: true,
+	CnMapWidget: lazyStub(CnMapWidgetComponent),
 	CnPagination: true,
 	CnActionsBar: true,
 	CnContextMenu: true,

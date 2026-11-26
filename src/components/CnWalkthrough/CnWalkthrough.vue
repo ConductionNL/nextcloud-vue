@@ -423,8 +423,10 @@ export default {
 
 		active(now) {
 			if (now) {
+				this.watchAppModals()
 				this.$nextTick(() => this.locateTarget())
 			} else {
+				this.unwatchAppModals()
 				this.teardownStep()
 			}
 		},
@@ -487,7 +489,9 @@ export default {
 				object: d.object && typeof d.object === 'object' ? d.object : d,
 			})
 		}
-		this.watchAppModals()
+		if (this.active) {
+			this.watchAppModals()
+		}
 		window.addEventListener('cn-walkthrough:object-created', this._onObjectCreated)
 		this.hookRouter()
 		if (this.active) {
@@ -500,10 +504,7 @@ export default {
 		window.removeEventListener('resize', this._onScroll)
 		window.removeEventListener('keydown', this._onKey)
 		window.removeEventListener('cn-walkthrough:object-created', this._onObjectCreated)
-		if (this._modalObs) {
-			this._modalObs.disconnect()
-			this._modalObs = null
-		}
+		this.unwatchAppModals()
 		if (typeof this._routeUnhook === 'function') {
 			this._routeUnhook()
 		}
@@ -513,7 +514,9 @@ export default {
 	methods: {
 		/**
 		 * Whether an app dialog (NcModal / NcDialog, or any other modal
-		 * dialog that is not this overlay) is open.
+		 * dialog that is not this overlay) is open. A mask that is in the DOM
+		 * but hidden (NcModal keeps a closed modal's mask with display:none)
+		 * does not count.
 		 *
 		 * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
 		 * @return {boolean}
@@ -528,7 +531,30 @@ export default {
 				if (own && typeof own.contains === 'function' && (own === node || own.contains(node))) {
 					continue
 				}
+				if (this.isHiddenNode(node)) {
+					continue
+				}
 				return true
+			}
+			return false
+		},
+
+		/**
+		 * Whether the node or one of its ancestors is hidden with
+		 * `display: none`, `visibility: hidden` or the `hidden` attribute.
+		 *
+		 * @param {Element} node The node.
+		 * @return {boolean}
+		 */
+		isHiddenNode(node) {
+			for (let el = node; el && el.nodeType === 1; el = el.parentElement) {
+				if (el.hasAttribute('hidden')) {
+					return true
+				}
+				const style = window.getComputedStyle(el)
+				if (style.display === 'none' || (el === node && style.visibility === 'hidden')) {
+					return true
+				}
 			}
 			return false
 		},
@@ -540,6 +566,9 @@ export default {
 		 * @return {void}
 		 */
 		watchAppModals() {
+			if (this._modalObs) {
+				return
+			}
 			const update = () => {
 				const open = this.isAppModalOpen()
 				if (open !== this.appModalOpen) {
@@ -552,8 +581,23 @@ export default {
 			update()
 			if (typeof window !== 'undefined' && window.MutationObserver) {
 				this._modalObs = new MutationObserver(update)
-				this._modalObs.observe(document.body, { childList: true, subtree: true })
+				this._modalObs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden'] })
 			}
+		},
+
+		/**
+		 * Stop following app dialogs. Every style change on the page ran the
+		 * dialog check, which reads computed styles; with no tour on screen
+		 * there is nothing to step back for.
+		 *
+		 * @return {void}
+		 */
+		unwatchAppModals() {
+			if (this._modalObs) {
+				this._modalObs.disconnect()
+				this._modalObs = null
+			}
+			this.appModalOpen = false
 		},
 
 		/**

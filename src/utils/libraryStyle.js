@@ -25,32 +25,78 @@
  * the published version is written into package.json after the build, so the
  * build time is the order that is known when the stylesheet is made.
  *
+ * The board-look rules come as their own sheet (`boardCss`), put right after
+ * the library sheet as `<style data-cn-library-board>` by the same newest-wins
+ * rule. It carries `media="not all"`, so it takes no part in style matching,
+ * until a component resolves the board look and enableBoardLookStyle() sets
+ * `data-cn-board-look` on `<html>`; a sheet installed after that is active at
+ * once (src/utils/boardLookStyle.js).
+ *
  * @param {string} css The stylesheet.
  * @param {string} built The build time, ISO 8601.
  * @param {Document} [doc] The document (defaults to the global one).
- * @return {'added'|'replaced'|'kept'|'none'} What happened.
+ * @param {string} [boardCss] The board-look rules, kept switched off until the board look is used.
+ * @return {'added'|'replaced'|'kept'|'none'} What happened to the library sheet.
+ * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
  */
-export function installLibraryStyle(css, built, doc) {
+export function installLibraryStyle(css, built, doc, boardCss) {
 	const target = doc || (typeof document !== 'undefined' ? document : null)
 	if (!target || typeof css !== 'string' || css === '') {
 		return 'none'
 	}
-	const existing = target.querySelector('style[data-cn-library]')
-	if (existing) {
-		const current = existing.getAttribute('data-cn-library') || ''
+	let outcome = 'added'
+	let style = target.querySelector('style[data-cn-library]')
+	if (style) {
+		const current = style.getAttribute('data-cn-library') || ''
 		if (current >= String(built)) {
-			return 'kept'
+			outcome = 'kept'
+		} else {
+			style.textContent = css
+			style.setAttribute('data-cn-library', String(built))
+			outcome = 'replaced'
 		}
-		existing.textContent = css
-		existing.setAttribute('data-cn-library', String(built))
-		return 'replaced'
+	} else {
+		style = target.createElement('style')
+		style.setAttribute('data-cn-library', String(built))
+		style.textContent = css
+		// Appended, where style-loader used to put each copy, so the cascade
+		// against Nextcloud's own stylesheets is what it was.
+		const head = target.head || target.getElementsByTagName('head')[0] || target.documentElement
+		head.appendChild(style)
 	}
-	const style = target.createElement('style')
-	style.setAttribute('data-cn-library', String(built))
-	style.textContent = css
-	// Appended, where style-loader used to put each copy, so the cascade
-	// against Nextcloud's own stylesheets is what it was.
-	const head = target.head || target.getElementsByTagName('head')[0] || target.documentElement
-	head.appendChild(style)
-	return 'added'
+	if (typeof boardCss !== 'string' || boardCss === '') {
+		return outcome
+	}
+	let board = target.querySelector('style[data-cn-library-board]')
+	if (board && (board.getAttribute('data-cn-library-board') || '') >= String(built)) {
+		return outcome
+	}
+	if (!board) {
+		board = target.createElement('style')
+		if (!target.documentElement.hasAttribute('data-cn-board-look')) {
+			board.setAttribute('media', 'not all')
+		}
+	}
+	board.setAttribute('data-cn-library-board', String(built))
+	board.textContent = boardCss
+	// Right after the library sheet: after the base rules it refines, before
+	// the stylesheets apps add later.
+	style.parentNode.insertBefore(board, style.nextSibling)
+	return outcome
+}
+
+/**
+ * Cut the board-look block (between the markers css/index.css puts around the
+ * look-board files) out of the extracted stylesheet.
+ *
+ * @param {string} css The whole extracted stylesheet.
+ * @return {{base: string, board: string}|null} The sheet without the block, and the block; null without the markers.
+ * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+ */
+export function splitBoardLook(css) {
+	const match = /\/\*!\s*cn-board-look-start\s*\*\/([\s\S]*?)\/\*!\s*cn-board-look-end\s*\*\//.exec(css)
+	if (!match) {
+		return null
+	}
+	return { base: css.slice(0, match.index) + css.slice(match.index + match[0].length), board: match[1].trim() }
 }

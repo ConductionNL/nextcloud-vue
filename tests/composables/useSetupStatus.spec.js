@@ -256,3 +256,82 @@ describe('useSetupStatus — a step whose required apps are absent is not applic
 		expect(s.steps.value[0].missingApps).toEqual(['filinq'])
 	})
 })
+
+/**
+ * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-setup-wizard/spec.md#requirement-a-page-may-carry-the-setup-status
+ */
+describe('useSetupStatus: one read, or none when the page carries it', () => {
+	/**
+	 * Inject the `setup_status` initial state the way Nextcloud does.
+	 *
+	 * @param {string} appId The app the state belongs to.
+	 * @param {object} value The carried value.
+	 */
+	function injectSetupStatus(appId, value) {
+		const el = document.createElement('input')
+		el.type = 'hidden'
+		el.id = `initial-state-${appId}-setup_status`
+		el.value = Buffer.from(JSON.stringify(value)).toString('base64')
+		document.body.appendChild(el)
+	}
+
+	/**
+	 * Let pending promises (the dynamic imports and the GET) settle.
+	 *
+	 * @return {Promise<void>}
+	 */
+	const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+	beforeEach(() => {
+		__resetSetupStatusCacheForTests()
+		axios.get.mockReset()
+	})
+
+	afterEach(() => {
+		document.body.innerHTML = ''
+	})
+
+	it('asks the endpoint once when a second caller arrives during the first read', async () => {
+		let answer
+		axios.get.mockReturnValue(new Promise((resolve) => {
+			answer = resolve
+		}))
+		const first = useSetupStatus('procest', manifest)
+		const second = useSetupStatus('procest', { ...manifest })
+		await flush()
+		answer({ data: { version: 1, completed: true, steps: { region: { done: true }, seed: { done: true } } } })
+		await flush()
+		expect(axios.get).toHaveBeenCalledTimes(1)
+		expect(first.completed.value).toBe(true)
+		expect(second.completed.value).toBe(true)
+	})
+
+	it('POSITIVE CONTROL: an explicit refresh still reads again', async () => {
+		axios.get.mockResolvedValue({ data: { version: 1, completed: true, steps: {} } })
+		const s = useSetupStatus('procest', manifest)
+		await flush()
+		await s.refresh()
+		expect(axios.get).toHaveBeenCalledTimes(2)
+	})
+
+	it('takes the carried status and makes no request', async () => {
+		injectSetupStatus('procest', { version: 1, completed: true, steps: { region: { done: true }, seed: { done: false } } })
+		const s = useSetupStatus('procest', manifest)
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(s.loading.value).toBe(false)
+		expect(s.requiredUnmet.value).toEqual([])
+		expect(s.optionalUnmetReported.value.map((x) => x.id)).toEqual(['seed'])
+		expect(s.completed.value).toBe(true)
+	})
+
+	it('reads a carried { forbidden: true } as the 403 answer, without a request', async () => {
+		injectSetupStatus('procest', { forbidden: true })
+		const s = useSetupStatus('procest', manifest)
+		await flush()
+		expect(axios.get).not.toHaveBeenCalled()
+		expect(s.forbidden.value).toBe(true)
+		expect(s.requiredUnmet.value).toEqual([])
+		expect(s.completed.value).toBe(true)
+	})
+})

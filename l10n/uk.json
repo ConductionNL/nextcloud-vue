@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Поле дати для періоду",
+    "None: the widget does not follow the period": "Немає: віджет не стежить за періодом",
     "Report a bug": "Повідомити про помилку",
     "View": "Перегляд",
     "Edit": "Редагувати",
     "Copy": "Копіювати",
-    "Delete": "Видалити"
+    "Delete": "Видалити",
+    "The administrator has not set a start date field.": "Адміністратор не задав поле дати початку роботи.",
+    "Starts {weekday}": "Починає: {weekday}",
+    "Selection": "Вибір",
+    "People by filter": "Люди за фільтром",
+    "New colleagues": "Нові колеги",
+    "Started in the last (days, 1–90)": "Почали за останні (днів, 1–90)",
+    "Starts within (days, 0–30)": "Почнуть у найближчі (днів, 0–30)",
+    "Must be between {min} and {max}": "Має бути від {min} до {max}"
   }
 }

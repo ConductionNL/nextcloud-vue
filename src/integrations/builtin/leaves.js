@@ -25,9 +25,11 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnIntegrationCard from '../../components/CnIntegrationCard/CnIntegrationCard.vue'
-import CnIntegrationTab from '../../components/CnIntegrationTab/CnIntegrationTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { integrations as defaultRegistry } from '../registry.js'
+
+const CnIntegrationCard = lazyComponent(() => import('../../components/CnIntegrationCard/CnIntegrationCard.vue'), 'CnIntegrationCard')
+const CnIntegrationTab = lazyComponent(() => import('../../components/CnIntegrationTab/CnIntegrationTab.vue'), 'CnIntegrationTab')
 
 /**
  * Build a leaf descriptor wiring the generic tab + card components.

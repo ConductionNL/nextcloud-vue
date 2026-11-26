@@ -58,11 +58,13 @@ const caseSchema = {
 const definitions = [
 	{ id: 'def-1', name: 'Plafond', propertyType: 'number', defaultValue: 10 },
 	{ id: 'def-2', name: 'Doelgroep', propertyType: 'enum', enumValues: ['Cultuur', 'Sport'] },
+	{ id: 'def-3', name: 'Onderwerp', propertyType: 'string', isRequired: true },
 ]
 
 const storedProperties = [
 	{ propertyDefinition: 'def-1', name: 'Plafond', value: '50000' },
 	{ propertyDefinition: 'def-old', name: 'Niet meer gevraagd', value: 'blijft' },
+	{ propertyDefinition: 'def-3', name: 'Onderwerp', value: 'Lantaarnpaal' },
 ]
 
 const DEFINITION_TYPE = 'dossiq/propertyDefinition'
@@ -114,6 +116,7 @@ describe('CnFormDialog editing a record with stored answers', () => {
 		expect(payload.properties).toEqual([
 			storedProperties[0],
 			storedProperties[1],
+			storedProperties[2],
 			{ propertyDefinition: 'def-2', name: 'Doelgroep', value: 'Sport' },
 		])
 		expect(Object.keys(payload).some((key) => key.startsWith(DYNAMIC_KEY_PREFIX))).toBe(false)
@@ -125,5 +128,20 @@ describe('CnFormDialog editing a record with stored answers', () => {
 		wrapper.vm.executeConfirm()
 		const [payload] = wrapper.emitted('confirm')[0]
 		expect(payload.properties).toEqual(storedProperties)
+	})
+
+	it('keeps the stored answers when the record is read again after the fields loaded', async () => {
+		const wrapper = await mountEdit()
+		wrapper.vm.formData.assignee = 'thomas'
+		wrapper.vm.touchedFields.assignee = true
+
+		// The detail page reads the record again once it holds the edit lock.
+		await wrapper.setProps({ item: { ...wrapper.props('item'), '@self': { id: 'case-1', locked: { user: 'pieter' } } } })
+		await flush()
+
+		expect(wrapper.vm.formData[`${DYNAMIC_KEY_PREFIX}def-1`]).toBe(50000)
+		expect(wrapper.vm.formData[`${DYNAMIC_KEY_PREFIX}def-3`]).toBe('Lantaarnpaal')
+		expect(wrapper.vm.formData.assignee).toBe('thomas')
+		expect(wrapper.vm.requiredFieldsFilled).toBe(true)
 	})
 })

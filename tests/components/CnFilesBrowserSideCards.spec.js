@@ -147,6 +147,25 @@ describe('CnFilesBrowser selection label, side cards and tones', () => {
 		wrapper.unmount()
 	})
 
+	it('shows a field\'s fallback when it has no value, and a card\'s emptyText when every field is left out', async () => {
+		const cards = [
+			{ id: 'visibility', title: 'Who may see this: {name}', fields: [{ key: 'level', label: 'Default', fallback: 'Everyone on the case' }, { key: 'reason', label: 'Reason' }] },
+			{ id: 'checksum', title: 'Checksum', emptyText: 'Not computed yet', fields: [{ key: 'checksum', label: 'SHA-256' }] },
+		]
+		const rowData = { ...ROW_DATA, 22: { ...ROW_DATA[22], level: '' } }
+		const wrapper = mountBrowser({ sideCards: cards, rowData })
+		await flushPromises()
+		await select(wrapper, 'quote.pdf')
+		const visibility = wrapper.find('[data-testid="cn-files-browser-side-card-visibility"]')
+		expect(visibility.findAll('dt').map((dt) => dt.text())).toEqual(['Default', 'Reason'])
+		expect(visibility.findAll('dd')[0].text()).toBe('Everyone on the case')
+		expect(wrapper.find('[data-testid="cn-files-browser-side-empty-checksum"]').text()).toBe('Not computed yet')
+		await select(wrapper, 'request.pdf')
+		expect(wrapper.find('[data-testid="cn-files-browser-side-empty-checksum"]').exists()).toBe(false)
+		expect(wrapper.find('[data-testid="cn-files-browser-side-empty-visibility"]').exists()).toBe(false)
+		wrapper.unmount()
+	})
+
 	it('runs a side card action on that file', async () => {
 		const dispatched = []
 		const wrapper = mountBrowser({ sideCards: SIDE_CARDS }, dispatched)

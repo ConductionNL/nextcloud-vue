@@ -22,7 +22,7 @@
 		:is="iconComponent"
 		v-else-if="iconComponent"
 		:size="size" />
-	<!-- This registry is a CURATED 57-icon set for the tile/menu/links catalog,
+	<!-- This registry is a CURATED icon set for the tile/menu/links catalog,
 	     but a manifest `icon` field is authored against the fleet-wide
 	     vocabulary, which is far larger. A valid-but-unknown-here name landed on
 	     the DEFAULT icon, so a widget asking for a clock rendered a dashboard
@@ -33,7 +33,11 @@
 	     widgetIcons.js: a `.js` utility importing a `.vue` SFC risks an import
 	     cycle, and a cycle around an SFC dies with `Cannot set properties of
 	     undefined (setting 'render')` naming neither file. -->
-	<CnIcon v-else :name="name" :size="size" />
+	<CnIcon
+		v-else
+		:name="name || ''"
+		:fallback="fallback"
+		:size="size" />
 </template>
 
 <script>
@@ -76,6 +80,15 @@ export default {
 		size: {
 			type: Number,
 			default: 20,
+		},
+
+		/**
+		 * Icon drawn when `name` is empty or resolves to nothing, resolved the
+		 * way CnIcon resolves a name.
+		 */
+		fallback: {
+			type: String,
+			default: 'HelpCircleOutline',
 		},
 
 		/** Alt text for `<img>` inputs; falls back to `'icon'` for a11y. */

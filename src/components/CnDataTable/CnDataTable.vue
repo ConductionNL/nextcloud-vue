@@ -24,10 +24,10 @@
 			</span>
 		</div>
 
-		<!-- @slot notice The table's state banners (R1), above the rows. -->
 		<div v-if="$slots.notice || (Array.isArray(notices) && notices.length > 0)" class="cn-data-table__notices">
+			<!-- @slot notice The table's state banners (R1), above the rows. Replaces the banners drawn from `notices`. -->
 			<slot name="notice">
-				<CnCardNotices :notices="notices" @noticeAction="(entry, notice) => $emit('notice-action', entry, notice)" @noticeDismiss="$emit('notice-dismiss', $event)" />
+				<CnCardNotices :notices="notices" @noticeAction="onNoticeAction" @noticeDismiss="onNoticeDismiss" />
 			</slot>
 		</div>
 
@@ -280,7 +280,7 @@
 								@auxclick.stop>
 								<NcCheckboxRadioSwitch
 									:modelValue="isSelected(row)"
-									:aria-label="selectRowLabel"
+									:aria-label="rowSelectLabel(row)"
 									@update:modelValue="toggleSelect(row)" />
 							</td>
 
@@ -514,7 +514,7 @@ import { lensUnavailableText, readLensReports } from '../../utils/lensAvailabili
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { localHeaderRows } from '../../utils/localHeaderRows.js'
 import { nextSortState } from '../../utils/multiColumnSort.js'
-import { cellsOf, fetchRowAggregate } from '../../utils/rowAggregate.js'
+import { cellsOf, fetchRowAggregates } from '../../utils/rowAggregate.js'
 import { isNewTabClick, isNewTabHandled, isRowMiddleClick, markNewTabHandled, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
 import { ruleHolds } from '../../utils/rowClassRules.js'
 import { DEFAULT_ROW_INDICATOR_CAP, indicatorApplies, resolveRowIndicators } from '../../utils/rowIndicators.js'
@@ -917,10 +917,15 @@ export default {
 		/**
 		 * Accessible name for a per-row select checkbox. Used as the
 		 * checkbox's `aria-label` so screen readers announce a named control
-		 * (WCAG 4.1.2). Defaults to the lib's translation of "Select row".
+		 * (WCAG 4.1.2). A string names every row alike; a function
+		 * `(row) => string` names each row by its own content ("Select entity
+		 * Jan"), so a list of checkboxes is not a list of identical names.
+		 * Defaults to the lib's translation of "Select row".
+		 *
+		 * @type {string | ((row: object) => string)}
 		 */
 		selectRowLabel: {
-			type: String,
+			type: [String, Function],
 			default: () => t('nextcloud-vue', 'Select row'),
 		},
 
@@ -1724,12 +1729,19 @@ export default {
 		this.observeScrollOverflow()
 	},
 
+	/**
+	 * Re-measure the overflow after an update.
+	 *
+	 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
+	 */
 	updated() {
 		// Columns and rows can change after mount (self-fetch resolving, a
 		// column toggled), and either can flip the table between fitting and
 		// overflowing. ResizeObserver alone would miss a change that alters
-		// content width without resizing the box.
-		this.measureScrollOverflow()
+		// content width without resizing the box. Measured once per frame:
+		// the reads force a layout, and a list that fills in (rows, then
+		// lookups, then counts) updates several times before it paints.
+		this.scheduleScrollOverflow()
 	},
 
 	beforeUnmount() {
@@ -2028,6 +2040,26 @@ export default {
 		},
 
 		/**
+		 * Measure the overflow in the next frame, once however many updates ask.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
+		 */
+		scheduleScrollOverflow() {
+			if (this._overflowFrame) {
+				return
+			}
+			if (typeof requestAnimationFrame !== 'function') {
+				this.measureScrollOverflow()
+				return
+			}
+			this._overflowFrame = requestAnimationFrame(() => {
+				this._overflowFrame = null
+				this.measureScrollOverflow()
+			})
+		},
+
+		/**
 		 * Recompute whether the scrollport overflows horizontally.
 		 *
 		 * @return {void}
@@ -2045,11 +2077,16 @@ export default {
 		},
 
 		/**
-		 * Tear down the overflow observer.
+		 * Tear down the overflow observer and drop a pending measurement.
 		 *
 		 * @return {void}
+		 * @spec openspec/changes/board-table-fits-beside-side-panel/specs/board-table-fits-beside-side-panel/spec.md#requirement-the-table-fits-its-column-beside-the-open-side-panel
 		 */
 		disconnectScrollOverflow() {
+			if (this._overflowFrame) {
+				cancelAnimationFrame(this._overflowFrame)
+				this._overflowFrame = null
+			}
 			if (this._scrollObserver) {
 				this._scrollObserver.disconnect()
 				this._scrollObserver = null
@@ -2615,28 +2652,27 @@ export default {
 			const next = new Map()
 			const jobs = []
 			for (const row of this.rows) {
-				const rowKey = String(row[this.rowKey])
-				const cells = cellsOf(next, rowKey)
-				for (const col of aggCols) {
-					const agg = col.aggregate
-					if (isEndpointAggregate(col)) {
-						continue
-					}
-					if (!agg.register || !agg.schema) {
-						continue
-					}
-					// `max`: the highest `field` among the related objects, as the
-					// first of them sorted on it descending ("Laatste contact").
-					jobs.push(fetchRowAggregate(agg, row, (r, path) => this.getCellValue(r, path))
-						.then((value) => {
-							cells[col.key] = value
-						})
-						.catch((e) => {
-							// eslint-disable-next-line no-console
-							console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, e)
-							cells[col.key] = undefined
-						}))
+				cellsOf(next, String(row[this.rowKey]))
+			}
+			for (const col of aggCols) {
+				const agg = col.aggregate
+				if (isEndpointAggregate(col) || !agg.register || !agg.schema) {
+					continue
 				}
+				// One request per column: every row's count in one batch.
+				// `max` (the highest `field`, "Laatste contact") stays per row.
+				const rows = this.rows
+				jobs.push(fetchRowAggregates(agg, rows, (r, path) => this.getCellValue(r, path))
+					.then((outcomes) => {
+						outcomes.forEach((outcome, index) => {
+							const rowKey = String(rows[index][this.rowKey])
+							if ('error' in outcome) {
+								// eslint-disable-next-line no-console
+								console.warn(`[CnDataTable] aggregate "${col.key}" count failed for row ${rowKey}`, outcome.error)
+							}
+							cellsOf(next, rowKey)[col.key] = 'error' in outcome ? undefined : outcome.value
+						})
+					}))
 			}
 			for (const col of aggCols.filter(isEndpointAggregate)) {
 				jobs.push(this.loadEndpointAggregate(col, next, id))
@@ -2714,6 +2750,46 @@ export default {
 
 		isSelected(row) {
 			return this.selectedIds.includes(row[this.rowKey])
+		},
+
+		/**
+		 * Relays a notice's action button.
+		 *
+		 * @param {object} entry The notice action that was pressed
+		 * @param {object} notice The notice the action belongs to
+		 */
+		onNoticeAction(entry, notice) {
+			/**
+			 * @event notice-action Emitted when an action button on one of the table's `notices` is pressed.
+			 * @type {object}
+			 */
+			this.$emit('notice-action', entry, notice)
+		},
+
+		/**
+		 * Relays a dismissed notice.
+		 *
+		 * @param {object} notice The notice that was closed
+		 */
+		onNoticeDismiss(notice) {
+			/**
+			 * @event notice-dismiss Emitted when the reader closes a dismissible notice; the payload is that notice.
+			 * @type {object}
+			 */
+			this.$emit('notice-dismiss', notice)
+		},
+
+		/**
+		 * The accessible name of a row's select checkbox: `selectRowLabel`
+		 * called with the row when it is a function, else the string itself.
+		 *
+		 * @param {object} row The row
+		 * @return {string} The checkbox's `aria-label`
+		 */
+		rowSelectLabel(row) {
+			return typeof this.selectRowLabel === 'function'
+				? this.selectRowLabel(row)
+				: this.selectRowLabel
 		},
 
 		/**

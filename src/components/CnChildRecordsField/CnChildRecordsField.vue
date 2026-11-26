@@ -134,6 +134,7 @@ import { NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
 import { defineAsyncComponent } from 'vue'
 import CnSearchSelect from '../CnSearchSelect/CnSearchSelect.vue'
 import { describeRowProblem, useChildRecords, validateChildRows } from '../../composables/useChildRecords.js'
+import { patchFromAnswer, resolveBody, shouldResolveAgain, sourceIdKey } from '../../utils/childRecordResolve.js'
 import { computeRow, computeTotals, rowFromSource, storeComputed } from '../../utils/childRecordTotals.js'
 import { formatMetricValue, normalizeMetricFormat } from '../../utils/formatMetric.js'
 import { propertyTitle } from '../../utils/propertyTitle.js'
@@ -189,8 +190,14 @@ export default {
 		 * each `{ key, label, sum? | formula?, format?, currency?, decimals?,
 		 * emphasis? }`. Optional `addFrom`: `{ schema, register?, map,
 		 * titleField?, secondaryField?, label?, codeField?, codeLabel?,
-		 * freeRows? }`, where `map` names per row key the source key to copy
-		 * (`@id` for the source's id).
+		 * freeRows?, resolve? }`, where `map` names per row key the source key
+		 * to copy (`@id` for the source's id). `resolve` (`{ url, method?,
+		 * body, map, when? }`) asks an app endpoint for the values the server
+		 * decides once a row is added: `body` is sent with `@source`,
+		 * `@source.<key>` and `@row.<key>` filled in, `map` names per row key
+		 * the answer key to write, and a change to a `when` key (e.g. the
+		 * quantity) asks again, unless the user typed a value of their own
+		 * into a mapped key in the same edit.
 		 *
 		 * @type {{schema: string, parentField: string, columns?: string[], computed?: object[], totals?: object[], addFrom?: object}}
 		 */
@@ -402,6 +409,12 @@ export default {
 		this.load()
 	},
 
+	beforeUnmount() {
+		for (const timer of Object.values(this.resolveTimers || {})) {
+			clearTimeout(timer)
+		}
+	},
+
 	methods: {
 		t,
 
@@ -455,8 +468,12 @@ export default {
 		 * @param {string} value The typed value.
 		 */
 		setCell(index, col, value) {
+			const before = this.list[index]
 			const next = this.list.map((r, i) => (i === index ? this.withComputed({ ...r, [col.key]: col.numeric && value !== '' ? Number(value) : value }) : r))
 			this.$emit('update:modelValue', next)
+			if (this.addFrom?.resolve && shouldResolveAgain(before, next[index], this.addFrom.resolve)) {
+				this.resolveLater(index)
+			}
 		},
 
 		/**
@@ -571,9 +588,75 @@ export default {
 		addSourceRow(source) {
 			this.addError = ''
 			const row = this.withComputed(rowFromSource(source, this.addFrom.map))
-			this.$emit('update:modelValue', [...this.list, row])
+			const rows = [...this.list, row]
+			this.$emit('update:modelValue', rows)
 			const name = source?.[this.addFrom.titleField || 'name'] ?? ''
 			this.status = t('nextcloud-vue', 'Added {name}.', { name: String(name) })
+			if (this.addFrom.resolve) {
+				return this.resolveRow(rows.length - 1, row, source)
+			}
+			return Promise.resolve()
+		},
+
+		/**
+		 * Ask the `addFrom.resolve` endpoint for a row's server-decided values
+		 * and write them in. The source record is fetched by the row's `@id`
+		 * key when it is not passed. A failed answer leaves the row as it was
+		 * and says so.
+		 *
+		 * @param {number} index The row's index.
+		 * @param {object} row The row as it was emitted.
+		 * @param {object|null} [source] The source record, when at hand.
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/child-records-resolve/tasks.md#task-1
+		 */
+		async resolveRow(index, row, source = null) {
+			const resolve = this.addFrom?.resolve
+			if (!resolve?.url || !row) {
+				return
+			}
+			try {
+				let record = source
+				if (!record) {
+					const idKey = sourceIdKey(this.addFrom.map)
+					const id = idKey ? row[idKey] : null
+					if (!id) {
+						return
+					}
+					const register = this.addFrom.register || this.register
+					record = (await axios.get(generateUrl(`${this.apiBase}/objects/${register}/${this.addFrom.schema}/${id}`)))?.data
+				}
+				const body = resolveBody(resolve.body, { source: record, row })
+				const url = generateUrl(resolve.url)
+				const response = String(resolve.method || 'POST').toUpperCase() === 'GET'
+					? await axios.get(url, { params: body })
+					: await axios.post(url, body)
+				const patch = patchFromAnswer(response?.data, resolve.map)
+				// The row may have been removed or replaced while the answer was on its way.
+				const idKey = sourceIdKey(this.addFrom.map)
+				const current = this.list[index]
+				if (current === undefined || (idKey && current[idKey] !== row[idKey])) {
+					return
+				}
+				this.$emit('update:modelValue', this.list.map((r, i) => (i === index ? this.withComputed({ ...r, ...patch }) : r)))
+			} catch {
+				this.addError = t('nextcloud-vue', 'The values for this row could not be worked out. It keeps the values it had.')
+			}
+		},
+
+		/**
+		 * Ask again shortly after the user stops typing into a `when` cell.
+		 *
+		 * @param {number} index The row's index.
+		 * @spec openspec/changes/child-records-resolve/tasks.md#task-2
+		 */
+		resolveLater(index) {
+			this.resolveTimers = this.resolveTimers || {}
+			clearTimeout(this.resolveTimers[index])
+			this.resolveTimers[index] = setTimeout(() => {
+				delete this.resolveTimers[index]
+				this.resolveRow(index, this.list[index])
+			}, 400)
 		},
 
 		/** Append an empty row. */
@@ -597,8 +680,13 @@ export default {
 		 */
 		onRowConfirm(values) {
 			const index = this.editing
-			this.$emit('update:modelValue', this.list.map((r, i) => (i === index ? this.withComputed({ ...r, ...values }) : r)))
+			const before = this.list[index]
+			const after = this.withComputed({ ...before, ...values })
+			this.$emit('update:modelValue', this.list.map((r, i) => (i === index ? after : r)))
 			this.editing = null
+			if (this.addFrom?.resolve && shouldResolveAgain(before, after, this.addFrom.resolve)) {
+				this.resolveRow(index, after)
+			}
 		},
 	},
 }

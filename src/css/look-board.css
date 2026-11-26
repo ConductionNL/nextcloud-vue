@@ -4126,6 +4126,14 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding: 14px;
 }
 
+/* Under the card's own title row the tree starts on the title's line of
+   content, not 14px further down (LpWerkplek "Organisatiemenu": 14px from
+   the title to the first group).
+   @spec openspec/changes/board-menu-tree-rows/specs/board-menu-tree-rows/spec.md#requirement-a-board-tree-menu-draws-the-boards-folder-rows */
+.cn-look-board .cn-widget-wrapper:not(.cn-look-nextcloud *):has(> .cn-widget-wrapper__header):has(.cn-menu-widget--style-tree) .cn-widget-wrapper__content {
+	padding-top: 0;
+}
+
 .cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-widget__tree,
 .cn-look-board .cn-menu-widget--style-tree:not(.cn-look-nextcloud *) .cn-menu-tree-node__children {
 	display: flex;

@@ -18,14 +18,14 @@
 			<NcButton
 				v-if="content.recompute !== false && !loading && !error"
 				:disabled="!mayRecompute || busy"
-				:title="mayRecompute ? undefined : t('nextcloud-vue', 'Recomputing needs the archivist role')"
-				:aria-description="mayRecompute ? undefined : t('nextcloud-vue', 'Recomputing needs the archivist role')"
+				:title="mayRecompute ? undefined : t('nextcloud-vue', 'Recalculating needs the archivist role')"
+				:aria-description="mayRecompute ? undefined : t('nextcloud-vue', 'Recalculating needs the archivist role')"
 				:data-testid="mayRecompute ? 'cn-retention-recompute-open' : 'cn-retention-recompute-denied'"
 				@click="recomputeOpen = true">
 				<template #icon>
 					<Refresh :size="20" />
 				</template>
-				{{ t('nextcloud-vue', 'Recompute nomination') }}
+				{{ t('nextcloud-vue', 'Recalculate nomination') }}
 			</NcButton>
 		</header>
 		<CnRetentionRecomputeDialog
@@ -326,11 +326,11 @@ export default {
 			const n = this.nomination || {}
 			return [
 				{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: r.appraisal },
-				{ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: r.disposalDate },
+				{ key: 'disposal-date', label: t('nextcloud-vue', 'Destruction date'), value: r.disposalDate },
 				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: r.retentionPeriod },
-				{ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list row'), value: r.selectionListRow },
+				{ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list rule'), value: r.selectionListRow },
 				{ key: 'rule', label: t('nextcloud-vue', 'Decided by'), value: n.rule },
-				{ key: 'decided-at', label: t('nextcloud-vue', 'Written on'), value: n.at },
+				{ key: 'decided-at', label: t('nextcloud-vue', 'Recorded on'), value: n.at },
 			].filter((fact) => fact.value !== undefined && fact.value !== null && fact.value !== '').map((fact) => ({ ...fact, value: String(fact.value) }))
 		},
 
@@ -374,8 +374,8 @@ export default {
 				return [
 					{ key: 'appraisal', label: t('nextcloud-vue', 'Appraisal'), value: atClosure },
 					{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: atClosure },
-					{ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: atClosure },
-					{ key: 'decided-at', label: t('nextcloud-vue', 'Written on'), value: t('nextcloud-vue', 'Not yet') },
+					{ key: 'disposal-date', label: t('nextcloud-vue', 'Destruction date'), value: t('nextcloud-vue', 'Set when it closes') },
+					{ key: 'decided-at', label: t('nextcloud-vue', 'Recorded on'), value: t('nextcloud-vue', 'Not yet') },
 				]
 			}
 			const depends = t('nextcloud-vue', 'Depends on the result')
@@ -385,13 +385,13 @@ export default {
 				{ key: 'retention-period', label: t('nextcloud-vue', 'Retention period'), value: expected.mixed ? depends : this.periodLabel(expected.period) },
 			]
 			if (expected.selectionListRow) {
-				facts.push({ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list row'), value: expected.selectionListRow })
+				facts.push({ key: 'selection-list-row', label: t('nextcloud-vue', 'Selection list rule'), value: expected.selectionListRow })
 			}
-			facts.push({ key: 'disposal-date', label: t('nextcloud-vue', 'Disposal date'), value: atClosure })
+			facts.push({ key: 'disposal-date', label: t('nextcloud-vue', 'Destruction date'), value: t('nextcloud-vue', 'Set when it closes') })
 			if (config.decidedBy) {
 				facts.push({ key: 'rule', label: t('nextcloud-vue', 'Decided by'), value: this.text(config.decidedBy) })
 			}
-			facts.push({ key: 'decided-at', label: t('nextcloud-vue', 'Written on'), value: t('nextcloud-vue', 'Not yet') })
+			facts.push({ key: 'decided-at', label: t('nextcloud-vue', 'Recorded on'), value: t('nextcloud-vue', 'Not yet') })
 			return facts.filter((fact) => fact.value !== '')
 		},
 

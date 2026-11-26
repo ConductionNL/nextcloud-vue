@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import CnRichSubmitDialog from '@/components/CnRichSubmitDialog/CnRichSubmitDialog.vue'
 
 const stubs = {
@@ -109,6 +110,40 @@ describe('CnRichSubmitDialog', () => {
 		wrapper.vm.onFilesChange({ target: { files: [small], value: '' } })
 		expect(wrapper.vm.validationError).toBe('')
 		expect(wrapper.vm.formData.files.length).toBe(1)
+	})
+
+	it('renders the file-sources slot and adds the files it hands over (rich-submit-file-sources)', async () => {
+		const picked = new File(['x'], 'verslag.pdf', { type: 'application/pdf' })
+		let add = null
+		const wrapper = mount(CnRichSubmitDialog, {
+			propsData: { showFiles: true, maxFiles: 2, maxSizeMb: 1 },
+			slots: {
+				'file-sources': (props) => {
+					add = props.addFiles
+					return h('button', { class: 'from-my-files' }, 'Choose from my files')
+				},
+			},
+			stubs,
+		})
+		expect(wrapper.find('.from-my-files').exists()).toBe(true)
+		expect(typeof add).toBe('function')
+		expect(wrapper.vm.addFiles([picked])).toBe(true)
+		expect(wrapper.vm.addFiles([new File(['y'], 'b.pdf')])).toBe(true)
+		expect(wrapper.vm.formData.files.map((f) => f.name)).toEqual(['verslag.pdf', 'b.pdf'])
+		expect(wrapper.vm.addFiles([new File(['z'], 'c.pdf')])).toBe(false)
+		expect(wrapper.vm.validationError).toContain('At most 2')
+		expect(wrapper.vm.formData.files.length).toBe(2)
+	})
+
+	it('addFiles refuses an oversized or empty batch and replaces in a single-file dialog', () => {
+		const wrapper = mount(CnRichSubmitDialog, { propsData: { showFiles: true, maxFiles: 1, maxSizeMb: 1 }, stubs })
+		const big = new File(['x'.repeat(2 * 1024 * 1024)], 'big.bin')
+		expect(wrapper.vm.addFiles([big])).toBe(false)
+		expect(wrapper.vm.validationError).toContain('exceeds')
+		expect(wrapper.vm.addFiles([])).toBe(false)
+		expect(wrapper.vm.addFiles([new File(['a'], 'a.pdf')])).toBe(true)
+		expect(wrapper.vm.addFiles([new File(['b'], 'b.pdf')])).toBe(true)
+		expect(wrapper.vm.formData.files.map((f) => f.name)).toEqual(['b.pdf'])
 	})
 
 	it('renders late-warning banner when lateWarning is set', () => {

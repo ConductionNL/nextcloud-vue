@@ -14,6 +14,46 @@
 			:clearable="false"
 			@update:modelValue="updateField('layout', $event)" />
 
+		<!-- "New colleagues" is offered only when the source has a start date field. -->
+		<NcSelect
+			v-if="selectionOptions.length > 1"
+			:modelValue="selectionMode"
+			:options="selectionOptions"
+			:inputLabel="t('nextcloud-vue', 'Selection')"
+			:reduce="(option) => option.value"
+			label="label"
+			:clearable="false"
+			data-testid="cn-people-form-selection"
+			@update:modelValue="updateField('selectionMode', $event)" />
+
+		<template v-if="selectionMode === 'new'">
+			<label class="cn-people-widget-form__field">
+				{{ t('nextcloud-vue', 'Started in the last (days, 1–90)') }}
+				<input
+					type="number"
+					class="cn-people-widget-form__input"
+					min="1"
+					max="90"
+					data-testid="cn-people-form-new-since"
+					:value="newSinceDays"
+					@input="updateWindow('newSinceDays', $event.target.value, 1, 90)">
+			</label>
+			<label class="cn-people-widget-form__field">
+				{{ t('nextcloud-vue', 'Starts within (days, 0–30)') }}
+				<input
+					type="number"
+					class="cn-people-widget-form__input"
+					min="0"
+					max="30"
+					data-testid="cn-people-form-new-until"
+					:value="newUntilDays"
+					@input="updateWindow('newUntilDays', $event.target.value, 0, 30)">
+			</label>
+			<span v-if="windowError" class="cn-people-widget-form__error" role="alert">
+				{{ windowError }}
+			</span>
+		</template>
+
 		<NcSelect
 			:modelValue="sortBy"
 			:options="sortByOptions"
@@ -21,7 +61,10 @@
 			:reduce="(option) => option.value"
 			label="label"
 			:clearable="false"
-			@update:modelValue="updateField('sortBy', $event)" />
+			@update:modelValue="updateSortBy($event)" />
+		<p v-if="sortByError" class="cn-people-widget-form__error" role="alert">
+			{{ sortByError }}
+		</p>
 
 		<label class="cn-people-widget-form__field">
 			{{ t('nextcloud-vue', 'Group filter (comma-separated, blank for all)') }}
@@ -58,7 +101,7 @@
 				max="30"
 				:value="birthdayWindowDays"
 				@input="updateBirthdayWindow($event.target.value)">
-			<span v-if="birthdayWindowError" class="cn-people-widget-form__error">
+			<span v-if="birthdayWindowError" class="cn-people-widget-form__error" role="alert">
 				{{ birthdayWindowError }}
 			</span>
 		</label>
@@ -87,6 +130,8 @@
 import { translate as t } from '@nextcloud/l10n'
 import { NcSelect } from '@nextcloud/vue'
 
+const SORT_KEYS = ['displayName', 'group']
+
 const DEFAULT_CONTENT = Object.freeze({
 	layout: 'grid',
 	selectionMode: 'filter',
@@ -96,6 +141,8 @@ const DEFAULT_CONTENT = Object.freeze({
 	excludeDisabled: true,
 	showBirthdays: true,
 	birthdayWindowDays: 7,
+	newSinceDays: 30,
+	newUntilDays: 14,
 	sortBy: 'displayName',
 	columns: 3,
 	showFields: {
@@ -116,13 +163,21 @@ const DEFAULT_CONTENT = Object.freeze({
  * (selectionMode, selectedUsers, filterOperator, showFields) travel through
  * untouched from their defaults. Group filter persists as the canonical
  * `[{fieldName:'group', operator:'in', values:[...]}]` shape. Emits
- * `update:content` on change and exposes `validate()` (birthday window 0..30).
+ * `update:content` on change and exposes `validate()`: a birthday window
+ * typed outside 0..30 keeps the form invalid until it is corrected, and a
+ * stored unknown `sortBy` is shown as Display name with a message, keeping
+ * the form invalid until a sort key is picked.
  */
 export default {
 	name: 'CnPeopleWidgetForm',
 
 	components: {
 		NcSelect,
+	},
+
+	inject: {
+		/** The people source; `hasStartDateField()` decides whether New colleagues is offered. */
+		cnPeopleSource: { default: null },
 	},
 
 	props: {
@@ -151,6 +206,8 @@ export default {
 
 	data() {
 		const initial = this.editingWidget?.content || this.value || {}
+		const storedSortBy = initial.sortBy ?? DEFAULT_CONTENT.sortBy
+		const sortByKnown = SORT_KEYS.includes(storedSortBy)
 		const groupFilter = (initial.filters || [])
 			.find((f) => f && f.fieldName === 'group')
 		return {
@@ -173,7 +230,11 @@ export default {
 				? initial.birthdayWindowDays
 				: DEFAULT_CONTENT.birthdayWindowDays,
 
-			sortBy: initial.sortBy ?? DEFAULT_CONTENT.sortBy,
+			sortBy: sortByKnown ? storedSortBy : DEFAULT_CONTENT.sortBy,
+			sortByError: sortByKnown
+				? ''
+				: t('nextcloud-vue', 'Unknown sort key "{key}". Display name is used instead.', { key: String(storedSortBy) }),
+
 			columns: typeof initial.columns === 'number'
 				? initial.columns
 				: DEFAULT_CONTENT.columns,
@@ -184,6 +245,11 @@ export default {
 				: [],
 
 			birthdayWindowError: '',
+			newSinceDays: typeof initial.newSinceDays === 'number' ? initial.newSinceDays : DEFAULT_CONTENT.newSinceDays,
+			newUntilDays: typeof initial.newUntilDays === 'number' ? initial.newUntilDays : DEFAULT_CONTENT.newUntilDays,
+			windowError: '',
+			// Whether the source has a start date field; null until it answered.
+			startDateField: null,
 		}
 	},
 
@@ -195,6 +261,21 @@ export default {
 				{ value: 'grid', label: t('nextcloud-vue', 'Grid') },
 				{ value: 'list', label: t('nextcloud-vue', 'List') },
 			]
+		},
+
+		/**
+		 * The selections: by filter, and New colleagues when the source has a
+		 * start date field (or the placement already uses it).
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @return {Array<{value: string, label: string}>}
+		 */
+		selectionOptions() {
+			const options = [{ value: 'filter', label: t('nextcloud-vue', 'People by filter') }]
+			if (this.startDateField === true || this.selectionMode === 'new') {
+				options.push({ value: 'new', label: t('nextcloud-vue', 'New colleagues') })
+			}
+			return options
 		},
 
 		/** Sort select options. */
@@ -233,6 +314,8 @@ export default {
 				excludeDisabled: this.excludeDisabled,
 				showBirthdays: this.showBirthdays,
 				birthdayWindowDays: this.birthdayWindowDays,
+				newSinceDays: this.newSinceDays,
+				newUntilDays: this.newUntilDays,
 				sortBy: this.sortBy,
 				columns: this.columns,
 				showFields: this.showFields,
@@ -240,8 +323,51 @@ export default {
 		},
 	},
 
+	async mounted() {
+		await this.loadStartDateField()
+	},
+
 	methods: {
 		t,
+		/**
+		 * Ask the source whether a start date field exists; no answer offers none.
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @return {Promise<void>}
+		 */
+		async loadStartDateField() {
+			const source = this.cnPeopleSource
+			if (!source || typeof source.hasStartDateField !== 'function') {
+				this.startDateField = false
+				return
+			}
+			try {
+				this.startDateField = (await source.hasStartDateField()) === true
+			} catch {
+				this.startDateField = false
+			}
+		},
+
+		/**
+		 * Set a new colleagues window in days; outside [min, max] keeps the last
+		 * valid value and shows a message, which keeps `validate()` failing.
+		 *
+		 * @spec openspec/changes/people-new-colleagues/specs/people-widget/spec.md#requirement-the-people-widget-lists-new-colleagues
+		 * @param {string} field `newSinceDays` or `newUntilDays`.
+		 * @param {string|number} raw The input value.
+		 * @param {number} min The lowest allowed.
+		 * @param {number} max The highest allowed.
+		 * @return {void}
+		 */
+		updateWindow(field, raw, min, max) {
+			const numeric = Number(raw)
+			if (raw === '' || !Number.isInteger(numeric) || numeric < min || numeric > max) {
+				this.windowError = t('nextcloud-vue', 'Must be between {min} and {max}', { min, max })
+				return
+			}
+			this.windowError = ''
+			this.updateField(field, numeric)
+		},
 
 		/**
 		 * Set a field and notify the parent.
@@ -253,6 +379,18 @@ export default {
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
+		},
+
+		/**
+		 * Set the sort key; picking one confirms it and clears the
+		 * unknown-key message.
+		 *
+		 * @param {string} value the chosen sort key.
+		 * @return {void}
+		 */
+		updateSortBy(value) {
+			this.sortByError = ''
+			this.updateField('sortBy', value)
 		},
 
 		/**
@@ -271,20 +409,22 @@ export default {
 		},
 
 		/**
-		 * Validate + clamp the birthday window to the 0..30 range, recording a
-		 * localised inline error when out of range.
+		 * Validate the birthday window against the 0..30 range. An out-of-range
+		 * value records a localised inline error, which keeps `validate()`
+		 * failing until a valid value is typed; the last valid value stays in
+		 * the content.
 		 *
 		 * @param {string|number} raw the input value.
 		 * @return {void}
 		 */
 		updateBirthdayWindow(raw) {
 			const numeric = Number(raw)
-			if (!Number.isFinite(numeric) || numeric < 0 || numeric > 30) {
+			if (raw === '' || !Number.isFinite(numeric) || numeric < 0 || numeric > 30) {
 				this.birthdayWindowError = t('nextcloud-vue', 'Must be between 0 and 30')
-				return
+			} else {
+				this.birthdayWindowError = ''
+				this.birthdayWindowDays = Math.floor(numeric)
 			}
-			this.birthdayWindowError = ''
-			this.birthdayWindowDays = Math.floor(numeric)
 			this.$emit('update:content', this.assembledContent)
 		},
 
@@ -295,6 +435,12 @@ export default {
 		 */
 		validate() {
 			const errors = []
+			if (this.sortByError) {
+				errors.push(this.sortByError)
+			}
+			if (this.showBirthdays && this.birthdayWindowError) {
+				errors.push(this.birthdayWindowError)
+			}
 			if (typeof this.birthdayWindowDays !== 'number'
 				|| this.birthdayWindowDays < 0
 				|| this.birthdayWindowDays > 30) {
@@ -303,8 +449,11 @@ export default {
 			if (!['card', 'grid', 'list'].includes(this.layout)) {
 				errors.push(t('nextcloud-vue', 'Invalid layout'))
 			}
-			if (!['displayName', 'group'].includes(this.sortBy)) {
+			if (!SORT_KEYS.includes(this.sortBy)) {
 				errors.push(t('nextcloud-vue', 'Invalid sort key'))
+			}
+			if (this.windowError) {
+				errors.push(this.windowError)
 			}
 			return errors
 		},

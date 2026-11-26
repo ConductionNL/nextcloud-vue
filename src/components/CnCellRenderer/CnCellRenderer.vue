@@ -85,6 +85,12 @@
 					<CnIcon :name="badgeLook.icon" :size="14" class="cn-cell-renderer__badge-icon" />
 				</template>
 			</CnStatusBadge>
+			<!-- `widgetProps.emptyLabel`: an empty value as a grey pill that
+			     says so ("Geen zaak", DqPostvak), not a dash. -->
+			<CnStatusBadge v-else-if="badgeEmptyLabel !== ''"
+				:label="badgeEmptyLabel"
+				variant="default"
+				data-testid="cn-cell-badge-empty" />
 			<span v-else class="cn-cell-renderer__dash">—</span>
 		</template>
 
@@ -1143,6 +1149,18 @@ export default {
 			} catch {
 				return new Intl.DateTimeFormat(undefined, options).format(date)
 			}
+		},
+
+		/**
+		 * The `badge` widget's pill for an empty value (`widgetProps.emptyLabel`,
+		 * through the host translate), or '' for the dash.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/badge-cell-empty-label/specs/badge-cell-empty-label/spec.md#requirement-a-badge-cell-can-name-an-empty-value
+		 */
+		badgeEmptyLabel() {
+			const label = this.widgetProps && this.widgetProps.emptyLabel
+			return typeof label === 'string' && label !== '' ? this.cnTranslate(label) : ''
 		},
 
 		/**

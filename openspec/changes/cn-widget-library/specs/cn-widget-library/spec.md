@@ -68,6 +68,11 @@ The modal SHALL hide the type `<select>` when a `preselectedType` is supplied or
 - **WHEN** the modal opens with `preselectedType: 'tile'`
 - **THEN** the type `<select>` is hidden and the `tile` sub-form is mounted directly
 
+#### Scenario: Initial type keeps the picker
+- **WHEN** the modal opens in create mode with `initialType: 'tile'` and no `preselectedType`
+- **THEN** the `tile` sub-form is mounted and the type `<select>` stays visible with `tile` chosen, so the user can still switch type
+- **AND** an `initialType` that is not a registered form-bearing type falls back to the first available type, and `preselectedType` wins when both are set
+
 #### Scenario: Edit mode pre-fills and relabels
 - **WHEN** the modal opens with an `editingWidget` of type `header`
 - **THEN** the type `<select>` is hidden, the `header` sub-form is pre-filled by merging `editingWidget.content` over the registry defaults, the title reads "Edit Widget", and the submit label reads "Save"

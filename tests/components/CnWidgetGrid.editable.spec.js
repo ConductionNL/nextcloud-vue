@@ -39,7 +39,7 @@ describe('CnWidgetGrid — editable body mode', () => {
 		})
 		expect(wrapper.find('.grid-stack').exists()).toBe(true)
 		expect(GridStack.init).toHaveBeenCalledTimes(1)
-		expect(GridStack.init.mock.calls[0][0]).toMatchObject({ column: 8 })
+		expect(GridStack.init.mock.calls[0][0]).toMatchObject({ column: 8, float: true, mode: 'float' })
 	})
 
 	it('does not enter editable mode for non-body slots', () => {

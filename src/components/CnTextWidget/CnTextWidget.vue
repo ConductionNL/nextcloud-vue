@@ -113,6 +113,55 @@ function ensureDomPurifyHook() {
 	hookRegistered = true
 }
 
+// The widget's own sanitiser config: `target` survives (the hook above adds
+// `rel`), `data-*` attributes do not.
+const SANITIZE_CONFIG = {
+	ADD_ATTR: ['target'],
+	ALLOW_DATA_ATTR: false,
+}
+
+// Raw-text elements whose content is never author text. In markdown a line
+// that opens with one of them is a CommonMark HTML block, so the markdown
+// after it on that line would stay unparsed even though DOMPurify later drops
+// the element. Removing them before parsing keeps that markdown parsed; the
+// sanitiser still runs on the result, so this is not the security boundary.
+const RAW_TEXT_ELEMENTS = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
+
+/**
+ * Remove `<script>` and `<style>` elements (with their content) from markdown
+ * source before it is parsed.
+ *
+ * @spec openspec/specs/text-display-widget/spec.md#REQ-TXMD-003
+ * @param {string} text The markdown source.
+ * @return {string} The source without those elements.
+ */
+function stripRawTextElements(text) {
+	if (typeof text !== 'string') {
+		return text
+	}
+	// Repeat until nothing changes: removing one element can join the text
+	// around it into a new opening tag (a script tag nested inside the word
+	// "script" leaves a whole one behind).
+	let previous
+	let current = text
+	do {
+		previous = current
+		current = previous.replace(RAW_TEXT_ELEMENTS, '')
+	} while (current !== previous)
+	return current
+}
+
+/**
+ * Sanitise author HTML with the widget's own config.
+ *
+ * @param {string} html The HTML.
+ * @return {string} HTML safe for `v-html`.
+ */
+function sanitize(html) {
+	ensureDomPurifyHook()
+	return DOMPurify.sanitize(html, SANITIZE_CONFIG)
+}
+
 /**
  * CnTextWidget — renders user-authored multi-line text (or a small table)
  * inside a dashboard cell. Text content is passed through DOMPurify before
@@ -178,7 +227,11 @@ export default {
 
 	computed: {
 		/**
-		 * The text: `content.textField` of the object as it is, else `content.text` translated; '' when absent.
+		 * The text: `content.textField` of the object as it is, else
+		 * `content.text`; '' when absent. Plain text goes through the app's
+		 * translate function; text holding markup (`<`, `>`, `&`) is author
+		 * content and is shown as written, because the translate function
+		 * sanitises with its own allow-list (which drops `target`).
 		 *
 		 * @spec openspec/changes/text-widget-monospace/tasks.md#task-2
 		 */
@@ -188,7 +241,11 @@ export default {
 				const value = this.objectData?.[field]
 				return value === undefined || value === null ? '' : String(value)
 			}
-			return typeof this.content?.text === 'string' ? this.tr(this.content.text) : ''
+			const text = this.content?.text
+			if (typeof text !== 'string') {
+				return ''
+			}
+			return /[<>&]/.test(text) ? text : this.tr(text)
 		},
 
 		/**
@@ -262,7 +319,7 @@ export default {
 			let html
 			if (this.contentMode === 'markdown') {
 				try {
-					html = markedInstance.parse(this.text)
+					html = markedInstance.parse(stripRawTextElements(this.text))
 					if (typeof html !== 'string') {
 						html = String(html)
 					}
@@ -274,9 +331,7 @@ export default {
 			} else {
 				html = this.text
 			}
-			return DOMPurify.sanitize(html, {
-				ADD_ATTR: ['target'],
-			})
+			return sanitize(html)
 		},
 
 		/** Localised placeholder shown when there is no text content. */
@@ -342,8 +397,8 @@ export default {
 				height: '100%',
 				padding: '16px',
 				display: 'flex',
-				'align-items': 'center',
-				'justify-content': 'center',
+				'align-items': 'safe center',
+				'justify-content': 'safe center',
 				overflow: 'auto',
 				'background-color': this.backgroundColor,
 				...(this.link ? { 'flex-direction': 'column', gap: '8px', 'align-items': 'flex-start' } : {}),
@@ -376,10 +431,6 @@ export default {
 		},
 	},
 
-	created() {
-		ensureDomPurifyHook()
-	},
-
 	methods: {
 		/**
 		 * A manifest string through the app's translate function.
@@ -410,7 +461,7 @@ export default {
 		 * @return {string} sanitised HTML safe to render via `v-html`.
 		 */
 		sanitizeCell(text) {
-			return DOMPurify.sanitize(typeof text === 'string' ? text : '')
+			return sanitize(typeof text === 'string' ? text : '')
 		},
 
 		/**

@@ -12,7 +12,7 @@ import { CnConversationWidget } from '@conduction/nextcloud-vue'
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `object` | `{}` | `{ field, endpoint?, authorField?, timeField?, textField?, sideField?, usValue?, title?, allowReply?, replyLabel?, placeholder?, sendLabel?, emptyText? }`. `field` is the dot path to the messages on the record (default `messages`); the `*Field` keys name each message's author, time, text and side. A message whose side equals `usValue` (default `us`) is drawn as ours. `@objectId` in `endpoint` is replaced by the record's id. |
+| `content` | `object` | `{}` | `{ field, endpoint?, authorField?, timeField?, textField?, sideField?, usValue?, title?, allowReply?, replyLabel?, placeholder?, sendLabel?, emptyText? }`. `field` is the dot path to the messages on the record (default `messages`); the `*Field` keys name each message's author, time, text and side. A message whose side equals `usValue` (default `us`) is drawn as ours. `@objectId` in `endpoint` is replaced by the record's id, and `@object.<path>` by that field of the record, as in `source.url`; when an `@object.` token has no value the reply box posts nowhere. |
 | `objectData` | `object` | `null` | The bound record. |
 | `objectId` | `string` \| `number` | `''` | The bound record's id, used in `endpoint`. |
 
@@ -97,6 +97,35 @@ The texts (`title`, `replyLabel`, `placeholder`, `sendLabel`, `emptyText`) go th
 | `messageActions` | Buttons on the messages that match `when` (`{ field, in }`, `{ field, equals }`, `{ field, empty: true }`, or a list that must all hold). `errors` (`{ path, map, default, ok? }`) names the answer's refusal by its status; `ok` (default `sent`, `ok`) lists the statuses that are no refusal. The endpoint gets `@objectId` and the message's `{field}` values; after it the messages are read again, and a failure shows `errorText`. |
 | `messageActions[].onStatus` | `{ "<status>": <action> }`: when the answer's status (at `errors.path`) is listed, that action runs (dispatched like `headerAction`, `@objectId` and `@object.<field>` resolved) instead of the refusal showing, such as opening the composer with a template when the WhatsApp session closed. |
 | `statusBadge` | `{ source: { register, schema, filter?, limit? }, sortField?, path?, map? }`: a badge in the header with the status of the most recent row of that list (by `sortField`), mapped and translated, such as the latest conversation thread's Open, Assigned or Closed. No row, no badge. |
+
+## Messages from an endpoint, read again on an interval
+
+A live thread, such as a website chat on its ticket, reads its messages from an endpoint and reads them again while it is shown.
+
+| Key | Meaning |
+|---|---|
+| `source.url` | The endpoint the messages come from, in place of `source.register`/`source.schema`. `@objectId` and `@object.<path>` are filled in anywhere in the url (encoded); a url whose token has no value sends no request. |
+| `source.responsePath` | Where the messages sit in the answer (`messages`); the answer itself when unset. |
+| `pollSeconds` | Read the source again on this interval (2 seconds or more) while the widget is shown, without the loading state. A poll that fails keeps the last messages. Works for a register `source` too. |
+| `pollUntil` | `{ path, in }`: stop polling once the endpoint's answer holds one of these values at `path` (`{ "path": "status", "in": ["closed"] }`). |
+
+After a reply through `endpoint`, the endpoint is read again, so the stored reply shows.
+
+```json
+{
+  "id": "ticket-web-chat",
+  "type": "conversation",
+  "content": {
+    "title": "Website chat",
+    "source": { "url": "/apps/pipelinq/api/web-chat/conversations/@object.threadKey", "responsePath": "messages" },
+    "pollSeconds": 3,
+    "pollUntil": { "path": "status", "in": ["closed"] },
+    "sideField": "author", "usValue": "agent", "textField": "body", "timeField": "at",
+    "endpoint": "/apps/pipelinq/api/web-chat/conversations/@object.threadKey/reply",
+    "messageKey": "text"
+  }
+}
+```
 
 ## Reference (auto-generated)
 

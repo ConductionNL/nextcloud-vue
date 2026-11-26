@@ -17,7 +17,9 @@ export {
 	__setDexie,
 	applyConflictResolution,
 	cacheKey,
+	clearCollection,
 	CONFLICT_RECORD_PREFIX,
+	conflictFieldsOf,
 	countPending,
 	countStuck,
 	enqueueMutation,
@@ -48,6 +50,13 @@ export {
 } from './syncQueueEngine.js'
 
 export { drainQueue, replayOperation } from './syncReplayService.js'
+
+export {
+	clearTakeAlong,
+	downloadTakeAlong,
+	readTakeAlong,
+	TAKE_ALONG_COLLECTION,
+} from './takeAlong.js'
 
 export {
 	buildPlanningQuery,

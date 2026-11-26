@@ -165,6 +165,11 @@
 				:value="filterRows"
 				:fields="availableFields"
 				@input="onRows('filterRows', $event)" />
+			<CnPeriodFieldSelect
+				:register="source.register"
+				:schema="source.schema"
+				:value="periodField"
+				@update="updateField('periodField', $event)" />
 		</template>
 
 		<!-- Presentation. -->
@@ -364,6 +369,7 @@ import CnColorPicker from '../CnColorPicker/CnColorPicker.vue'
 import CnFieldPicker from '../CnFieldPicker/CnFieldPicker.vue'
 import CnFilterRowsEditor from '../CnFilterRowsEditor/CnFilterRowsEditor.vue'
 import CnIconBrowser from '../CnIconBrowser/CnIconBrowser.vue'
+import CnPeriodFieldSelect from '../CnPeriodFieldSelect/CnPeriodFieldSelect.vue'
 import CnRegisterSchemaSelect from '../CnRegisterSchemaSelect/CnRegisterSchemaSelect.vue'
 import { fetchSchemaProperties } from '../../utils/fetchSchemaProperties.js'
 import { filterToRows, rowsToFilter } from '../CnFilterRowsEditor/filterRows.js'
@@ -487,7 +493,7 @@ function overridesToRows(overrides) {
 export default {
 	name: 'CnStatWidgetForm',
 
-	components: { NcButton, NcTextField, NcSelect, Plus, Close, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser, CnColorPicker },
+	components: { NcButton, NcTextField, NcSelect, Plus, Close, CnFilterRowsEditor, CnFieldPicker, CnRegisterSchemaSelect, CnIconBrowser, CnColorPicker, CnPeriodFieldSelect },
 
 	props: {
 		/**
@@ -587,6 +593,7 @@ export default {
 			numeratorRows: filterToRows((src.numerator && src.numerator.filter) || (src.parts && src.parts.A && src.parts.A.filter) || {}),
 			denominatorRows: filterToRows((src.denominator && src.denominator.filter) || (src.parts && src.parts.B && src.parts.B.filter) || {}),
 			formula: src.formula ?? 'A/B*100',
+			periodField: typeof src.periodField === 'string' ? src.periodField : '',
 			availableFields: [],
 		}
 	},
@@ -669,7 +676,8 @@ export default {
 			if (this.kind === 'record') {
 				content.objectField = this.assembledObjectField
 			} else {
-				content.source = source
+				// The date field the host dashboard's period applies to; written only when set.
+				content.source = this.periodField ? { ...source, periodField: this.periodField } : source
 			}
 			// The new keys are written only when set, so a form that never
 			// touches them emits exactly the blob it always has.
@@ -955,7 +963,7 @@ export default {
 		/**
 		 * Set a top-level field and emit.
 		 *
-		 * @param {'label'|'icon'|'iconColor'|'valueColor'|'caption'|'kind'|'metric'|'field'|'formula'|'recordField'|'display'|'emptyText'} field The data key to write.
+		 * @param {'label'|'icon'|'iconColor'|'valueColor'|'caption'|'kind'|'metric'|'field'|'formula'|'recordField'|'display'|'emptyText'|'periodField'} field The data key to write.
 		 * @param {string} value The new value for that key.
 		 * @return {void}
 		 */

@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Dagsetningarreitur fyrir tímabilið",
+    "None: the widget does not follow the period": "Ekkert: græjan fylgir ekki tímabilinu",
     "Report a bug": "Tilkynna villu",
     "View": "Skoða",
     "Edit": "Breyta",
     "Copy": "Afrita",
-    "Delete": "Eyða"
+    "Delete": "Eyða",
+    "The administrator has not set a start date field.": "Stjórnandi hefur ekki skilgreint reit fyrir upphafsdag.",
+    "Starts {weekday}": "Byrjar {weekday}",
+    "Selection": "Val",
+    "People by filter": "Fólk eftir síu",
+    "New colleagues": "Nýir samstarfsmenn",
+    "Started in the last (days, 1–90)": "Byrjuðu á síðustu (dögum, 1–90)",
+    "Starts within (days, 0–30)": "Byrja á næstu (dögum, 0–30)",
+    "Must be between {min} and {max}": "Verður að vera á milli {min} og {max}"
   }
 }

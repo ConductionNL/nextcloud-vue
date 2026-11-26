@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Fusha e datës për periudhën",
+    "None: the widget does not follow the period": "Asnjë: widget-i nuk ndjek periudhën",
     "Report a bug": "Raporto një gabim",
     "View": "Shiko",
     "Edit": "Përpuno",
     "Copy": "Kopjo",
-    "Delete": "Fshi"
+    "Delete": "Fshi",
+    "The administrator has not set a start date field.": "Administratori nuk ka caktuar një fushë për datën e fillimit.",
+    "Starts {weekday}": "Fillon {weekday}",
+    "Selection": "Përzgjedhja",
+    "People by filter": "Njerëz sipas filtrit",
+    "New colleagues": "Kolegë të rinj",
+    "Started in the last (days, 1–90)": "Filluan gjatë (ditëve, 1–90) të fundit",
+    "Starts within (days, 0–30)": "Fillojnë gjatë (ditëve, 0–30) të ardhshme",
+    "Must be between {min} and {max}": "Duhet të jetë ndërmjet {min} dhe {max}"
   }
 }

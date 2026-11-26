@@ -51,7 +51,7 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `eyebrow` | String | `''` | A short muted line above the title ("Saldo per week" above "Prognose 13 weken"), through the host translate. On a dashboard it comes from the widget definition's `eyebrow` |
 | `subtitle` | String | `''` | A muted line under the title ("Dit kwartaal, beslist binnen de termijn"), through the host translate. On a dashboard it comes from the widget definition's `subtitle` ; on a detail page the widget's `subtitle` may also be `[{ "when": <visibleWhen>, "text": "..." }]`, the first entry whose condition holds for the record and its `@context` rows (DqZaakDocumenten: only on a case type with `documentReview.enabled`) |
 | `showTitle` | Boolean | `true` | Whether to render the header bar |
-| `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel exactly (translucent blurred background via `--color-main-background-blur` + `--filter-background-blur`, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
+| `chrome` | String | `'default'` | Card chrome variant. `'default'` uses the library card chrome; `'nc-dashboard'` reproduces the native Nextcloud Dashboard panel (translucent background via `--color-main-background-blur`; no backdrop blur of its own, set `--cn-widget-backdrop-filter` to add one, `--border-radius-container-large` corners, no border/shadow, 16px header with a 20px/700 title and 32px leading icon, content inset 16px). `styleConfig` overrides still layer on top. |
 | `showActions` | Boolean | `true` | Whether the header's overflow action menu (Refresh / Documentation / Request-a-feature + `#action-items`) renders. Set `false` for compact surfaces (e.g. a KPI tile) to drop the menu and free header width. |
 | `borderless` | Boolean | `false` | Remove border and background — makes the wrapper transparent |
 | `flush` | Boolean | `false` | Remove content padding — lets content extend edge-to-edge |
@@ -220,6 +220,16 @@ The component picks no colour of its own (ADR-003). A theme that says nothing ab
   --color-border: var(--color-main-text);
 }
 ```
+
+## A card that folds to its header (`collapsible`)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `collapsible` | `Boolean` | `false` | Draws a chevron in the header that folds the card to its header. In a manifest: `collapsible: true` on the widget definition (or its layout entry); CnDashboardPage passes it on. |
+| `collapsed` | `Boolean` | `false` | Whether the card is folded. The host owns the state. Ignored without `collapsible`. |
+| `collapseLabel` / `expandLabel` | `String` | `''` | The chevron's label; defaults to "Collapse {title}" / "Expand {title}". |
+
+Event `toggle-collapse` carries the state asked for (`true` = fold). On a dashboard page that keeps a per-user layout (`userLayout` or `layoutPanel`), CnDashboardPage stores the fold with the user's layout (`collapsed: true` on the layout record), so the card is still folded after a reload; Back to default opens it again. Without a user layout the fold lasts for the visit. Give a collapsible widget `sizeToContent: true`, so the grid row shrinks with it.
 
 ## A side-card title (`titleTone`)
 
