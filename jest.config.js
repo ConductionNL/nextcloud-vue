@@ -40,10 +40,17 @@
  * mount and only 81 unmounted. Measured over six consecutive full runs before
  * and after; see that file for the reasoning.
  *
- * Capping `maxWorkers` here would slow every developer's run to hide a warning
- * CI does not emit, so it is left alone and explained instead.
+ * WORKERS AND MEMORY. A worker grows about 5 MB per test file and never gives
+ * it back (1.9 GB after ~86 files, 3.2 GB after ~297, measured on 16 cores).
+ * Uncapped, a full run on 16 cores starts 15 workers of ~200 files each, about
+ * 40 GB together: on a 28 GB machine it swaps and the desktop freezes. So a
+ * worker is restarted once it passes `workerIdleMemoryLimit` after a file, and
+ * a run takes half the cores, which on 16 also stays at the 8 concurrent
+ * workers the warning above needs to stay away.
  */
 module.exports = {
+	maxWorkers: '50%',
+	workerIdleMemoryLimit: '1GB',
 	// Rebuilds the gitignored compiled manifest validator when it is missing or
 	// stale. `pretest` already does this for `npm test`, but not for `npx jest`,
 	// `--watch`, or an IDE runner — and without it `tests/schemas/*` fails for
