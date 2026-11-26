@@ -7,7 +7,7 @@
 	<div
 		class="cn-menu-widget"
 		:class="rootClasses"
-		@keydown.esc.stop="closeAll">
+		@keydown.esc.stop="onEscape">
 		<!-- The card title a detail page's side column hands a self-titled
 		     widget (PqCampagne "In deze campagne"). -->
 		<h3 v-if="title" class="cn-menu-widget__title" data-testid="cn-menu-widget-title">
@@ -144,10 +144,10 @@
 					:aria-haspopup="hasChildren(item) ? 'menu' : null"
 					:aria-expanded="dropOpenIndex === idx ? 'true' : 'false'"
 					@click="isTopLink(item) ? onLinkClick($event, item) : onDropdownTopClick(idx, item)"
-					@keydown.tab="closeAll"
+					@keydown.tab="onDropdownTab($event, idx)"
 					@keydown.enter="onDropdownTopEnter($event, idx, item)"
 					@keydown.space.prevent="onDropdownTopClick(idx, item)"
-					@keydown.down.prevent="openDropdown(idx)">
+					@keydown.down.prevent="openDropdown(idx, true)">
 					<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !item.icon }">
 						<CnMenuItemIcon v-if="item.icon" :icon="item.icon" />
 					</span>
@@ -170,7 +170,8 @@
 							role="menuitem"
 							class="cn-menu-widget__dropdown-item"
 							:class="topItemClass(`${idx}.${childIdx}`)"
-							@click="onLinkClick($event, child)">
+							@click="onLinkClick($event, child)"
+							@keydown.tab="onDropdownTab($event, idx)">
 							<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !child.icon }">
 								<CnMenuItemIcon v-if="child.icon" :icon="child.icon" />
 							</span>
@@ -191,7 +192,8 @@
 									role="menuitem"
 									class="cn-menu-widget__dropdown-item"
 									:class="topItemClass(`${idx}.${childIdx}.${leafIdx}`)"
-									@click="onLinkClick($event, leaf)">
+									@click="onLinkClick($event, leaf)"
+									@keydown.tab="onDropdownTab($event, idx)">
 									<span v-if="showIcons" class="cn-menu-widget__icon" :class="{ 'cn-menu-widget__icon--hidden': !leaf.icon }">
 										<CnMenuItemIcon v-if="leaf.icon" :icon="leaf.icon" />
 									</span>
@@ -781,11 +783,83 @@ export default {
 		 * Open the dropdown at an index when it has children.
 		 *
 		 * @param {number} idx the item index.
+		 * @param {boolean} [focusFirst] also move focus to its first item.
 		 * @return {void}
 		 */
-		openDropdown(idx) {
-			if (this.hasChildren(this.items[idx])) {
-				this.dropOpenIndex = idx
+		openDropdown(idx, focusFirst = false) {
+			if (!this.hasChildren(this.items[idx])) {
+				return
+			}
+			this.dropOpenIndex = idx
+			this.flyoutOpenKey = null
+			if (focusFirst) {
+				this.focusFirstDropdownItem(idx)
+			}
+		},
+
+		/**
+		 * Focus the first item of the dropdown at an index once it rendered.
+		 *
+		 * @param {number} idx the item index.
+		 * @return {void}
+		 */
+		focusFirstDropdownItem(idx) {
+			this.$nextTick(() => {
+				const first = this.barItemRefs[idx]?.querySelector('.cn-menu-widget__dropdown .cn-menu-widget__dropdown-item')
+				if (first) {
+					first.focus()
+				}
+			})
+		},
+
+		/**
+		 * Tab on the button of an open dropdown, or on its last item, closes it
+		 * and moves focus to the next top-level item; past the last one, focus
+		 * leaves the menu as usual. Tab between earlier items walks the
+		 * dropdown; Shift+Tab from the button closes it.
+		 *
+		 * @param {KeyboardEvent} event the key event.
+		 * @param {number} idx the top-level item index.
+		 * @return {void}
+		 */
+		onDropdownTab(event, idx) {
+			const fromTop = event.currentTarget === this.topRefs[idx]
+			if (event.shiftKey) {
+				if (fromTop) {
+					this.closeAll()
+				}
+				return
+			}
+			if (this.dropOpenIndex !== idx) {
+				return
+			}
+			if (!fromTop) {
+				const items = this.barItemRefs[idx]?.querySelectorAll('.cn-menu-widget__dropdown-item') ?? []
+				if (items.length > 0 && event.currentTarget !== items[items.length - 1]) {
+					return
+				}
+			}
+			this.closeAll()
+			const next = this.topRefs[idx + 1]
+			if (next) {
+				event.preventDefault()
+				next.focus()
+			} else if (!fromTop && this.topRefs[idx]) {
+				this.topRefs[idx].focus()
+			}
+		},
+
+		/**
+		 * Escape closes every open panel and returns focus to the top-level
+		 * item that opened it.
+		 *
+		 * @return {void}
+		 */
+		onEscape() {
+			const idx = this.dropOpenIndex ?? this.megaOpenIndex
+			this.closeAll()
+			if (idx !== null && this.topRefs[idx]) {
+				this.topRefs[idx].focus()
 			}
 		},
 
@@ -950,6 +1024,9 @@ export default {
 			}
 			event.preventDefault()
 			this.onDropdownTopClick(idx, item)
+			if (this.dropOpenIndex === idx) {
+				this.focusFirstDropdownItem(idx)
+			}
 		},
 
 		/**
@@ -1200,28 +1277,31 @@ export default {
 	list-style: none;
 }
 
-/* Active-item highlight variants. */
-.cn-menu-widget--highlight-underline .cn-menu-widget__item--active {
+/* Active-item highlight variants. :deep() because the tree style's rows are
+   rendered by CnMenuTreeNode, outside this component's scope; without it no
+   tree row, active or in the current path, got the configured highlight
+   (REQ-MENU-006). */
+.cn-menu-widget--highlight-underline :deep(.cn-menu-widget__item--active) {
 	border-bottom: 3px solid var(--color-primary);
 }
 
-.cn-menu-widget--highlight-underline .cn-menu-widget__item--in-path {
+.cn-menu-widget--highlight-underline :deep(.cn-menu-widget__item--in-path) {
 	border-bottom: 2px solid var(--color-primary);
 	opacity: 0.85;
 }
 
-.cn-menu-widget--highlight-background .cn-menu-widget__item--active,
-.cn-menu-widget--highlight-background .cn-menu-widget__item--in-path {
+.cn-menu-widget--highlight-background :deep(.cn-menu-widget__item--active),
+.cn-menu-widget--highlight-background :deep(.cn-menu-widget__item--in-path) {
 	background: var(--color-primary-element-light, rgba(0, 112, 192, 0.1));
 	color: var(--color-primary);
 }
 
-.cn-menu-widget--highlight-left-bar .cn-menu-widget__item--active {
+.cn-menu-widget--highlight-left-bar :deep(.cn-menu-widget__item--active) {
 	border-left: 5px solid var(--color-primary);
 	padding-left: 6px;
 }
 
-.cn-menu-widget--highlight-left-bar .cn-menu-widget__item--in-path {
+.cn-menu-widget--highlight-left-bar :deep(.cn-menu-widget__item--in-path) {
 	border-left: 4px solid var(--color-primary);
 	padding-left: 7px;
 	opacity: 0.85;

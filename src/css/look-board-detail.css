@@ -504,6 +504,21 @@
 	z-index: 1;
 }
 
+/* Hovered or focused by a click, a tab keeps the card's border colour:
+   Nextcloud's core stylesheet darkens the border of every hovered or focused
+   `button:not(.button-vue)` to the text colour, which drew a dark frame
+   round the tab a menu item had just opened (DqZaakEmail "E-mail"). Keyboard
+   focus keeps its own ring (:focus-visible). The nav class outweighs core's
+   (0,4,1) selector.
+   @spec openspec/changes/board-tabs-widget-border/specs/board-tabs-widget-border/spec.md#requirement-board-folder-tabs-draw-the-widget-card-border */
+.cn-look-board .cn-tabs--board .cn-tabs__nav .cn-tabs__nav-item:is(:hover, :focus) {
+	border-color: var(--color-border);
+}
+
+.cn-look-board .cn-tabs--board .cn-tabs__nav .cn-tabs__nav-item.cn-tabs__nav-item--active:is(:hover, :focus) {
+	border-bottom-color: var(--color-main-background);
+}
+
 /* The count: a grey, borderless 20px badge 8px after the label. */
 .cn-look-board .cn-tabs--board .cn-tabs__count {
 	background-color: var(--color-border);
@@ -4043,4 +4058,36 @@
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--cn-board-notice-action-ink);
+}
+
+/* The pager of the list the record was opened from, before the header buttons
+   (DqZaak and the other case boards): two 40px squares on the board's radius
+   with the position between them, the disabled end in the line colour. */
+.cn-look-board .cn-detail-page__list-nav {
+	gap: 2px;
+	margin-inline-end: 6px;
+}
+
+.cn-look-board .cn-detail-page__header-actions .cn-detail-page__list-nav .button-vue {
+	background: var(--color-main-background);
+	block-size: var(--cn-board-control-height);
+	border: 1px solid var(--color-border-maxcontrast);
+	border-radius: var(--cn-board-control-radius);
+	color: var(--color-main-text);
+	inline-size: var(--cn-board-control-height);
+	min-width: var(--cn-board-control-height);
+}
+
+.cn-look-board .cn-detail-page__header-actions .cn-detail-page__list-nav .button-vue:disabled {
+	border-color: var(--color-border);
+	color: var(--color-text-maxcontrast);
+	opacity: 1;
+}
+
+.cn-look-board .cn-detail-page__list-nav-position {
+	color: var(--color-main-text);
+	font-size: 14px;
+	min-width: 68px;
+	padding-inline: 6px;
+	text-align: center;
 }

@@ -50,6 +50,13 @@
 			:rootText="breadcrumbCrumbs[0].icon === undefined"
 			:separator="breadcrumbSeparator"
 			data-testid="cn-detail-page-breadcrumbs" />
+		<!-- Offline: the record is the copy downloaded to this device (manifest offline.takeAlong). -->
+		<p v-if="takeAlongActive"
+			class="cn-detail-page__offline-status"
+			role="status"
+			data-testid="cn-detail-page-offline">
+			{{ takeAlongText }}
+		</p>
 		<!-- Header -->
 		<div
 			v-if="!objectNotFound && !contentWithheld"
@@ -375,6 +382,8 @@
 				<NcButton
 					v-if="canEditRecord && !foldsEditIntoActions"
 					variant="secondary"
+					:disabled="takeAlongActive"
+					:title="takeAlongActive ? t('nextcloud-vue', 'Not available offline.') : undefined"
 					data-testid="cn-detail-page-edit"
 					:aria-label="editActionLabel"
 					@click="openEditForm">
@@ -446,6 +455,7 @@
 									:key="entry.id"
 									:data-testid="entry.testid"
 									:disabled="entry.disabled"
+									:title="entry.disabledReason || undefined"
 									:aria-pressed="entry.pressed === null ? null : String(entry.pressed)"
 									:closeAfterClick="true"
 									:data-cn-admin-tag="adminTagFor(group)"
@@ -779,10 +789,12 @@
 		</div>
 
 		<!-- Access purpose (`accessPurpose`): nothing of the record shows until
-		     the reader has stated why they open it and the purpose is recorded. -->
+		     the reader has stated why they open it and the purpose is recorded.
+		     While the page cannot tell yet whether the record asks, it shows the
+		     loading icon, not the dialog. -->
 		<div v-else-if="contentWithheld" class="cn-detail-page__access-purpose" data-testid="cn-detail-page-access-purpose">
 			<CnAccessPurposeDialog
-				v-if="accessPurposeAsking && !accessPurposeChecking"
+				v-if="accessPurposeAsking && accessPurposeRequired && !accessPurposeChecking"
 				:title="accessPurposeText('title')"
 				:description="accessPurposeText('description')"
 				:options="accessPurposeOptions"
@@ -926,10 +938,16 @@
 				class="cn-detail-page__grid"
 				@layoutChange="section.view ? onViewLayoutChange($event) : onBodyLayoutChange($event)">
 				<template #widget="{ item }">
-					<div
+					<!-- A cell mounts its widget only once it comes within a
+					     viewport height of the screen (CnDetailGridCell), so a
+					     page open fetches for the cards in view, not for every
+					     card below the fold. -->
+					<CnDetailGridCell
 						class="cn-detail-page__grid-item"
 						:class="{ 'cn-detail-page__grid-item--fit': !!item.sizeToContent }"
-						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined">
+						:aria-labelledby="showGridTitle(item) ? `widget-title-${item.id}` : undefined"
+						:eager="gridCellEager(item, section)"
+						:minHeight="item.sizeToContent ? gridCellMinHeight(item) : 0">
 						<!-- In-app edit overlay (ADR-041): a configure cog appears on
 						     EVERY grid widget while the page is in Buildiq edit mode,
 						     as it does on CnDashboardPage. It was gated on the type
@@ -1033,7 +1051,7 @@
 								@openIntegration="onAutoBodyOpenIntegration"
 								@selectObject="onRelatedObjectSelect" />
 						</slot>
-					</div>
+					</CnDetailGridCell>
 				</template>
 			</CnDashboardGrid>
 
@@ -1408,9 +1426,6 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
-import CnAccessPurposeDialog from '../../dialogs/CnAccessPurposeDialog.vue'
-import CnRelationLinkModal from '../../dialogs/CnRelationLinkModal.vue'
-import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnActionsMenu from '../CnActionsMenu/CnActionsMenu.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
@@ -1418,7 +1433,6 @@ import CnDashboardGrid from '../CnDashboardGrid/CnDashboardGrid.vue'
 import CnDetailWidgetHost from '../CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import CnFollowingWidgetHost from '../CnFollowingWidgetHost/CnFollowingWidgetHost.vue'
 import CnFollowToggle from '../CnFollowToggle/CnFollowToggle.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnLifecycleActions from '../CnLifecycleActions/CnLifecycleActions.vue'
 import CnLockedBanner from '../CnLockedBanner/CnLockedBanner.vue'
 import CnNextStepCard from '../CnNextStepCard/CnNextStepCard.vue'
@@ -1427,14 +1441,17 @@ import CnRelatedCollections from '../CnRelatedCollections/CnRelatedCollections.v
 import CnSegmentedControl from '../CnSegmentedControl/CnSegmentedControl.vue'
 import CnSummaryAggregates from '../CnSummaryAggregates/CnSummaryAggregates.vue'
 import CnTranslatedBadge from '../CnTranslatedBadge/CnTranslatedBadge.vue'
+import CnDetailGridCell from './CnDetailGridCell.vue'
 import CnDetailHeaderChips from './CnDetailHeaderChips.vue'
 import { resolveIndexSource, resolveRecordSource } from '../../composables/indexSources.js'
+import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import { actionLabelText, fetchObjectActions } from '../../composables/useObjectActions.js'
 import { useObjectLock } from '../../composables/useObjectLock.js'
 import { useObjectPresence } from '../../composables/useObjectPresence.js'
 import { useObjectSubscription } from '../../composables/useObjectSubscription.js'
+import { takeAlongDetailText, useOfflineTakeAlong } from '../../composables/useOfflineTakeAlong.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { gridLayout } from '../../mixins/gridLayout.js'
 import { pageFilters } from '../../mixins/pageFilters.js'
@@ -1442,6 +1459,7 @@ import { pageViews } from '../../mixins/pageViews.js'
 import { useObjectStore } from '../../store/index.js'
 import { headerActionAsLink, resolveManifestHref, routeHref } from '../../utils/actionLink.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { enableBoardLookStyle } from '../../utils/boardLookStyle.js'
 import { compactLayoutRows } from '../../utils/dashboardPlacement.js'
 import { defaultDetailGrid } from '../../utils/defaultDetailGrid.js'
 import {
@@ -1450,8 +1468,10 @@ import {
 	normalisePinnedAction,
 	onTab,
 	pillCountSource,
+	pillEndpointSource,
 	pillLook,
 	resolveCountPill,
+	resolveEndpointPill,
 	resolveNextStep,
 	resolvePill,
 	stageEntry,
@@ -1459,13 +1479,14 @@ import {
 } from '../../utils/detailActionModel.js'
 import { detailWidgetVisible, fetchVisibilityRows, visibilityContextRefs, widgetConditionData } from '../../utils/detailWidgetVisibility.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
-import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
 import { cnGridCellStyle, hasGridRow } from '../../utils/grid.js'
 import { isActivityWidget, resolveHeaderMeta } from '../../utils/headerMeta.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { followLinkClick } from '../../utils/linkNavigation.js'
 import { parentCrumb } from '../../utils/parentCrumb.js'
 import { patchStoredSelf } from '../../utils/patchStoredSelf.js'
@@ -1493,6 +1514,13 @@ import { CnStatusBadge } from '../CnStatusBadge/index.js'
 import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
 import '../CnWidgetGrid/registerDashboardWidgets.js'
+
+// The dialogs render only once opened, so they load on first render instead of
+// riding in the detail page's chunk.
+const CnAccessPurposeDialog = lazyComponent(() => import('../../dialogs/CnAccessPurposeDialog.vue'), 'CnAccessPurposeDialog')
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
+const CnRelationLinkModal = lazyComponent(() => import('../../dialogs/CnRelationLinkModal.vue'), 'CnRelationLinkModal')
+const CnWidgetStyleEditorModal = lazyComponent(() => import('../../dialogs/CnWidgetStyleEditorModal.vue'), 'CnWidgetStyleEditorModal')
 
 /**
  * Responsive column table for a detail body, measured against the GRID element.
@@ -1537,6 +1565,9 @@ const DEFAULT_DETAIL_COLUMN_OPTS = Object.freeze({
  * still 50px a column, enough for a tile. Below 600px it stacks as before.
  */
 const SIDE_COLUMN_STACK_WIDTH = 600
+
+/** The body grid's row height in pixels (CnDashboardGrid's default `cellHeight`). */
+const GRID_CELL_HEIGHT = 80
 
 /**
  * Whether `opts` is the untouched default table, so a page that passed its own
@@ -1726,6 +1757,7 @@ export default {
 		CnBreadcrumbs,
 		CnStatusBadge,
 		CnSummaryAggregates,
+		CnDetailGridCell,
 		CnDetailHeaderChips,
 		CnFollowToggle,
 		CnPresenceAvatars,
@@ -2364,6 +2396,18 @@ export default {
 		schema: {
 			type: String,
 			default: '',
+		},
+
+		/**
+		 * Whether the manifest takes this page's register and schema along
+		 * (`offline.takeAlong`; CnPageRenderer sets it). Offline, the page
+		 * then opens the record from the device with its download time, and
+		 * edit, the menu's actions and transitions are disabled. False: the
+		 * offline database is never opened.
+		 */
+		offlineTakeAlong: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -3220,11 +3264,30 @@ export default {
 		 * (manifest `config.quickActionsFrom`, e.g.
 		 * `@context.caseType.quickActions`). Only ids of `headerActions` are
 		 * taken, so the record's data never defines an action. An empty or
-		 * missing list keeps `quickActions`.
+		 * missing list keeps `quickActions`. A list of paths is read in
+		 * order and the first that names a declared action wins, so a newer
+		 * key (`@context.caseType.headerActions`) can lead an older one.
 		 *
 		 * @spec openspec/changes/detail-quick-actions-from/specs/detail-page/spec.md#requirement-a-record-can-pick-its-quick-actions
+		 * @spec openspec/changes/detail-header-row-from-record/specs/detail-page/spec.md#requirement-quick-actions-can-be-read-from-more-than-one-path
 		 */
 		quickActionsFrom: {
+			type: [String, Array],
+			default: '',
+		},
+
+		/**
+		 * A field path, read like a `visibleWhen` field, whose value names the
+		 * declared header action drawn as this record's primary button
+		 * (manifest `config.primaryActionFrom`, e.g.
+		 * `@context.caseType.primaryAction`). Only an id of `headerActions`
+		 * is taken, and only while that action's own `visibleWhen` shows it,
+		 * so the record's data never defines or widens an action. Otherwise
+		 * the stage's primary action and `primaryAction` stay.
+		 *
+		 * @spec openspec/changes/detail-header-row-from-record/specs/detail-page/spec.md#requirement-a-record-can-name-its-primary-action
+		 */
+		primaryActionFrom: {
 			type: String,
 			default: '',
 		},
@@ -3522,6 +3585,16 @@ export default {
 		)
 		registryExposed.presentOthers = presentOthers
 
+		// manifest-offline-block D5: the record from the device while offline.
+		const takeAlong = useOfflineTakeAlong({
+			register: () => props.register,
+			schema: () => props.schema,
+			enabled: () => props.offlineTakeAlong,
+		})
+		registryExposed.takeAlongActive = takeAlong.active
+		registryExposed.takeAlongSet = takeAlong.set
+		registryExposed.markTakeAlongOffline = takeAlong.markOffline
+
 		// Object context for detail-page abstract widgets (ADR-041): a reactive
 		// `{ objectId, object, register, schema }` holder kept current by the
 		// Options watcher below. Provided so CnObjectListWidget / CnStatWidget
@@ -3675,6 +3748,9 @@ export default {
 			widgetConditionSeq: 0,
 			/** The counts of the header's count pills (`countFrom`), by pill key (`type`, `status`). */
 			pillCounts: {},
+			// The values the header's endpoint pills read, by pill key (detail-pill-from-endpoint).
+			pillEndpointValues: {},
+			pillEndpointSeq: 0,
 			/** Sequence of the last pill count round, so a late answer does not overwrite a newer one. */
 			pillCountSeq: 0,
 			/** The labels of the records pills with `resolve` point at, by pill key. */
@@ -3917,7 +3993,22 @@ export default {
 		headerMetaCountKey() {
 			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
 			const valid = Object.entries(sources).filter(([, from]) => from && ((from.register && from.schema) || from.entitySource))
-			return valid.length > 0 ? JSON.stringify([valid, this.objectId]) : ''
+			if (valid.length === 0) {
+				return ''
+			}
+			// A filter that names the record (`portal: '@object.slug'`) can only
+			// be counted once the record is here: read before it, the token went
+			// out as the literal text and every count read 0 (portaliq PtPortal
+			// header, seen live 25 Nov 2026). Wait for it, and read again when
+			// the record does.
+			if (!JSON.stringify(valid).includes('@object.')) {
+				return JSON.stringify([valid, this.objectId])
+			}
+			const record = this.resolvedObject
+			if (!record || typeof record !== 'object') {
+				return ''
+			}
+			return JSON.stringify([valid, this.objectId, this.headerMetaRecordTokens(valid, record)])
 		},
 
 		/**
@@ -4087,7 +4178,32 @@ export default {
 		 * @spec openspec/changes/detail-action-model-and-case-surfaces/specs/detail-action-model/spec.md#requirement-primary-action-follows-the-stage
 		 */
 		stagePrimary() {
+			const fromRecord = this.recordPrimary
+			if (fromRecord && this.menuHeaderActions.some((entry) => entry && entry.id === fromRecord.id)) {
+				return fromRecord
+			}
 			return normalisePinnedAction(stageEntry(this.primaryActionByStage, this.recordStage), 'cn-stage-primary')
+		},
+
+		/**
+		 * The primary action the record names through `primaryActionFrom`:
+		 * an id of a declared header action, else null. Whether that action
+		 * is visible to the reader is decided by its own `visibleWhen`
+		 * (`stagePrimary` only takes it while the menu lists it).
+		 *
+		 * @return {{id: string, inline: null}|null} The named action, or null.
+		 * @spec openspec/changes/detail-header-row-from-record/specs/detail-page/spec.md#requirement-a-record-can-name-its-primary-action
+		 */
+		recordPrimary() {
+			if (!this.primaryActionFrom || !this.widgetVisibilityData) {
+				return null
+			}
+			const id = readVisibleWhenPath(this.widgetVisibilityData, this.primaryActionFrom)
+			if (typeof id !== 'string' || id === '') {
+				return null
+			}
+			const known = (Array.isArray(this.headerActions) ? this.headerActions : []).some((action) => action && action.id === id)
+			return known ? { id, inline: null } : null
 		},
 
 		/**
@@ -4101,11 +4217,9 @@ export default {
 		 */
 		effectiveQuickActions() {
 			const declared = Array.isArray(this.quickActions) ? this.quickActions : []
-			if (!this.quickActionsFrom || !this.widgetVisibilityData) {
-				return declared
-			}
-			const listed = readVisibleWhenPath(this.widgetVisibilityData, this.quickActionsFrom)
-			if (!Array.isArray(listed)) {
+			const paths = (Array.isArray(this.quickActionsFrom) ? this.quickActionsFrom : [this.quickActionsFrom])
+				.filter((path) => typeof path === 'string' && path !== '')
+			if (paths.length === 0 || !this.widgetVisibilityData) {
 				return declared
 			}
 			const known = new Set((Array.isArray(this.headerActions) ? this.headerActions : []).map((action) => action && action.id))
@@ -4115,8 +4229,14 @@ export default {
 				}
 				return entry && typeof entry === 'object' && !('label' in entry) && typeof entry.id === 'string' ? entry.id : ''
 			}
-			const picked = listed.filter((entry) => known.has(idOf(entry)))
-			return picked.length > 0 ? picked : declared
+			for (const path of paths) {
+				const listed = readVisibleWhenPath(this.widgetVisibilityData, path)
+				const picked = Array.isArray(listed) ? listed.filter((entry) => known.has(idOf(entry))) : []
+				if (picked.length > 0) {
+					return picked
+				}
+			}
+			return declared
 		},
 
 		/**
@@ -4327,7 +4447,16 @@ export default {
 				isAdmin: this.viewerIsAdmin,
 				adminLabel: t('nextcloud-vue', 'Administration'),
 			})
-			return groups.map((group) => ({ ...group, label: group.label ? this.effectiveTranslate(group.label) : '' }))
+			const labelled = groups.map((group) => ({ ...group, label: group.label ? this.effectiveTranslate(group.label) : '' }))
+			if (!this.takeAlongActive) {
+				return labelled
+			}
+			// Offline nothing in the menu can reach the server: each entry is disabled, saying why.
+			const reason = t('nextcloud-vue', 'Not available offline.')
+			return labelled.map((group) => ({
+				...group,
+				entries: group.entries.map((entry) => (entry.href ? entry : { ...entry, disabled: true, disabledReason: reason })),
+			}))
 		},
 
 		/**
@@ -4532,9 +4661,7 @@ export default {
 		headerPills() {
 			return [['type', this.typePill], ['status', this.statusPill]]
 				.map(([key, config]) => {
-					const pill = pillCountSource(config)
-						? resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
-						: resolvePill(config, this.resolvedObject)
+					const pill = this.headerPillOf(key, config)
 					if (!pill) {
 						return null
 					}
@@ -4588,6 +4715,21 @@ export default {
 
 		pillCountKey() {
 			return JSON.stringify([this.objectId, pillCountSource(this.typePill), pillCountSource(this.statusPill)])
+		},
+
+		/**
+		 * What the endpoint pills read, as one key: the record and each pill's
+		 * resolved request. A change reads again.
+		 *
+		 * @return {string} The key.
+		 * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+		 */
+		pillEndpointKey() {
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			return JSON.stringify([['type', this.typePill], ['status', this.statusPill]].map(([key, config]) => {
+				const source = pillEndpointSource(config)
+				return source ? [key, resolveEndpointRequest(source, ctx)] : null
+			}))
 		},
 
 		/**
@@ -5378,6 +5520,10 @@ export default {
 		 * @return {object|null}
 		 */
 		currentObject() {
+			// Offline with a take-along set: the device's copy of the record.
+			if (this.takeAlongRecord) {
+				return this.takeAlongRecord
+			}
 			if (this.recordSource) {
 				return this.objectId ? (this.recordSource.record(this.objectId) ?? null) : null
 			}
@@ -5390,6 +5536,29 @@ export default {
 				return null
 			}
 			return store.objects?.[type]?.[this.objectId] ?? null
+		},
+
+		/**
+		 * The record from the take-along set while offline, or null.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-index-and-detail-pages-read-from-the-device-when-offline
+		 * @return {object|null}
+		 */
+		takeAlongRecord() {
+			if (!this.takeAlongActive || !this.objectId) {
+				return null
+			}
+			const id = String(this.objectId)
+			return (this.takeAlongSet.rows || []).find((row) => row && String(row.id ?? row['@self']?.id ?? row.uuid ?? '') === id) || null
+		},
+
+		/**
+		 * The offline status bar's sentence, or '' while online.
+		 *
+		 * @return {string}
+		 */
+		takeAlongText() {
+			return this.takeAlongActive ? takeAlongDetailText(this.takeAlongSet) : ''
 		},
 
 		/**
@@ -6200,6 +6369,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Switch the board-look rules on before the first render in the board look.
+		 *
+		 * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
+		 */
+		isBoard: {
+			immediate: true,
+			handler(value) {
+				if (value === true) {
+					enableBoardLookStyle()
+				}
+			},
+		},
+
 		objectActionsKey: {
 			immediate: true,
 			handler() {
@@ -6262,6 +6445,14 @@ export default {
 			},
 		},
 
+		// The header's endpoint pills read again for another record or request.
+		pillEndpointKey: {
+			immediate: true,
+			handler() {
+				this.refreshPillEndpoints()
+			},
+		},
+
 		// Opening a record marks it read, once, after its data has rendered.
 		readStateDue: {
 			immediate: true,
@@ -6291,6 +6482,18 @@ export default {
 
 		objectNotFound() {
 			this.syncSidebarState()
+		},
+
+		/**
+		 * The device's copy of the record arrived: the page is not a not-found page.
+		 *
+		 * @param {object|null} record The take-along record.
+		 * @return {void}
+		 */
+		takeAlongRecord(record) {
+			if (record) {
+				this.objectNotFound = false
+			}
 		},
 
 		contentWithheld() {
@@ -6990,11 +7193,32 @@ export default {
 		},
 
 		/**
-		 * Read the totals `headerMetaCounts` names: a register list through
-		 * one list request, a named source by loading it and counting its
-		 * rows. A failed count is null and leaves the line out.
+		 * The values of the record tokens (`@object.<path>`) the count filters
+		 * name, so the counts are read again when one of them changes.
 		 *
 		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @param {Array} valid The `[name, from]` count entries.
+		 * @param {object} record The loaded record.
+		 * @return {Array<string>} One value per token, in order.
+		 */
+		headerMetaRecordTokens(valid, record) {
+			const tokens = JSON.stringify(valid).match(/@object\.[A-Za-z0-9_.]+/g) || []
+			return tokens.map((token) => {
+				let value = record
+				for (const part of token.slice('@object.'.length).split('.')) {
+					value = value && typeof value === 'object' ? value[part] : undefined
+				}
+				return value === undefined || value === null ? '' : String(value)
+			})
+		},
+
+		/**
+		 * Read the totals `headerMetaCounts` names: the register lists all in
+		 * one batch count request, a named source by loading it and counting
+		 * its rows. A failed count is null and leaves the line out.
+		 *
+		 * @spec openspec/changes/detail-header-meta-counts/specs/detail-page/spec.md#requirement-a-record-page-header-line-can-count-a-list
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 * @return {Promise<void>}
 		 */
 		async loadHeaderMetaCounts() {
@@ -7005,35 +7229,39 @@ export default {
 			}
 			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
 			const values = {}
-			await Promise.all(JSON.parse(key)[0].map(async ([name, from]) => {
+			const entries = JSON.parse(key)[0]
+			const lists = entries.filter(([, from]) => !from.entitySource)
+			const totals = fetchListTotals(lists.map(([, from]) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
+			await Promise.all(entries.filter(([, from]) => from.entitySource).map(async ([name, from]) => {
 				try {
-					if (from.entitySource) {
-						const source = resolveIndexSource(from.entitySource)
-						if (!source) {
-							values[name] = null
-							return
-						}
-						await source.load()
-						values[name] = source.rows().length
+					const source = resolveIndexSource(from.entitySource)
+					if (!source) {
+						values[name] = null
 						return
 					}
-					values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx)
+					await source.load()
+					values[name] = source.rows().length
 				} catch {
 					values[name] = null
 				}
 			}))
+			const listTotals = await totals
+			lists.forEach(([name], index) => {
+				values[name] = listTotals[index]
+			})
 			if (key === this.headerMetaCountKey) {
 				this.headerMetaCountValues = values
 			}
 		},
 
 		/**
-		 * Count the lists behind the header's count pills (`countFrom`): one
-		 * list request each (`_limit=1`, the `total`). A failed count, or a
-		 * record without an id yet, shows no pill.
+		 * Count the lists behind the header's count pills (`countFrom`), all in
+		 * one batch count request. A failed count, or a record without an id
+		 * yet, shows no pill.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/screens-relation-pages/specs/relation-pages/spec.md#requirement-a-header-pill-can-be-a-constant-or-a-count
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async refreshPillCounts() {
 			const pills = [['type', this.typePill], ['status', this.statusPill]]
@@ -7045,12 +7273,59 @@ export default {
 				return
 			}
 			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const totals = await fetchListTotals(pills.map(([, source]) => ({ register: source.register, schema: source.schema, filter: source.filter })), ctx)
 			const counts = {}
-			await Promise.all(pills.map(async ([key, source]) => {
-				counts[key] = await fetchListTotal(source.register, source.schema, source.filter, ctx).catch(() => null)
-			}))
+			pills.forEach(([key], index) => {
+				counts[key] = totals[index]
+			})
 			if (seq === this.pillCountSeq) {
 				this.pillCounts = counts
+			}
+		},
+
+		/**
+		 * One header pill: a count pill from its count, an endpoint pill from
+		 * the value its endpoint answered, any other from the record.
+		 *
+		 * @param {string} key `type` or `status`.
+		 * @param {object|null} config The pill config.
+		 * @return {object|null} The pill, or null.
+		 * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+		 */
+		headerPillOf(key, config) {
+			if (pillCountSource(config)) {
+				return resolveCountPill(config, this.pillCounts[key], (text) => this.effectiveTranslate(text))
+			}
+			if (pillEndpointSource(config)) {
+				return resolveEndpointPill(config, this.pillEndpointValues[key])
+			}
+			return resolvePill(config, this.resolvedObject)
+		},
+
+		/**
+		 * Read the values behind the header's endpoint pills (`endpointSource`).
+		 * A failed read, a request still waiting on a token or a record
+		 * without an id shows no pill.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/detail-pill-from-endpoint/specs/detail-page/spec.md#requirement-a-header-pill-can-read-a-value-from-an-endpoint
+		 */
+		async refreshPillEndpoints() {
+			const pills = [['type', this.typePill], ['status', this.statusPill]]
+				.map(([key, config]) => [key, pillEndpointSource(config)])
+				.filter(([, source]) => source)
+			const seq = ++this.pillEndpointSeq
+			if (pills.length === 0 || this.objectId === null || this.objectId === undefined || this.objectId === '') {
+				this.pillEndpointValues = {}
+				return
+			}
+			const ctx = { objectId: this.objectId, object: this.resolvedObject || undefined }
+			const values = {}
+			await Promise.all(pills.map(async ([key, source]) => {
+				values[key] = await fetchEndpointSource(source, ctx).catch(() => null)
+			}))
+			if (seq === this.pillEndpointSeq) {
+				this.pillEndpointValues = values
 			}
 		},
 
@@ -7450,7 +7725,7 @@ export default {
 			} finally {
 				// A newer fetch for another id owns the flags now.
 				if (fetchesObject && objectId === this.objectId) {
-					this.objectNotFound = !store.objects?.[type]?.[objectId]
+					this.objectNotFound = !store.objects?.[type]?.[objectId] && !this.takeAlongRecord
 						&& store.getError?.(type)?.status === 404
 					this.objectFetchPending = false
 				}
@@ -8291,6 +8566,40 @@ export default {
 			}
 			const entry = getWidgetTypeEntry(def.type)
 			return (entry && entry.form) || null
+		},
+
+		/**
+		 * Whether a body grid cell mounts its widget at once rather than when
+		 * it nears the screen: the widget or its placement says `eager: true`,
+		 * the grid is being edited, or the cell's authored top lies within the
+		 * first viewport height, so the cards in view on open draw in the
+		 * first paint.
+		 *
+		 * @param {object} item Layout item.
+		 * @param {object} section The grid section the item is drawn in.
+		 * @return {boolean} true when the cell mounts its content at once.
+		 */
+		gridCellEager(item, section) {
+			if (item.eager === true || section.editable || this.findWidget(item)?.eager === true) {
+				return true
+			}
+			if (typeof window === 'undefined' || !window.innerHeight) {
+				return true
+			}
+			const top = (Number(item.gridY) || 0) * GRID_CELL_HEIGHT
+			return top < window.innerHeight
+		},
+
+		/**
+		 * The height an empty size-to-content cell holds while its widget waits
+		 * to mount: its authored rows, so GridStack does not collapse the row
+		 * and then jump when the content arrives.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {number} Height in pixels.
+		 */
+		gridCellMinHeight(item) {
+			return Math.max(1, Number(item.gridHeight) || 1) * GRID_CELL_HEIGHT
 		},
 
 		/**

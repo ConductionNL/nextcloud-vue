@@ -146,7 +146,7 @@
 			:bulkCancel="Boolean(viewBulkBand && viewBulkBand.cancel === true)"
 			:pagination="effectivePagination"
 			:objectCount="effectiveObjects.length"
-			:selectable="selectable"
+			:selectable="selectable && !takeAlongActive"
 			:selectedIds="internalSelectedIds"
 			:addLabel="resolvedAddLabel"
 			:addIcon="resolvedIcon"
@@ -169,6 +169,7 @@
 			:showMap="showMapSegment"
 			:mapLabel="mapLabel"
 			:mapIcon="mapIcon"
+			:customViewSegments="customViewSegments"
 			:listIcon="listIcon"
 			:showSearch="search !== false && (inlineSearch || isBoardLook) && !sourceRefusal"
 			:searchPlacement="searchPlacement"
@@ -826,8 +827,16 @@
 					{{ sourceNote }}
 				</p>
 
+				<!-- Offline: the rows downloaded to this device, and when (manifest offline.takeAlong). -->
+				<p v-if="takeAlongActive"
+					class="cn-index-page__offline-status"
+					role="status"
+					data-testid="cn-index-page-offline">
+					{{ takeAlongText }}
+				</p>
+
 				<!-- Loading state — initial fetch only; a background refresh keeps the table visible -->
-				<div v-if="showInitialLoader" class="cn-index-page__loading">
+				<div v-if="showInitialLoader && !takeAlongActive" class="cn-index-page__loading">
 					<!-- name gives NcLoadingIcon a non-empty aria-label (WCAG role-img-alt); empty name ships an unlabeled role="img" -->
 					<NcLoadingIcon :size="32" :name="loadingText" />
 				</div>
@@ -866,7 +875,7 @@
 				</div>
 
 				<!-- Error state: the latest self-fetch failed (e.g. a search term the server rejects) -->
-				<div v-else-if="(selfFetchFailed && !searchRefusalAsNotice) || sourceFailed"
+				<div v-else-if="((selfFetchFailed && !searchRefusalAsNotice) || sourceFailed) && !takeAlongActive"
 					class="cn-index-page__empty"
 					role="status"
 					data-testid="cn-index-page-fetch-error">
@@ -909,7 +918,7 @@
 					:sortKey="effectiveSortKey"
 					:sortOrder="effectiveSortOrder"
 					:sortKeys="effectiveSortKeys"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:hideHeader="hideTableHeader"
 					:rowClickToView="rowClickOpens"
 					:rowClickRoute="rowLinkRoute"
@@ -1097,7 +1106,7 @@
 					:statusField="boardColumnField"
 					:columnKeyOf="boardColumnKeyOf"
 					:wrapColumns="board.wrap === true"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:selectedIds="internalSelectedIds"
 					:allowedMoves="boardAllowedMoves"
 					:cardFields="board.cardFields || []"
@@ -1122,6 +1131,21 @@
 					@cardAuxClick="onRowAuxClick"
 					@moved="onBoardMoved"
 					@cardAction="onRowAction" />
+
+				<!--
+					A view of the page's own (`customViews`): the component the
+					app names gets the whole filtered list, as the other views
+					draw it, and opens a row the way they do.
+				-->
+				<component
+					:is="activeCustomView.component"
+					v-else-if="activeCustomView"
+					:rows="displayObjects"
+					:schema="effectiveSchema"
+					:loading="effectiveLoading"
+					:rowKey="rowKey"
+					:data-testid="'cn-index-custom-view-' + activeCustomView.id"
+					@rowClick="onRowClick" />
 
 				<!--
 					Date axis. Reads only: nothing here reschedules, because a
@@ -1163,7 +1187,7 @@
 					:objects="displayObjects"
 					:schema="effectiveSchema"
 					:config="renderedListConfig"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:selectedIds="internalSelectedIds"
 					:rowKey="rowKey"
 					:emptyText="emptyText"
@@ -1237,7 +1261,7 @@
 					v-else
 					:objects="displayObjects"
 					:schema="effectiveSchema"
-					:selectable="selectable"
+					:selectable="selectable && !takeAlongActive"
 					:clickToView="rowClickOpens"
 					:cardFields="resolvedCardFields"
 					:cardLayout="cardLayout"
@@ -1485,7 +1509,6 @@ import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import CnConfirmDialog from '../../dialogs/CnConfirmDialog.vue'
-import CnQuickEditDialog from '../../dialogs/CnQuickEditDialog.vue'
 import CnBuildiqEditButton from '../CnBuildiqEditButton/CnBuildiqEditButton.vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
 import CnEmptyContent from '../CnEmptyContent/CnEmptyContent.vue'
@@ -1498,9 +1521,11 @@ import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnIndexHeaderMenu from './CnIndexHeaderMenu.vue'
 import CnIndexPageWidgets from './CnIndexPageWidgets.vue'
 import { useContextMenu } from '../../composables/index.js'
+import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useLook } from '../../composables/useLook.js'
 import { actionLabelText, fetchSelectionActions, runSelectionAction } from '../../composables/useObjectActions.js'
 import { copyKindsOf } from '../../composables/useObjectCopy.js'
+import { searchAndSortLocally, takeAlongIndexText, useOfflineTakeAlong } from '../../composables/useOfflineTakeAlong.js'
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
 import { METADATA_COLUMNS } from '../../constants/metadata.js'
@@ -1526,7 +1551,7 @@ import { isColumnSortable } from '../../utils/columnFilters.js'
 import { countLine, footerNoteForView } from '../../utils/countLine.js'
 import { reportBindingProblems } from '../../utils/diagnostics.js'
 import { fetchAggregateValue, fetchGroupedCounts } from '../../utils/fetchAggregate.js'
-import { fetchFilterCounts, fetchListTotal } from '../../utils/fetchFilterCounts.js'
+import { fetchFilterCounts, fetchListTotals } from '../../utils/fetchFilterCounts.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { listText, rangeChipText, rangeEnds, relativeRangeText } from '../../utils/filterRangeLabel.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
@@ -1535,6 +1560,7 @@ import { prefixUrl } from '../../utils/headers.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { labelsByField } from '../../utils/labelsByField.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { lensUnavailableText } from '../../utils/lensAvailability.js'
 import { isModifiedClick, openRowTarget } from '../../utils/linkNavigation.js'
 import { resolveClaimedTeams, resolveClaimTokens, splitViewsIntoTabs, viewAsTab, viewIdOf } from '../../utils/listLenses.js'
@@ -1573,35 +1599,19 @@ import { evaluateVisibleWhen } from '../../utils/visibleWhen.js'
 import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { CnActionButtons } from '../CnActionButtons/index.js'
 import { CnActionsBar } from '../CnActionsBar/index.js'
-import { CnAdvancedFormDialog } from '../CnAdvancedFormDialog/index.js'
-import { CnBoardView } from '../CnBoardView/index.js'
 import { CnCardGrid } from '../CnCardGrid/index.js'
 import { CnContextMenu } from '../CnContextMenu/index.js'
-import { CnCopyDialog } from '../CnCopyDialog/index.js'
 import { CnDataTable } from '../CnDataTable/index.js'
-import { CnDateAxisView } from '../CnDateAxisView/index.js'
-import { CnDeleteDialog } from '../CnDeleteDialog/index.js'
 import { CnExpandableRow } from '../CnExpandableRow/index.js'
 import { CnFolderSidebar } from '../CnFolderSidebar/index.js'
-import { CnFormDialog } from '../CnFormDialog/index.js'
 import { CnIcon } from '../CnIcon/index.js'
 import { CnIndexSidebar } from '../CnIndexSidebar/index.js'
-import { CnMapWidget } from '../CnMapWidget/index.js'
-import { CnMassCopyDialog } from '../CnMassCopyDialog/index.js'
-import { CnMassDeleteDialog } from '../CnMassDeleteDialog/index.js'
-import { CnMassExportDialog } from '../CnMassExportDialog/index.js'
-import { CnMassImportDialog } from '../CnMassImportDialog/index.js'
-import { CnObjectCalendar } from '../CnObjectCalendar/index.js'
 import { CnObjectList } from '../CnObjectList/index.js'
 import { CnPageHeader } from '../CnPageHeader/index.js'
 import { CnPagination } from '../CnPagination/index.js'
 import { CnQuickFilterBar } from '../CnQuickFilterBar/index.js'
 import { CnRowActions } from '../CnRowActions/index.js'
-import { CnSavedViewEditDialog } from '../CnSavedViewEditDialog/index.js'
-import { CnSavedViewPresentationDialog } from '../CnSavedViewPresentationDialog/index.js'
 import { CnSavedViewsControl } from '../CnSavedViewsControl/index.js'
-import { CnSavedViewShareDialog } from '../CnSavedViewShareDialog/index.js'
-import { CnSaveViewDialog } from '../CnSaveViewDialog/index.js'
 import { CnScanField } from '../CnScanField/index.js'
 import { applyAiContext } from './aiContext.js'
 import { buildDefaultActions } from './defaultActions.js'
@@ -1613,6 +1623,26 @@ import { createSelfModeActions, resolveRowTarget } from './selfModeActions.js'
 import { applyRowPatches, normalisePaneWidth, rowIdOf, splitLayoutFor } from './splitView.js'
 import { declaredSearchFields, useNamedSource } from './useNamedSource.js'
 import { BOARD_PAGE_SIZE, mapPlotAllLimitOf, resolveInitialQuickFilterIndex, useSelfFetchList } from './useSelfFetchList.js'
+
+// Dialogs and the alternate list views render only once opened or chosen, so
+// they load on first render instead of riding in the index page's chunk.
+const CnAdvancedFormDialog = lazyComponent(() => import('../CnAdvancedFormDialog/CnAdvancedFormDialog.vue'), 'CnAdvancedFormDialog')
+const CnBoardView = lazyComponent(() => import('../CnBoardView/CnBoardView.vue'), 'CnBoardView')
+const CnCopyDialog = lazyComponent(() => import('../CnCopyDialog/CnCopyDialog.vue'), 'CnCopyDialog')
+const CnDateAxisView = lazyComponent(() => import('../CnDateAxisView/CnDateAxisView.vue'), 'CnDateAxisView')
+const CnDeleteDialog = lazyComponent(() => import('../CnDeleteDialog/CnDeleteDialog.vue'), 'CnDeleteDialog')
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
+const CnMapWidget = lazyComponent(() => import('../CnMapWidget/CnMapWidget.vue'), 'CnMapWidget')
+const CnMassCopyDialog = lazyComponent(() => import('../CnMassCopyDialog/CnMassCopyDialog.vue'), 'CnMassCopyDialog')
+const CnMassDeleteDialog = lazyComponent(() => import('../CnMassDeleteDialog/CnMassDeleteDialog.vue'), 'CnMassDeleteDialog')
+const CnMassExportDialog = lazyComponent(() => import('../CnMassExportDialog/CnMassExportDialog.vue'), 'CnMassExportDialog')
+const CnMassImportDialog = lazyComponent(() => import('../CnMassImportDialog/CnMassImportDialog.vue'), 'CnMassImportDialog')
+const CnObjectCalendar = lazyComponent(() => import('../CnObjectCalendar/CnObjectCalendar.vue'), 'CnObjectCalendar')
+const CnQuickEditDialog = lazyComponent(() => import('../../dialogs/CnQuickEditDialog.vue'), 'CnQuickEditDialog')
+const CnSaveViewDialog = lazyComponent(() => import('../CnSaveViewDialog/CnSaveViewDialog.vue'), 'CnSaveViewDialog')
+const CnSavedViewEditDialog = lazyComponent(() => import('../CnSavedViewEditDialog/CnSavedViewEditDialog.vue'), 'CnSavedViewEditDialog')
+const CnSavedViewPresentationDialog = lazyComponent(() => import('../CnSavedViewPresentationDialog/CnSavedViewPresentationDialog.vue'), 'CnSavedViewPresentationDialog')
+const CnSavedViewShareDialog = lazyComponent(() => import('../CnSavedViewShareDialog/CnSavedViewShareDialog.vue'), 'CnSavedViewShareDialog')
 
 /** Rows fetched for one month in calendar mode. */
 const CALENDAR_PAGE_SIZE = 200
@@ -2231,6 +2261,22 @@ export default {
 		 * @type {Record<string, {register: string, schema: string, filter?: object}>|null}
 		 */
 		headerMetaCounts: {
+			type: Object,
+			default: null,
+		},
+
+		/**
+		 * An endpoint whose answer fills `{source}` in `headerMeta` (manifest
+		 * `config.headerMetaSource`): `{ url, method?, params?, responsePath? }`,
+		 * the request grammar of a widget's `endpointSource`. For a line the
+		 * list cannot count, such as "Bijgewerkt uit Magister om 07.00, 3
+		 * wijzigingen". While it reads, after a failed read or for an empty
+		 * value the note is left out.
+		 *
+		 * @type {{url: string, method?: string, params?: object, responsePath?: string}|null}
+		 * @spec openspec/changes/index-header-meta-from-endpoint/specs/index-page/spec.md#requirement-the-header-note-can-read-a-value-from-an-endpoint
+		 */
+		headerMetaSource: {
 			type: Object,
 			default: null,
 		},
@@ -3299,7 +3345,8 @@ export default {
 		viewMode: {
 			type: String,
 			default: 'table',
-			validator: (v) => ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar'].includes(v),
+			// A page's own view (`customViews`) is named by its id, so any id passes here.
+			validator: (v) => typeof v === 'string' && v !== '',
 		},
 
 		/**
@@ -3356,6 +3403,24 @@ export default {
 		 * @type {Array<'table' | 'cards' | 'list' | 'map' | 'board' | 'dateAxis' | 'calendar'>}
 		 */
 		viewModes: {
+			type: Array,
+			default: null,
+		},
+
+		/**
+		 * Views of the page's own, each drawing the whole filtered list:
+		 * `[{ id, label, icon?, component }]`. `component` names a component
+		 * in the registry or customComponents; it gets `rows` (the filtered
+		 * rows the other views draw), `schema`, `loading` and `rowKey`, and
+		 * emits `rowClick` with a row to open it. Each view is a segment of the
+		 * view switch after the built-in ones and opens with `?_view=<id>`.
+		 * Fed from the manifest as `pages[].config.customViews`. An id that is
+		 * a built-in mode, or a component that does not resolve, is left out.
+		 *
+		 * @type {Array<{id: string, label: string, icon?: string, component: string}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViews: {
 			type: Array,
 			default: null,
 		},
@@ -4807,6 +4872,17 @@ export default {
 		},
 
 		/**
+		 * Whether the manifest takes this page's register and schema along
+		 * (`offline.takeAlong`; CnPageRenderer sets it). Offline, the page then
+		 * shows the downloaded rows with their download time, searched and
+		 * sorted on the device. False: the offline database is never opened.
+		 */
+		offlineTakeAlong: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Optional name of a consumer-provided card component (registered
 		 * in the `customComponents` registry on `CnAppRoot`) to render in
 		 * place of the default `CnObjectCard` when the page is in
@@ -4996,6 +5072,13 @@ export default {
 		// `cnLook` CnAppRoot (or the page renderer) provides.
 		const { isBoard: isBoardLook, lookClass } = useLook(props)
 
+		// manifest-offline-block D5: the downloaded rows while offline.
+		const takeAlong = useOfflineTakeAlong({
+			register: () => props.register,
+			schema: () => (typeof props.schema === 'string' ? props.schema : (props.schema && props.schema.slug) || ''),
+			enabled: () => props.offlineTakeAlong,
+		})
+
 		const {
 			isOpen: contextMenuOpen,
 			targetItem: contextMenuRow,
@@ -5051,6 +5134,9 @@ export default {
 			isBoard: isBoardLook,
 			isBoardLook,
 			lookClass,
+			takeAlongActive: takeAlong.active,
+			takeAlongSet: takeAlong.set,
+			markTakeAlongOffline: takeAlong.markOffline,
 			isNamedSource,
 			namedSource,
 			namedRows,
@@ -5132,6 +5218,8 @@ export default {
 			pageTabCounts: {},
 			/** The `headerMetaCounts` totals, by name; a failed one is null. */
 			headerMetaCountValues: {},
+			/** The value `headerMetaSource` answered, or null (index-header-meta-from-endpoint). */
+			headerMetaSourceValue: null,
 			/** The row the pointer is on in the map list, by key; '' for none. */
 			activeMapKey: '',
 			/** The rows `mapConfig.markerColor.source` points at, or null before they load. */
@@ -5655,6 +5743,16 @@ export default {
 		},
 
 		/**
+		 * The offline status bar's sentence, or '' while online.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-index-and-detail-pages-read-from-the-device-when-offline
+		 * @return {string}
+		 */
+		takeAlongText() {
+			return this.takeAlongActive ? takeAlongIndexText({ ...this.takeAlongSet, rows: this.effectiveObjects }) : ''
+		},
+
+		/**
 		 * The failed fetch as a refused search, or null when it is not one.
 		 *
 		 * @spec openspec/changes/index-search-refusal/specs/index-search-refusal/spec.md#requirement-a-refused-search-is-said-where-it-was-typed
@@ -5767,6 +5865,9 @@ export default {
 		 * @spec openspec/changes/search-refusal-notice/specs/index-search-refusal/spec.md#requirement-a-refused-search-can-keep-the-rows-and-say-so-under-the-search-field
 		 */
 		effectiveObjects() {
+			if (this.takeAlongActive) {
+				return searchAndSortLocally(this.takeAlongSet.rows, { search: this.effectiveSearchValue, sortKey: this.effectiveSortKey, sortOrder: this.effectiveSortOrder })
+			}
 			if (this.isNamedSource) {
 				const sortsRows = !!(this.namedSource && this.namedSource.sortsRows === true)
 				const key = sortsRows && this.namedSort ? this.namedSort.key : ''
@@ -6157,9 +6258,11 @@ export default {
 		 * @return {Array<string>} The ordered toggle segments minus 'map'.
 		 */
 		effectiveToggleModes() {
-			const list = (Array.isArray(this.viewModes) && this.viewModes.length)
-				? this.viewModes
-				: this.availableViewModes
+			const custom = this.customViewEntries.map((view) => view.id)
+			const list = [
+				...((Array.isArray(this.viewModes) && this.viewModes.length) ? this.viewModes : this.availableViewModes),
+				...custom,
+			].filter((mode, index, all) => all.indexOf(mode) === index)
 
 			// 🔴 A SEGMENT ONLY WHEN THE MODE CAN ACTUALLY WORK. A board needs
 			// a status field to build its columns from and a date axis needs
@@ -6181,6 +6284,46 @@ export default {
 				}
 				return true
 			})
+		},
+
+		/**
+		 * The page's own views that can open: a valid id that is no built-in
+		 * mode, a label, and a component that resolves.
+		 *
+		 * @return {Array<{id: string, label: string, icon: string, component: object}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViewEntries() {
+			const builtIn = ['table', 'cards', 'list', 'map', 'board', 'dateAxis', 'calendar']
+			const views = Array.isArray(this.customViews) ? this.customViews : []
+			return views.flatMap((view) => {
+				const id = typeof view?.id === 'string' ? view.id : ''
+				const component = typeof view?.component === 'string' ? this.resolveNamedComponent(view.component) : null
+				if (!/^[a-z][a-zA-Z0-9-]*$/.test(id) || builtIn.includes(id) || !component) {
+					return []
+				}
+				return [{ id, label: this.cnTranslate(view.label || id), icon: typeof view.icon === 'string' ? view.icon : '', component }]
+			})
+		},
+
+		/**
+		 * The page's own view that is open, or null.
+		 *
+		 * @return {object|null}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		activeCustomView() {
+			return this.customViewEntries.find((view) => view.id === this.currentViewMode) || null
+		},
+
+		/**
+		 * The view-switch segments of the page's own views, for CnActionsBar.
+		 *
+		 * @return {Array<{mode: string, label: string, icon: string}>}
+		 * @spec openspec/changes/index-page-custom-views/specs/index-page-custom-views/spec.md#requirement-a-page-can-add-its-own-view-of-the-whole-filtered-list
+		 */
+		customViewSegments() {
+			return this.customViewEntries.map((view) => ({ mode: view.id, label: view.label, icon: view.icon }))
 		},
 
 		/**
@@ -9600,7 +9743,8 @@ export default {
 		barShowsSavedViews() {
 			// Under the board look the saved views stay in the toolbar as chips
 			// even when the header carries the buttons.
-			return Boolean(this.allowSavedViews) && (!this.headerButtonsShown || this.isBoardLook)
+			// Offline the saved views cannot load or save: hidden.
+			return Boolean(this.allowSavedViews) && !this.takeAlongActive && (!this.headerButtonsShown || this.isBoardLook)
 		},
 
 		/**
@@ -9647,6 +9791,14 @@ export default {
 				.replace('{shown}', () => onCount(this.effectiveObjects.length))
 				.replace('{total}', () => (typeof total === 'number' ? onCount(total) : ''))
 				.replace(/\{rows:([\w.-]+)\}/g, (match, field) => onCount(rows.filter((row) => isSet(field.split('.').reduce((at, key) => (at && typeof at === 'object' ? at[key] : undefined), row))).length))
+				.replace(/\{source\}/g, () => {
+					const value = this.headerMetaSourceValue
+					if ((typeof value !== 'string' && typeof value !== 'number') || value === '') {
+						missing = true
+						return ''
+					}
+					return String(value)
+				})
 				.replace(/\{count:([\w-]+)\}/g, (match, name) => {
 					const value = this.headerMetaCountValues[name]
 					if (typeof value !== 'number') {
@@ -9689,6 +9841,22 @@ export default {
 			const sources = this.headerMetaCounts && typeof this.headerMetaCounts === 'object' ? this.headerMetaCounts : {}
 			const valid = Object.entries(sources).filter(([, from]) => from && from.register && from.schema)
 			return valid.length > 0 ? JSON.stringify(valid) : ''
+		},
+
+		/**
+		 * What the header note's endpoint value depends on: the resolved
+		 * request, '' without one.
+		 *
+		 * @return {string}
+		 * @spec openspec/changes/index-header-meta-from-endpoint/specs/index-page/spec.md#requirement-the-header-note-can-read-a-value-from-an-endpoint
+		 */
+		headerMetaSourceKey() {
+			const source = this.headerMetaSource
+			if (!source || typeof source !== 'object' || typeof source.url !== 'string' || source.url === '') {
+				return ''
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			return JSON.stringify(resolveEndpointRequest(source, ctx))
 		},
 
 		/**
@@ -10052,6 +10220,20 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * A list request that failed without any answer counts as offline
+		 * (manifest-offline-block D4): show the downloaded rows instead.
+		 *
+		 * @param {boolean} failed Whether the latest self-fetch failed.
+		 * @return {void}
+		 */
+		selfFetchFailed(failed) {
+			const error = failed ? this.list.error?.value : null
+			if (error && this.offlineTakeAlong && !error.response) {
+				this.markTakeAlongOffline()
+			}
+		},
+
 		actionsFrom: {
 			immediate: true,
 			handler() {
@@ -10242,6 +10424,13 @@ export default {
 			immediate: true,
 			handler() {
 				this.loadHeaderMetaCounts()
+			},
+		},
+
+		headerMetaSourceKey: {
+			immediate: true,
+			handler() {
+				this.loadHeaderMetaSource()
 			},
 		},
 
@@ -10993,10 +11182,31 @@ export default {
 		},
 
 		/**
-		 * Read the totals of the lists `headerMetaCounts` names, one list
-		 * request each. A failed count is null and leaves the note out.
+		 * Read the value `headerMetaSource` answers for `{source}`. A failed
+		 * read is null and leaves the note out.
 		 *
 		 * @return {Promise<void>}
+		 * @spec openspec/changes/index-header-meta-from-endpoint/specs/index-page/spec.md#requirement-the-header-note-can-read-a-value-from-an-endpoint
+		 */
+		async loadHeaderMetaSource() {
+			const key = this.headerMetaSourceKey
+			if (key === '') {
+				this.headerMetaSourceValue = null
+				return
+			}
+			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const value = await fetchEndpointSource(this.headerMetaSource, ctx).catch(() => null)
+			if (key === this.headerMetaSourceKey) {
+				this.headerMetaSourceValue = value
+			}
+		},
+
+		/**
+		 * Read the totals of the lists `headerMetaCounts` names, all in one
+		 * batch count request. A failed count is null and leaves the note out.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async loadHeaderMetaCounts() {
 			const key = this.headerMetaCountKey
@@ -11005,21 +11215,24 @@ export default {
 				return
 			}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const entries = JSON.parse(key)
+			const totals = await fetchListTotals(entries.map(([, from]) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
 			const values = {}
-			await Promise.all(JSON.parse(key).map(async ([name, from]) => {
-				values[name] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
-			}))
+			entries.forEach(([name], index) => {
+				values[name] = totals[index]
+			})
 			if (key === this.headerMetaCountKey) {
 				this.headerMetaCountValues = values
 			}
 		},
 
 		/**
-		 * Count the lists behind the manifest page tabs (`countFrom`), one list
-		 * request each. A failed count shows no number.
+		 * Count the lists behind the manifest page tabs (`countFrom`), all in
+		 * one batch count request. A failed count shows no number.
 		 *
 		 * @return {Promise<void>}
 		 * @spec openspec/changes/index-page-tabs-notice/specs/index-page/spec.md#requirement-an-index-page-can-link-its-sibling-pages-as-tabs
+		 * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
 		 */
 		async loadPageTabCounts() {
 			const key = this.pageTabCountKey
@@ -11028,13 +11241,14 @@ export default {
 				return
 			}
 			const ctx = typeof this.selfFetchTokenCtx === 'function' ? this.selfFetchTokenCtx() : {}
+			const counted = this.pageTabs
+				.map((tab, index) => ({ index, from: tab && tab.countFrom }))
+				.filter(({ from }) => from && from.register && from.schema)
+			const totals = await fetchListTotals(counted.map(({ from }) => ({ register: from.register, schema: from.schema, filter: from.filter || {} })), ctx)
 			const counts = {}
-			await Promise.all(this.pageTabs.map(async (tab, index) => {
-				const from = tab && tab.countFrom
-				if (from && from.register && from.schema) {
-					counts[index] = await fetchListTotal(from.register, from.schema, from.filter || {}, ctx).catch(() => null)
-				}
-			}))
+			counted.forEach(({ index }, position) => {
+				counts[index] = totals[position]
+			})
 			if (key === this.pageTabCountKey) {
 				this.pageTabCounts = counts
 			}

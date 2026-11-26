@@ -1,0 +1,2 @@
+- [x] 1 CnStorePage `activeTarget` (id or `@workspace.<key>` token): the "Fits: {target}" filter with Clear all, and the install picker starting on it (tests/components/CnStorePageFitsActiveTarget.spec.js); "Fits: {target}" in en and nl
+- [x] 2 larpinq admin-configuration-store 1.3 sets `config.activeTarget: "@workspace.activeWorld?"` on its Store page with the release that carries it (consumer): larpinq#1201 on ^2.231.0

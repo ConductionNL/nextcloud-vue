@@ -7,7 +7,9 @@
 <template>
 	<div class="cn-json-viewer">
 		<div class="cn-json-viewer__codemirror" :class="[isDark ? 'cn-json-viewer__codemirror--dark' : 'cn-json-viewer__codemirror--light']">
-			<CodeMirror
+			<component
+				:is="kit.CodeMirror"
+				v-if="kit"
 				v-model="localValue"
 				:basic="true"
 				:placeholder="resolvedLanguage === 'json' ? '{ &quot;key&quot;: &quot;value&quot; }' : ''"
@@ -34,13 +36,9 @@
 </template>
 
 <script>
-import { html as htmlLang } from '@codemirror/lang-html'
-import { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
-import { xml as xmlLang } from '@codemirror/lang-xml'
 import { NcButton } from '@nextcloud/vue'
-import { githubDark, githubLight } from '@uiw/codemirror-theme-github'
-import CodeMirror from 'vue-codemirror6'
 import { getTheme } from '../../utils/getTheme.js'
+import { loadCodemirrorKit, loadedCodemirrorKit } from './loadCodemirrorKit.js'
 
 /**
  * CnJsonViewer — Syntax-highlighted code viewer/editor.
@@ -74,7 +72,6 @@ export default {
 
 	components: {
 		NcButton,
-		CodeMirror,
 	},
 
 	props: {
@@ -113,8 +110,8 @@ export default {
 
 	data() {
 		return {
-			githubLight,
-			githubDark,
+			// CodeMirror and its languages, loaded with the first editor.
+			kit: loadedCodemirrorKit(),
 			internalValue: this.value,
 		}
 	},
@@ -143,7 +140,10 @@ export default {
 
 		theme: {
 			get() {
-				return this.isDark ? githubDark : githubLight
+				if (!this.kit) {
+					return null
+				}
+				return this.isDark ? this.kit.githubDark : this.kit.githubLight
 			},
 		},
 
@@ -182,13 +182,16 @@ export default {
 		 * @return {object|null} Language extension or null for plain text
 		 */
 		langExtension() {
+			if (!this.kit) {
+				return null
+			}
 			switch (this.resolvedLanguage) {
 				case 'json':
-					return jsonLang()
+					return this.kit.jsonLang()
 				case 'html':
-					return htmlLang()
+					return this.kit.htmlLang()
 				case 'xml':
-					return xmlLang()
+					return this.kit.xmlLang()
 				case 'text':
 				default:
 					return null
@@ -201,11 +204,11 @@ export default {
 		 * @return {object|null} Linter extension or null
 		 */
 		linterExtension() {
-			if (this.readOnly) {
+			if (this.readOnly || !this.kit) {
 				return null
 			}
 			if (this.resolvedLanguage === 'json') {
-				return jsonLinter()
+				return this.kit.jsonLinter()
 			}
 			return null
 		},
@@ -216,7 +219,7 @@ export default {
 		 * @return {Array} Extensions including theme and optional language
 		 */
 		editorExtensions() {
-			const exts = [this.theme]
+			const exts = this.theme ? [this.theme] : []
 			if (this.langExtension) {
 				exts.push(this.langExtension)
 			}
@@ -278,6 +281,14 @@ export default {
 				this.$emit('detected-language', lang)
 			},
 		},
+	},
+
+	created() {
+		if (!this.kit) {
+			loadCodemirrorKit().then((kit) => {
+				this.kit = kit
+			})
+		}
 	},
 
 	methods: {

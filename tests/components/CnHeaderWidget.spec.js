@@ -36,7 +36,8 @@ describe('CnHeaderWidgetForm', () => {
 		const events = wrapper.emitted('update:content')
 		const payload = events[events.length - 1][0]
 		expect(payload.title).toBe('Hello')
-		expect(payload).toMatchObject({ overlayMode: 'none', height: 'medium', cta: null })
+		expect(payload).toMatchObject({ height: 'medium', cta: null })
+		expect(payload).not.toHaveProperty('overlayMode')
 	})
 
 	it('validate requires a title', () => {

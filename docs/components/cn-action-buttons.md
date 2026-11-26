@@ -15,12 +15,12 @@ dispatcher — with a confirm gate first when the action asks for it.
 
 | `type` | Behaviour |
 |--------|-----------|
-| `open-form` | Fetches the action's `schema` through the object store and mounts `CnFormDialog`; saves the new object on confirm, toasts, bumps `cn:page:refresh`, and navigates to `onSuccessRoute` when set. Optional `props` seeds fixed field values, `includeFields` / `excludeFields` / `fieldOverrides` narrow what the button asks for, `createOverride` names a registry handler that owns the persist, and `advanced: true` swaps in the properties/JSON table. |
+| `open-form` | Fetches the action's `schema` through the object store and mounts `CnFormDialog`; saves the new object on confirm, toasts, bumps `cn:page:refresh`, and navigates to `onSuccessRoute` when set. Optional `props` seeds fixed field values, `includeFields` / `excludeFields` / `fieldOverrides` narrow what the button asks for, `createOverride` names a registry handler that owns the persist, and `advanced: true` swaps in the properties/JSON table. `preloadedDefinitions` (set at runtime, not in a manifest) hands the dialog definition records the caller already read, so it does not read them again. |
 | `toggle` | Two-way state button: GETs `stateSource` on mount, renders `labelOn` / `labelOff`, and on click writes the flipped value **optimistically** (reverting on failure). |
 | `api-call` | POST/PUT `url` + success/error toast + page refresh — via `dispatchAction`. `payload` (preferred, deep @-token resolution) or `params` (legacy, shallow) supplies the JSON body; `download: true` requests a blob response and triggers a browser file download instead (no auto-refresh unless `refresh: true`). See [dispatchAction](../utilities/dispatch-action.md#api-call-wave-3-91). |
 | `agent` | Run a governed hermiq agent against the page object (hermiq#41). POSTs `{ register, schema, objectId, resultField?, skill?, prompt? }` to `/apps/hermiq/api/agents/{agent}/run-on-object` — `register` / `schema` / `objectId` default to the page's `@register` / `@schema` / `@objectId` context. A first-class companion to `api-call` (still the fallback for a bespoke body); hermiq is not hard-required — an app-level 404 toasts "Agent runtime unavailable". See [dispatchAction](../utilities/dispatch-action.md#agent-hermiq41). |
 | `navigate` / `open-page` | Rendered as a real link, so it can be middle-clicked, opened in a new tab or copied: an external `navigate` target opens in a new tab, an in-app target (or `open-page` route name) gets the router-resolved `href` and a plain click routes in place. A `confirm: true` action, one carrying an `onSelect` function, or one whose route the router cannot resolve stays a button routed through `dispatchAction`. In `display: "menu"` an in-app link is published as a `run()` entry, not an `href`. |
-| `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`). |
+| `open-modal` / `refresh` / `handler` | Routed through `dispatchAction` (the pre-bound `cnDispatchAction` when mounted under `CnPageRenderer`; elsewhere, such as the navigation's primary action, with the router, `cnRegistry` and CnAppRoot's `cnOpenModal`, so `open-modal` opens the registered modal over the current page). |
 
 An entry with **`href`** (any type) is a real link and is never dispatched: an anchor button in the bar, an `NcActionLink` in a menu, with `target` as its anchor target. This component uses `href` as given, so it must be a finished URL. A manifest `headerActions[]` entry on a detail or dashboard page may carry `href` too; the page resolves an instance path through `generateUrl()` and sets `target` (`_self` unless the manifest says `_blank`) before handing it over — see [CnIndexPage](./cn-index-page.md#header-actions-that-are-links-href).
 
@@ -149,6 +149,20 @@ only resolves one level deep. The object context comes from either
 `CnDetailPage`'s `cnObjectContext` or `CnPageRenderer`'s
 `cnDetailObjectContext` holder, so a detail action resolves against the
 current record without extra wiring.
+
+### Acting on a looked-up record (`resolve`)
+
+An `api-call` or `navigate` action can act on a record it looks up first, such as a programme's open cycle (board PqProject, "Close cycle"). `resolve` names the register, schema and filter (filter values take the token grammar, so `@objectId` is the page's record); the first match is `@resolved.<field>` in `url`, `target` and `payload`. Schema 2.188.0.
+
+```json
+{ "id": "close-cycle", "label": "Close cycle", "type": "api-call", "confirm": true,
+  "url": "/apps/pipelinq/api/cycles/@resolved.id/close",
+  "resolve": { "register": "pipelinq", "schema": "cycle",
+    "filter": { "programme": "@objectId", "status": "open" },
+    "unresolved": "disable", "reason": "There is no open cycle" } }
+```
+
+The record is looked up when the actions render and again when the action runs, so it never acts on a record that changed in between. Without a match the button is disabled with `reason` as its title (`unresolved: "hide"` hides it instead), and a dispatch that finds nothing shows `reason` as an error and does not call.
 
 ## Props
 

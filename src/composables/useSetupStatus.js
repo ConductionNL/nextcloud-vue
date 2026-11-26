@@ -3,8 +3,36 @@
  * SPDX-License-Identifier: EUPL-1.2
  */
 
+import { loadState } from '@nextcloud/initial-state'
 import { computed, ref } from 'vue'
 import { missingRequiredApps, readServerAppStatuses } from './useDependencyCheck.js'
+
+/**
+ * The setup status the page already carries in its initial state, under
+ * `setup_status` of the app: the document `GET /api/setup/status` answers,
+ * or `{ forbidden: true }` when the caller may not read it (the endpoint's
+ * 401/403). Null when the page carries none, so the composable asks the
+ * endpoint as before.
+ *
+ * @param {string} appId Nextcloud app id.
+ * @return {{status: object|null, forbidden: boolean}|null} The carried answer, or null.
+ * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-setup-wizard/spec.md#requirement-a-page-may-carry-the-setup-status
+ */
+export function readPreloadedSetupStatus(appId) {
+	let carried
+	try {
+		carried = loadState(appId, 'setup_status', null)
+	} catch {
+		return null
+	}
+	if (!carried || typeof carried !== 'object' || Array.isArray(carried)) {
+		return null
+	}
+	if (carried.forbidden === true) {
+		return { status: null, forbidden: true }
+	}
+	return { status: carried, forbidden: false }
+}
 
 /**
  * Per-`appId` cache of setup-status results. The Vue refs are stored so all
@@ -189,8 +217,22 @@ export function useSetupStatus(appId, manifest) {
 		}
 	}
 
+	// The first caller reads the status; every later one shares it. `fetched`
+	// is set before the read starts, not when it ends: a second caller during
+	// the read (CnAppRoot's `setupState` re-evaluates when the manifest object
+	// is replaced) otherwise started a second GET of the same document.
 	if (!entry.fetched) {
-		refresh()
+		entry.fetched = true
+		const carried = enabled ? readPreloadedSetupStatus(appId) : null
+		if (carried) {
+			if (carried.status) {
+				status.value = carried.status
+			}
+			forbidden.value = carried.forbidden
+			loading.value = false
+		} else {
+			refresh()
+		}
 	}
 
 	return { steps, status, requiredUnmet, optionalUnmet, optionalUnmetReported, notApplicable, completed, enabled, loading, error, forbidden, refresh }

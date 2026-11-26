@@ -24,8 +24,9 @@
 		     text ("Request failed with status code 404") — the real error is
 		     logged to the console (ADR-062: an error surface is never a leaked
 		     stack). Takes precedence over the empty state so the two never
-		     stack. -->
-		<p v-else-if="error" class="cn-object-list-widget__error">
+		     stack. A 5xx says "Temporarily unavailable", announced politely,
+		     because the next read may well succeed. -->
+		<p v-else-if="error" class="cn-object-list-widget__error" aria-live="polite">
 			{{ loadErrorLabel }}
 		</p>
 		<!-- Designed empty state. This used to be a bare CnDataTable with no
@@ -402,7 +403,6 @@ import { NcButton } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import CnDataTable from '../CnDataTable/CnDataTable.vue'
 import CnFkResolveCell from '../CnFkResolveCell/CnFkResolveCell.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnIcon from '../CnIcon/CnIcon.vue'
 import CnPagination from '../CnPagination/CnPagination.vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
@@ -417,11 +417,13 @@ import { formatMoney } from '../../utils/formatMetric.js'
 import { headerFilterParams, nextHeaderFilters } from '../../utils/headerFilterState.js'
 import { buildExportUrl } from '../../utils/indexExportHelpers.js'
 import { interpolateUrlTokens } from '../../utils/interpolateUrlTokens.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { followLinkClick, openRowTarget, resolveHref } from '../../utils/linkNavigation.js'
 import { createActionState, listAddActions } from '../../utils/listCreateAction.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
 import { readPath } from '../../utils/readPath.js'
 import { moveIndex, renumberRows, rowIdOf } from '../../utils/reorderRows.js'
+import { requestLanguage } from '../../utils/requestLanguage.js'
 import { dropOptionalUnresolved, hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { markNewTabHandled } from '../../utils/rowAuxClick.js'
 import { actionForRow, fillRowTokens, hasRowTokens, resolveRowFilter, rowTokenField } from '../../utils/rowTokens.js'
@@ -431,6 +433,9 @@ import { dispatchObjectCreated } from '../../utils/walkthroughSignals.js'
 import { HOST_WIDGET_ID, WIDGET_SELECTION } from '../../utils/widgetSelection.js'
 import { getCurrentUserGroups } from '../../utils/widgetVisibility.js'
 import { CnRowActions } from '../CnRowActions/index.js'
+
+// The form renders only once opened, so it loads on first render.
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
 
 /**
  * Event-bus channel a page-level refresh is announced on. The page's Actions
@@ -461,6 +466,9 @@ const PAGE_REFRESH_CHANNEL = 'cn:page:refresh'
  * }
  * ```
  */
+/** How long after a 5xx the list reads again (the default poll interval). */
+const UNAVAILABLE_RETRY_MS = 60 * 1000
+
 export default {
 	name: 'CnObjectListWidget',
 
@@ -647,6 +655,8 @@ export default {
 			readOnlyRows: [],
 			loading: false,
 			error: '',
+			// HTTP status of the failed list read, so a 5xx reads as temporary.
+			errorStatus: null,
 			/** Server-side total for the resolved filter (drives "View all (N)"). */
 			total: 0,
 			/** The card header's Download action once `content.export` offered it; null before. */
@@ -846,7 +856,13 @@ export default {
 		 * @return {string}
 		 */
 		loadErrorLabel() {
-			return this.content.errorText || t('nextcloud-vue', 'Could not load these records')
+			if (this.content.errorText) {
+				return this.content.errorText
+			}
+			if (Number(this.errorStatus) >= 500) {
+				return t('nextcloud-vue', 'Temporarily unavailable')
+			}
+			return t('nextcloud-vue', 'Could not load these records')
 		},
 
 		/**
@@ -1873,6 +1889,7 @@ export default {
 	},
 
 	beforeUnmount() {
+		clearTimeout(this._unavailableRetry)
 		if (this._onPageRefresh) {
 			unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 			this._onPageRefresh = null
@@ -2026,7 +2043,7 @@ export default {
 				return
 			}
 			const register = children.register || (this.content || {}).register
-			const params = { [link.key]: values }
+			const params = { [link.key]: values, _lang: requestLanguage() }
 			for (const [k, v] of Object.entries(resolveFilterTokens(children.filter || {}, this.tokenCtx))) {
 				if (k !== link.key && rowTokenField(v) === '' && v !== '' && v !== null && v !== undefined && typeof v !== 'object') {
 					params[k] = v
@@ -2301,6 +2318,8 @@ export default {
 			}
 			this.loading = true
 			this.error = ''
+			this.errorStatus = null
+			clearTimeout(this._unavailableRetry)
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
 					import('@nextcloud/axios'),
@@ -2315,7 +2334,9 @@ export default {
 				// It doubles as the PAGE SIZE: one fetch is exactly one page, so
 				// the pager's "1–25 of 137" is the server's arithmetic and not a
 				// client-side count of an already-capped window.
-				const params = { _limit: this.pageSize, _page: this.page }
+				// `_lang` asks OpenRegister for translatable fields in the
+				// page's language, `en` when the page names none (REQ-OR-003).
+				const params = { _limit: this.pageSize, _page: this.page, _lang: requestLanguage() }
 				if (this.reorderField !== '') {
 					// A reorderable list is always shown in its stored order.
 					params[`_order[${this.reorderField}]`] = 'asc'
@@ -2370,8 +2391,15 @@ export default {
 				// eslint-disable-next-line no-console
 				console.warn('[CnObjectListWidget] failed to load objects:', e)
 				this.error = (e && e.message) || 'error'
+				this.errorStatus = (e && e.response && e.response.status) || null
 				this.rows = []
 				this.total = 0
+				// A 5xx is temporary: read again on the next poll interval
+				// (REQ-OR 5xx scenario, default 60 s) instead of staying
+				// unavailable until the page reloads.
+				if (Number(this.errorStatus) >= 500) {
+					this._unavailableRetry = setTimeout(() => this.fetchRows(), UNAVAILABLE_RETRY_MS)
+				}
 			} finally {
 				this.loading = false
 			}
@@ -2536,7 +2564,11 @@ export default {
 		/**
 		 * Save an edited row: a PATCH of the keys the form changed, so every
 		 * key it does not show keeps its stored value; nothing when nothing
-		 * changed. A refusal shows the server's message in the dialog.
+		 * changed. A refusal shows the server's message in the dialog. The
+		 * PATCH names the language the values were typed in with
+		 * `X-Translation-Target-Language` (the same language the rows were
+		 * read in with `?_lang=`), so OpenRegister files a translatable
+		 * string under that language; the values stay plain strings.
 		 *
 		 * @param {object} formData The edited values.
 		 * @return {Promise<void>}
@@ -2550,7 +2582,11 @@ export default {
 			try {
 				if (id !== '' && Object.keys(changes).length > 0) {
 					const [{ default: axios }, { generateUrl }] = await Promise.all([import('@nextcloud/axios'), import('@nextcloud/router')])
-					await axios.patch(generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }), changes)
+					await axios.patch(
+						generateUrl('/apps/openregister/api/objects/{register}/{schema}/{id}', { register: c.register, schema: c.schema, id }),
+						changes,
+						{ headers: { 'X-Translation-Target-Language': requestLanguage() } },
+					)
 				}
 				if (this.$refs.createDialog) {
 					this.$refs.createDialog.setResult({ success: true })

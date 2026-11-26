@@ -596,8 +596,10 @@ export default {
 		 */
 		async loadMdiCatalogue() {
 			try {
+				// The CommonJS build, not '@mdi/js': see CnIconBrowserPanel's
+				// loadMdiCatalogue (keeps the app's own @mdi/js imports tree-shaken).
 				const [mdi, adapters] = await Promise.all([
-					import('@mdi/js'),
+					import(/* webpackChunkName: "cn-icons-mdi" */ '@mdi/js/commonjs/mdi.js'),
 					import('./iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)

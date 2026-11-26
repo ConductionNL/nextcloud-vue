@@ -120,6 +120,19 @@ export function sessionsUrl(appId) {
 }
 
 /**
+ * The links of one session (`DELETE` with `type` and `id` removes one): what
+ * a sent turn recorded the session to be about.
+ *
+ * @param {string} [appId] Backend app id.
+ * @param {string} sessionUuid Session UUID.
+ * @return {string}
+ * @spec openspec/changes/ai-chat-sessions-about-the-page/specs/ai-companion/spec.md
+ */
+export function sessionLinksUrl(appId, sessionUuid) {
+	return `${chatApiBase(appId)}/sessions/${encodeURIComponent(sessionUuid)}/links`
+}
+
+/**
  * Messages of a single conversation (`GET`).
  *
  * @param {string} [appId] Backend app id.
@@ -223,5 +236,6 @@ export function normalizeConversation(raw) {
 		metadata,
 		updatedAt: source.updatedAt || source.updated || source.created,
 		createdAt: source.createdAt || source.created,
+		links: Array.isArray(source.links) ? source.links : [],
 	}
 }

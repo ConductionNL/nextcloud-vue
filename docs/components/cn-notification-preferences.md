@@ -33,6 +33,12 @@ heading) and renders one switch per notification. It degrades gracefully:
   feature is OpenRegister-provided, so the panel is optional per instance).
 - **No notifications** — an empty state when the user's schemas declare none.
 
+## Quiet hours
+
+With CnAppRoot's `quietHours` prop (or this pane's own `quietHours` prop)
+set, the pane draws [CnQuietHours](./cn-quiet-hours.md) under the
+notifications: OpenRegister's per-user delivery window. Off by default.
+
 ## Props, events, slots
 
 This component is self-contained: it needs **no props**, emits **no

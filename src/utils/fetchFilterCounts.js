@@ -114,6 +114,25 @@ export function needsListEndpoint(filter) {
  * @spec openspec/changes/workplace-dashboard-primitives/specs/workplace-dashboard-primitives/spec.md#requirement-counts-on-filters-and-views
  */
 export async function fetchListTotal(register, schema, filter, ctx) {
+	const qs = listCountQuery(filter, ctx)
+	const url = prefixUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}${qs}`)
+	const response = await fetch(url, { headers: buildHeaders() })
+	if (!response.ok) {
+		throw new Error(`list returned ${response.status}`)
+	}
+	const data = await response.json()
+	return typeof data.total === 'number' ? data.total : null
+}
+
+/**
+ * The query string of the one-record list request that counts a filter.
+ *
+ * @param {object} filter The filter map.
+ * @param {object} [ctx] Token-resolution context for the filter.
+ * @return {string} The query string, with its leading `?`.
+ * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
+ */
+function listCountQuery(filter, ctx) {
 	const resolved = resolveFilterTokens(filter || {}, ctx || {})
 	const params = {}
 	for (const [key, value] of Object.entries(resolved || {})) {
@@ -128,14 +147,95 @@ export async function fetchListTotal(register, schema, filter, ctx) {
 			params[key] = value
 		}
 	}
-	const qs = buildQueryString({ ...params, _limit: 1 })
-	const url = prefixUrl(`/apps/openregister/api/objects/${encodeURIComponent(register)}/${encodeURIComponent(schema)}${qs}`)
-	const response = await fetch(url, { headers: buildHeaders() })
-	if (!response.ok) {
-		throw new Error(`list returned ${response.status}`)
+	return buildQueryString({ ...params, _limit: 1 })
+}
+
+/**
+ * A query string read the way PHP reads one: `a[b]=1` nests, `a[]=1` appends.
+ *
+ * The batch count endpoint takes each filter as JSON and builds the same
+ * search query from it as the list endpoint does from its query string, so a
+ * filter is sent as exactly the structure the list request would arrive as.
+ *
+ * @param {string} qs The query string, with or without its leading `?`.
+ * @return {object} The parameters.
+ * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
+ */
+export function parsePhpQuery(qs) {
+	const out = {}
+	for (const [name, value] of new URLSearchParams(String(qs || '').replace(/^\?/, ''))) {
+		const match = /^([^[]+)((?:\[[^\]]*\])*)$/.exec(name)
+		const keys = match ? [match[1], ...(match[2].match(/\[([^\]]*)\]/g) || []).map((part) => part.slice(1, -1))] : [name]
+		let node = out
+		keys.forEach((key, index) => {
+			const last = index === keys.length - 1
+			const slot = key === '' && Array.isArray(node) ? node.length : key
+			if (last) {
+				node[slot] = value
+				return
+			}
+			if (node[slot] === null || typeof node[slot] !== 'object') {
+				node[slot] = keys[index + 1] === '' ? [] : {}
+			}
+			node = node[slot]
+		})
 	}
-	const data = await response.json()
-	return typeof data.total === 'number' ? data.total : null
+	return out
+}
+
+/**
+ * A filter as the batch count endpoint takes it: the structure the list
+ * endpoint would receive from the filter's query string, without `_limit`.
+ *
+ * @param {object} filter The filter map.
+ * @param {object} [ctx] Token-resolution context for the filter.
+ * @return {object} The filter parameters.
+ * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
+ */
+export function countFilterParams(filter, ctx) {
+	const params = parsePhpQuery(listCountQuery(filter, ctx))
+	delete params._limit
+	return params
+}
+
+/**
+ * Count several lists in ONE request: OpenRegister's batch count endpoint,
+ * which counts each filter with the same search the list endpoint runs.
+ *
+ * A single list is counted with its own list request. When the endpoint fails
+ * or is not there, each list is counted with its own list request instead.
+ *
+ * @param {Array<{register: string, schema: string, filter: object}>} lists The lists to count.
+ * @param {object} [ctx] Token-resolution context for the filters.
+ * @return {Promise<Array<number|null>>} The total per list, in order; null when a count failed.
+ * @spec openspec/changes/list-counts-in-one-request/specs/index-page/spec.md#requirement-list-counts-go-out-as-one-request
+ */
+export async function fetchListTotals(lists, ctx) {
+	if (!Array.isArray(lists) || lists.length === 0) {
+		return []
+	}
+	const eachOnItsOwn = () => Promise.all(lists.map(({ register, schema, filter }) => fetchListTotal(register, schema, filter, ctx).catch(() => null)))
+	if (lists.length === 1) {
+		return eachOnItsOwn()
+	}
+	try {
+		const counts = lists.map(({ register, schema, filter }) => ({ register, schema, filter: countFilterParams(filter, ctx) }))
+		const response = await fetch(prefixUrl('/apps/openregister/api/objects/counts'), {
+			method: 'POST',
+			headers: buildHeaders(),
+			body: JSON.stringify({ counts }),
+		})
+		if (!response.ok) {
+			throw new Error(`counts returned ${response.status}`)
+		}
+		const data = await response.json()
+		if (!Array.isArray(data.results) || data.results.length !== lists.length) {
+			throw new Error('counts answered a different number of results')
+		}
+		return data.results.map((result) => (typeof result?.count === 'number' ? result.count : null))
+	} catch {
+		return eachOnItsOwn()
+	}
 }
 
 /**
@@ -237,14 +337,15 @@ export async function fetchFilterCounts({ register, schema, entries, baseFilter,
 			})
 			.catch(() => {}))
 	}
-	for (const entry of viaList) {
-		jobs.push(fetchListTotal(register, schema, { ...base, ...(entry.filter || {}) }, ctx)
-			.then((total) => {
-				if (total !== null) {
-					counts[entry.key] = total
-				}
-			})
-			.catch(() => {}))
+	if (viaList.length > 0) {
+		jobs.push(fetchListTotals(viaList.map((entry) => ({ register, schema, filter: { ...base, ...(entry.filter || {}) } })), ctx)
+			.then((totals) => {
+				totals.forEach((total, index) => {
+					if (total !== null) {
+						counts[viaList[index].key] = total
+					}
+				})
+			}))
 	}
 	await Promise.all(jobs)
 	return counts

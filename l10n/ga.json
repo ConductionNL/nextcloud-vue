@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Réimse dáta don tréimhse",
+    "None: the widget does not follow the period": "Dada: ní leanann an giuirléid an tréimhse",
     "Report a bug": "Tuairiscigh fabht",
     "View": "Amharc",
     "Edit": "Cuir in eagar",
     "Copy": "Cóipeáil",
-    "Delete": "Scrios"
+    "Delete": "Scrios",
+    "The administrator has not set a start date field.": "Níor shocraigh an riarthóir réimse dáta tosaithe.",
+    "Starts {weekday}": "Tosaíonn {weekday}",
+    "Selection": "Roghnú",
+    "People by filter": "Daoine de réir scagaire",
+    "New colleagues": "Comhghleacaithe nua",
+    "Started in the last (days, 1–90)": "Thosaigh le (laethanta, 1–90) anuas",
+    "Starts within (days, 0–30)": "Tosóidh sna (laethanta, 0–30) atá romhainn",
+    "Must be between {min} and {max}": "Caithfidh sé a bheith idir {min} agus {max}"
   }
 }

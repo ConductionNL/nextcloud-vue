@@ -477,3 +477,69 @@ export function defaultFilterViews(defaults, page = {}) {
 			}
 		})
 }
+
+/**
+ * The page-workspace keys a dashboard's saved views store, cleaned: strings
+ * only, no blanks, no repeats.
+ *
+ * @param {unknown} keys The configured `workspace.keys`.
+ * @return {Array<string>} The keys.
+ * @spec openspec/changes/dashboard-page-saved-views/specs/dashboard-page-saved-views/spec.md#requirement-a-dashboard-page-saves-its-controls-as-a-view
+ */
+export function workspaceViewKeys(keys) {
+	const out = []
+	for (const key of Array.isArray(keys) ? keys : []) {
+		if (typeof key === 'string' && key !== '' && !out.includes(key)) {
+			out.push(key)
+		}
+	}
+	return out
+}
+
+/**
+ * The request body that saves a dashboard page's controls as an OpenRegister
+ * view: the page workspace's values at `keys` under `query.workspace`, with
+ * the page's `scope`. Every key is written; an unset one as the empty
+ * string, so applying the view later also clears what it did not hold.
+ *
+ * @param {object} options Payload options.
+ * @param {string} options.name The view name.
+ * @param {string} options.scope The page's scope key (e.g. `pipelinq/my-work`).
+ * @param {object} options.workspace The page workspace bag.
+ * @param {Array<string>} options.keys The workspace keys to store.
+ * @return {object} The request body for the OR views API.
+ * @spec openspec/changes/dashboard-page-saved-views/specs/dashboard-page-saved-views/spec.md#requirement-a-dashboard-page-saves-its-controls-as-a-view
+ */
+export function buildWorkspaceViewPayload({ name, scope, workspace, keys } = {}) {
+	const bag = workspace && typeof workspace === 'object' ? workspace : {}
+	const stored = {}
+	for (const key of workspaceViewKeys(keys)) {
+		const value = bag[key]
+		stored[key] = value === undefined || value === null ? '' : value
+	}
+	const body = buildViewCreatePayload({ name, state: {}, scope })
+	body.query.workspace = stored
+	return body
+}
+
+/**
+ * The workspace values a dashboard view stored, limited to `keys`, or null
+ * for a view that stores no workspace (an index page's view).
+ *
+ * @param {object|null|undefined} view The View API object.
+ * @param {Array<string>} keys The page's workspace keys.
+ * @return {object|null} The stored values by key.
+ * @spec openspec/changes/dashboard-page-saved-views/specs/dashboard-page-saved-views/spec.md#requirement-a-dashboard-page-applies-a-saved-view
+ */
+export function extractViewWorkspace(view, keys) {
+	const query = view && typeof view === 'object' ? view.query : null
+	const stored = query && typeof query === 'object' && !Array.isArray(query) ? query.workspace : null
+	if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+		return null
+	}
+	const out = {}
+	for (const key of workspaceViewKeys(keys)) {
+		out[key] = Object.hasOwn(stored, key) && stored[key] !== null && stored[key] !== undefined ? stored[key] : ''
+	}
+	return out
+}

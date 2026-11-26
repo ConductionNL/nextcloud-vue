@@ -46,6 +46,7 @@
  *  - `@context.<name>.<path>` → a value off a record the detail page reads beside
  *                           the loaded one (needs `ctx.context`); left as written
  *                           while that record is not read
+ *  - `@resolved.<path>`  → a field off the record an action's `resolve` block looked up (needs `ctx.resolved`)
  *
  * `@objectId` / `@object.<field>` are OBJECT-CONTEXT tokens: they resolve only
  * when a `ctx` `{ objectId, object }` is supplied (a detail page provides it via
@@ -204,6 +205,10 @@ export function resolveFilterValue(v, ctx) {
 		// @spec openspec/changes/files-second-line-fields/specs/files-second-line-fields/spec.md#requirement-widget-props-can-read-the-detail-pages-context-records
 		const found = ctx && ctx.context ? readPath(ctx.context, v.slice('@context.'.length)) : undefined
 		return found === undefined ? v : found
+	}
+	if (v.startsWith('@resolved.')) {
+		const value = ctx && ctx.resolved ? readPath(ctx.resolved, v.slice('@resolved.'.length)) : undefined
+		return value !== undefined && value !== null ? value : v
 	}
 	if (v.startsWith('@workspace.')) {
 		// A trailing `?` marks the token OPTIONAL: when unset the caller drops the

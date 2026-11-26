@@ -10,7 +10,7 @@
  * presence (component stub) without exercising its internal render.
  */
 
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 // Vue 3 has no default export — `nextTick` is a named import.
 import { nextTick as vueNextTick } from 'vue'
 
@@ -188,7 +188,8 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 		function mountWithTabs(tabs) {
 			const wrapper = shallowMount(CnAppRoot, {
 				propsData: { manifest, requiresApps: [] },
-				stubs: { CnObjectSidebar: true, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
+				// The sidebar loads on demand; a named stub with the prop under test stands in for it.
+				stubs: { CnObjectSidebar: { name: 'CnObjectSidebar', props: ['useRegistry'], template: '<div />' }, CnAppNav: true, CnAiCompanion: true, NcContent: { template: '<div><slot/></div>' }, NcAppContent: { template: '<div><slot/></div>' } },
 			})
 			Object.assign(wrapper.vm.localObjectSidebarState, { active: true, objectType: 'r-s', objectId: 'o-1', tabs })
 			return wrapper
@@ -196,19 +197,19 @@ describe('CnAppRoot — CnObjectSidebar auto-mount', () => {
 
 		it('turns registry mode off when the page published tabs', async () => {
 			const wrapper = mountWithTabs([{ id: 'manifest', label: 'Manifest' }])
-			await vueNextTick()
+			await flushPromises()
 			expect(findSidebar(wrapper).props('useRegistry')).toBe(false)
 		})
 
 		it('keeps registry mode on when the page published none', async () => {
 			const wrapper = mountWithTabs(undefined)
-			await vueNextTick()
+			await flushPromises()
 			expect(findSidebar(wrapper).props('useRegistry')).toBe(true)
 		})
 
 		it('keeps registry mode on for an empty tabs array', async () => {
 			const wrapper = mountWithTabs([])
-			await vueNextTick()
+			await flushPromises()
 			expect(findSidebar(wrapper).props('useRegistry')).toBe(true)
 		})
 	})

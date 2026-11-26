@@ -21,6 +21,7 @@ jest.mock('@nextcloud/event-bus', () => ({ __esModule: true, emit: (...a) => moc
 
 import { mount } from '@vue/test-utils'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnAttentionFlagWidget/index.js'
 
@@ -62,8 +63,8 @@ beforeEach(() => {
 })
 
 describe('CnAttentionFlagWidget', () => {
-	it('registers the attention-flag type for detail pages', () => {
-		expect(getWidgetTypeEntry('attention-flag').renderer).toBe(CnAttentionFlagWidget)
+	it('registers the attention-flag type for detail pages', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('attention-flag').renderer)).toBe(CnAttentionFlagWidget)
 	})
 
 	it('reads the flag from the record\'s endpoint', async () => {

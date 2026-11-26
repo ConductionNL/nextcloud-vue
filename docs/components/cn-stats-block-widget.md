@@ -131,7 +131,7 @@ efficiëntie":
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `dataSource` | `object` | `null` | Manifest dataSource block (single-KPI mode). See [`useDataSource`](../utilities/composables/use-data-source.md). Exactly one of `dataSource` / `entries` must be provided. |
-| `entries` | `array` | `[]` | Multi-entry declarative sources — one KPI per entry: `{ title, register, schema, metric, field, filter, route, variant, countLabel, hideWhenZero, format, currency, currencyField }`. Mutually exclusive with `dataSource`. |
+| `entries` | `array` | `[]` | Multi-entry declarative sources — one KPI per entry: `{ title, register, schema, metric, field, filter, route, variant, countLabel, hideWhenZero, format, currency, currencyField }`, or `{ title, endpointSource, valueField, … }` to read the value from an app endpoint (see *Entries that read an endpoint*). Mutually exclusive with `dataSource`. |
 | `format` | `string\|object\|null` | `null` | How the single-KPI value is shown: a style name or `{ style, currency, currencyField, decimals, prefix, suffix }`. See [Money in its own currency](#money-in-its-own-currency-format-currencyfield-currency). |
 | `title` | `string` | `''` | Block title (single-KPI mode). |
 | `countLabel` | `string` | `''` | Label next to the count (single-KPI mode). |
@@ -154,7 +154,34 @@ This is the tile's only refresh affordance. `CnDashboardPage` renders it *withou
 
 A ref-callable `refresh()` is also exposed, for parity with `CnChartWidget`.
 
+## Telling the host what it shows (`data`)
+
+The widget emits `data` with `{ count }` for one source, or `{ counts }` (one per entry) in multi-entry mode, once the count is known and on every change. Nothing is emitted before then.
+
 ## Notes
 
 - Designed only for the manifest path. If you already have a count number in JS, mount [`CnStatsBlock`](./cn-stats-block.md) directly.
 - Errors from the underlying GraphQL request fall back to `count = 0`. The dashboard never blanks on a transport failure.
+
+## Entries that read an endpoint
+
+An entry with an `endpointSource` reads its value from an app REST endpoint
+instead of OpenRegister's aggregation; `register` and `schema` may then be left
+out. `valueField` is the dot-path of the value in the response, after the
+source's `responsePath`. Entries naming the same endpoint share one request, so
+one summary endpoint feeds several KPIs:
+
+```json
+{
+  "type": "stats-block",
+  "content": {
+    "entries": [
+      { "title": "Open", "endpointSource": { "url": "/apps/myapp/api/summary", "responsePath": "totals" }, "valueField": "open" },
+      { "title": "Late", "endpointSource": { "url": "/apps/myapp/api/summary", "responsePath": "totals" }, "valueField": "late", "variant": "warning" }
+    ]
+  }
+}
+```
+
+A failed request, a blocked one (a required token without a value) or a value
+that is not a number shows the entry without a count.

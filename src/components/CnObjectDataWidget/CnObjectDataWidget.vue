@@ -277,6 +277,7 @@
 					<!-- Display mode -->
 					<div
 						v-else
+						:id="isEditable(field) ? editValueId(field) : undefined"
 						class="cn-object-data-widget__value"
 						:class="{
 							'cn-object-data-widget__value--editable': isEditable(field),
@@ -284,7 +285,7 @@
 						}"
 						:tabindex="isEditable(field) ? 0 : -1"
 						:role="isEditable(field) ? 'button' : undefined"
-						:aria-label="isEditable(field) ? t('nextcloud-vue', 'Edit {title}', { title: field.label }) : undefined"
+						:aria-labelledby="isEditable(field) ? editValueId(field) + ' ' + editHintId(field) : undefined"
 						@click="isEditable(field) && startEdit(field)"
 						@keydown.enter="isEditable(field) && startEdit(field)">
 						<!-- Per-field display slot override -->
@@ -354,8 +355,8 @@
 								:title="userIdsOf(field).join(', ')">
 								{{ userIdsOf(field).map((uid) => personLabel(field, uid)).join(', ') }}
 							</span>
-							<img v-else-if="isImageField(field) && rawOf(field)"
-								:src="rawOf(field)"
+							<img v-else-if="isImageField(field) && imageSrcOf(field)"
+								:src="imageSrcOf(field)"
 								:alt="field.label"
 								class="cn-object-data-widget__image">
 							<!-- Relation name still resolving: a quiet skeleton bar,
@@ -375,7 +376,7 @@
 									<thead>
 										<tr>
 											<th v-for="col in objectArrayColumns(rawOf(field))" :key="col" scope="col">
-												{{ col }}
+												{{ objectArrayColumnLabel(field, col) }}
 											</th>
 										</tr>
 									</thead>
@@ -438,6 +439,14 @@
 							class="cn-object-data-widget__edit-icon"
 							:size="14" />
 					</div>
+					<!-- The button is named by the value people see, then this hint
+					     (aria-labelledby). An aria-label of only "Edit {title}" left the
+					     visible value out of the name (WCAG 2.5.3 Label in Name). -->
+					<span
+						v-if="isEditable(field) && editingField !== field.key"
+						:id="editHintId(field)"
+						class="hidden-visually"
+						data-testid="cn-object-data-widget-edit-hint">{{ t('nextcloud-vue', 'Edit {title}', { title: field.label }) }}</span>
 					<span v-if="hintFor(field)" class="cn-object-data-widget__hint">{{ hintFor(field) }}</span>
 				</div>
 			</div>
@@ -491,7 +500,6 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import InformationOutline from 'vue-material-design-icons/InformationOutline.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import CnGroupNameCell from '../CnCellRenderer/CnGroupNameCell.vue'
-import CnFormDialog from '../CnFormDialog/CnFormDialog.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useObjectStore } from '../../store/index.js'
@@ -502,8 +510,10 @@ import { parseDateValue } from '../../utils/dateVariant.js'
 import { foldDottedFields, isDottedKey, spreadDottedFields } from '../../utils/dottedFields.js'
 import { groupDisplayName, loadGroupDisplayName, searchNextcloudGroups } from '../../utils/groupAutocomplete.js'
 import { humaniseKey } from '../../utils/humaniseKey.js'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { readPath } from '../../utils/readPath.js'
+import { readRelatedOnce } from '../../utils/readRelatedOnce.js'
 import { resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { saveEdited } from '../../utils/saveEdited.js'
 import { fieldsFromSchema, formatValue } from '../../utils/schema.js'
@@ -511,8 +521,12 @@ import { schemaRefSlug } from '../../utils/schemaRefSlug.js'
 import { resolveNextcloudUser, searchNextcloudUsers } from '../../utils/userAutocomplete.js'
 import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen } from '../../utils/visibleWhen.js'
 import { CnIcon } from '../CnIcon/index.js'
+import { fileHref } from '../CnMapWidget/imageLayerSource.js'
 import { CnObjectMetadataModal } from '../CnObjectMetadataModal/index.js'
 import { CnWidgetWrapper } from '../CnWidgetWrapper/index.js'
+
+// The form renders only once opened, so it loads on first render.
+const CnFormDialog = lazyComponent(() => import('../CnFormDialog/CnFormDialog.vue'), 'CnFormDialog')
 
 // Widgets whose value the inline text fallback would corrupt.
 const STRUCTURED_WIDGETS = ['json', 'code', 'file', 'sub-objects', 'child-records']
@@ -1497,6 +1511,21 @@ export default {
 		},
 
 		/**
+		 * The `<img src>` of an image field: a string as stored, a file
+		 * object's `downloadUrl`, `accessUrl` or `url`, or the first file of a
+		 * list. An OpenRegister file property holds the file object, which
+		 * would otherwise render as `src="[object Object]"`.
+		 *
+		 * @param {object} field The field descriptor (from `fieldsFromSchema`).
+		 * @return {string} The URL, or '' when the value has none.
+		 *
+		 * @spec openspec/changes/data-widget-file-image/specs/data-widget/spec.md#requirement-an-image-field-holding-a-file-shows-the-file
+		 */
+		imageSrcOf(field) {
+			return fileHref(this.rawOf(field))
+		},
+
+		/**
 		 * Classify a field's raw value for display so the template can pick a
 		 * legible renderer (ADR-062: a structured value must never render as
 		 * "[object Object]"). Relation fields are excluded here — their
@@ -1535,6 +1564,23 @@ export default {
 		 * @param {Array<object>} raw The array value.
 		 * @return {string[]} Up to five column keys.
 		 */
+		/**
+		 * The header of one column of an array-of-objects table: the title the
+		 * schema gives the item property (`items.properties[col].title`), or
+		 * the key when the schema has none.
+		 *
+		 * @param {object} field The field.
+		 * @param {string} col The column key.
+		 * @return {string} The header.
+		 */
+		objectArrayColumnLabel(field, col) {
+			const prop = ((this.schema && this.schema.properties) || {})[field.key]
+			const title = prop && prop.items && prop.items.properties && prop.items.properties[col]
+				? prop.items.properties[col].title
+				: ''
+			return typeof title === 'string' && title.trim() !== '' ? title : col
+		},
+
 		objectArrayColumns(raw) {
 			if (!Array.isArray(raw)) {
 				return []
@@ -1915,7 +1961,13 @@ export default {
 			this.updateField(field.key, opt ? opt.id : null)
 		},
 
-		/** Fetch related objects' display names into relatedLabels. */
+		/**
+		 * Fetch related objects' display names into relatedLabels. The read of
+		 * each related record is shared with the other widgets on the page.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/related-record-read-once/specs/data-widget/spec.md#requirement-a-related-record-is-read-once-per-page-open
+		 */
 		async resolveRelations() {
 			// Collect every unresolved (target, id) pair first, then fetch them
 			// ALL in parallel — sequential lookups made names trail the page by
@@ -1944,8 +1996,8 @@ export default {
 			await Promise.all(jobs.map(async ({ reg, sch, id }) => {
 				try {
 					const url = generateUrl('/apps/openregister/api/objects/{reg}/{sch}/{id}', { reg, sch, id })
-					const res = await axios.get(url)
-					const d = (res && res.data) ? res.data : {}
+					const body = await readRelatedOnce(`${reg}/${sch}/${id}`, async () => (await axios.get(url)).data)
+					const d = body || {}
 					const obj = (d.results && d.results[0]) ? d.results[0] : d
 					this.relatedLabels[id] = this.objectDisplayName(obj, id)
 				} catch {
@@ -2014,6 +2066,26 @@ export default {
 				return null
 			}
 			return this.cnTranslate(words)
+		},
+
+		/**
+		 * The id of an editable value, which names its button together with the edit hint.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @return {string}
+		 */
+		editValueId(field) {
+			return `cn-object-data-widget-${this._uid}-${String(field.key).replace(/[^A-Za-z0-9_-]/g, '-')}-value`
+		},
+
+		/**
+		 * The id of the visually hidden "Edit {title}" hint that completes an editable value's name.
+		 *
+		 * @param {object} field - Resolved field definition from resolvedFields
+		 * @return {string}
+		 */
+		editHintId(field) {
+			return `cn-object-data-widget-${this._uid}-${String(field.key).replace(/[^A-Za-z0-9_-]/g, '-')}-hint`
 		},
 
 		/**

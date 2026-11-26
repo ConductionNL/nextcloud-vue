@@ -155,6 +155,24 @@ A switch and a select are page controls too. `style: "toggle"` draws a switch th
 
 A list says what the controls mean for it with `pageControls` (see the record list and object table pages).
 
+## Several values and clearing a bar
+
+`multiple: true` on a select lets the user pick several options. The choice is written to the workspace and the address comma-joined (`urgent,high`), and the select gets a clear button. A multiple select never picks a first option by itself.
+
+A bar with `clear` counts how many of its `filter: true` controls are set and offers one button that sets them all back. Each value of a multiple select counts, a single value counts once, and a control on its `default` (or empty) counts none. **Clear filters** writes each filter control's `default`, or empty, to the workspace and the address. Controls without `filter: true`, such as a sorting, stay as they are. The count and the button show only while something is set. `clear.label` and `clear.countLabel` (with `{count}`) replace "Clear filters" and "Filters ({count})".
+
+```json
+{
+  "layout": "bar",
+  "clear": {},
+  "controls": [
+    { "style": "chips", "writes": "@workspace.lens", "default": "all", "filter": true, "options": [] },
+    { "style": "select", "multiple": true, "writes": "@workspace.priority", "urlKey": "priority", "filter": true, "options": [] },
+    { "style": "select", "writes": "@workspace.sort", "default": "deadline", "options": [] }
+  ]
+}
+```
+
 ## Input with a load button
 
 `style: "input"` draws a labelled text field and a load button, the boards' in-card report form (DqTermijnen "Kwartaal (JJJJ-Qn)" with "Rapport laden"). The value goes to the workspace only when the reader loads it, and only when it has the right form; a wrong value is marked invalid and explained under the field.

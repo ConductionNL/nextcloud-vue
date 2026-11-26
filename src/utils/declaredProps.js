@@ -10,6 +10,7 @@
 /* global process */
 
 import { camelize } from 'vue'
+import { resolveLazyComponent } from './lazyComponent.js'
 
 const warned = new Set()
 
@@ -42,7 +43,7 @@ function collect(options, names, depth) {
  * attribute itself and so must keep receiving all of them:
  *  - `inheritAttrs: false`: the component forwards `$attrs` on purpose;
  *  - a functional component without `props`: its attrs are its props;
- *  - an async component that has not resolved yet.
+ *  - an async or lazy component that has not resolved yet.
  *
  * @spec openspec/changes/dashboard-declared-widget-props/specs/dashboard-page/spec.md#requirement-a-dashboard-widget-receives-only-the-content-keys-it-declares
  * @param {object|((...args: unknown[]) => unknown)|null} component A component definition.
@@ -62,6 +63,10 @@ export function declaredPropNames(component) {
 	}
 	if (typeof component !== 'object') {
 		return null
+	}
+	if (component.__cnLazy) {
+		const loaded = resolveLazyComponent(component)
+		return loaded ? declaredPropNames(loaded) : null
 	}
 	if (component.__asyncLoader) {
 		return component.__asyncResolved ? declaredPropNames(component.__asyncResolved) : null

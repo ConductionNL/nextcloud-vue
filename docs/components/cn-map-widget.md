@@ -62,6 +62,21 @@ Not every map is the earth: a game world, a floor plan or a terrain drawing is a
 }
 ```
 
+### The picture from the record
+
+On a record's detail page (a `map` widget in the page's `widgets`), the image layer can take its picture from the record itself: `url`, `width` and `height` may be `@object.<path>` tokens (and `@objectId`). A file property resolves to its `downloadUrl`, else `accessUrl`, else `url` (the first file of a list). Until the record holds all three the map waits instead of opening as a geographic map; when the record changes the new picture replaces the old one.
+
+```json
+{
+  "id": "map-view",
+  "type": "map",
+  "content": {
+    "layers": [{ "type": "image", "url": "@object.image", "width": "@object.width", "height": "@object.height" }],
+    "markers": { "xField": "x", "yField": "y", "popupField": "label", "dataSource": { "register": "larp", "schema": "pin", "filter": { "map": "@objectId" } } }
+  }
+}
+```
+
 ## Base maps and the layer switcher
 
 `basemaps` declares the switchable **background** map(s). The first entry is live on load; when more than one is given, a Leaflet layer switcher appears in the top-right corner:
@@ -78,6 +93,8 @@ Not every map is the earth: a game world, a floor plan or a terrain drawing is a
       attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap' },
   ]" />
 ```
+
+The widget form offers presets for `basemaps`: OpenStreetMap and the Dutch government's PDOK tiles (BRT achtergrondkaart standaard, grijs and pastel, and the aerial photo), all in EPSG:3857. A chosen preset is stored as an ordinary `basemaps[]` item (`name`, `url`, `attribution`, `options`); `basemapPresets.js` exports `BASEMAP_PRESETS`, `basemapFromPreset(id)` and `presetOf(basemap)`. A consuming app that offers PDOK must allow `service.pdok.nl` in its Content-Security-Policy `img-src`.
 
 Use `basemaps` **instead of** a `tile` entry in `layers` for the background — `layers` is then free to carry only overlays (WMS / WFS / GeoJSON). `basemaps` is empty by default, so consumers that already declare their background through `layers` are unaffected.
 
@@ -118,7 +135,19 @@ Pick **one** of:
 
 - `markers.features` — inline GeoJSON `Feature[]` (static maps).
 - `markers.dataSource.url` — fetched on mount; the response may be a GeoJSON FeatureCollection OR a flat array of rows (in which case `latField`, `lngField`, `popupField` drive the conversion).
-- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+- `markers.dataSource.{register, schema, filter?, limit?}` — plots the objects of an OpenRegister schema. With `markers.geoProperty` set, each object is drawn from that property: a GeoJSON geometry of any type (point, line, polygon, multi-geometry), a Feature, or a lat/lng value; an object whose property is empty falls back to `@self.geo`. `filter` takes the shared tokens, so a record's page plots the objects that point at it (`{ "case": "@objectId" }`, read from the `objectId` and `objectData` props the detail host binds). An object at (0, 0) is not plotted: that is where an unset pair of numbers lands.
+
+### An area and a detail link
+
+`markers.dataSource.spatialFilter` narrows a register source to an area, through OpenRegister's geo filters. Give one of:
+
+- `{ "bbox": [west, south, east, north] }`, sent as `?geo.bbox=`;
+- `{ "near": [lon, lat], "radius": 500 }` (meters), sent as `?geo.near=&geo.radius=`;
+- `{ "within": <GeoJSON Polygon or MultiPolygon> }`, posted to `…/geo-search`.
+
+`markers.geoProperty`, when set, goes along as `geo.property`, so the filter reads the property the map draws. A filter that does not read (three bbox numbers, a radius of 0) is not sent. A changed filter reads the markers again. OpenRegister has no "nearest N" query; use a radius with `limit`.
+
+`markers.detailLink` is the address a clicked object opens in a new tab, for example `"/apps/dossiq/#/cases/{id}"`. `{id}`, `{register}` and `{schema}` read the object's `@self`; any other `{name}` reads that property. Without a template, a `url` the object carries (the address OpenRegister's deep-link registry stamps) is opened. A token the object cannot fill, or an address with an unsafe scheme, opens nothing. `marker-click` is emitted either way.
 
 ## A record's places
 

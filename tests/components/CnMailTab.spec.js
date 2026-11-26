@@ -17,6 +17,7 @@ const { flushPromises, mount } = require('@vue/test-utils')
 const { invalidateEndpointSourceCache } = require('../../src/composables/useEndpointSource.js')
 const CnMailTab = require('../../src/components/CnMailTab/CnMailTab.vue').default
 const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 require('../../src/components/CnMailTab/index.js')
 
 const CONTENT = {
@@ -56,8 +57,8 @@ afterEach(() => {
 })
 
 describe('CnMailTab', () => {
-	it('is registered as the `mail` widget type', () => {
-		expect(getWidgetTypeEntry('mail').renderer).toBe(CnMailTab)
+	it('is registered as the `mail` widget type', async () => {
+		expect(await loadLazyComponent(getWidgetTypeEntry('mail').renderer)).toBe(CnMailTab)
 	})
 
 	it('reads the templates from the record-scoped URL and draws the row', async () => {
@@ -240,7 +241,7 @@ describe('CnMailTab', () => {
 			const header = wrapper.find('[data-testid="cn-mail-tab-header"]')
 			expect(header.find('.cn-mail-tab__title').text()).toBe('Email')
 			expect(header.find('[data-testid="cn-mail-tab-header-link"]').text()).toBe('Link mail')
-			expect(header.find('[data-testid="cn-mail-tab-header-compose"]').text()).toBe('Compose mail')
+			expect(header.find('[data-testid="cn-mail-tab-header-compose"]').text()).toBe('Write mail')
 			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').exists()).toBe(false)
 			expect(wrapper.findComponent({ name: 'CnEmailTab' }).props('showActions')).toBe(false)
 			wrapper.unmount()
@@ -250,7 +251,7 @@ describe('CnMailTab', () => {
 			const wrapper = mountWithActions({ heading: 'Email', draft: { ...CONTENT.draft, blankButton: true }, headerActions: ['compose', 'link'] })
 			await flushPromises()
 			expect(wrapper.find('[data-testid="cn-mail-tab-header-compose"]').exists()).toBe(true)
-			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').text()).toBe('Empty draft')
+			expect(wrapper.find('[data-testid="cn-mail-tab-draft-blank"]').text()).toBe('Blank draft')
 			wrapper.unmount()
 		})
 

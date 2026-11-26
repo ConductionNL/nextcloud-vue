@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Laikotarpio datos laukas",
+    "None: the widget does not follow the period": "Nėra: valdiklis neseka laikotarpio",
     "Report a bug": "Pranešti apie klaidą",
     "View": "Peržiūrėti",
     "Edit": "Redaguoti",
     "Copy": "Kopijuoti",
-    "Delete": "Ištrinti"
+    "Delete": "Ištrinti",
+    "The administrator has not set a start date field.": "Administratorius nenustatė pradžios datos lauko.",
+    "Starts {weekday}": "Pradeda {weekday}",
+    "Selection": "Pasirinkimas",
+    "People by filter": "Žmonės pagal filtrą",
+    "New colleagues": "Nauji kolegos",
+    "Started in the last (days, 1–90)": "Pradėjo per paskutines (dienos, 1–90)",
+    "Starts within (days, 0–30)": "Pradės per artimiausias (dienos, 0–30)",
+    "Must be between {min} and {max}": "Turi būti tarp {min} ir {max}"
   }
 }

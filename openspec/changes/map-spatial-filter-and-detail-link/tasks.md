@@ -1,0 +1,3 @@
+- [x] 1 `markers.dataSource.spatialFilter` (bbox, near/radius, polygon) through OpenRegister's geo filters, re-read on change (src/components/CnMapWidget/spatialFilter.js, tests/components/CnMapWidgetSpatialFilter.spec.js)
+- [x] 2 `markers.detailLink` and the object's own `url` open a clicked object in a new tab (same files)
+- [x] 3 Documented in docs/components/cn-map-widget.md

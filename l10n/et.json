@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Perioodi kuupäevaväli",
+    "None: the widget does not follow the period": "Puudub: vidin ei järgi perioodi",
     "Report a bug": "Teata veast",
     "View": "Vaata",
     "Edit": "Muuda",
     "Copy": "Kopeeri",
-    "Delete": "Kustuta"
+    "Delete": "Kustuta",
+    "The administrator has not set a start date field.": "Administraator ei ole määranud alguskuupäeva välja.",
+    "Starts {weekday}": "Alustab {weekday}",
+    "Selection": "Valik",
+    "People by filter": "Inimesed filtri järgi",
+    "New colleagues": "Uued kolleegid",
+    "Started in the last (days, 1–90)": "Alustanud viimase (päeva, 1–90) jooksul",
+    "Starts within (days, 0–30)": "Alustab järgmise (päeva, 0–30) jooksul",
+    "Must be between {min} and {max}": "Peab olema vahemikus {min} kuni {max}"
   }
 }

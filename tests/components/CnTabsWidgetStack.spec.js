@@ -11,10 +11,17 @@ import { nextTick } from 'vue'
 import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
 import { fetchListTotal } from '../../src/utils/fetchFilterCounts.js'
 
-jest.mock('../../src/utils/fetchFilterCounts.js', () => ({
-	__esModule: true,
-	fetchListTotal: jest.fn(),
-}))
+jest.mock('../../src/utils/fetchFilterCounts.js', () => {
+	const fetchListTotal = jest.fn()
+	return {
+		__esModule: true,
+		fetchListTotal,
+		// The tabs count their lists in one batch; each list answers through fetchListTotal here.
+		fetchListTotals: jest.fn((lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve()
+			.then(() => fetchListTotal(register, schema, filter, ctx))
+			.catch(() => null)))),
+	}
+})
 
 const WIDGETS = [
 	{ id: 'w-card', type: 'data', title: 'Contact' },

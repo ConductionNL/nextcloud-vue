@@ -42,11 +42,13 @@ jest.mock('../../src/store/index.js', () => ({
 
 const { mount } = require('@vue/test-utils')
 const CnIndexPage = require('../../src/components/CnIndexPage/CnIndexPage.vue').default
+const { lazyStub } = require('../support/lazyStub.js')
+const CnObjectCalendarComponent = require('../../src/components/CnObjectCalendar/CnObjectCalendar.vue').default
 
 const stubs = {
 	CnDataTable: true,
 	CnCardGrid: true,
-	CnObjectCalendar: true,
+	CnObjectCalendar: lazyStub(CnObjectCalendarComponent),
 	CnPagination: true,
 	CnActionsBar: true,
 	CnContextMenu: true,

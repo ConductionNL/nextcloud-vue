@@ -46,6 +46,12 @@ describe('look-board-detail.css: folder tabs share the widget card border', () =
 		expect(bodyOf(`${TAB}.cn-tabs__nav-item--active`)).toContain('border-top: 1px solid var(--color-border);')
 	})
 
+	it('keeps the card border on a hovered or clicked tab, over core\'s darker button border', () => {
+		const nav = '.cn-look-board .cn-tabs--board .cn-tabs__nav .cn-tabs__nav-item'
+		expect(bodyOf(`${nav}:is(:hover, :focus)`)).toContain('border-color: var(--color-border);')
+		expect(bodyOf(`${nav}.cn-tabs__nav-item--active:is(:hover, :focus)`)).toContain('border-bottom-color: var(--color-main-background);')
+	})
+
 	it('uses no darker border on any board tab rule', () => {
 		const re = /([^{}]+)\{([^{}]*)\}/g
 		let m

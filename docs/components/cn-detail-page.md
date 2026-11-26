@@ -37,6 +37,7 @@ A generic detail/overview page component. The simpler counterpart to CnIndexPage
 | `objectId` | String\|Number | `''` | Object ID passed to the sidebar and (in schema-driven mode) to `objectStore.fetchObject`. |
 | `register` | String | `''` | **Schema-driven mode** — OpenRegister register slug. When paired with `schema` (and `objectId`), the page fuses them into an internal `${register}-${schema}` object-type slug, registers it on the store, fetches the object + its schema via `useObjectStore`, and auto-renders `CnObjectDataWidget` + `CnObjectMetadataWidget` when the default slot is empty. `objectType` wins on collision so existing direct mounts stay untouched. |
 | `schema` | String | `''` | **Schema-driven mode** — OpenRegister schema slug. See `register`. |
+| `offlineTakeAlong` | Boolean | `false` | The manifest takes this page's register and schema along (`offline.takeAlong`; `CnPageRenderer` sets it). Offline, the page opens the record from the device with "You are offline. Downloaded at 08:14.", disables Edit and every menu action with "Not available offline.", and says when the copy expired. False: the offline database is never opened. See [Offline manifest](../integrations/offline-manifest.md). |
 | `actionsFrom` | String | `''` | `openregister` offers in the header's Actions every action OpenRegister lists for the record (`GET /api/objects/{register}/{schema}/{id}/actions`) whose `surfaces` hold `header` or `detail-menu`. An action with inputs opens a dialog over its input schema, an unavailable one is disabled with the server's reason, and actions the reader may not run are absent. |
 | `actionsInclude` | Array | `[]` | The action keys `actionsFrom` offers, in this order; empty offers all. |
 | `entitySource` | String | `''` | Name a registered entity source that reads ONE record, for a record that is not a register/schema object (manifest `config.entitySource`). The same registry and name as CnIndexPage's `entitySource`: `organisations` reads the OpenRegister organisation whose uuid is `objectId` (`GET /apps/openregister/api/organisations/{uuid}`). The record feeds the header, pills, header fields, widgets and the `@objectId` / `@object.*` tokens exactly as a fetched object does; its `id` is the uuid. Wins over `register` + `schema`. A 403 or 404 shows the not-found state; an unknown name shows no record and warns. Refresh and `cn:page:refresh` re-read the record. |
@@ -84,6 +85,7 @@ A record page can carry forty actions in one menu, and then nobody finds the one
 | 1. The next step | One primary button. Its label follows the record's stage. | `primaryActionByStage` |
 | 2. Quick actions | At most three buttons that are always visible. | `quickActions` |
 | `quickActionsFrom` | String | `''` | A field path, read like a `visibleWhen` field, whose list of `headerActions` ids picks this record's quick actions in that order (manifest `config.quickActionsFrom`, e.g. `@context.caseType.quickActions`, so a case type names the actions its cases need most). Only declared header actions are taken: an id nobody declares, or an action written out in the data, is dropped. An empty or missing list keeps `quickActions`. |
+| `primaryActionFrom` | String | `''` | A field path, read like a `visibleWhen` field, naming the declared header action drawn as this record's primary button (manifest `config.primaryActionFrom`, e.g. `@context.caseType.primaryAction`, so a case type picks the act its cases lead with). Only an id of `headerActions` is taken, and only while that action's own `visibleWhen` shows it, so the data never widens who may act; otherwise the stage's primary action and `primaryAction` stay. `quickActionsFrom` also takes a list of paths, read in order: the first that names a declared action wins. |
 | 3. The rest | The overflow menu, in named groups. | `group` on a header action |
 | 4. Admin actions | The last group of that menu, for admins only. | `adminOnly` on a header action |
 
@@ -364,6 +366,20 @@ The detail body is, at its core, a real drag/resize grid powered by
   non-production builds the page console.warns any grid cell whose rendered
   content is taller than its `gridHeight` — overflow is a design bug (enlarge
   the cell or scope the widget's content), never a scroll surface.
+- **Cells below the fold mount when they come near the screen.** A cell whose
+  authored top (`gridY` rows of 80px) lies within the first viewport height
+  mounts its widget on open, as before. Any other cell stays an empty
+  placeholder until an IntersectionObserver reports it within one viewport
+  height of the screen, then keeps its widget mounted. Opening a record then
+  fetches only for the cards in view. A fixed cell keeps its grid size while it
+  waits, and a `sizeToContent` cell holds its `gridHeight` rows. Set
+  `eager: true` on the layout entry or the widget definition for a widget that
+  must load at once. Edit mode, printing and a browser without
+  IntersectionObserver mount every cell at once.
+
+```json
+{ "id": "case-terms", "type": "data", "title": "Terms", "eager": true }
+```
 
 ## Sidebar config object
 

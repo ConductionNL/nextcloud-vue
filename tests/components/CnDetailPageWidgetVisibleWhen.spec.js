@@ -23,6 +23,7 @@ jest.mock('../../src/utils/visibleWhen.js', () => {
 })
 
 import CnDetailPage from '../../src/components/CnDetailPage/CnDetailPage.vue'
+import { forgetRelatedReads } from '../../src/utils/readRelatedOnce.js'
 
 const CASE_TYPES = {
 	'ct-youth': { id: 'ct-youth', category: 'Sociaal domein' },
@@ -72,6 +73,8 @@ function mountPage(object, extra = {}, provide = {}) {
 const ids = (w) => w.vm.bodyGridLayout.map((i) => i.widgetId)
 
 beforeEach(() => {
+	// The record reads are shared for 30 s across a page; each test is a fresh page.
+	forgetRelatedReads()
 	mockFetchJson.mockReset()
 	mockFetchJson.mockImplementation(async (url) => {
 		const row = CASE_TYPES[url.split('/').pop()]

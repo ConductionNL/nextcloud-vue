@@ -44,7 +44,7 @@
 				:gs-y="scaledRow(item.gridY)"
 				:gs-w="item.gridWidth"
 				:gs-h="scaledRow(item.gridHeight)"
-				:gs-min-w="minWidth"
+				:gs-min-w="itemMinWidth(item)"
 				:gs-min-h="minRows(item)"
 				:gs-size-to-content="sizeToContentAttr(item)"
 				:data-cn-track="item.track === 'main' || item.track === 'side' ? item.track : undefined"
@@ -135,7 +135,11 @@ function hasFitCell(layout) {
 /**
  * The row tracks of a grid that fills its height (`fillHeight`): `auto` for
  * a row whose items all set `fitRows`, or that no item covers, and an equal
- * share of the free height (`minmax(0, 1fr)`) for every other row.
+ * share of the free height (`minmax(0, 1fr)`) for every other row. A row
+ * that a `fitRows` item covers is also `auto` when each other item on it
+ * reaches into a row that no `fitRows` item covers: that item takes its
+ * share of the height there (LpVandaag: three rows of app tiles at their own
+ * size beside the agenda, which runs on to the bottom of the screen).
  *
  * @spec openspec/changes/lpvandaag-start-page/specs/lpvandaag-start-page/spec.md#requirement-a-dashboard-can-fill-the-height-below-the-top-bar
  * @param {Array<object>} layout The layout items.
@@ -146,10 +150,24 @@ export function fillRowTracks(layout) {
 	const top = (item) => (Number.isFinite(item.gridY) ? item.gridY : 0)
 	const height = (item) => (Number.isFinite(item.gridHeight) ? item.gridHeight : 1)
 	const rows = items.reduce((max, item) => Math.max(max, top(item) + height(item)), 0)
+	const covers = (item, row) => row >= top(item) && row < top(item) + height(item)
+	const fitRow = []
+	for (let row = 0; row < rows; row++) {
+		fitRow.push(items.some((item) => item.fitRows === true && covers(item, row)))
+	}
+	const stretchesElsewhere = (item) => {
+		for (let row = top(item); row < top(item) + height(item); row++) {
+			if (!fitRow[row]) {
+				return true
+			}
+		}
+		return false
+	}
 	const tracks = []
 	for (let row = 0; row < rows; row++) {
-		const covering = items.filter((item) => row >= top(item) && row < top(item) + height(item))
-		const fits = covering.every((item) => item.fitRows === true)
+		const covering = items.filter((item) => covers(item, row))
+		const others = covering.filter((item) => item.fitRows !== true)
+		const fits = others.length === 0 || (fitRow[row] && others.every(stretchesElsewhere))
 		tracks.push(fits ? 'auto' : 'minmax(0, 1fr)')
 	}
 	return tracks
@@ -195,7 +213,7 @@ export default {
 	name: 'CnDashboardGrid',
 
 	props: {
-		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, ...extra } */
+		/** Array of layout items: { id, gridX, gridY, gridWidth, gridHeight, minHeight?, ...extra }. An item's `minHeight` (layout rows) replaces the grid's own for that item. */
 		layout: {
 			type: Array,
 			required: true,
@@ -750,8 +768,32 @@ export default {
 		},
 
 		/**
-		 * The smallest height an item may take, in grid rows: `minHeight`
-		 * layout rows, except for a size-to-content cell on split rows, which
+		 * The smallest height an item may take, in layout rows: the item's own
+		 * `minHeight` (a divider may be one row), else the grid's.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum height in layout rows.
+		 */
+		itemMinHeight(item) {
+			const own = item && item.minHeight
+			return Number.isFinite(own) && own >= 1 ? Math.floor(own) : this.minHeight
+		},
+
+		/**
+		 * The fewest columns an item may take: its own `minWidth` when it
+		 * sets one (an app tile of one cell), else the grid's.
+		 *
+		 * @param {object} item The layout item.
+		 * @return {number} The minimum width in columns.
+		 */
+		itemMinWidth(item) {
+			const own = item && item.minWidth
+			return Number.isFinite(own) && own >= 1 ? Math.floor(own) : this.minWidth
+		},
+
+		/**
+		 * The smallest height an item may take, in grid rows: its minimum
+		 * height in layout rows, except for a size-to-content cell on split rows, which
 		 * may shrink to its content down to one grid row. The minimum is for
 		 * resizing by hand, and that only happens on whole rows in edit mode.
 		 *
@@ -763,7 +805,7 @@ export default {
 			if (this.rowSplit !== 1 && this.sizeToContentAttr(item) !== undefined) {
 				return 1
 			}
-			return this.minHeight * this.rowSplit
+			return this.itemMinHeight(item) * this.rowSplit
 		},
 
 		/**
@@ -814,7 +856,7 @@ export default {
 				if (!el) {
 					continue
 				}
-				for (const [name, value] of [['gs-x', item.gridX], ['gs-w', item.gridWidth], ['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
+				for (const [name, value] of [['gs-x', item.gridX], ['gs-w', item.gridWidth], ['gs-y', this.scaledRow(item.gridY)], ['gs-h', this.scaledRow(item.gridHeight)], ['gs-min-w', this.itemMinWidth(item)], ['gs-min-h', this.minRows(item)], ['gs-size-to-content', this.sizeToContentAttr(item)]]) {
 					if (value === undefined || value === null) {
 						el.removeAttribute(name)
 					} else {
@@ -959,13 +1001,21 @@ export default {
 				cellHeight: this.cellHeight / this.rowSplit,
 				margin: this.margin,
 				...(this.marginBottom !== null ? { marginBottom: this.marginBottom } : {}),
+				// GridStack 14 replaced `float` with `mode`; 12 and 13 read `float`.
 				float: this.float,
+				mode: this.float ? 'float' : 'top',
 				animate: true,
 				disableDrag: !this.editable,
 				disableResize: !this.editable,
 				removable: false,
-				...(this.columnOpts ? { columnOpts: this.columnOpts } : {}),
 			}, el)
+			// The breakpoints go in once the items are on the grid: GridStack
+			// applies a breakpoint's layout only to items it already holds, so a
+			// grid that mounts narrow would otherwise clamp each item into the
+			// narrow columns, overlapping, instead of reflowing them.
+			if (this.columnOpts) {
+				this.grid.updateOptions({ columnOpts: this.columnOpts })
+			}
 			this.keepOrderOnGrowth()
 			this.matchRowHeights()
 			this.placeClearRows()
@@ -1227,10 +1277,14 @@ export default {
 			if (!this.grid || typeof this.grid.enable !== 'function') {
 				return
 			}
+			// On the raw grid: enabled through Vue's proxy, GridStack binds its
+			// drag handlers to the proxy and a drop never ends, so the move is
+			// shown but no `change` follows.
+			const grid = toRaw(this.grid)
 			if (this.editable && !this.reflowed) {
-				this.grid.enable()
+				grid.enable()
 			} else {
-				this.grid.disable()
+				grid.disable()
 			}
 		},
 
@@ -1248,9 +1302,30 @@ export default {
 			if (!this.grid || typeof this.grid.getColumn !== 'function') {
 				return false
 			}
-			const authored = Number.isFinite(this.columnOpts?.columnMax) ? this.columnOpts.columnMax : this.columns
 			const live = this.grid.getColumn()
-			return Number.isFinite(live) && live > 0 && live !== authored
+			return Number.isFinite(live) && live > 0 && live !== this.authoredColumns()
+		},
+
+		/**
+		 * The authored column count: `columnOpts.columnMax` when there is one,
+		 * else the `columns` prop.
+		 *
+		 * @return {number} The column count the layout is written in.
+		 */
+		authoredColumns() {
+			return Number.isFinite(this.columnOpts?.columnMax) ? this.columnOpts.columnMax : this.columns
+		},
+
+		/**
+		 * The layout GridStack uses when it narrows to a column count: that
+		 * breakpoint's own `layout`, else `columnOpts.layout`, else move and scale.
+		 *
+		 * @param {number} column The column count.
+		 * @return {string|Function} The GridStack column layout.
+		 */
+		layoutForColumn(column) {
+			const point = (this.columnOpts?.breakpoints || []).find((b) => b.c === column)
+			return point?.layout || this.columnOpts?.layout || 'moveScale'
 		},
 
 		handleGridChange(items) {
@@ -1415,12 +1490,13 @@ export default {
 		 * edge instead of pushing it into negative coordinates.
 		 *
 		 * @param {{x: number, y: number, w: number, h: number}} rect the candidate.
+		 * @param {object} [item] the layout item, whose own `minHeight` applies.
 		 * @return {{x: number, y: number, w: number, h: number}} the clamped rectangle.
 		 */
-		clampRect(rect) {
+		clampRect(rect, item) {
 			const cols = this.effectiveColumns
-			const w = Math.min(Math.max(rect.w, this.minWidth), cols)
-			const h = Math.max(rect.h, this.minHeight)
+			const w = Math.min(Math.max(rect.w, item ? this.itemMinWidth(item) : this.minWidth), cols)
+			const h = Math.max(rect.h, item ? this.itemMinHeight(item) : this.minHeight)
 			return {
 				x: Math.min(Math.max(rect.x, 0), Math.max(cols - w, 0)),
 				y: Math.max(rect.y, 0),
@@ -1453,7 +1529,7 @@ export default {
 			}
 
 			const current = this.currentRect(item)
-			const next = this.clampRect({ ...current, ...patch })
+			const next = this.clampRect({ ...current, ...patch }, item)
 
 			if (next.x === current.x && next.y === current.y
 				&& next.w === current.w && next.h === current.h) {
@@ -1463,7 +1539,7 @@ export default {
 				return true
 			}
 
-			this.grid.update(el, next)
+			toRaw(this.grid).update(el, next)
 
 			this.announce(kind === 'resize'
 				? t('nextcloud-vue', '{label} resized to {width} columns by {height} rows', {
@@ -1671,12 +1747,23 @@ export default {
 			const grid = toRaw(this.grid)
 			const queued = []
 			this.pendingSizes = queued
+			// On a reflowed grid the cards are added at the authored column
+			// count and the grid then narrows again, so GridStack runs the
+			// breakpoint's layout over them instead of clamping each card into
+			// the narrow columns as it arrives.
+			const narrow = this.isReflowed() ? grid.getColumn() : null
+			if (narrow !== null) {
+				grid.column(this.authoredColumns(), 'none')
+			}
 			try {
 				for (const el of els) {
 					grid.makeWidget(el)
 				}
 			} finally {
 				this.pendingSizes = null
+			}
+			if (narrow !== null) {
+				grid.column(narrow, this.layoutForColumn(narrow))
 			}
 			for (const el of queued) {
 				grid.resizeToContent(el)
@@ -1695,16 +1782,22 @@ export default {
 				if (!this.grid || !this.$refs.gridContainer) {
 					return
 				}
+				const grid = toRaw(this.grid)
 				const added = []
 				for (const item of this.itemsInRowOrder) {
 					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
 					if (!el) {
 						continue
 					}
-					const node = this.grid.engine.nodes.find((n) => String(n.id) === String(item.id))
+					const node = grid.engine.nodes.find((n) => String(n.id) === String(item.id))
 					if (!node) {
 						added.push(el)
 					} else if (node.el === el) {
+						// On a reflowed grid the cards stand where the narrow
+						// layout put them, not at their authored place.
+						if (this.isReflowed()) {
+							continue
+						}
 						// The layout MOVED an item the grid already tracks: the
 						// page re-compacts its display layout when a widget's
 						// condition hides it, and the item below was given a new
@@ -1712,16 +1805,23 @@ export default {
 						// where the hidden widget had been. A drag reports the
 						// grid's own position back, which matches and does
 						// nothing here.
+						// A width or height the layout changed (a form, an
+						// undo) is synced the same way. A size-to-content cell
+						// keeps the height its content gave it.
 						const x = item.gridX ?? node.x
 						const y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
-						if (x !== node.x || y !== node.y) {
+						const w = Number.isFinite(item.gridWidth) ? item.gridWidth : node.w
+						const h = Number.isFinite(item.gridHeight) && this.sizeToContentAttr(item) === undefined
+							? item.gridHeight * this.rowSplit
+							: node.h
+						if (x !== node.x || y !== node.y || w !== node.w || h !== node.h) {
 							// The layout said where it goes; GridStack's `change`
 							// for it is not a user's arrangement and is not
 							// reported back (it would write the display-only
 							// compaction into the authored layout).
 							this.applyingLayout = true
 							try {
-								this.grid.update(el, { x, y })
+								grid.update(el, { x, y, w, h })
 							} finally {
 								this.applyingLayout = false
 							}
@@ -1729,8 +1829,8 @@ export default {
 					} else {
 						// Drop the stale node without touching its detached DOM,
 						// then adopt the new element so GridStack sizes/places it.
-						this.grid.removeWidget(node.el, false, false)
-						this.grid.makeWidget(el)
+						grid.removeWidget(node.el, false, false)
+						grid.makeWidget(el)
 					}
 				}
 				this.addWidgetsInOrder(added)
@@ -1742,7 +1842,7 @@ export default {
 			for (const node of toRemove) {
 				const el = this.$refs.gridContainer.querySelector(`[gs-id="${node.id}"]`)
 				if (el) {
-					this.grid.removeWidget(el, false)
+					toRaw(this.grid).removeWidget(el, false)
 				}
 			}
 

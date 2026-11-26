@@ -226,6 +226,18 @@
 	overflow-wrap: anywhere;
 }
 
+/* The avatar widget sets its own one line on its name and secondary line, so a
+   wrapping column still cut an address under a name ("Oosthavenweg 12,
+   Zuid...", DqContacten). In a wrapping cell they wrap with it.
+   @spec openspec/changes/avatar-cell-wraps/specs/data-table/spec.md#requirement-an-avatar-cell-in-a-wrapping-column-wraps-its-name-and-secondary-line */
+.cn-data-table td.cn-cell--wrap .cn-cell-renderer__avatar-name,
+.cn-data-table td.cn-cell--wrap .cn-cell-renderer__avatar-secondary {
+	overflow: visible;
+	text-overflow: clip;
+	white-space: normal;
+	overflow-wrap: break-word;
+}
+
 /* In a table fitted to its tile every column but the growing one asks for
    as little width as its content allows (`width: 1%`). With
    `overflow-wrap: anywhere` that is one character, so a wrapping head broke

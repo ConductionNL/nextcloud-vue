@@ -13,7 +13,8 @@
 		data-testid="cn-widget-edit-cog"
 		@click.stop>
 		<template #icon>
-			<Cog :size="20" />
+			<DotsVertical v-if="icon === 'kebab'" :size="20" />
+			<Cog v-else :size="20" />
 		</template>
 		<NcActionButton
 			:closeAfterClick="true"
@@ -25,6 +26,7 @@
 			{{ editLabel }}
 		</NcActionButton>
 		<NcActionButton
+			v-if="canDelete"
 			:closeAfterClick="true"
 			data-testid="cn-widget-edit-cog-delete"
 			@click="onRemove">
@@ -40,6 +42,7 @@
 import { NcActionButton, NcActions } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import DotsVertical from 'vue-material-design-icons/DotsVertical.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 
 /**
@@ -47,7 +50,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
  * dashboards.
  *
  * A white, rounded cog button (matching the widget chrome) that opens a small
- * action menu with Edit + Delete. Meant to be overlaid (absolute, top-right) by
+ * action menu with Edit + Delete (Delete left out when `canDelete` is false). Meant to be overlaid (absolute, top-right) by
  * the host over any widget surface — data widgets, NC dashboard widgets,
  * chromeless label/divider/header widgets, quick-access tiles — so every
  * dashboard widget shares one consistent edit control. Emits raw `edit` /
@@ -69,6 +72,7 @@ export default {
 		NcActions,
 		NcActionButton,
 		Cog,
+		DotsVertical,
 		Pencil,
 		Delete,
 	},
@@ -102,6 +106,30 @@ export default {
 		deleteLabel: {
 			type: String,
 			default: 'Delete widget',
+		},
+
+		/**
+		 * Whether the Delete action is offered. Pass `false` for a widget the
+		 * user may not remove, such as a compulsory widget on a dashboard held
+		 * with less than full permission.
+		 *
+		 * @type {boolean}
+		 */
+		canDelete: {
+			type: Boolean,
+			default: true,
+		},
+
+		/**
+		 * The trigger's glyph: `cog` (default) or `kebab`, the three dots the
+		 * Launchpad boards draw on a widget in edit mode (LpBewerken).
+		 *
+		 * @type {string}
+		 */
+		icon: {
+			type: String,
+			default: 'cog',
+			validator: (value) => ['cog', 'kebab'].includes(value),
 		},
 	},
 

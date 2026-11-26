@@ -71,7 +71,9 @@
 						:is="row.drill ? 'button' : 'div'"
 						:type="row.drill ? 'button' : null"
 						class="cn-chart-widget__bar-line"
-						:class="{ 'cn-chart-widget__bar-line--drill': row.drill }"
+						:class="{ 'cn-chart-widget__bar-line--drill': row.drill, 'cn-chart-widget__bar-line--selected': row.selected }"
+						:aria-pressed="row.drill ? String(row.selected) : null"
+						:data-selected="row.selected ? 'true' : null"
 						data-testid="cn-chart-widget-bar-row"
 						@click="row.drill ? onDataPointSelection(null, null, { dataPointIndex: row.index }) : null">
 						<span class="cn-chart-widget__bar-label">{{ row.label }}</span>
@@ -130,15 +132,18 @@
 				{{ hostTranslate(footnote) }}
 			</p>
 		</div>
-		<div v-else-if="chartComponent" class="cn-chart-widget__canvas">
-			<component
-				:is="chartComponent"
-				ref="chart"
-				:type="type"
-				:height="computedHeight"
-				:width="computedWidth"
-				:options="mergedOptions"
-				:series="plottedSeries" />
+		<div v-else-if="chartComponent" :ref="setCanvasBox" class="cn-chart-widget__canvas">
+			<!-- The chart is drawn inside the box's shadow root (see chartShadow.js). -->
+			<Teleport v-if="chartTarget" :to="chartTarget">
+				<component
+					:is="chartComponent"
+					ref="chart"
+					:type="type"
+					:height="computedHeight"
+					:width="computedWidth"
+					:options="apexOptions"
+					:series="apexSeries" />
+			</Teleport>
 		</div>
 		<div v-else class="cn-chart-widget__fallback">
 			<!-- @slot Rendered when the ApexCharts peer dependency is not available (defaults to the unavailableLabel text). -->
@@ -174,9 +179,9 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getLanguage, translate as t } from '@nextcloud/l10n'
 import { NcNoteCard } from '@nextcloud/vue'
 import { inject, markRaw, ref } from 'vue'
-import VueApexCharts from 'vue3-apexcharts'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
+import widgetData, { seriesTotal } from '../../mixins/widgetData.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
@@ -186,6 +191,9 @@ import { cellsFromRecord, pivotCells } from '../../utils/matrixCells.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
 import { userLocale } from '../../utils/userLocale.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
+import { loadApexCharts, loadedApexCharts } from './apexChartsLoader.js'
+import { hostSelectionOptions, markSelectedMarks, redrawHooks, selectedIndicesOf } from './chartSelection.js'
+import { attachChartShadow, createChartContainer, keepSvgMeasurerInShadow } from './chartShadow.js'
 
 /**
  * Nice-ceiling ladder. Deliberately fine-grained: a coarse one (1 / 2 / 5 / 10)
@@ -433,6 +441,8 @@ export default {
 
 	components: { CnEndpointNotice, NcNoteCard },
 
+	mixins: [widgetData],
+
 	inject: {
 		/**
 		 * Reactive date-range provided by an ancestor `CnDashboardPage`.
@@ -466,6 +476,20 @@ export default {
 		selectable: {
 			type: Boolean,
 			default: false,
+		},
+
+		/**
+		 * The raw keys of the categories to show as selected, such as the
+		 * filter a host made from an earlier `select`. A selected bar-list
+		 * row is ringed and pressed; a selected bar or slice is outlined.
+		 * Area and line charts show no selection.
+		 *
+		 * @type {Array<string|number>}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		selected: {
+			type: Array,
+			default: () => [],
 		},
 
 		/**
@@ -1074,6 +1098,16 @@ export default {
 			// once at creation (data, not computed — matches the dashboard
 			// date-chip convention).
 			viewsGroupLabel: t('nextcloud-vue', 'Chart view'),
+			// What the apexcharts wrapper is bound to: one raw object and one raw
+			// array, kept equal to `mergedOptions` / `plottedSeries` by filling
+			// them in place. The wrapper builds a chart from them (on mount and
+			// on its own type / size rebuilds) but never sees them change, so
+			// its watchers never fire; `updateChart` updates the live chart.
+			apexOptions: markRaw({}),
+			apexSeries: markRaw([]),
+			// The element ApexCharts is mounted in, moved into the canvas box's
+			// shadow root when the box enters the DOM.
+			chartTarget: null,
 		}
 	},
 
@@ -1180,6 +1214,24 @@ export default {
 			}
 			const fromDs = this.dsData?.series
 			return fromDs !== undefined ? fromDs : this.series
+		},
+
+		/**
+		 * What the chart shows, for the `data` event: its series, categories,
+		 * labels and the total of its first series; null until it has a series.
+		 *
+		 * @return {{series: Array, categories: Array, labels: Array, total: number|null}|null}
+		 * @spec openspec/changes/widget-data-event/specs/widget-data-event/spec.md#requirement-a-self-fetching-widget-tells-its-host-what-it-shows
+		 */
+		widgetData() {
+			const series = this.resolvedSeries
+			if (!Array.isArray(series) || series.length === 0) {
+				return null
+			}
+			const categories = Array.isArray(this.resolvedCategories) ? this.resolvedCategories : []
+			const rest = this.aggregateData || this.bucketData || this.groupByData
+			const labels = Array.isArray(rest?.labels) ? rest.labels : (Array.isArray(this.labels) ? this.labels : categories)
+			return { series, categories, labels, total: seriesTotal(series) }
 		},
 
 		resolvedCategories() {
@@ -1664,7 +1716,19 @@ export default {
 				share: max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0,
 				text: this.formatPlain(value),
 				drill: drill && this.drilldownKeys[index] !== undefined && this.drilldownKeys[index] !== OTHER_BUCKET_KEY,
+				selected: this.selectedIndices.includes(index),
 			}))
+		},
+
+		/**
+		 * The indices of the categories `selected` names, matched on their
+		 * raw keys.
+		 *
+		 * @return {number[]}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		selectedIndices() {
+			return selectedIndicesOf(this.drilldownKeys, this.selected, OTHER_BUCKET_KEY)
 		},
 
 		/**
@@ -1863,6 +1927,22 @@ export default {
 			})
 		},
 
+		/**
+		 * The options and series the chart draws, as one value, so a data
+		 * change that moves both reaches the chart as one update.
+		 *
+		 * @return {Array} `[mergedOptions, plottedSeries]`.
+		 */
+		chartPayload() {
+			return [this.mergedOptions, this.plottedSeries]
+		},
+
+		/**
+		 * The ApexCharts options: the component's defaults deep-merged with `options`.
+		 *
+		 * @return {object}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
 		mergedOptions() {
 			const isPieType = ['pie', 'donut', 'radialBar'].includes(this.type)
 
@@ -1953,7 +2033,10 @@ export default {
 							event.target.style.cursor = 'pointer'
 						}
 					},
+
+					...redrawHooks(this.markSelection),
 				}
+				Object.assign(defaults, hostSelectionOptions(isPieType))
 			}
 
 			// Add categories for cartesian charts
@@ -2032,6 +2115,12 @@ export default {
 	},
 
 	watch: {
+		selectedIndices: 'markSelection',
+
+		chartPayload() {
+			this.updateChart()
+		},
+
 		groupByKey() {
 			this.fetchGroupBy()
 		},
@@ -2050,8 +2139,23 @@ export default {
 	},
 
 	created() {
-		// markRaw: `data()` is deeply reactive and would proxy the component.
-		this.chartComponent = markRaw(VueApexCharts)
+		// ApexCharts is loaded with the first chart, not with the bundle that
+		// imports the widget. markRaw: `data()` is deeply reactive and would
+		// proxy the component.
+		const apexCharts = loadedApexCharts()
+		if (apexCharts) {
+			this.chartComponent = markRaw(apexCharts)
+		} else {
+			loadApexCharts().then((component) => {
+				if (component) {
+					this.chartComponent = markRaw(component)
+				}
+			})
+		}
+		const container = createChartContainer()
+		this.chartTarget = container ? markRaw(container) : null
+		keepSvgMeasurerInShadow()
+		this.syncChartBinding()
 	},
 
 	mounted() {
@@ -2183,6 +2287,55 @@ export default {
 			if (typeof this.epRefetch === 'function') {
 				this.epRefetch()
 			}
+		},
+
+		/**
+		 * Move the chart's container into the canvas box's shadow root when the
+		 * box enters the DOM.
+		 *
+		 * @param {HTMLElement|null} el The canvas box, or null when it unmounts.
+		 * @return {void}
+		 */
+		setCanvasBox(el) {
+			if (el) {
+				attachChartShadow(el, this.chartTarget)
+			}
+		},
+
+		/**
+		 * Fill the wrapper's bound options and series with the current ones,
+		 * in place, so a chart the wrapper (re)builds starts from them.
+		 *
+		 * @return {void}
+		 */
+		syncChartBinding() {
+			const options = this.apexOptions
+			for (const key of Object.keys(options)) {
+				delete options[key]
+			}
+			Object.assign(options, this.mergedOptions)
+			const series = this.plottedSeries
+			this.apexSeries.splice(0, this.apexSeries.length, ...(Array.isArray(series) ? series : []))
+		},
+
+		/**
+		 * Show new options and series in the live chart as one in-place,
+		 * unanimated `updateOptions`, instead of the wrapper's
+		 * `updateOptions` + `updateSeries` pair: every ApexCharts update clears
+		 * and redraws the whole SVG and measures each label again, which on a
+		 * full dashboard page costs far more than the data change itself. The
+		 * entry animation on first draw is unaffected. ApexCharts skips a
+		 * payload identical to the last one.
+		 *
+		 * @return {void}
+		 */
+		updateChart() {
+			this.syncChartBinding()
+			const apex = this.$refs.chart?.chart
+			if (typeof apex?.updateOptions !== 'function') {
+				return
+			}
+			apex.updateOptions({ ...this.mergedOptions, series: this.plottedSeries }, false, false)
 		},
 
 		/**
@@ -2854,6 +3007,17 @@ export default {
 		},
 
 		/**
+		 * Mark the drawn bars and slices of the `selected` categories with
+		 * `data-cn-selected`, which the chart's shadow rules outline.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/chart-widget-selected/specs/chart-widget-selected/spec.md#requirement-a-chart-shows-the-categories-a-host-marks-as-selected
+		 */
+		markSelection() {
+			markSelectedMarks(this.chartTarget, this.selectedIndices)
+		},
+
+		/**
 		 * ApexCharts `dataPointSelection` handler backing the declarative
 		 * `dataSource.drilldown` (Wave 3, #91): navigate to the configured
 		 * route with the clicked category's RAW key in the query
@@ -3041,20 +3205,6 @@ export default {
 	overflow: hidden;
 }
 
-/* apexcharts writes an inline `width` onto its own wrapper from its measured
-   minimum, which beats the container when the container is narrower. Cap the
-   painted box so the inline width cannot push past the widget's border. */
-.cn-chart-widget :deep(.apexcharts-canvas),
-.cn-chart-widget :deep(.apexcharts-canvas svg) {
-	max-width: 100%;
-}
-
-/* The SVG is a block: as an inline box it sits on a line and adds the line's
-   descender space under the chart. */
-.cn-chart-widget :deep(.apexcharts-canvas svg) {
-	display: block;
-}
-
 /* `flex: 1 1 0` (not `1 1 auto`) is load-bearing: with an `auto` basis the box
    would grow to its content, i.e. to the chart, and the percentage height would
    resolve against a box the chart itself defined. `overflow: hidden` keeps a
@@ -3112,6 +3262,15 @@ export default {
 .cn-chart-widget__bar-line--drill:hover .cn-chart-widget__bar-label,
 .cn-chart-widget__bar-line--drill:focus-visible .cn-chart-widget__bar-label {
 	text-decoration: underline;
+}
+
+.cn-chart-widget__bar-line--selected {
+	border-radius: var(--border-radius-small, 4px);
+	box-shadow: 0 0 0 2px var(--color-main-text);
+}
+
+.cn-chart-widget__bar-line--selected .cn-chart-widget__bar-label {
+	font-weight: 700;
 }
 
 .cn-chart-widget__bar-label {
@@ -3333,113 +3492,6 @@ export default {
 	border-color: var(--color-primary-element, #0082c9);
 }
 
-/* ─── ApexCharts HTML chrome ───────────────────────────────────────────────
-   Everything apexcharts draws INSIDE the SVG takes its colour from
-   `mergedOptions` (foreColor, grid.borderColor, legend.labels.colors, axis
-   label styles), so it already follows the Nextcloud theme. Its HTML chrome —
-   the hover tooltip, the crosshair axis tooltips, the toolbar menu — does not:
-   apexcharts styles those from a stylesheet it injects itself at chart-create
-   time (`<style id="apexcharts-css">`) using hardcoded hex values. In dark mode
-   the hover tooltip stayed a white box while its text inherited the near-white
-   `--color-main-text` — white on white, unreadable.
-
-   `tooltip.theme` is not the fix: both apexcharts themes are hardcoded
-   palettes, neither of them Nextcloud's, and choosing between them would need
-   JS theme detection that a themed or nldesign install would still get wrong.
-   Restyling with tokens means ONE rule set that is correct in light, dark,
-   high-contrast and custom themes, because the tokens flip themselves. Both
-   theme classes are listed so an `options.tooltip.theme` override cannot drop
-   a consumer back onto a hardcoded palette.
-
-   The specificity is deliberate. apexcharts injects its stylesheet when the
-   first chart is created, so it lands AFTER the app's CSS and wins every tie —
-   each override below therefore carries one more class than the apexcharts rule
-   it replaces, and holds even without the scope attribute this block compiles
-   with. */
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light),
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-	box-shadow: 0 1px 5px var(--color-box-shadow, rgba(0, 0, 0, 0.2));
-}
-
-/* The title row is the date/category header ("Aug 26"). Its own background is
-   what made it unreadable rather than merely off-theme. */
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title),
-.cn-chart-widget :deep(.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title) {
-	background: var(--color-background-hover);
-	border-bottom: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-/* Crosshair axis tooltips. apexcharts puts light hex values on the BASE class
-   here and only overrides them for its dark theme, so the base rule has to be
-   replaced too — not just the theme variants. */
-.cn-chart-widget :deep(.apexcharts-xaxistooltip),
-.cn-chart-widget :deep(.apexcharts-yaxistooltip) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-/* Their pointer arrows are two stacked triangles: `::before` paints the border
-   edge, `::after` the fill. Both need the tokens the box above uses, or the
-   arrow keeps the old palette and reads as a stray light wedge. */
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::after,
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::after {
-	border-bottom-color: var(--color-main-background);
-	border-top-color: var(--color-main-background);
-}
-
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-bottom)::before,
-.cn-chart-widget :deep(.apexcharts-xaxistooltip-top)::before {
-	border-bottom-color: var(--color-border);
-	border-top-color: var(--color-border);
-}
-
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::after,
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::after {
-	border-left-color: var(--color-main-background);
-	border-right-color: var(--color-main-background);
-}
-
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-left)::before,
-.cn-chart-widget :deep(.apexcharts-yaxistooltip-right)::before {
-	border-left-color: var(--color-border);
-	border-right-color: var(--color-border);
-}
-
-/* Toolbar menu — only reachable with `toolbar: true`, but the same defect: a
-   hardcoded `#fff` panel under inherited near-white text. */
-.cn-chart-widget :deep(.apexcharts-menu) {
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	color: var(--color-main-text);
-}
-
-.cn-chart-widget :deep(.apexcharts-menu .apexcharts-menu-item:hover) {
-	background: var(--color-background-hover);
-}
-
-/* Toolbar icons: `#6e8192` at rest and `#333` on hover, i.e. the hover state
-   vanishes against a dark background. One selector per icon class, matching
-   apexcharts' own list, to clear its (0,3,1) hover rules. */
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon svg) {
-	fill: var(--color-text-maxcontrast);
-}
-
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-menu-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-reset-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-selection-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoom-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomin-icon:hover svg),
-.cn-chart-widget :deep(.apexcharts-toolbar .apexcharts-zoomout-icon:hover svg) {
-	fill: var(--color-main-text);
-}
+/* ApexCharts' own markup is styled inside the chart's shadow root: see
+   chartShadow.js. */
 </style>

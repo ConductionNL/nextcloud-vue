@@ -26,11 +26,19 @@ every key below can be written in the manifest.
 | `canInstall` | `Boolean\|null` | `null` | Whether the signed-in user sees Install on the remote cards, as the app resolved it. `true` shows it, `false` hides it from everyone, administrators included. `null` keeps the default: administrators only. |
 | `targets` | `Array\|Object\|null` | `null` | Where an install can go (`config.targets`): `[{ id, label }]`, or a source in the `optionsFrom` shape (`{ register, schema, valueField?, labelField? }` or `{ url, ... }`), such as the app's worlds. With targets the page shows a picker (the first target chosen) and the install body is `{ "target": "<id>" }`; without any the install is sent as before. |
 | `targetLabel` | `String` | `''` | The picker's label, through the app's translate; empty reads "Install into". |
+| `activeTarget` | `String` | `''` | The active target (`config.activeTarget`): a target id, or a `@workspace.<key>` token (trailing `?` allowed) read from the app's workspace context, such as `@workspace.activeWorld?`. With one, the install picker starts on it and the list narrows to the items that fit it, shown as "Fits: &lt;target&gt;" with Clear all. An item fits unless the engine reports it installed only into other targets. Empty, or a token that resolves to nothing, shows every item. |
 | `canPublish` | `Boolean\|null` | `null` | Whether the signed-in user sees Publish, as the app resolved it. `null` means administrators only. Needs `publishRoute` as well. |
 | `publishRoute` | `String\|Object` | `''` | Where Publish takes the user. A string is a route name; an object is a vue-router location. Empty means no Publish button. |
 | `page` | Object | `{}` | A whole manifest page, for a host that renders the component directly. The flattened props win. |
 | `kindLenses` | Array | `[]` | Extra lens chips under the board look, one per item kind (`[{ kind, label }]`); the label goes through the app's translate. |
+| `categoryLenses` | Boolean | `false` | Board look: one lens per category the served items carry (`card.category`, a string or a list), sorted, with its count. |
+| `pageSize` | Number | `0` | Board look: cards per page with a Previous / Page x of y / Next pager; 0 shows them all. |
+| `banner` | Object | `null` | Board look: the register banner, `{ settingsUrl?, settingsLabel?, installNote? }`. Names `registry: { name, url }` from the items response, its address, Last checked and Connected / Not reachable; the install note for whoever may not install; without a register a line that none is connected with a link to `settingsUrl`. |
 | `publishable` | Boolean | `false` | The app accepts a publish at `/api/store/publish`: Publish opens the publish dialog instead of following `publishRoute`. |
+
+The engine stamps the chosen target only where the app's manifest declares it: `store.installTarget: { "property": "setting", "schemas": ["larping_skill"] }` writes the id into `setting` on every installed object of those schemas (manifest schema 2.196.0). A `target` the manifest does not declare is refused by the engine.
+
+Where each item is installed comes from the engine: a store search that answers `installed` (item slug to target ids, `""` for an install without target) puts "Installed in &lt;targets&gt;" on the card, each target named by its label from `targets`. A whole install adds its target at once. Without `installed` no card shows the line.
 
 ## Who sees Install and Publish
 

@@ -117,6 +117,19 @@
 				</p>
 			</div>
 			<div class="cn-dashboard-page__header-actions">
+				<!-- `download: true`: save the figures the page shows as CSV
+				     (dashboard-download-csv). Disabled until they are read. -->
+				<NcButton
+					v-if="download"
+					variant="secondary"
+					:disabled="!downloadReady"
+					data-testid="cn-dashboard-download"
+					@click="saveDownload">
+					<template #icon>
+						<Download :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Download') }}
+				</NcButton>
 				<!-- The page's view switch (`views`), unless a greeting header
 				     widget on the page draws it. Its options control the view
 				     region below the grid. -->
@@ -151,6 +164,43 @@
 					v-else-if="boardSecondaryHeaderActions.length"
 					:actions="boardSecondaryHeaderActions"
 					data-testid="cn-dashboard-page-header-actions-secondary" />
+				<!-- `notificationsBadge`: the user's unread notifications of the
+				     app, as a count that opens their list; nothing at 0. -->
+				<CnNotificationsBadge
+					v-if="notificationsBadgeAppId"
+					:appId="notificationsBadgeAppId" />
+				<!-- `autoRefresh`: a refresh button in the header that reads
+				     every widget again at once; it spins while they read. -->
+				<NcButton
+					v-if="autoRefreshConfig && autoRefreshConfig.button"
+					variant="tertiary"
+					class="cn-dashboard-page__refresh"
+					:class="{ 'cn-dashboard-page__refresh--busy': autoRefreshBusy }"
+					:aria-label="refreshLabel"
+					:title="refreshLabel"
+					:aria-busy="autoRefreshBusy ? 'true' : 'false'"
+					:disabled="autoRefreshBusy"
+					data-testid="cn-dashboard-page-refresh"
+					@click="runPageRefresh">
+					<template #icon>
+						<Refresh :size="20" />
+					</template>
+				</NcButton>
+				<!-- `layoutPanel`: opens the side panel where the user shows,
+				     hides and reorders the page's sections. -->
+				<NcButton
+					v-if="layoutPanel"
+					ref="layoutPanelButton"
+					variant="secondary"
+					:aria-pressed="layoutPanelOpen ? 'true' : 'false'"
+					:aria-expanded="layoutPanelOpen ? 'true' : 'false'"
+					data-testid="cn-dashboard-page-layout-panel-button"
+					@click="setLayoutPanel(!layoutPanelOpen)">
+					<template #icon>
+						<ViewDashboardEditOutline :size="20" />
+					</template>
+					{{ t('nextcloud-vue', 'Arrange page') }}
+				</NcButton>
 				<NcButton
 					v-if="allowEdit"
 					:variant="isEditing ? 'primary' : 'secondary'"
@@ -224,6 +274,33 @@
 				</template>
 			</div>
 		</div>
+
+		<!-- `autoRefresh`: the reads keep failing and what the page shows
+		     is older than `staleAfterSeconds`. The widgets stay as they are. -->
+		<div
+			v-if="autoRefreshStale"
+			class="cn-dashboard-page__stale"
+			role="status"
+			data-testid="cn-dashboard-page-stale">
+			<span>{{ staleText }}</span>
+			<NcButton
+				variant="secondary"
+				:disabled="autoRefreshBusy"
+				data-testid="cn-dashboard-page-stale-retry"
+				@click="runPageRefresh">
+				{{ t('nextcloud-vue', 'Retry') }}
+			</NcButton>
+		</div>
+
+		<!-- The layout panel (`layoutPanel`): a side panel at the right
+		     edge, over the page, that lists the grid's sections. -->
+		<CnDashboardLayoutPanel
+			v-if="layoutPanel && layoutPanelOpen"
+			class="cn-dashboard-page__layout-panel"
+			:items="layoutPanelItems"
+			@close="setLayoutPanel(false)"
+			@reset="resetLayout"
+			@save="saveLayoutPanel" />
 
 		<!-- The switch row (screens-dashboard-greeting-header): in the board
 		     look the page's view switch sits under the header, left, and the
@@ -638,6 +715,8 @@
 				<template v-else-if="hasWidgetSlot(item.widgetId)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -658,6 +737,7 @@
 						:showActions="widgetShowActions(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- @slot widget-{widgetId}-title-icon Per-widget custom title icon (e.g. `#widget-my-work-title-icon`). Scope: `{ item, widget }`. -->
@@ -722,6 +802,8 @@
 				<template v-else-if="isChart(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:class="{ 'cn-dashboard-page__chart-fit': isChartFitted(item) }"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
@@ -743,6 +825,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<template v-if="dateRangeEnabled && (item.dateChip === true || formatChartDateRange(item))" #title-meta>
@@ -805,6 +888,8 @@
 				<template v-else-if="isStatsBlock(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -822,6 +907,7 @@
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<CnStatsBlockWidget
@@ -836,6 +922,8 @@
 				<template v-else-if="isIntegration(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -856,6 +944,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Mount-mode integration leaf (openregister#2127):
@@ -879,6 +968,8 @@
 				<template v-else-if="isNcWidget(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -894,6 +985,7 @@
 						:showRefresh="getWidgetShowRefresh(item)"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<CnWidgetRenderer
@@ -908,6 +1000,8 @@
 				<template v-else-if="registryRenderer(item)">
 					<CnWidgetWrapper
 						:widgetId="item.widgetId"
+						:collapsible="isWidgetCollapsible(item)"
+						:collapsed="isWidgetCollapsed(item)"
 						:title="getWidgetTitle(item)"
 						:eyebrow="getWidgetEyebrow(item)"
 						:titleTone="getWidgetTitleTone(item)"
@@ -927,6 +1021,7 @@
 						:styleConfig="item.styleConfig || {}"
 						:documentationUrl="getWidgetDocumentationUrl(item)"
 						:docsAnchor="getWidgetDocsAnchor(item)"
+						@toggleCollapse="onWidgetToggleCollapse(item, $event)"
 						@refresh="onWidgetRefresh(item)"
 						@requestFeature="onWidgetRequestFeature(item)">
 						<!-- Opt-in per-widget date chip (`layout[].dateChip: true`) for
@@ -1077,16 +1172,18 @@
 
 <script>
 import { getCurrentUser } from '@nextcloud/auth'
-import { subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { emit as emitOnBus, subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcActionButton, NcActionInput, NcActions, NcActionSeparator, NcButton, NcLoadingIcon, NcSelect } from '@nextcloud/vue'
-import { inject, provide, ref, watch } from 'vue'
+import { defineAsyncComponent, inject, provide, ref, watch } from 'vue'
 import CalendarRange from 'vue-material-design-icons/CalendarRange.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Download from 'vue-material-design-icons/Download.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Refresh from 'vue-material-design-icons/Refresh.vue'
 import Restore from 'vue-material-design-icons/Restore.vue'
+import ViewDashboardEditOutline from 'vue-material-design-icons/ViewDashboardEditOutline.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import CnWidgetStyleEditorModal from '../../dialogs/CnWidgetStyleEditorModal.vue'
 import CnBodySections from '../CnBodySections/CnBodySections.vue'
@@ -1114,7 +1211,9 @@ import { mergeUserLayout, resolveUserLayoutApi } from '../../store/plugins/dashb
 import { headerActionAsLink } from '../../utils/actionLink.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
+import { normalizeAutoRefresh } from '../../utils/autoRefresh.js'
 import { widgetHeaderLink } from '../../utils/contentHeaderLink.js'
+import { downloadFileName, downloadPlanEntry, readDownloadRows, saveTextFile, toCsv } from '../../utils/dashboardDownload.js'
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { HEADING_LEVEL } from '../../utils/headingLevel.js'
@@ -1135,6 +1234,11 @@ import { getWidgetTypeEntry } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 import '../CnWidgetGrid/registerDashboardWidgets.js'
 
 /** Surfaces understood by the pluggable integration registry (AD-19). */
+// The layout panel loads when the user first opens it (`layoutPanel`).
+const CnDashboardLayoutPanel = defineAsyncComponent(() => import('../CnDashboardLayoutPanel/CnDashboardLayoutPanel.vue').then((m) => m.default))
+// The notifications badge loads on a page that asks for it (`notificationsBadge`).
+const CnNotificationsBadge = defineAsyncComponent(() => import('../CnNotificationsBadge/CnNotificationsBadge.vue').then((m) => m.default))
+
 const INTEGRATION_SURFACES = ['user-dashboard', 'app-dashboard', 'detail-page', 'single-entity']
 
 /**
@@ -1321,6 +1425,9 @@ function filledContent(content, config) {
  */
 const DESCRIPTION_REFRESH_EVENT = 'cn:dashboard:description-refresh'
 
+/** Longest a page refresh (`autoRefresh`) waits on its widgets' reads. */
+const AUTO_REFRESH_MAX_WAIT_MS = 15000
+
 export default {
 	name: 'CnDashboardPage',
 
@@ -1341,8 +1448,12 @@ export default {
 		Cog,
 		CalendarRange,
 		ViewDashboardOutline,
+		Refresh,
+		ViewDashboardEditOutline,
 		Download,
 		CnDashboardGrid,
+		CnDashboardLayoutPanel,
+		CnNotificationsBadge,
 		CnWidgetWrapper,
 		CnWidgetRenderer,
 		CnTileWidget,
@@ -1785,6 +1896,24 @@ export default {
 			default: false,
 		},
 
+		/**
+		 * Offer a "Download" button in the header that saves the figures of the
+		 * page's stat tiles, grouped charts and object tables as CSV
+		 * (`widget,label,value`). Disabled until the figures are read.
+		 *
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		download: {
+			type: Boolean,
+			default: false,
+		},
+
+		/** The file name of the download, before `-<yyyy-mm-dd>.csv`; "dashboard" when empty. */
+		downloadName: {
+			type: String,
+			default: '',
+		},
+
 		/** Whether to show the edit toggle button */
 		allowEdit: {
 			type: Boolean,
@@ -2157,6 +2286,67 @@ export default {
 		},
 
 		/**
+		 * A "Arrange page" header button that opens a side panel where the
+		 * user shows, hides and reorders the page's sections (manifest
+		 * `config.layoutPanel: true`, board PqMijnWerkIndelen). The result
+		 * is stored per user as with `userLayout`, which this turns on.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel/specs/dashboard-page/spec.md#requirement-a-user-arranges-the-page-in-a-side-panel
+		 * @type {boolean}
+		 */
+		layoutPanel: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * Widget ids the layout panel lists but does not let the user hide
+		 * (manifest `config.layoutPanelLocked`): the page's main list, say.
+		 * They can still be moved, and a stored layout that hid one before
+		 * it was locked draws it all the same.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel-locked/specs/dashboard-page/spec.md#requirement-a-section-the-page-locks-stays-shown
+		 * @type {Array<string>}
+		 */
+		layoutPanelLocked: {
+			type: Array,
+			default: () => [],
+		},
+
+		/**
+		 * Read the page's widgets again on a timer, with a refresh button in
+		 * the header (manifest `config.autoRefresh`). `true` takes the
+		 * defaults; an object sets `intervalSeconds` (default 300),
+		 * `staleAfterSeconds` (default 600) and `button` (default true).
+		 * Every tick, and the button, fire `cn:page:refresh`, which the data
+		 * widgets read again on in place: no reload, the scroll position
+		 * stays. When the reads keep failing and the last good one is older
+		 * than `staleAfterSeconds`, a warning names its time and offers Retry.
+		 * `null` (the default) adds nothing.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @type {boolean|{intervalSeconds?: number, staleAfterSeconds?: number, button?: boolean}|null}
+		 */
+		autoRefresh: {
+			type: [Boolean, Object],
+			default: null,
+		},
+
+		/**
+		 * A badge in the header with the signed-in user's unread Nextcloud
+		 * notifications of an app (manifest `config.notificationsBadge`):
+		 * `true` for this page's app (`appId`), or another app id. It opens
+		 * their list; opening one marks it read. Nothing shows at 0.
+		 *
+		 * @spec openspec/changes/dashboard-notifications-badge/specs/dashboard-page/spec.md#requirement-a-dashboard-header-counts-the-users-unread-notifications-of-the-app
+		 * @type {boolean|string}
+		 */
+		notificationsBadge: {
+			type: [Boolean, String],
+			default: false,
+		},
+
+		/**
 		 * The Nextcloud app id the user layout is stored under.
 		 *
 		 * Required for `userLayout` to do anything: a preference has to be
@@ -2294,6 +2484,10 @@ export default {
 	data() {
 		return {
 			isEditing: false,
+			/** The CSV rows of `download`, or null until they are read. */
+			downloadRows: null,
+			/** Whether the CSV rows are being read. */
+			downloadReading: false,
 			/** Whether the window is phone-wide (under 640px), for a widget's `viewport`. */
 			narrowViewport: false,
 			viewportQuery: null,
@@ -2312,6 +2506,23 @@ export default {
 			 * @type {Array<object>|null}
 			 */
 			userLayoutItems: null,
+			/** Whether the layout panel (`layoutPanel`) is open. */
+			layoutPanelOpen: false,
+			/** Whether a page refresh (`autoRefresh`) is reading. */
+			autoRefreshBusy: false,
+			/** When the widgets last read without an error (ms). */
+			autoRefreshLastGoodAt: Date.now(),
+			/** Whether the last page refresh had a read that failed. */
+			autoRefreshFailing: false,
+			/** When the last page refresh ended (ms): the clock the stale check reads. */
+			autoRefreshCheckedAt: Date.now(),
+			/** The `autoRefresh` interval timer. */
+			autoRefreshTimer: null,
+			/**
+			 * Folded state the user set in this session, by widget id
+			 * (`collapsible` widgets), over what the stored layout says.
+			 */
+			collapsedOverrides: {},
 			/** Whether a stored record has been asked for yet. */
 			userLayoutLoaded: false,
 			/** Whether this edit session changed anything worth saving. */
@@ -2395,6 +2606,102 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The `autoRefresh` prop with its defaults, or null when off.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @return {{intervalSeconds: number, staleAfterSeconds: number, button: boolean}|null}
+		 */
+		autoRefreshConfig() {
+			return normalizeAutoRefresh(this.autoRefresh)
+		},
+
+		/**
+		 * The app whose notifications the header badge counts, or '' for no badge.
+		 *
+		 * @spec openspec/changes/dashboard-notifications-badge/specs/dashboard-page/spec.md#requirement-a-dashboard-header-counts-the-users-unread-notifications-of-the-app
+		 * @return {string}
+		 */
+		notificationsBadgeAppId() {
+			if (typeof this.notificationsBadge === 'string') {
+				return this.notificationsBadge.trim()
+			}
+			return this.notificationsBadge === true ? String(this.appId || '') : ''
+		},
+
+		/**
+		 * Whether the page says its data may be outdated: the last refresh
+		 * failed and the last good read is older than `staleAfterSeconds`.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-says-when-its-data-may-be-outdated
+		 * @return {boolean}
+		 */
+		autoRefreshStale() {
+			const cfg = this.autoRefreshConfig
+			if (!cfg || !this.autoRefreshFailing) {
+				return false
+			}
+			return this.autoRefreshCheckedAt - this.autoRefreshLastGoodAt > cfg.staleAfterSeconds * 1000
+		},
+
+		/**
+		 * "Data may be outdated. Last updated: 14:05".
+		 *
+		 * @return {string}
+		 */
+		staleText() {
+			const time = new Date(this.autoRefreshLastGoodAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+			return t('nextcloud-vue', 'Data may be outdated. Last updated: {time}', { time })
+		},
+
+		/**
+		 * What each widget on the page contributes to the download, in the
+		 * order the page shows them: the KPI row, then the grid.
+		 *
+		 * @return {Array<object>} Plan entries (`utils/dashboardDownload.js`).
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		downloadPlan() {
+			if (!this.download) {
+				return []
+			}
+			const grid = Array.isArray(this.renderedLayout) ? this.renderedLayout : []
+			const items = [...(this.kpiRowItems || []), ...grid]
+			const seen = new Set()
+			const plan = []
+			for (const item of items) {
+				if (!item || seen.has(item.widgetId)) {
+					continue
+				}
+				seen.add(item.widgetId)
+				const entry = downloadPlanEntry(this.getWidgetDef(item.widgetId), this.getWidgetTitle(item), this.effectiveTranslate)
+				if (entry) {
+					plan.push(entry)
+				}
+			}
+			return plan
+		},
+
+		/**
+		 * The plan as a string, so a re-render that builds an equal plan does
+		 * not read the figures again.
+		 *
+		 * @return {string}
+		 */
+		downloadPlanKey() {
+			return JSON.stringify(this.downloadPlan)
+		},
+
+		/**
+		 * Whether "Download" can be pressed: the page has loaded and every
+		 * figure has been read.
+		 *
+		 * @return {boolean}
+		 */
+		downloadReady() {
+			return this.download && !this.loading && !this.downloadReading && Array.isArray(this.downloadRows)
+		},
+
 		/**
 		 * Whether the `#actions` slot leads the board header row.
 		 *
@@ -2679,7 +2986,7 @@ export default {
 
 		/** @return {boolean} Whether the grid shows this user's arrangement. */
 		showsUserLayout() {
-			return this.userLayout && !this.editingBody && Array.isArray(this.userLayoutItems)
+			return this.keepsUserLayout && !this.editingBody && Array.isArray(this.userLayoutItems)
 		},
 
 		/**
@@ -2742,12 +3049,45 @@ export default {
 		renderedLayout() {
 			const fromWorkspace = this.editingBody ? null : this.layoutFromWorkspace()
 			const base = fromWorkspace || (this.showsUserLayout ? this.userLayoutItems : this.layout)
-			// The KPI row is not part of the grid.
-			if (Array.isArray(this.kpiRow) && this.kpiRow.length > 0 && Array.isArray(base)) {
-				return base.filter((item) => !this.kpiRow.includes(item.widgetId))
+			if (!Array.isArray(base)) {
+				return base
+			}
+			// The KPI row is not part of the grid, and a widget the user hid
+			// is not drawn.
+			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			if (kpi.length === 0 && !base.some((item) => item && item.hidden === true)) {
+				return base
 			}
 
-			return base
+			return base.filter((item) => !kpi.includes(item.widgetId) && (item.hidden !== true || this.isLayoutLocked(item.widgetId)))
+		},
+
+		/**
+		 * Whether the page keeps a per-user layout: `userLayout`, or the
+		 * layout panel, which stores what the user arranges.
+		 *
+		 * @return {boolean}
+		 */
+		keepsUserLayout() {
+			return this.userLayout || this.layoutPanel
+		},
+
+		/**
+		 * The sections the layout panel lists: the grid's widgets in reading
+		 * order (top to bottom, then left to right), hidden ones included,
+		 * the KPI row left out.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel/specs/dashboard-page/spec.md#requirement-a-user-arranges-the-page-in-a-side-panel
+		 * @return {Array<{id: string, label: string, hidden: boolean}>}
+		 */
+		layoutPanelItems() {
+			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			return this.panelBaseLayout()
+				.filter((item) => item && !kpi.includes(item.widgetId))
+				.map((item) => {
+					const locked = this.isLayoutLocked(item.widgetId)
+					return { id: String(item.widgetId), label: this.getWidgetTitle(item) || String(item.widgetId), hidden: !locked && item.hidden === true, locked }
+				})
 		},
 
 		/**
@@ -3285,6 +3625,13 @@ export default {
 	},
 
 	watch: {
+		downloadPlanKey: {
+			immediate: true,
+			handler() {
+				this.readDownload()
+			},
+		},
+
 		/**
 		 * Re-evaluate the widget predicates when the defs change — the
 		 * in-app editor (ADR-041) mutates widget defs in place and "Add
@@ -3317,9 +3664,11 @@ export default {
 		this.watchViewport()
 		this.loadDescription()
 		subscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
+		this.startAutoRefresh()
 	},
 
 	beforeUnmount() {
+		this.stopAutoRefresh()
 		unsubscribe(DESCRIPTION_REFRESH_EVENT, this.loadDescription)
 		if (this.viewportQuery && typeof this.viewportQuery.removeEventListener === 'function') {
 			this.viewportQuery.removeEventListener('change', this.onViewportChange)
@@ -3332,6 +3681,109 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Start the `autoRefresh` timer, once.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @return {void}
+		 */
+		startAutoRefresh() {
+			const cfg = this.autoRefreshConfig
+			if (!cfg || this.autoRefreshTimer) {
+				return
+			}
+			this.autoRefreshTimer = setInterval(() => {
+				this.runPageRefresh()
+			}, cfg.intervalSeconds * 1000)
+		},
+
+		/**
+		 * Clear the `autoRefresh` timer.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+		 * @return {void}
+		 */
+		stopAutoRefresh() {
+			if (this.autoRefreshTimer) {
+				clearInterval(this.autoRefreshTimer)
+				this.autoRefreshTimer = null
+			}
+		},
+
+		/**
+		 * Read every widget again: fire `cn:page:refresh` and wait (15 s at
+		 * most) for the reads the widgets hand to `waitUntil`. A read that
+		 * answers `false` failed; any failure marks the page as failing,
+		 * otherwise the time becomes the last good read.
+		 *
+		 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-says-when-its-data-may-be-outdated
+		 * @return {Promise<void>}
+		 */
+		async runPageRefresh() {
+			if (this.autoRefreshBusy) {
+				return
+			}
+			this.autoRefreshBusy = true
+			const work = []
+			const waitUntil = (promise) => {
+				work.push(Promise.resolve(promise))
+			}
+			emitOnBus('cn:page:refresh', { widgetId: this.resolvedPageId, title: this.title, waitUntil })
+			let ceiling
+			const timedOut = Symbol('timeout')
+			const settled = await Promise.race([
+				Promise.allSettled(work),
+				new Promise((resolve) => {
+					ceiling = setTimeout(() => resolve(timedOut), AUTO_REFRESH_MAX_WAIT_MS)
+				}),
+			])
+			clearTimeout(ceiling)
+			const failed = settled === timedOut
+				|| settled.some((result) => result.status === 'rejected' || result.value === false)
+			const now = Date.now()
+			this.autoRefreshFailing = failed
+			if (!failed) {
+				this.autoRefreshLastGoodAt = now
+			}
+			this.autoRefreshCheckedAt = now
+			this.autoRefreshBusy = false
+		},
+
+		/**
+		 * Read the figures of the download. A newer read wins over an older one.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		async readDownload() {
+			if (!this.download) {
+				this.downloadRows = null
+				return
+			}
+			const run = (this._downloadRun || 0) + 1
+			this._downloadRun = run
+			this.downloadReading = true
+			const rows = await readDownloadRows(this.downloadPlan)
+			if (this._downloadRun !== run) {
+				return
+			}
+			this.downloadRows = rows
+			this.downloadReading = false
+		},
+
+		/**
+		 * Save the figures as `<downloadName>-<yyyy-mm-dd>.csv`.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/dashboard-download-csv/specs/dashboard-download-csv/spec.md#requirement-a-dashboard-can-be-downloaded-as-csv
+		 */
+		saveDownload() {
+			if (!this.downloadReady) {
+				return
+			}
+			saveTextFile(toCsv(this.downloadRows), downloadFileName(this.downloadName))
+		},
+
 		/**
 		 * Follow the phone breakpoint (640px, where the board grid stacks to
 		 * one column), so a widget declared for one `viewport` shows only
@@ -4086,7 +4538,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async loadUserLayout() {
-			if (!this.userLayout || !this.appId) {
+			if (!this.keepsUserLayout || !this.appId) {
 				return
 			}
 
@@ -4109,7 +4561,7 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async saveUserLayout() {
-			if (!this.userLayout || !this.appId || !this.userLayoutDirty) {
+			if (!this.keepsUserLayout || !this.appId || !this.userLayoutDirty) {
 				return
 			}
 
@@ -4139,12 +4591,165 @@ export default {
 		},
 
 		/**
+		 * Whether a widget can fold to its header: `collapsible: true` on its
+		 * layout entry or its widget definition.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-widget-can-fold-to-its-header
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		isWidgetCollapsible(item) {
+			if (!item) {
+				return false
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			const value = item.collapsible !== undefined ? item.collapsible : def?.collapsible
+			return value === true
+		},
+
+		/**
+		 * Whether a collapsible widget is folded: what the user chose in this
+		 * session, else what their stored layout says. A widget starts open.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
+		 * @param {object} item Layout item.
+		 * @return {boolean}
+		 */
+		isWidgetCollapsed(item) {
+			if (!this.isWidgetCollapsible(item)) {
+				return false
+			}
+			const id = String(item.widgetId)
+			if (Object.hasOwn(this.collapsedOverrides, id)) {
+				return this.collapsedOverrides[id] === true
+			}
+			const stored = Array.isArray(this.userLayoutItems)
+				? this.userLayoutItems.find((entry) => entry && String(entry.widgetId) === id)
+				: null
+			return (stored || item).collapsed === true
+		},
+
+		/**
+		 * Fold or open a collapsible widget, and store it with the user's
+		 * layout when the page keeps one (`userLayout` / `layoutPanel`), so
+		 * it is still folded after a reload. Without a user layout the state
+		 * lasts for this visit.
+		 *
+		 * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
+		 * @param {object} item Layout item.
+		 * @param {boolean} collapsed The state asked for.
+		 * @return {Promise<void>}
+		 */
+		async onWidgetToggleCollapse(item, collapsed) {
+			const id = String(item.widgetId)
+			const next = collapsed === true
+			this.collapsedOverrides = { ...this.collapsedOverrides, [id]: next }
+			if (!this.keepsUserLayout || !this.appId) {
+				return
+			}
+			const base = Array.isArray(this.userLayoutItems) ? this.userLayoutItems : mergeUserLayout(this.layout, null)
+			this.userLayoutItems = base.map((entry) => {
+				if (!entry || String(entry.widgetId) !== id) {
+					return entry
+				}
+				const updated = { ...entry }
+				if (next) {
+					updated.collapsed = true
+				} else {
+					delete updated.collapsed
+				}
+				return updated
+			})
+			this.userLayoutDirty = true
+			await this.saveUserLayout()
+		},
+
+		/**
+		 * Whether a widget is one the layout panel may not hide
+		 * (`layoutPanelLocked`).
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel-locked/specs/dashboard-page/spec.md#requirement-a-section-the-page-locks-stays-shown
+		 * @param {string} widgetId The widget id.
+		 * @return {boolean}
+		 */
+		isLayoutLocked(widgetId) {
+			return Array.isArray(this.layoutPanelLocked) && this.layoutPanelLocked.map(String).includes(String(widgetId))
+		},
+
+		/**
+		 * The page's own grid in reading order: the user's arrangement when
+		 * there is one, else the manifest layout.
+		 *
+		 * @return {Array<object>}
+		 */
+		panelBaseLayout() {
+			const base = Array.isArray(this.userLayoutItems) ? this.userLayoutItems : mergeUserLayout(this.layout, null)
+			return [...base].sort((a, b) => ((a.gridY || 0) - (b.gridY || 0)) || ((a.gridX || 0) - (b.gridX || 0)))
+		},
+
+		/**
+		 * Open or close the layout panel; closing returns focus to its button.
+		 *
+		 * @param {boolean} open Whether the panel opens.
+		 */
+		setLayoutPanel(open) {
+			this.layoutPanelOpen = open
+			if (!open) {
+				this.$nextTick(() => {
+					const button = this.$refs.layoutPanelButton
+					const el = button && (button.$el || button)
+					if (el && typeof el.focus === 'function') {
+						el.focus()
+					}
+				})
+			}
+		},
+
+		/**
+		 * Store what the user arranged in the layout panel. The sections
+		 * swap places: the n-th section in the new order takes the place
+		 * (column, row, width) of the n-th section in the old one, keeping
+		 * its own height, so the page keeps its shape.
+		 *
+		 * @spec openspec/changes/dashboard-layout-panel/specs/dashboard-page/spec.md#requirement-a-user-arranges-the-page-in-a-side-panel
+		 * @param {Array<{id: string, hidden: boolean}>} entries The sections in their new order.
+		 * @return {Promise<void>}
+		 */
+		async saveLayoutPanel(entries) {
+			const kpi = Array.isArray(this.kpiRow) ? this.kpiRow : []
+			const all = this.panelBaseLayout()
+			const sections = all.filter((item) => !kpi.includes(item.widgetId))
+			const slots = sections.map((item) => ({ gridX: item.gridX, gridY: item.gridY, gridWidth: item.gridWidth }))
+			const byId = new Map(sections.map((item) => [String(item.widgetId), item]))
+			const ordered = (Array.isArray(entries) ? entries : []).filter((entry) => byId.has(String(entry.id)))
+			const arranged = ordered.map((entry, index) => {
+				const item = { ...byId.get(String(entry.id)), ...slots[index] }
+				if (entry.hidden === true && !this.isLayoutLocked(entry.id)) {
+					item.hidden = true
+				} else {
+					delete item.hidden
+				}
+				return item
+			})
+			const placed = new Set(ordered.map((entry) => String(entry.id)))
+			const rest = all.filter((item) => !placed.has(String(item.widgetId)))
+			this.userLayoutItems = [...arranged, ...rest]
+			this.userLayoutDirty = true
+			await this.saveUserLayout()
+			/**
+			 * @event layout-change Emitted with the user's arranged layout after a change.
+			 */
+			this.$emit('layout-change', this.userLayoutItems)
+			this.setLayoutPanel(false)
+		},
+
+		/**
 		 * Drop this user's arrangement and return to the manifest.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async resetUserLayout() {
-			if (!this.userLayout || !this.appId) {
+			if (!this.keepsUserLayout || !this.appId) {
 				return
 			}
 
@@ -4157,6 +4762,7 @@ export default {
 
 			this.userLayoutDirty = false
 			this.userLayoutItems = mergeUserLayout(this.layout, null)
+			this.collapsedOverrides = {}
 			/**
 			 * @event user-layout-reset Emitted when the user drops their own arrangement and the page returns to the manifest layout.
 			 */
@@ -4405,8 +5011,15 @@ export default {
 				let outcome
 				try {
 					// `sink` keeps the first row of a source query, for a banner that names it.
-					if (isComposition(cond)) {
+					// `appInstalled` is a precondition: on its own it is the whole
+					// condition, which readVisibleWhenValue() cannot read (it has no
+					// endpoint, source or field), so it goes to evaluateVisibleWhen()
+					// like a composition; next to a query it gates that query.
+					const needsApp = typeof cond.appInstalled === 'string' && cond.appInstalled !== ''
+					if (isComposition(cond) || (needsApp && !cond.endpoint && !cond.source && !cond.field)) {
 						outcome = { met: await evaluateVisibleWhen(cond), value: null }
+					} else if (needsApp && !isAppInstalled(cond.appInstalled)) {
+						outcome = { met: false, value: null }
 					} else {
 						const sink = {}
 						const value = await readVisibleWhenValue(cond, undefined, sink)
@@ -5710,6 +6323,37 @@ export default {
 </script>
 
 <style scoped>
+/* `autoRefresh`: the header button turns while the widgets read. */
+.cn-dashboard-page__refresh--busy :deep(.material-design-icon) {
+	animation: cn-dashboard-page-spin 1s linear infinite;
+}
+
+@keyframes cn-dashboard-page-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-dashboard-page__refresh--busy :deep(.material-design-icon) {
+		animation: none;
+	}
+}
+
+/* `autoRefresh`: the outdated-data warning above the grid. */
+.cn-dashboard-page__stale {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: calc(2 * var(--default-grid-baseline, 4px));
+	margin: 0 0 calc(3 * var(--default-grid-baseline, 4px));
+	padding: calc(2 * var(--default-grid-baseline, 4px)) calc(3 * var(--default-grid-baseline, 4px));
+	border-radius: var(--border-radius-large);
+	border-inline-start: 4px solid var(--color-warning);
+	background: var(--color-background-hover);
+	color: var(--color-main-text);
+}
+
 .cn-dashboard-page {
 	padding: 20px;
 	max-width: 1800px;
@@ -5767,6 +6411,19 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
+}
+
+/* The layout panel: a side panel at the right edge, under the Nextcloud
+   header, over the page; full width on a phone. */
+.cn-dashboard-page__layout-panel {
+	position: fixed;
+	z-index: 1000;
+	top: calc(var(--header-height, 50px) + 12px);
+	inset-inline-end: 12px;
+	width: min(360px, calc(100vw - 24px));
+	max-height: calc(100vh - var(--header-height, 50px) - 24px);
+	overflow-y: auto;
+	box-sizing: border-box;
 }
 
 /* Board look (screens-dashboard-parity): h1 28/700, a 15px grey subtitle 6px
@@ -5929,6 +6586,11 @@ export default {
 	gap: 8px;
 	flex-wrap: wrap;
 	flex-shrink: 0;
+	/* Never wider than the header: without it the box keeps its one-line width
+	   (flex-shrink: 0) and its own wrap never happens, so on a phone the actions
+	   run off the screen (decidiq MyActions and two report pages at 360 pixels). */
+	max-width: 100%;
+	min-width: 0;
 	/* Keeps the actions hard right even when a wide action set (pipelinq's six
 	   buttons) wraps onto its own line. The header's `justify-content:
 	   space-between` only distributes items WITHIN a line, so once the actions

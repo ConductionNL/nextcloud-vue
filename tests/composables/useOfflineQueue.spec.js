@@ -45,6 +45,21 @@ describe('useOfflineQueue', () => {
 		expect(axios.request.mock.calls.map((c) => c[0].headers['Idempotency-Key'])).toEqual(['k1', 'k2'])
 	})
 
+	it('keeps the order of writes made in the same millisecond', async () => {
+		online = false
+		const now = jest.spyOn(Date, 'now').mockReturnValue(1700000000000)
+		const random = jest.spyOn(Math, 'random').mockReturnValueOnce(0.9).mockReturnValueOnce(0.1)
+		const q = useOfflineQueue('time', { idb: new IDBFactory() })
+		await q.enqueue({ url: '/a', key: 'k1' })
+		await q.enqueue({ url: '/b', key: 'k2' })
+		now.mockRestore()
+		random.mockRestore()
+		online = true
+		axios.request.mockResolvedValue({ status: 200 })
+		expect(await q.flush()).toBe(0)
+		expect(axios.request.mock.calls.map((c) => c[0].headers['Idempotency-Key'])).toEqual(['k1', 'k2'])
+	})
+
 	it('stops at a write that does not go through and keeps it and the rest', async () => {
 		online = false
 		const idb = new IDBFactory()

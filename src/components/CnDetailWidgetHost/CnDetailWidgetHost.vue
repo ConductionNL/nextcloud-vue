@@ -670,6 +670,7 @@ import { resolveHeaderLink, widgetHeaderLink } from '../../utils/contentHeaderLi
 import { pickDeclaredProps } from '../../utils/declaredProps.js'
 import { unwrapAppConfig } from '../../utils/formatMetric.js'
 import { isActivityWidget } from '../../utils/headerMeta.js'
+import { resolveLazyComponent } from '../../utils/lazyComponent.js'
 import { createActionState, listAddActions, listCreateAction } from '../../utils/listCreateAction.js'
 import { PANEL_ACTION_SINK } from '../../utils/panelActions.js'
 import { resolveDeepTokens } from '../../utils/resolveFilterTokens.js'
@@ -1278,7 +1279,7 @@ export default {
 			if (!this.wrapsSelfTitledWidget || !this.renderer) {
 				return false
 			}
-			const declared = this.renderer.props
+			const declared = resolveLazyComponent(this.renderer)?.props
 			return Array.isArray(declared) ? declared.includes('headerActions') : Boolean(declared && Object.hasOwn(declared, 'headerActions'))
 		},
 
@@ -1846,7 +1847,7 @@ export default {
 			}
 			// Only a renderer that takes a `title` prop: on any other the value
 			// would land on its root element as a tooltip.
-			const declared = this.renderer && this.renderer.props
+			const declared = resolveLazyComponent(this.renderer)?.props
 			const takesTitle = Array.isArray(declared) ? declared.includes('title') : Boolean(declared && Object.hasOwn(declared, 'title'))
 			if (!takesTitle) {
 				return ''

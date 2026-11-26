@@ -14,7 +14,12 @@ const mockTotal = jest.fn()
 const mockSource = { load: jest.fn(async () => {}), rows: jest.fn(() => [{}, {}, {}, {}, {}, {}]) }
 jest.mock('../../src/utils/fetchFilterCounts.js', () => {
 	const actual = jest.requireActual('../../src/utils/fetchFilterCounts.js')
-	return { ...actual, fetchListTotal: (...args) => mockTotal(...args) }
+	return {
+		...actual,
+		fetchListTotal: (...args) => mockTotal(...args),
+		// Each list through the mocked single count, as the batch's fallback does.
+		fetchListTotals: (lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve().then(() => mockTotal(register, schema, filter, ctx)).catch(() => null))),
+	}
 })
 jest.mock('../../src/composables/indexSources.js', () => {
 	const actual = jest.requireActual('../../src/composables/indexSources.js')
@@ -77,6 +82,24 @@ describe('CnDetailPage headerMetaCounts', () => {
 		mockTotal.mockRejectedValue(new Error('403'))
 		const w = mountPage({ headerMeta: '{count:types} case types', headerMetaCounts: { types: { register: 'dossiq', schema: 'caseType' } } })
 		await settle()
+		expect(w.vm.headerMetaText).toBe('')
+	})
+
+	it('counts a list filtered on the record only once the record is here', async () => {
+		// portaliq's portal header: `portal: '@object.slug'` went out as the
+		// literal token before the record loaded, and every count read 0.
+		const w = mountPage({ headerMeta: '{count:pages} pages', headerMetaCounts: { pages: { register: 'portaliq', schema: 'page', filter: { portal: '@object.title' } } } })
+		await settle()
+		expect(mockTotal).toHaveBeenCalledTimes(1)
+		const ctx = mockTotal.mock.calls[0][3]
+		expect(ctx.object).toEqual(expect.objectContaining({ title: 'Omgevingsvergunning' }))
+		expect(w.vm.headerMetaText).toBe('14 pages')
+	})
+
+	it('reads no count filtered on the record while the record is missing', async () => {
+		const w = mountPage({ objectId: 'not-loaded', headerMeta: '{count:pages} pages', headerMetaCounts: { pages: { register: 'portaliq', schema: 'page', filter: { portal: '@object.slug' } } } })
+		await settle()
+		expect(mockTotal).not.toHaveBeenCalled()
 		expect(w.vm.headerMetaText).toBe('')
 	})
 })

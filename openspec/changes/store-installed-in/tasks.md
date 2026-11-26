@@ -1,0 +1,2 @@
+- [x] 1 CnStorePage reads `installed` and shows "Installed in {targets}" per card in both looks; a whole install adds its target (tests/components/CnStorePageInstalledIn.spec.js); "Installed in {targets}" in en and nl
+- [x] 2 larpinq admin-configuration-store 1.3 picks it up with the release that carries it (consumer): larpinq#1196 raised nextcloud-vue to ^2.226.0

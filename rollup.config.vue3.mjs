@@ -30,6 +30,8 @@ import path from 'path'
 import postcssImport from 'postcss-import'
 import postcss from 'rollup-plugin-postcss'
 import { fileURLToPath } from 'url'
+import { trimEnglishCatalogue } from './rollup.l10n.mjs'
+import { nextcloudVueDeepImports } from './rollup.nextcloud-vue-deep.mjs'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -94,7 +96,7 @@ export default {
 			id === 'vue'
 			|| id === '@vue/compat'
 			|| id === 'pinia'
-			|| id === '@mdi/js'
+			|| id === '@mdi/js' || id.startsWith('@mdi/js/')
 			|| /^@nextcloud\//.test(id)
 			|| /^vue-material-design-icons\//.test(id)
 			|| /^@toast-ui\//.test(id)
@@ -139,6 +141,7 @@ export default {
 		},
 		// DELTA 4: no unwrapVueDeep — Vue 3 SFC compiler handles :deep() natively.
 		postcss({ extract: 'nextcloud-vue.css', plugins: [postcssImport()] }),
+		trimEnglishCatalogue(),
 		json(),
 		nodeResolve({ extensions: ['.mjs', '.js', '.json', '.node'] }),
 		// `esmExternals` MUST list 'vue'. Without it the plugin assumes every
@@ -152,5 +155,7 @@ export default {
 		// Naming 'vue' here makes it a namespace import instead, which is what a
 		// UMD factory expecting the Vue global actually wants.
 		commonjs({ esmExternals: (id) => id === 'vue' || id === '@vue/compat' }),
+		// Per-component @nextcloud/vue imports, so an app keeps only the Nc* it uses.
+		nextcloudVueDeepImports(),
 	],
 }

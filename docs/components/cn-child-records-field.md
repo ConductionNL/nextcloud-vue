@@ -49,6 +49,20 @@ Boards PqOfferte, PqLead and PqKassaAfrekenen draw order lines: a line total per
 - **`computed`** adds a read-only column per entry, after the plain columns. The formula names row keys and earlier computed keys. It takes `+ - * /` and brackets, through `evalFormula`, so no `eval` runs. An empty value counts as 0. With `store`, the value is written into the row whenever the row changes, so it is saved with the row.
 - **`totals`** adds a row under the table per entry. `sum` adds a formula over every row; a column key alone is a formula too. `formula` works over the totals above it. `emphasis` sets the row in bold with a line above it. The field emits `totals` with the value per key, so a host can set the parent's value from it.
 - **`addFrom`** puts a search over another schema's records next to **Add row**. A picked record becomes a row through `map`, which names per row key the source key to copy, or `@id` for the source's id. With `codeField`, a code field finds the one record with that code. A barcode scanner types the code and presses Enter. No match, or more than one, shows an error and adds nothing. `freeRows: false` hides **Add row**.
+- **`addFrom.resolve`** asks your app's server for the values only it can decide, such as the price for the ordered quantity or the VAT rate. Once a row is added, the field sends `body` to `url` (POST by default, or `method: "GET"`). In `body`, `@source` is the picked record, `@source.<key>` one of its values and `@row.<key>` one of the row's; an empty row value is left out. `map` names per row key the answer key to write. When a key in `when` changes, in the row dialog or typed into the cell (after typing stops), the field asks again, fetching the record by the row's `@id` key. A value the user types into a mapped key in the same edit is kept. When the request fails, the row keeps its values and the field says so.
+
+```json
+"addFrom": {
+  "schema": "product",
+  "map": { "product": "@id", "name": "name", "unitPrice": "unitPrice" },
+  "resolve": {
+    "url": "/apps/myapp/api/products/resolve-price",
+    "body": { "product": "@source", "quantity": "@row.quantity" },
+    "map": { "unitPrice": "unitPrice", "vatRate": "taxRate" },
+    "when": ["quantity"]
+  }
+}
+```
 
 Formats take the keys of `formatMetricValue` (`utils/formatMetric`): `format` (`currency`, `decimal`, `number`, `percent`), `currency` and `decimals`. Without a format a value shows two decimals. Prices and tax rates are your data: the field holds no tax rules.
 

@@ -122,6 +122,8 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import CnStatsBlock from '../CnStatsBlock/CnStatsBlock.vue'
 import CnStatWidget from '../CnStatWidget/CnStatWidget.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
+import { fetchSharedResponse, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
+import widgetData from '../../mixins/widgetData.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
@@ -202,6 +204,8 @@ export default {
 	name: 'CnStatsBlockWidget',
 
 	components: { CnStatsBlock, CnStatWidget },
+
+	mixins: [widgetData],
 
 	inject: {
 		/**
@@ -665,7 +669,28 @@ export default {
 				metric: (entry && entry.metric) || 'count',
 				field: (entry && entry.field) || '',
 				filter: this.resolvedEntryFilter(entry),
+				// An endpoint entry refetches when its resolved request changes.
+				endpoint: entry && entry.endpointSource && entry.endpointSource.url
+					? { ...resolveEndpointRequest(entry.endpointSource, this.tokenCtx), valueField: entry.valueField || '' }
+					: null,
 			})))
+		},
+
+		/**
+		 * What the widget shows, for the `data` event: the count of a single
+		 * source, or every entry's count; null until a count is known.
+		 *
+		 * @return {{count: number}|{counts: Array<number|null>}|null}
+		 * @spec openspec/changes/widget-data-event/specs/widget-data-event/spec.md#requirement-a-self-fetching-widget-tells-its-host-what-it-shows
+		 */
+		widgetData() {
+			if (this.hasEntries) {
+				return this.entryFetching.some(Boolean) || this.entryCounts.length === 0 ? null : { counts: [...this.entryCounts] }
+			}
+			if (typeof this.restCount === 'number' || this.dsData?.count !== undefined) {
+				return { count: this.resolvedCount }
+			}
+			return null
 		},
 
 		resolvedCount() {
@@ -829,6 +854,36 @@ export default {
 		 * @param {object} filter The ALREADY-RESOLVED filter map.
 		 * @return {Promise<number|null>} The value, or null on failure.
 		 */
+		/**
+		 * Read one entry's value from an app endpoint (`entry.endpointSource`)
+		 * instead of OpenRegister's aggregation: the response, at the
+		 * source's `responsePath`, then the entry's `valueField` (a dot-path).
+		 * Entries naming the same endpoint share one request through the
+		 * endpoint cache, so a summary endpoint feeds several KPIs. A blocked
+		 * request (an unresolved required token), a failure or a value that
+		 * is not a number gives null.
+		 *
+		 * @param {{endpointSource: object, valueField?: string}} entry The entry.
+		 * @return {Promise<number|null>} The value, or null.
+		 * @spec openspec/changes/stats-block-entry-endpoint/specs/stats-block/spec.md#requirement-a-stats-block-entry-can-read-its-value-from-an-endpoint
+		 */
+		async fetchEntryEndpoint(entry) {
+			const request = resolveEndpointRequest(entry.endpointSource, this.tokenCtx)
+			if (request.blocked) {
+				return null
+			}
+			try {
+				// Entries naming the same endpoint share one request; each reads its own field.
+				const data = await fetchSharedResponse(request)
+				const body = request.responsePath ? getByPath(data, request.responsePath) : data
+				const raw = getByPath(body, entry.valueField)
+				const value = Number(raw)
+				return raw === null || raw === undefined || raw === '' || !Number.isFinite(value) ? null : value
+			} catch {
+				return null
+			}
+		},
+
 		async fetchValue(src, filter) {
 			try {
 				const [{ default: axios }, { generateUrl }] = await Promise.all([
@@ -896,6 +951,9 @@ export default {
 			const entries = this.entries
 			this.entryFetching = entries.map(() => true)
 			const counts = await Promise.all(entries.map(async (entry) => {
+				if (entry && entry.endpointSource && entry.endpointSource.url) {
+					return this.fetchEntryEndpoint(entry)
+				}
 				if (!entry || !entry.register || !entry.schema) {
 					return null
 				}

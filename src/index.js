@@ -47,8 +47,11 @@ export {
 	CnAppLoading,
 	CnAppNav,
 	CnAppRoot,
+	CnAppTile,
 	CnAppTilesWidget,
 	CnAppTilesWidgetForm,
+	CnAppTileWidget,
+	CnAppTileWidgetForm,
 	CnAssignDialog,
 	CnAttentionFlagWidget,
 	CnAudioCapture,
@@ -265,6 +268,7 @@ export {
 	CnNoticeWidget,
 	CnNotificationMatrix,
 	CnNotificationPreferences,
+	CnNotificationsBadge,
 	CnObjectAccessTab,
 	CnObjectCalendar,
 	CnObjectCard,
@@ -304,6 +308,7 @@ export {
 	CnQuickFilterBar,
 	CnQuicklinksWidget,
 	CnQuicklinksWidgetForm,
+	CnQuietHours,
 	CnRadioCardsWidget,
 	CnReadinessChecklist,
 	CnRealtimeToast,
@@ -370,6 +375,7 @@ export {
 	CnStatsPanel,
 	CnStatusBadge,
 	CnStatusExplainerWidget,
+	CnStatusList,
 	CnStatWidget,
 	CnStatWidgetForm,
 	CnStepper,
@@ -456,13 +462,15 @@ export { createOpenRegisterSource } from './components/index.js'
 // the week strip and stacked bar widgets with their forms, the segmented
 // control, and the brand stripe.
 export { CnBrandStripe, CnCountTablesReport, CnEndpointNotice, CnSegmentedControl, CnStackedBarWidget, CnStackedBarWidgetForm, CnTeamWorkloadWidget, CnWeekStripWidget, CnWeekStripWidgetForm } from './components/index.js'
+// One week as a timetable, days as columns and slots as rows (openspec: week-grid).
+export { CnWeekGrid } from './components/index.js'
 
 // Page components the page renderer mounts by `pages[].type` that were missing
 // from this entry. A component reachable from a manifest but not importable
 // here resolves to `undefined` in a host that mounts it by hand, and renders
 // nothing without an error. tests/packaging/page-types-are-exported.spec.js
 // keeps the two lists together.
-export { CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnWikiPage } from './components/index.js'
+export { CnConnectionRegistry, CnFormPage, CnLinkCardsPage, CnMapPage, CnReportsPage, CnStorePage, CnWikiPage } from './components/index.js'
 
 // AI Chat Companion component family
 export {
@@ -633,12 +641,17 @@ export {
 export { currentTheme, useCurrentTheme } from './composables/useCurrentTheme.js'
 export { ROADMAP_LABEL_BLOCKLIST } from './utils/roadmapLabelBlocklist.js'
 export { encodeQr } from './utils/qr.js'
+export { BOARD_LOOK_FLAG, enableBoardLookStyle } from './utils/boardLookStyle.js'
+export { APP_TILE_COLOURS, appTileColour, appTileColourValue, contrastWithWhite, defaultAppTileColour } from './utils/appTilePalette.js'
+export { navigationApps, notificationCountsByApp } from './utils/nextcloudApps.js'
 // The words a person reads for a notification rule key (never the raw key).
 export { humaniseRuleKey, notificationRuleLabel } from './utils/notificationRuleLabel.js'
 export { readTransitionInputs } from './utils/transitionInputs.js'
 export { conditionSentence, formatConditionValue, operatorLabel, operatorsForType, operatorTakesValue } from './components/CnConditionListEditor/conditionOperators.js'
 // An identifier-shaped key made readable (`shortDescription` → "Short description").
 export { humaniseKey } from './utils/humaniseKey.js'
+// A component that loads its definition on first render, for registries.
+export { lazyComponent, loadLazyComponent, resolveLazyComponent } from './utils/lazyComponent.js'
 
 // Shared field validators. These are UX affordances that run in the browser —
 // they do NOT replace server-side validation, which stays authoritative at the

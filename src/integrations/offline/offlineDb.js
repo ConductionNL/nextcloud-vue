@@ -253,6 +253,34 @@ export async function getPlanningMeta(register, schema, collection = 'planning')
 }
 
 /**
+ * Remove one cached collection of a register and schema, and its meta row.
+ *
+ * The database is shared by every app on the origin, so clearing one app's
+ * downloaded set must not touch another set or anything in the queue: an
+ * app that deleted the database would also wipe another app's field work
+ * that is still waiting to be sent.
+ *
+ * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-the-offline-core-downloads-reads-and-clears-a-take-along-set
+ * @param {string} register   Register slug or id.
+ * @param {string} schema     Schema slug.
+ * @param {string} collection Collection name.
+ *
+ * @return {Promise<number>} The number of cached objects removed.
+ */
+export async function clearCollection(register, schema, collection) {
+	const db = await openDb()
+	let removed = 0
+	await db.transaction('rw', db.objectCache, db.meta, async () => {
+		removed = await db.objectCache
+			.where('collection').equals(collection)
+			.and((row) => row.register === register && row.schema === schema)
+			.delete()
+		await db.meta.delete(`planning::${register}::${schema}::${collection}`)
+	})
+	return removed
+}
+
+/**
  * Enqueue one offline mutation against the OR object API.
  *
  * @param {object} operation                  The mutation operation.
@@ -462,6 +490,7 @@ export async function recordConflict({
 		schema: conflictSchema,
 		payload: {
 			queueOperationId: operation.id,
+			syncQueueRef: operation.id,
 			conflictType,
 			deviceId: operation.deviceId,
 			targetRegister: operation.register,
@@ -469,6 +498,7 @@ export async function recordConflict({
 			targetId: operation.targetId ?? null,
 			clientVersion: operation.payload ?? {},
 			serverVersion: serverObject ?? null,
+			conflictFields: conflictFieldsOf(operation.payload, serverObject),
 			detectedAt: new Date().toISOString(),
 		},
 	})
@@ -481,6 +511,30 @@ export async function recordConflict({
 	})
 
 	return recordId
+}
+
+/**
+ * The fields the device sent whose value differs from the server's.
+ *
+ * Only the fields the device wrote can collide: a field only the server holds
+ * (its `@self` metadata, a property the device never touched) is no conflict.
+ * With no server version every sent field counts, because nothing says they
+ * agree. Paths are top-level property names, sorted, so a resolver writing
+ * the device's values back writes exactly what the device sent.
+ *
+ * @spec openspec/changes/inspection-conflict-card/design.md (dossiq, open decision 4)
+ * @param {object|null} clientVersion The payload the device sent.
+ * @param {object|null} serverObject  The server's version, when it sent one.
+ *
+ * @return {string[]} The differing field names.
+ */
+export function conflictFieldsOf(clientVersion, serverObject) {
+	const client = clientVersion !== null && typeof clientVersion === 'object' ? clientVersion : {}
+	const server = serverObject !== null && typeof serverObject === 'object' ? serverObject : null
+	return Object.keys(client)
+		.filter((field) => field !== '@self' && field !== 'id')
+		.filter((field) => server === null || JSON.stringify(client[field]) !== JSON.stringify(server[field]))
+		.sort()
 }
 
 /**

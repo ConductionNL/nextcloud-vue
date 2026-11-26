@@ -14,6 +14,12 @@
  * Which view opens: the address, then the stored view, then `defaultView`,
  * then the first view. An id that names no view is ignored at every step.
  *
+ * A view may carry `visibleWhen`, the same condition a widget takes: the
+ * view is offered only when it holds for the reader (a Mentor view only a
+ * mentor sees). It is read once per condition, fail-safe: until it answers,
+ * and when it cannot be read, the view is not offered. When the views a
+ * condition leaves out leave a single view, the page draws no switch.
+ *
  * Used by CnDashboardPage and CnDetailPage. Each renders the chosen view's
  * `layout` with its own grid, so a view looks exactly like the page's own
  * grid.
@@ -31,6 +37,7 @@
 import { translate as t } from '@nextcloud/l10n'
 import { readUserPreference, USER_PREFERENCE_STORAGE_PREFIX, writeUserPreference } from '../composables/useUserPreferences.js'
 import { dashboardLayoutKey, LAYOUT_GEOMETRY_FIELDS, mergeUserLayout, resolveUserLayoutApi } from '../store/plugins/dashboardLayouts.js'
+import { evaluateVisibleWhen } from '../utils/visibleWhen.js'
 
 /** The query parameter that carries the chosen view. */
 export const PAGE_VIEW_QUERY_KEY = 'view'
@@ -170,6 +177,15 @@ export const pageViews = {
 			viewUserLayouts: {},
 			/** The views whose arrangement changed since the last save, by id. */
 			viewUserLayoutsDirty: {},
+			/**
+			 * The verdict of each view's `visibleWhen`, by view id: true when
+			 * it holds. A view with a condition and no verdict is not offered.
+			 *
+			 * @type {Record<string, boolean>}
+			 */
+			viewConditionVerdicts: {},
+			/** The conditions last read, so an unchanged set is not read again. */
+			viewConditionSignature: '',
 		}
 	},
 
@@ -199,7 +215,7 @@ export const pageViews = {
 		 * @return {Array<{id: string, label: string, icon: string, widgets: Array<object>, layout: Array<object>, emptyText: string, title: string, gridSideColumn: object|null}>}
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
 		 */
-		normalizedViews() {
+		declaredViews() {
 			const translate = typeof this.cnTranslate === 'function' ? this.cnTranslate : (key) => key
 			const seen = new Set()
 			return (Array.isArray(this.views) ? this.views : [])
@@ -222,7 +238,39 @@ export const pageViews = {
 					emptyText: typeof view.emptyText === 'string' && view.emptyText !== '' ? translate(view.emptyText) : '',
 					title: typeof view.title === 'string' && view.title !== '' ? translate(view.title) : '',
 					gridSideColumn: view.gridSideColumn && typeof view.gridSideColumn === 'object' ? view.gridSideColumn : null,
+					visibleWhen: view.visibleWhen && typeof view.visibleWhen === 'object' ? view.visibleWhen : null,
 				}))
+		},
+
+		/**
+		 * The views offered to this reader: the declared views whose
+		 * `visibleWhen` holds, or that carry none. A view whose condition has
+		 * not answered yet, or could not be read, is left out.
+		 *
+		 * @return {Array<object>} The views, in their declared order.
+		 * @spec openspec/changes/view-visible-when/specs/view-switch-containers/spec.md#requirement-a-view-is-offered-only-to-the-readers-its-condition-names
+		 */
+		normalizedViews() {
+			return this.declaredViews.filter((view) => !view.visibleWhen || this.viewConditionVerdicts[view.id] === true)
+		},
+
+		/**
+		 * Whether a view's condition left it out for this reader.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/view-visible-when/specs/view-switch-containers/spec.md#requirement-a-view-is-offered-only-to-the-readers-its-condition-names
+		 */
+		viewsHiddenByCondition() {
+			return this.normalizedViews.length < this.declaredViews.length
+		},
+
+		/**
+		 * The offered view ids as one string, for a watcher.
+		 *
+		 * @return {string}
+		 */
+		offeredViewIds() {
+			return this.normalizedViews.map((view) => view.id).join('|')
 		},
 
 		/**
@@ -338,6 +386,10 @@ export const pageViews = {
 		 * @return {boolean}
 		 */
 		showsPageViewSwitch() {
+			if (this.viewsHiddenByCondition && this.normalizedViews.length < 2) {
+				// The reader has one view left: a switch with one option is no switch.
+				return false
+			}
 			return this.hasViews && !this.viewSwitchInHeaderWidget
 		},
 
@@ -380,6 +432,31 @@ export const pageViews = {
 
 	watch: {
 		/**
+		 * Read the views' conditions again when the declared views change.
+		 *
+		 * @return {void}
+		 */
+		views: {
+			deep: true,
+			handler() {
+				this.evaluateViewConditions()
+			},
+		},
+
+		/**
+		 * A view that joins or leaves the offered set brings its widgets'
+		 * own conditions with it: the page reads those again (it skips an
+		 * unchanged set itself).
+		 *
+		 * @return {void}
+		 */
+		offeredViewIds() {
+			if (typeof this.evaluateWidgetConditions === 'function') {
+				this.evaluateWidgetConditions()
+			}
+		},
+
+		/**
 		 * Read the user's arrangement of a view the first time it is shown.
 		 *
 		 * @param {string|null} id The chosen view id.
@@ -391,11 +468,41 @@ export const pageViews = {
 	},
 
 	created() {
+		this.evaluateViewConditions()
 		this.loadStoredView()
 		this.loadViewUserLayout(this.activeViewId)
 	},
 
 	methods: {
+		/**
+		 * Read each view's `visibleWhen` into `viewConditionVerdicts`,
+		 * fail-safe: a condition that throws or cannot be read is false.
+		 * An unchanged set of conditions is not read again.
+		 *
+		 * @return {Promise<void>}
+		 * @spec openspec/changes/view-visible-when/specs/view-switch-containers/spec.md#requirement-a-view-is-offered-only-to-the-readers-its-condition-names
+		 */
+		async evaluateViewConditions() {
+			const conditional = this.declaredViews.filter((view) => view.visibleWhen)
+			const signature = JSON.stringify(conditional.map((view) => [view.id, view.visibleWhen]))
+			if (signature === this.viewConditionSignature) {
+				return
+			}
+			this.viewConditionSignature = signature
+			const verdicts = {}
+			await Promise.all(conditional.map(async (view) => {
+				try {
+					verdicts[view.id] = (await evaluateVisibleWhen(view.visibleWhen, { workspace: this.workspaceContext })) === true
+				} catch {
+					verdicts[view.id] = false
+				}
+			}))
+			// A newer read owns the verdicts now.
+			if (signature === this.viewConditionSignature) {
+				this.viewConditionVerdicts = verdicts
+			}
+		},
+
 		/**
 		 * Read the stored view: the browser mirror at once, then the user
 		 * preference on the server, which wins unless the user already chose.

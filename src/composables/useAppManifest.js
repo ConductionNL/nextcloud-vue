@@ -221,6 +221,10 @@ function loadFromBackend(appId, bundledManifest, options) {
 	const fetcher = options.fetcher ?? ((url) => axios.get(url))
 
 	;(async () => {
+		// The validator chunk loads beside the backend fetch rather than after
+		// it, so its download and evaluation overlap the server's answer. A
+		// failed load is reported where the validator is awaited.
+		const validatorLoad = loadValidator().then((validate) => ({ validate }), (error) => ({ error }))
 		try {
 			// Phase 1: optional backend merge. The fetch is best-effort —
 			// most apps DON'T serve `/api/manifest` (Nextcloud returns the
@@ -267,10 +271,19 @@ function loadFromBackend(appId, bundledManifest, options) {
 			})
 			unresolvedSentinels.value = unresolved
 
+			// Nothing merged and nothing substituted: the bundled manifest is
+			// already published, so there is nothing to validate or swap.
+			if (resolved === bundledManifest) {
+				return
+			}
+
 			// Phase 3: validation. On failure, keep the bundled manifest
 			// (informational policy — never replace with an invalid doc).
-			const validateManifest = await loadValidator()
-			const result = validateManifest(resolved)
+			const loaded = await validatorLoad
+			if (loaded.error) {
+				throw loaded.error
+			}
+			const result = loaded.validate(resolved)
 			if (!result.valid) {
 				validationErrors.value = result.errors
 				// eslint-disable-next-line no-console

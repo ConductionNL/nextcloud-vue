@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Perioda datuma lauks",
+    "None: the widget does not follow the period": "Nav: logrīks neseko periodam",
     "Report a bug": "Ziņot par kļūdu",
     "View": "Skatīt",
     "Edit": "Rediģēt",
     "Copy": "Kopēt",
-    "Delete": "Dzēst"
+    "Delete": "Dzēst",
+    "The administrator has not set a start date field.": "Administrators nav iestatījis sākuma datuma lauku.",
+    "Starts {weekday}": "Sāk {weekday}",
+    "Selection": "Atlase",
+    "People by filter": "Cilvēki pēc filtra",
+    "New colleagues": "Jaunie kolēģi",
+    "Started in the last (days, 1–90)": "Sākuši pēdējo (dienu, 1–90) laikā",
+    "Starts within (days, 0–30)": "Sāks nākamo (dienu, 0–30) laikā",
+    "Must be between {min} and {max}": "Jābūt no {min} līdz {max}"
   }
 }
