@@ -54,4 +54,48 @@ describe('CnDataTable: overflow measured once per frame', () => {
 
 		expect(global.cancelAnimationFrame).toHaveBeenCalledTimes(1)
 	})
+
+	describe('on mount', () => {
+		const props = { rows: [{ id: '1', title: 'A' }], columns: [{ key: 'title', label: 'Title' }], rowKey: 'id' }
+		const global_ = { stubs: { CnCellRenderer: CellStub } }
+		let measured
+
+		beforeEach(() => {
+			measured = 0
+			jest.spyOn(CnDataTable.methods, 'measureScrollOverflow').mockImplementation(() => {
+				measured++
+			})
+		})
+
+		afterEach(() => {
+			jest.restoreAllMocks()
+			delete global.ResizeObserver
+		})
+
+		it('leaves the first measurement to the ResizeObserver instead of forcing a layout while mounting', () => {
+			const observers = []
+			global.ResizeObserver = class {
+				constructor(callback) {
+					this.callback = callback
+					this.observe = jest.fn()
+					this.disconnect = jest.fn()
+					observers.push(this)
+				}
+			}
+
+			mount(CnDataTable, { props, global: global_ })
+
+			expect(measured).toBe(0)
+			expect(observers).toHaveLength(1)
+			expect(observers[0].observe).toHaveBeenCalled()
+			observers[0].callback([])
+			expect(measured).toBe(1)
+		})
+
+		it('measures at once where there is no ResizeObserver', () => {
+			delete global.ResizeObserver
+			mount(CnDataTable, { props, global: global_ })
+			expect(measured).toBe(1)
+		})
+	})
 })

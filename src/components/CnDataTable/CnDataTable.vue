@@ -2022,8 +2022,11 @@ export default {
 		 * @return {void}
 		 */
 		observeScrollOverflow() {
-			this.measureScrollOverflow()
+			// A ResizeObserver reports its first observation after layout, so
+			// measuring here as well would force a layout of the whole page in
+			// the middle of mounting it. Measure now only without one.
 			if (typeof ResizeObserver === 'undefined') {
+				this.measureScrollOverflow()
 				return
 			}
 			this._scrollObserver = new ResizeObserver(() => this.measureScrollOverflow())
