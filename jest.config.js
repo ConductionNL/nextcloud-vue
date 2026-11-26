@@ -75,7 +75,9 @@ module.exports = {
 		// runnable here. `marked` is the same story: from 16 on it ships ESM
 		// only (`lib/marked.esm.js`), so the markdown suites fail to load
 		// against the marked 18 the fleet installs unless it is transformed.
-		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack|marked)/)',
+		// `gridstack` ships ESM; `import 'gridstack'` stays on the mock below,
+		// while a spec that imports `gridstack/dist/...` runs the real engine.
+		'/node_modules/(?!(@nextcloud|@vueuse|vue-material-design-icons|pinia|nostics|@vue/devtools-api|@vue/devtools-kit|@vue/devtools-shared|perfect-debounce|birpc|hookable|vue-codemirror6|codemirror|@codemirror|@ckpack|marked|gridstack)/)',
 	],
 	moduleNameMapper: {
 		// pinia >= 4 loads @vue/devtools-api, which registers a devtools backend
@@ -96,7 +98,7 @@ module.exports = {
 		'^vue$': '<rootDir>/tests/support/vueSingleton.js',
 		'\\.(css)$': 'jest-transform-stub',
 		'^@toast-ui/editor$': '<rootDir>/tests/__mocks__/toast-ui-editor.js',
-		'^@mdi/js$': '<rootDir>/tests/__mocks__/mdi-js.js',
+		'^@mdi/js(/commonjs/mdi\\.js)?$': '<rootDir>/tests/__mocks__/mdi-js.js',
 		'^vue-codemirror6$': '<rootDir>/tests/__mocks__/vue-codemirror6.js',
 		'^@codemirror/lang-json$': '<rootDir>/tests/__mocks__/codemirror-lang-json.js',
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',

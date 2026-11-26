@@ -12,6 +12,7 @@
  * restore it: the source values are already overwritten.
  */
 import { shallowMount } from '@vue/test-utils'
+import { GridStack } from 'gridstack'
 import CnDashboardGrid from '../../src/components/CnDashboardGrid/CnDashboardGrid.vue'
 
 const layout = [
@@ -224,6 +225,36 @@ describe('CnDashboardGrid — the keyboard lane closes with the handles', () => 
 		)
 
 		expect(wrapper.vm.activateItem).toHaveBeenCalled()
+		wrapper.unmount()
+	})
+})
+
+describe('CnDashboardGrid: a grid that mounts narrow', () => {
+	it('hands GridStack the breakpoints after the items are on the grid', () => {
+		const columnOpts = { breakpoints: [{ w: 768, c: 4 }], layout: 'moveScale', breakpointForWindow: true }
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout: [], columnOpts } })
+		const [initOpts] = GridStack.init.mock.calls.at(-1)
+
+		expect(initOpts.columnOpts).toBeUndefined()
+		expect(wrapper.vm.grid.updateOptions).toHaveBeenCalledWith({ columnOpts })
+		wrapper.unmount()
+	})
+})
+
+describe('CnDashboardGrid: cards added to a narrowed grid', () => {
+	it('adds them at the authored column count and narrows again with the breakpoint layout', async () => {
+		const flow = () => {}
+		const columnOpts = { breakpoints: [{ w: 768, c: 4 }], layout: flow, breakpointForWindow: true }
+		const wrapper = shallowMount(CnDashboardGrid, { propsData: { layout: [], columns: 12, columnOpts } })
+		const grid = wrapper.vm.grid
+		grid.column(4)
+		grid.column.mockClear()
+
+		await wrapper.setProps({ layout: [{ id: 'tile', gridX: 7, gridY: 1, gridWidth: 1, gridHeight: 2 }] })
+		await wrapper.vm.$nextTick()
+
+		expect(grid.column.mock.calls).toEqual([[12, 'none'], [4, flow]])
+		expect(grid.makeWidget).toHaveBeenCalledTimes(1)
 		wrapper.unmount()
 	})
 })

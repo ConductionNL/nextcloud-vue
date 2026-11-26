@@ -32,6 +32,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `breadcrumb` | Object \| Array | `null` | A breadcrumb under the title (manifest `config.breadcrumb`): one crumb `{ label, route?, params?, href?, icon?, separator? }` or a list; the title follows as the current crumb. Drawn as the detail header's breadcrumb row. |
 | `headerMeta` | String | `''` | A note after the breadcrumb and a middle dot (manifest `config.headerMeta`); `{total}` and `{shown}` are the list's counts, e.g. `"{total} lopend"`, and `{count:<name>}` the total of a list named in `headerMetaCounts`. `{rows:<field>}` counts the list's rows whose field is set (every row of a sort source's list, else the rows on screen), and a part in square brackets is left out while a count in it is zero: `"{total} zaken op uw naam[, waarvan {rows:coveredFor} als waarnemer]"` (DqAanMijToegewezen). In the board look a note that carries a count replaces the "\{shown\} of \{total\}" line under the title. |
 | `headerMetaCounts` | Object | `null` | The other lists `headerMeta` counts, by name: `{ suppliers: { register, schema, filter? } }`, for `"{total} contracten bij {count:suppliers} leveranciers"`. While a count loads, or when it fails, the note is left out. |
+| `headerMetaSource` | Object \| null | `null` | An endpoint (`{ url, method?, params?, responsePath? }`, the grammar of a widget's `endpointSource`) whose answer fills `{source}` in `headerMeta`, for a line no list count gives. While it reads, after a failed read or for an empty value the note is left out. |
 | `showTitle` | Boolean | `false` | Show the page header (icon, title, description) inline above the table. When `false` (default), the title is shown in the sidebar header instead. |
 | `icon` | String | `''` | MDI icon name for the page header. Defaults to `schema.icon` when a schema is provided. |
 | `cardAccent` | Function | `null` | `(object) => { variant, icon?, label? } \| null`: a status accent per card in the card view, a colored start border and icon (see CnObjectCard `accent`). |
@@ -148,6 +149,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `visibleColumns` | Array | `null` | Currently visible column keys forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `activeFilters` | Object | `\{\}` | Currently active facet filters `\{ fieldName: [values] \}` forwarded to the embedded sidebar (only relevant when `sidebar.enabled`). |
 | `register` | String | `''` | Effective register slug for the page. Forwarded as a prop to the resolved `cardComponent` so bespoke card UIs can match the schema → register pair. Manifest-driven path: `pages[].config.register` flows in via `CnPageRenderer`. |
+| `offlineTakeAlong` | Boolean | `false` | The manifest takes this page's register and schema along (`offline.takeAlong`; `CnPageRenderer` sets it). Offline, the page shows the downloaded rows with "You are offline. Showing 12 records downloaded at 08:14.", searches and sorts them on the device, turns selection and saved views off, and shows "The records on this device have expired. Connect to download them again." for an expired set. False: the offline database is never opened. See [Offline manifest](../integrations/offline-manifest.md). |
 | `cardComponent` | String | `''` | Optional name of a consumer-provided card component (registered in the v2 `registry` — any kind carrying a `component` — or in the legacy `customComponents` map on `CnAppRoot`) to render in place of the default `CnObjectCard` when the page is in card-grid view mode. Resolution priority: `#card` scoped slot → `cardComponent` registry entry → default `CnObjectCard`. Unknown names log a `console.warn` once and fall back to the default so a misconfigured manifest never blanks the grid. See [Bespoke card-grid](#bespoke-card-grid-via-cardcomponent) below. |
 | `customComponents` | Object | `null` | Optional explicit `customComponents` registry. Overrides the registry injected from `CnAppRoot` via `cnCustomComponents`. Mostly used by unit tests; production consumers register components on `CnAppRoot` instead. |
 
@@ -897,6 +899,32 @@ A row whose `@self.register` / `@self.schema` names another pair behaves as a ro
 `register` may be a slug. The page then loads the register once to match it against the rows' `@self.register` ids; passing ids skips that request.
 
 Keep the columns to ones every pair has, such as `@self.name`, `@self.updated` and shared properties. Live updates follow the page's own pair only. In this mode, any `dispatchObjectsChanged` signal refreshes the list.
+
+## A view of the page's own
+
+When the built-in views do not fit, a page adds its own view of the whole filtered list with
+`customViews` (manifest `pages[].config.customViews`):
+
+```json
+"customViews": [
+  { "id": "diagram", "label": "Diagram", "icon": "Graph", "component": "ConnectionsDiagram" }
+]
+```
+
+Each view is a segment of the view switch after the built-in ones and opens with
+`?_view=<id>`. The component, looked up in the registry and then in `customComponents`,
+gets the rows the other views draw, so the list's filters, search and quick filters apply:
+
+| Prop | |
+|---|---|
+| `rows` | The filtered rows |
+| `schema` | The page's schema |
+| `loading` | Whether the list is loading |
+| `rowKey` | The row id field |
+
+It emits `rowClick` with a row to open it, as a table row click does. A view whose id is a
+built-in mode, or whose component does not resolve, is left out; a page without
+`customViews` is unchanged.
 
 ## Map view mode
 

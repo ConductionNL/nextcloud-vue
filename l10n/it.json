@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Campo data per il periodo",
+    "None: the widget does not follow the period": "Nessuno: il widget non segue il periodo",
     "Report a bug": "Segnala un bug",
     "View": "Visualizza",
     "Edit": "Modifica",
     "Copy": "Copia",
-    "Delete": "Elimina"
+    "Delete": "Elimina",
+    "The administrator has not set a start date field.": "L'amministratore non ha impostato un campo per la data di inizio.",
+    "Starts {weekday}": "Inizia {weekday}",
+    "Selection": "Selezione",
+    "People by filter": "Persone per filtro",
+    "New colleagues": "Nuovi colleghi",
+    "Started in the last (days, 1–90)": "Iniziato negli ultimi (giorni, 1–90)",
+    "Starts within (days, 0–30)": "Inizia nei prossimi (giorni, 0–30)",
+    "Must be between {min} and {max}": "Deve essere tra {min} e {max}"
   }
 }

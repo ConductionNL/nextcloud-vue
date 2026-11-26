@@ -7,11 +7,13 @@
  * into the shared dashboardWidgetRegistry at module load.
  */
 
-import CnCreateFormWidget from './CnCreateFormWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnCreateFormWidget = lazyComponent(() => import('./CnCreateFormWidget.vue'), 'CnCreateFormWidget')
+
 registerDashboardWidget('create-form', {
-	renderer: CnCreateFormWidget,
+	renderer: LazyCnCreateFormWidget,
 	defaultContent: {
 		register: '',
 		schema: '',
@@ -21,5 +23,5 @@ registerDashboardWidget('create-form', {
 	icon: 'FormTextbox',
 })
 
-export { CnCreateFormWidget }
-export default CnCreateFormWidget
+export { default as CnCreateFormWidget } from './CnCreateFormWidget.vue'
+export { default } from './CnCreateFormWidget.vue'

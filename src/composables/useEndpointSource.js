@@ -442,7 +442,11 @@ export function useEndpointSource(source, options) {
 	 *
 	 * @param {boolean} [force] Bypass the shared cache (refresh semantics).
 	 * @param {object} [refresh] The refresh event's payload, shared by its widgets.
-	 * @return {Promise<void>}
+	 * @return {Promise<boolean|undefined>} `true` when the read answered, `false`
+	 *   when it failed, `undefined` when there was nothing to read or a newer
+	 *   read took over. A page refresh (`autoRefresh`) reads this through
+	 *   `waitUntil` to tell a failing page from a quiet one.
+	 * @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-says-when-its-data-may-be-outdated
 	 */
 	async function load(force, refresh) {
 		const cfg = read(source)
@@ -481,6 +485,7 @@ export function useEndpointSource(source, options) {
 			data.value = payload === undefined ? null : payload
 			body.value = answer === undefined ? null : answer
 			truncated.value = isTruncatedBody(answer)
+			return true
 		} catch (e) {
 			if (seq !== fetchSeq) {
 				return
@@ -490,6 +495,7 @@ export function useEndpointSource(source, options) {
 			refusal.value = refused.value ? endpointServerMessage(e) : ''
 			data.value = null
 			body.value = null
+			return false
 		} finally {
 			if (seq === fetchSeq) {
 				// Forced refetches hold `loading` to MIN_FORCED_LOADING_MS so

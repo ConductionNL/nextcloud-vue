@@ -10,12 +10,25 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CnTabsWidget from '../../src/components/CnTabsWidget/CnTabsWidget.vue'
+import { isAppInstalled } from '../../src/utils/appInstalled.js'
 import { fetchListTotal } from '../../src/utils/fetchFilterCounts.js'
 
-jest.mock('../../src/utils/fetchFilterCounts.js', () => ({
+jest.mock('../../src/utils/appInstalled.js', () => ({
 	__esModule: true,
-	fetchListTotal: jest.fn(),
+	isAppInstalled: jest.fn(() => true),
 }))
+
+jest.mock('../../src/utils/fetchFilterCounts.js', () => {
+	const fetchListTotal = jest.fn()
+	return {
+		__esModule: true,
+		fetchListTotal,
+		// The tabs count their lists in one batch; each list answers through fetchListTotal here.
+		fetchListTotals: jest.fn((lists, ctx) => Promise.all(lists.map(({ register, schema, filter }) => Promise.resolve()
+			.then(() => fetchListTotal(register, schema, filter, ctx))
+			.catch(() => null)))),
+	}
+})
 
 const WIDGETS = [
 	{ id: 'w-cases', type: 'object-list', title: 'Cases', content: { register: 'dossiq', schema: 'case', filter: { requester: '@objectId' } } },
@@ -105,5 +118,15 @@ describe('CnTabsWidget countFrom', () => {
 		expect(global.fetch.mock.calls[0][0]).toContain('/apps/portaliq/api/proposals?id=p-1')
 		expect(fetchListTotal).not.toHaveBeenCalled()
 		delete global.fetch
+	})
+
+	it('asks nothing for a tab whose app is not installed', async () => {
+		isAppInstalled.mockImplementation((app) => app !== 'portaliq')
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ proposals: [] }) })
+		mountTabs([{ widgetId: 'w-card' }, { widgetId: 'w-cases', label: 'Proposals', visibleWhen: { appInstalled: 'portaliq' }, countFrom: { endpoint: '/apps/portaliq/api/proposals?id=@objectId', field: 'proposals' } }])
+		await flush()
+		expect(global.fetch).not.toHaveBeenCalled()
+		delete global.fetch
+		isAppInstalled.mockImplementation(() => true)
 	})
 })

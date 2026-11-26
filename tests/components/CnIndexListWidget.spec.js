@@ -22,6 +22,7 @@ jest.mock('../../src/components/CnIndexPage/CnIndexPage.vue', () => ({
 
 const CnIndexListWidget = require('../../src/components/CnIndexListWidget/CnIndexListWidget.vue').default
 const { getWidgetTypeEntry } = require('../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js')
+const { loadLazyComponent } = require('../../src/utils/lazyComponent.js')
 require('../../src/components/CnIndexListWidget/index.js')
 
 const CONTENT = {
@@ -41,9 +42,9 @@ function mountWith(props) {
 }
 
 describe('CnIndexListWidget', () => {
-	it('is registered as the `index-list` widget type on the detail page', () => {
+	it('is registered as the `index-list` widget type on the detail page', async () => {
 		const entry = getWidgetTypeEntry('index-list')
-		expect(entry.renderer).toBe(CnIndexListWidget)
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnIndexListWidget)
 		expect(entry.surfaces).toContain('detail-page')
 	})
 

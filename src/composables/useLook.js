@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Conduction B.V.
 // SPDX-License-Identifier: EUPL-1.2
 
-import { computed, inject, unref } from 'vue'
+import { computed, inject, unref, watch } from 'vue'
+import { enableBoardLookStyle } from '../utils/boardLookStyle.js'
 
 /**
  * The look names a component may be drawn in.
@@ -46,5 +47,11 @@ export function useLook(props) {
 	})
 	const isBoard = computed(() => look.value === 'board')
 	const lookClass = computed(() => (isBoard.value ? 'cn-look-board' : ''))
+	// Immediate, so the board-look rules are on before this component's first render.
+	watch(isBoard, (board) => {
+		if (board) {
+			enableBoardLookStyle()
+		}
+	}, { immediate: true })
 	return { look, isBoard, lookClass }
 }

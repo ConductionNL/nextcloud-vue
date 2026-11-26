@@ -54,6 +54,12 @@ const GridStack = {
 			save: jest.fn(() => []),
 			load: jest.fn(),
 			batchUpdate: jest.fn(),
+			column: jest.fn((column) => {
+				opts = { ...opts, column }
+			}),
+			updateOptions: jest.fn((patch = {}) => {
+				opts = { ...opts, ...patch }
+			}),
 			resizeToContent,
 			/** The unwrapped `resizeToContent`, whatever the grid installs over it. */
 			_resizeToContent: resizeToContent,

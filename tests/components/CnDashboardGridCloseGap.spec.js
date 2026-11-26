@@ -29,6 +29,13 @@ describe('CnDashboardGrid: closing the gap', () => {
 		expect(GridStack.init.mock.calls.at(-1)[0].float).toBe(false)
 	})
 
+	it('names the same layout as a GridStack 14 mode', () => {
+		mount(CnDashboardGrid, { propsData: { layout: [tile] } })
+		expect(GridStack.init.mock.calls.at(-1)[0].mode).toBe('float')
+		mount(CnDashboardGrid, { propsData: { layout: [tile], float: false } })
+		expect(GridStack.init.mock.calls.at(-1)[0].mode).toBe('top')
+	})
+
 	it('moves a tracked item to its new row without emitting a layout change', async () => {
 		const wrapper = mount(CnDashboardGrid, { propsData: { layout: [tile] } })
 		const grid = wrapper.vm.grid
@@ -36,7 +43,7 @@ describe('CnDashboardGrid: closing the gap', () => {
 		grid.engine.nodes.push({ id: 'tile', x: 0, y: 2, w: 3, h: 2, el })
 		await wrapper.setProps({ layout: [{ ...tile, gridY: 0 }] })
 		await wrapper.vm.$nextTick()
-		expect(grid.update).toHaveBeenCalledWith(el, { x: 0, y: 0 })
+		expect(grid.update).toHaveBeenCalledWith(el, { x: 0, y: 0, w: 3, h: 2 })
 		expect(wrapper.emitted('layout-change')).toBeUndefined()
 	})
 
@@ -45,7 +52,7 @@ describe('CnDashboardGrid: closing the gap', () => {
 		const grid = wrapper.vm.grid
 		const el = wrapper.find('[gs-id="tile"]').element
 		grid.engine.nodes.push({ id: 'tile', x: 0, y: 2, w: 3, h: 2, el })
-		await wrapper.setProps({ layout: [{ ...tile, gridHeight: 3 }] })
+		await wrapper.setProps({ layout: [{ ...tile, title: 'Renamed' }] })
 		await wrapper.vm.$nextTick()
 		expect(grid.update).not.toHaveBeenCalled()
 	})

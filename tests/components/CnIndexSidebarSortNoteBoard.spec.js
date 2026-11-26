@@ -42,12 +42,12 @@ const note = (w) => w.find('[data-testid="cn-index-sidebar-sort-current"]').text
 describe('the current order under the sort direction', () => {
 	it('reads "Now: by deadline, ascending." and that a view keeps it, in the board look', () => {
 		const w = mountSidebar({ currentSort: [{ key: 'deadline', order: 'asc' }] }, 'board')
-		expect(note(w)).toBe('Now: by deadline, ascending. You save the order along with a view.')
+		expect(note(w)).toBe('Now: by deadline, ascending. The sorting is saved with a view.')
 	})
 
 	it('names an order of its own the same way', () => {
 		const w = mountSidebar({ currentSortValue: 'urgency', currentSort: [] }, 'board')
-		expect(note(w)).toBe('Now: by urgency. You save the order along with a view.')
+		expect(note(w)).toBe('Now: by urgency. The sorting is saved with a view.')
 	})
 
 	it('keeps the Nextcloud look\'s sentence', () => {

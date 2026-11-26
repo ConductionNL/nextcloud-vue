@@ -122,6 +122,8 @@ predicate's field value into their text wherever it says `{value}` (e.g.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `loading` | Boolean | `false` | Show a loading spinner instead of the widget grid |
+| `download` | Boolean | `false` | A "Download" button in the header that saves the figures of the stat tiles, grouped charts and object tables as CSV (`widget,label,value`); disabled until they are read |
+| `downloadName` | String | `''` | File name of the download before `-<yyyy-mm-dd>.csv`; `dashboard` when empty |
 | `cellHeight` | Number | `80` | Grid cell height in pixels (passed to CnDashboardGrid) |
 | `gridMargin` | Number | `12` | Grid margin (gutter) in pixels between widgets |
 | `emptyLabel` | String | `'No widgets configured'` | Text shown in the empty state when `layout` is empty |
@@ -157,6 +159,17 @@ Three behaviours are worth knowing because each is load-bearing:
 Call `resetUserLayout()` to drop the arrangement; the page emits `user-layout-reset` and returns to the manifest.
 
 The same `userLayout` covers the page's [views](../../../docs/components/cn-dashboard-page.md#each-view-arranged-per-user-userlayout): each view's grid is draggable in edit mode and is stored per view, under the page id with `.view.<view id>` appended. Edit mode shows **Reset layout**, which returns the page's own grid and the chosen view to the manifest (`user-layout-reset`, `view-layout-reset`). `resetViewUserLayout(viewId)` resets one view.
+
+## Auto-refresh (`autoRefresh`)
+
+`autoRefresh: true` (or `{ intervalSeconds, staleAfterSeconds, button }`) reads the widgets again every 5 minutes by
+firing `cn:page:refresh`, in place: no reload, the scroll position stays. A refresh button in the header reads at once
+and spins until the reads land. When the reads keep failing and the last good one is older than 10 minutes, a warning
+reads "Data may be outdated. Last updated: 14:05" with Retry. The timer is cleared when the page goes.
+
+```json
+{ "type": "dashboard", "config": { "autoRefresh": { "intervalSeconds": 300, "staleAfterSeconds": 600 } } }
+```
 
 ## Slots
 

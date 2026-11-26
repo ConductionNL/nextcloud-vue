@@ -2,12 +2,15 @@
 
 ### OpenRegister reliance
 
-**light**: this component touches OpenRegister lightly. 2 direct references, 0 files reached through imports.
+**medium**: this component relies on OpenRegister for part of what it does. 3 direct references, 1 file reached through imports.
+
+Through: `CnQuietHours`.
 
 See the [reliance overview](./index.md#openregister-reliance) for the filterable list.
 
 ### Props
 
-| Name     | Type     | Required | Default | Description                                                                                                                                                                                                                                                                                                                                    |
-| -------- | -------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `labels` | `object` |          | `null`  | Labels for the notification rules, keyed `&lt;schema&gt;.&lt;key&gt;` or `&lt;key&gt;`; values are strings or per-locale maps (`{ nl, en }`). Optional: inside CnAppRoot the app's `notificationLabels` arrive by inject, and a rule without a label still reads as words, never as its raw key. A prop given here wins over the injected map. |
+| Name         | Type      | Required | Default | Description                                                                                                                                                                                                                                                                                                                                    |
+| ------------ | --------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labels`     | `object`  |          | `null`  | Labels for the notification rules, keyed `&lt;schema&gt;.&lt;key&gt;` or `&lt;key&gt;`; values are strings or per-locale maps (`{ nl, en }`). Optional: inside CnAppRoot the app's `notificationLabels` arrive by inject, and a rule without a label still reads as words, never as its raw key. A prop given here wins over the injected map. |
+| `quietHours` | `boolean` |          | `null`  | Show the quiet-hours block (OpenRegister's per-user delivery window) under the notifications. `null` follows the CnAppRoot ancestor's `quietHours`; off by default, so apps that do not ask for it look as before.                                                                                                                             |

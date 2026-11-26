@@ -981,8 +981,13 @@ export default {
 				return
 			}
 			try {
+				// The CommonJS build, not '@mdi/js': an import() of the package uses
+				// every export of its module, and webpack shares that module with the
+				// app's own `import { mdiX } from '@mdi/js'`, so the whole pack (2.5 MB)
+				// landed in the app's main bundle. A separate file keeps the app's
+				// imports tree-shaken; the full set loads only here.
 				const [mdi, adapters] = await Promise.all([
-					import(/* webpackChunkName: "cn-icons-mdi" */ '@mdi/js'),
+					import(/* webpackChunkName: "cn-icons-mdi" */ '@mdi/js/commonjs/mdi.js'),
 					import('../CnIconPicker/iconCatalogues.js'),
 				])
 				this.mdiCatalogue = adapters.fromMdiJs(mdi)

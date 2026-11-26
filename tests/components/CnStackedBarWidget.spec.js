@@ -12,6 +12,7 @@ import { mount } from '@vue/test-utils'
 import CnStackedBarWidget, { rampColor } from '../../src/components/CnStackedBarWidget/CnStackedBarWidget.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { fetchGroupedCounts } from '../../src/utils/fetchAggregate.js'
+import { loadLazyComponent } from '../../src/utils/lazyComponent.js'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 
@@ -62,10 +63,10 @@ describe('rampColor', () => {
 })
 
 describe('CnStackedBarWidget', () => {
-	it('is registered as the stacked-bar widget with a form', () => {
+	it('is registered as the stacked-bar widget with a form', async () => {
 		const entry = getWidgetTypeEntry('stacked-bar')
-		expect(entry.renderer).toBe(CnStackedBarWidget)
-		expect(entry.form.name).toBe('CnStackedBarWidgetForm')
+		expect(await loadLazyComponent(entry.renderer)).toBe(CnStackedBarWidget)
+		expect((await loadLazyComponent(entry.form)).name).toBe('CnStackedBarWidgetForm')
 	})
 
 	it('puts every label and count in the legend', () => {

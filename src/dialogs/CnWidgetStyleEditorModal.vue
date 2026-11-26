@@ -81,6 +81,115 @@
 				</div>
 			</div>
 
+			<!-- Border section: style, width, colour and corner radius. -->
+			<div class="cn-widget-style-editor__section" data-testid="cn-widget-style-border">
+				<h3 class="cn-widget-style-editor__section-title">
+					{{ t('nextcloud-vue', 'Border') }}
+				</h3>
+
+				<NcSelect
+					:modelValue="borderStyleOption"
+					:options="borderStyleOptions"
+					:inputLabel="t('nextcloud-vue', 'Border style')"
+					:clearable="false"
+					data-testid="cn-widget-style-border-style"
+					@update:modelValue="draft.borderStyle = ($event && $event.id) || 'none'" />
+
+				<div class="cn-widget-style-editor__fields">
+					<NcTextField
+						:modelValue="String(draft.borderWidth)"
+						type="number"
+						min="0"
+						:label="t('nextcloud-vue', 'Border width (px)')"
+						data-testid="cn-widget-style-border-width"
+						@update:modelValue="draft.borderWidth = toPixels($event, 1)" />
+					<NcTextField
+						:modelValue="String(draft.borderRadius)"
+						type="number"
+						min="0"
+						:label="t('nextcloud-vue', 'Border radius (px)')"
+						data-testid="cn-widget-style-border-radius"
+						@update:modelValue="draft.borderRadius = toPixels($event, 0)" />
+				</div>
+
+				<div class="cn-widget-style-editor__row">
+					<span class="cn-widget-style-editor__label">{{ t('nextcloud-vue', 'Color') }}</span>
+					<NcColorPicker v-model="draft.borderColor">
+						<NcButton
+							variant="secondary"
+							:aria-label="t('nextcloud-vue', 'Pick border color')"
+							data-testid="cn-widget-style-border-color">
+							<template #icon>
+								<div
+									class="cn-widget-style-editor__color-preview"
+									:style="{ backgroundColor: draft.borderColor }" />
+							</template>
+							{{ draft.borderColor || t('nextcloud-vue', 'Default') }}
+						</NcButton>
+					</NcColorPicker>
+				</div>
+			</div>
+
+			<!-- Padding section: the inset on each side, in pixels. -->
+			<div class="cn-widget-style-editor__section" data-testid="cn-widget-style-padding">
+				<h3 class="cn-widget-style-editor__section-title">
+					{{ t('nextcloud-vue', 'Padding') }}
+				</h3>
+
+				<div class="cn-widget-style-editor__fields">
+					<NcTextField
+						v-for="side in paddingSides"
+						:key="side.id"
+						:modelValue="String(draft.padding[side.id])"
+						type="number"
+						min="0"
+						:label="side.label"
+						:data-testid="'cn-widget-style-padding-' + side.id"
+						@update:modelValue="draft.padding[side.id] = toPixels($event, 0)" />
+				</div>
+			</div>
+
+			<!-- Header section: the title bar's background and text colours. -->
+			<div class="cn-widget-style-editor__section" data-testid="cn-widget-style-header">
+				<h3 class="cn-widget-style-editor__section-title">
+					{{ t('nextcloud-vue', 'Header') }}
+				</h3>
+
+				<div class="cn-widget-style-editor__row">
+					<span class="cn-widget-style-editor__label">{{ t('nextcloud-vue', 'Background') }}</span>
+					<NcColorPicker v-model="draft.headerStyle.backgroundColor">
+						<NcButton
+							variant="secondary"
+							:aria-label="t('nextcloud-vue', 'Pick header background color')"
+							data-testid="cn-widget-style-header-background">
+							<template #icon>
+								<div
+									class="cn-widget-style-editor__color-preview"
+									:style="{ backgroundColor: draft.headerStyle.backgroundColor }" />
+							</template>
+							{{ draft.headerStyle.backgroundColor || t('nextcloud-vue', 'Default') }}
+						</NcButton>
+					</NcColorPicker>
+				</div>
+
+				<div class="cn-widget-style-editor__row">
+					<span class="cn-widget-style-editor__label">{{ t('nextcloud-vue', 'Text') }}</span>
+					<NcColorPicker v-model="draft.headerStyle.textColor">
+						<NcButton
+							variant="secondary"
+							:aria-label="t('nextcloud-vue', 'Pick header text color')"
+							data-testid="cn-widget-style-header-text">
+							<template #icon>
+								<div
+									class="cn-widget-style-editor__color-preview"
+									:style="{ backgroundColor: draft.headerStyle.textColor }" />
+							</template>
+							{{ draft.headerStyle.textColor || t('nextcloud-vue', 'Default') }}
+						</NcButton>
+					</NcColorPicker>
+				</div>
+			</div>
+
 			<!-- Icon section: pick the chrome icon from the built-in set.
 			     Hidden for typed widgets — their sub-form owns the icon. -->
 			<div v-if="!hasTypeForm" class="cn-widget-style-editor__section">
@@ -166,12 +275,13 @@ function defaultStyleConfig() {
 		borderWidth: 1,
 		borderRadius: 12,
 		padding: { top: 0, right: 0, bottom: 0, left: 0 },
+		headerStyle: { backgroundColor: '', textColor: '' },
 	}
 }
 
 /**
  * CnWidgetStyleEditorModal — isolated host (ADR-004) for editing a single
- * dashboard-widget's chrome: its title override, background colour, and icon.
+ * dashboard-widget's chrome: its title override, background colour, border, padding, header colours and icon.
  * It is a pure editor: it does NO API and NO grid work. On Save it mutates the
  * passed `widget` object in place (writing `widget.styleConfig`, `widget.showTitle`,
  * `widget.customTitle`, `widget.customIcon`) and emits `save` with the same
@@ -286,6 +396,44 @@ export default {
 
 	computed: {
 		/**
+		 * The border styles REQ-WDG-011 names, as select options.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 * @return {Array<{id: string, label: string}>} the options.
+		 */
+		borderStyleOptions() {
+			return [
+				{ id: 'none', label: t('nextcloud-vue', 'None') },
+				{ id: 'solid', label: t('nextcloud-vue', 'Solid') },
+				{ id: 'dashed', label: t('nextcloud-vue', 'Dashed') },
+				{ id: 'dotted', label: t('nextcloud-vue', 'Dotted') },
+			]
+		},
+
+		/**
+		 * The selected border-style option.
+		 *
+		 * @return {{id: string, label: string}} the option for `draft.borderStyle`.
+		 */
+		borderStyleOption() {
+			return this.borderStyleOptions.find((option) => option.id === this.draft.borderStyle) || this.borderStyleOptions[0]
+		},
+
+		/**
+		 * The four padding sides with their field labels.
+		 *
+		 * @return {Array<{id: string, label: string}>} the sides.
+		 */
+		paddingSides() {
+			return [
+				{ id: 'top', label: t('nextcloud-vue', 'Padding top (px)') },
+				{ id: 'right', label: t('nextcloud-vue', 'Padding right (px)') },
+				{ id: 'bottom', label: t('nextcloud-vue', 'Padding bottom (px)') },
+				{ id: 'left', label: t('nextcloud-vue', 'Padding left (px)') },
+			]
+		},
+
+		/**
 		 * Placeholder for the custom-title field — the widget's own title.
 		 *
 		 * @return {string} the fallback widget title.
@@ -395,6 +543,19 @@ export default {
 		t,
 
 		/**
+		 * Read a pixel field: a whole number of at least 0, else the fallback.
+		 *
+		 * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
+		 * @param {string|number} value The field value.
+		 * @param {number} fallback Used when the value is empty or not a number.
+		 * @return {number} the pixels.
+		 */
+		toPixels(value, fallback) {
+			const number = Number.parseInt(value, 10)
+			return Number.isFinite(number) && number >= 0 ? number : fallback
+		},
+
+		/**
 		 * Build the working-copy draft from a widget's current chrome + styleConfig.
 		 * Always a deep copy so editing the draft never touches the live widget
 		 * before Save.
@@ -422,6 +583,11 @@ export default {
 					right: sc.padding?.right || base.padding.right,
 					bottom: sc.padding?.bottom || base.padding.bottom,
 					left: sc.padding?.left || base.padding.left,
+				},
+
+				headerStyle: {
+					backgroundColor: sc.headerStyle?.backgroundColor || '',
+					textColor: sc.headerStyle?.textColor || '',
 				},
 			}
 		},
@@ -459,6 +625,15 @@ export default {
 			sc.borderWidth = this.draft.borderWidth
 			sc.borderRadius = this.draft.borderRadius
 			sc.padding = { ...this.draft.padding }
+			const header = this.draft.headerStyle
+			if (header.backgroundColor || header.textColor) {
+				sc.headerStyle = {
+					backgroundColor: header.backgroundColor || null,
+					textColor: header.textColor || null,
+				}
+			} else {
+				delete sc.headerStyle
+			}
 
 			this.widget.showTitle = this.draft.showTitle
 			this.widget.customTitle = this.draft.customTitle || null
@@ -547,6 +722,13 @@ export default {
 .cn-widget-style-editor__label {
 	width: 80px;
 	flex-shrink: 0;
+}
+
+.cn-widget-style-editor__fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 12px;
+	margin: 12px 0;
 }
 
 .cn-widget-style-editor__color-preview {

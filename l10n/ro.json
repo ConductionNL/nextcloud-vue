@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Câmp de dată pentru perioadă",
+    "None: the widget does not follow the period": "Niciunul: widgetul nu urmează perioada",
     "Report a bug": "Raportează o eroare",
     "View": "Vizualizare",
     "Edit": "Editare",
     "Copy": "Copiere",
-    "Delete": "Ștergere"
+    "Delete": "Ștergere",
+    "The administrator has not set a start date field.": "Administratorul nu a setat un câmp pentru data angajării.",
+    "Starts {weekday}": "Începe {weekday}",
+    "Selection": "Selecție",
+    "People by filter": "Persoane după filtru",
+    "New colleagues": "Colegi noi",
+    "Started in the last (days, 1–90)": "Au început în ultimele (zile, 1–90)",
+    "Starts within (days, 0–30)": "Încep în următoarele (zile, 0–30)",
+    "Must be between {min} and {max}": "Trebuie să fie între {min} și {max}"
   }
 }

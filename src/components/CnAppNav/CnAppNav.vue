@@ -1461,6 +1461,23 @@ export default {
 		 * @return {object|null} The entry to mark, or null.
 		 * @spec openspec/changes/live-check-follow-ups/specs/live-check-follow-ups/spec.md#requirement-a-page-below-a-list-marks-one-menu-entry
 		 */
+		/**
+		 * The menu entry the current page names with `menuEntry`, for a page
+		 * that has no entry of its own: the Mailbox marks Team queue
+		 * (DqPostvak). Null when the page names none.
+		 *
+		 * @return {string|null} The entry's id.
+		 * @spec openspec/changes/page-names-its-menu-entry/specs/page-names-its-menu-entry/spec.md#requirement-a-page-without-a-menu-entry-marks-the-entry-it-names
+		 */
+		declaredMenuEntryId() {
+			const name = this.$route?.name
+			if (!name) {
+				return null
+			}
+			const page = (this.effectiveManifest?.pages ?? []).find((p) => p.id === name)
+			return page && typeof page.menuEntry === 'string' && page.menuEntry !== '' ? page.menuEntry : null
+		},
+
 		subRouteParent() {
 			const active = this.activeRouteName
 			if (!active || this.$route?.name === active) {
@@ -1794,7 +1811,11 @@ export default {
 				return true
 			}
 			const parent = this.subRouteParent
-			return parent !== null && toRaw(parent) === toRaw(item)
+			if (parent !== null) {
+				return toRaw(parent) === toRaw(item)
+			}
+			return this.declaredMenuEntryId !== null && item.id === this.declaredMenuEntryId
+				&& !this.flatEntries.some((entry) => this.isActiveByRule(entry))
 		},
 
 		/**

@@ -23,6 +23,7 @@ import { GridStack } from 'gridstack'
  * @param {number} [opts.cellHeight] Cell height in px (default 80).
  * @param {number} [opts.margin] Grid margin in px (default 12).
  * @return {import('gridstack').GridStack} The GridStack instance.
+ * @spec openspec/specs/dashboard-grid/spec.md#requirement-gridstack-integration-and-initialization
  */
 export function initGridStack(el, opts) {
 	const { columns, editable, cellHeight = 80, margin = 12 } = opts
@@ -31,6 +32,7 @@ export function initGridStack(el, opts) {
 		cellHeight,
 		margin,
 		float: true,
+		mode: 'float',
 		animate: true,
 		disableDrag: !editable,
 		disableResize: !editable,

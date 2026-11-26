@@ -8,8 +8,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name       | Type     | Required | Default               | Description                                               |
-| ---------- | -------- | -------- | --------------------- | --------------------------------------------------------- |
-| `name`     | `string` | ✓        | —                     | MDI icon name in PascalCase (e.g. "AccountGroup")         |
-| `size`     | `number` |          | `20`                  | Icon pixel size                                           |
-| `fallback` | `string` |          | `'HelpCircleOutline'` | Fallback icon name if `name` is not found in the registry |
+| Name       | Type     | Required | Default               | Description                                                                                                                                                    |
+| ---------- | -------- | -------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`     | `string` | ✓        | —                     | MDI icon name: PascalCase (`AccountGroup`), lowercase or kebab-case (`calendar`, `link-variant`), a semantic concept (`folder`) or a Nextcloud `icon-*` class. |
+| `size`     | `number` |          | `20`                  | Icon pixel size                                                                                                                                                |
+| `fallback` | `string` |          | `'HelpCircleOutline'` | Fallback icon name if `name` resolves to nothing; resolved the same way.                                                                                       |

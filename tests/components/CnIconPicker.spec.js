@@ -215,3 +215,10 @@ describe('CnIconPicker enriched mode', () => {
 		expect(w.emitted('update:placement')[0]).toEqual(['right'])
 	})
 })
+
+describe('dashboard icon registry', () => {
+	it('knows the Bullhorn a group dashboard of announcements uses (LpMeer "Intranet Zuiddrecht")', () => {
+		const { DASHBOARD_ICONS } = require('../../src/components/CnWidgetGrid/widgetIcons.js')
+		expect(DASHBOARD_ICONS.Bullhorn).toBeTruthy()
+	})
+})

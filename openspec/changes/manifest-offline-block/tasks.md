@@ -13,8 +13,8 @@
 - **acceptance_criteria**:
   - The block validates with the caps; each refusal of design D1 and D2 fails with a message naming the entry or page
   - Verify: jest; `npm run build:validators` leaves no diff
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 2: Take-along module and scoped clear
 - **spec_ref**: `openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-the-offline-core-downloads-reads-and-clears-a-take-along-set`
@@ -23,8 +23,8 @@
   - Download resolves tokens, honours `limit` and stores under `take-along` with the expiry; read returns no rows once expired
   - `clearCollection` removes one set and its meta row and leaves other sets and the queue
   - Verify: jest with fake-indexeddb through `__setDexie`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 3: Offline index and detail pages
 - **spec_ref**: `openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-index-and-detail-pages-read-from-the-device-when-offline`
@@ -33,8 +33,8 @@
   - Offline with a set: rows, status bar, local search and sort; detail opens from the set with writes disabled
   - Expired set shows the sentence; a manifest without `offline` never calls `openDb`
   - Verify: jest; mutation check: removing the expiry check reddens the expired test
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: Offline form submission
 - **spec_ref**: `openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it`
@@ -43,8 +43,8 @@
   - Offline submit of a listed form calls `enqueueMutation` with device id, register, schema, operation and payload, shows the sentence and emits `queued`
   - A form not listed behaves as today; file fields are disabled offline
   - Verify: jest
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: The root drains its own queue
 - **spec_ref**: `openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it`
@@ -53,8 +53,8 @@
   - `drainQueue` with a `filter` replays only matching rows, in the same order
   - The root drains on mount when online and on `online`, only for its offline forms' pairs
   - Verify: jest
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 6: Docs and an end-to-end check
 - **spec_ref**: `openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-index-and-detail-pages-read-from-the-device-when-offline`
@@ -63,5 +63,7 @@
   - Docs show the block, the form rule of design D2 and what the host still does (worker, when to download, clearing)
   - A harness page downloads a set, goes offline, lists and opens a record with its time, submits an offline form, goes online and sees it arrive
   - Verify: `npm run check:docs`, `npm run check:docs-fresh`, `npm run test:e2e -- manifest-offline`
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
+
+> Built 25 Nov 2026 (buildiq lane, PR #2393): tasks 1-6 with jest (`validateManifestOffline`, `takeAlong`, `drainFilter`, `CnAppRootOffline`, `CnFormPageOffline`, `CnIndexPageOffline`, `CnDetailPageOffline`) and the harness e2e `e2e/manifest-offline.e2e.js` passing in Chromium. Mutation check: dropping the expiry check in `readTakeAlong` reddens `takeAlong.spec.js` "reads no rows once the set has expired". Not done: facets in the hoisted index sidebar stay visible offline (the sidebar also holds the search box; they filter nothing on the device rows).

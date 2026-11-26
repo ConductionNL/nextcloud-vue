@@ -14,6 +14,7 @@
  */
 
 import { cnFetchJson } from './cnFetch.js'
+import { readRelatedOnce } from './readRelatedOnce.js'
 import { evaluateVisibleWhenLocal, isLocallyDecidableVisibleWhen, isWorkspaceCondition } from './visibleWhen.js'
 
 /**
@@ -68,6 +69,7 @@ export function visibilityContextRefs(context, record) {
  * @param {Map<string, object|null>} [cache] Rows already read, by `register/schema/id`.
  * @return {Promise<object>} `{ <name>: row | null }`.
  * @spec openspec/changes/detail-widgets-visible-when/specs/detail-widgets-visible-when/spec.md#requirement-a-detail-page-can-load-records-a-condition-names
+ * @spec openspec/changes/related-record-read-once/specs/data-widget/spec.md#requirement-a-related-record-is-read-once-per-page-open
  */
 export async function fetchVisibilityRows(refs, cache) {
 	const rows = {}
@@ -83,7 +85,8 @@ export async function fetchVisibilityRows(refs, cache) {
 		}
 		let row
 		try {
-			const body = await cnFetchJson(`/apps/openregister/api/objects/${encodeURIComponent(ref.register)}/${encodeURIComponent(ref.schema)}/${encodeURIComponent(ref.id)}`)
+			// Shared with the data cards of the page, which name the same records.
+			const body = await readRelatedOnce(cacheKey, () => cnFetchJson(`/apps/openregister/api/objects/${encodeURIComponent(ref.register)}/${encodeURIComponent(ref.schema)}/${encodeURIComponent(ref.id)}`))
 			row = body && typeof body === 'object' ? body : null
 		} catch {
 			row = null

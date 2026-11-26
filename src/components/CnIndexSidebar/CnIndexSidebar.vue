@@ -839,7 +839,7 @@ export default {
 			// lower case: "Now: by deadline, ascending." (DqZakenSorteren).
 			const name = (label) => (this.isBoardLook ? String(label).charAt(0).toLocaleLowerCase() + String(label).slice(1) : label)
 			const sentence = (order) => (this.isBoardLook
-				? `${t('nextcloud-vue', 'Now: by {order}.', { order })} ${t('nextcloud-vue', 'You save the order along with a view.')}`
+				? `${t('nextcloud-vue', 'Now: by {order}.', { order })} ${t('nextcloud-vue', 'The sorting is saved with a view.')}`
 				: t('nextcloud-vue', 'Current order: {order}', { order }))
 			if (this.sortMatch && this.sortMatch.option.fixed === true) {
 				return sentence(name(this.sortMatch.option.label))

@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Jakson päivämääräkenttä",
+    "None: the widget does not follow the period": "Ei mitään: pienoisohjelma ei seuraa jaksoa",
     "Report a bug": "Ilmoita virheestä",
     "View": "Näytä",
     "Edit": "Muokkaa",
     "Copy": "Kopioi",
-    "Delete": "Poista"
+    "Delete": "Poista",
+    "The administrator has not set a start date field.": "Ylläpitäjä ei ole määrittänyt aloituspäivän kenttää.",
+    "Starts {weekday}": "Aloittaa {weekday}",
+    "Selection": "Valinta",
+    "People by filter": "Henkilöt suodattimen mukaan",
+    "New colleagues": "Uudet kollegat",
+    "Started in the last (days, 1–90)": "Aloittaneet viimeisten (päivää, 1–90) aikana",
+    "Starts within (days, 0–30)": "Aloittavat seuraavien (päivää, 0–30) aikana",
+    "Must be between {min} and {max}": "On oltava välillä {min}–{max}"
   }
 }

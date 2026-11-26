@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Datofelt for perioden",
+    "None: the widget does not follow the period": "Ingen: modulen følger ikke perioden",
     "Report a bug": "Rapporter en feil",
     "View": "Vis",
     "Edit": "Rediger",
     "Copy": "Kopier",
-    "Delete": "Slett"
+    "Delete": "Slett",
+    "The administrator has not set a start date field.": "Administratoren har ikke angitt et felt for startdato.",
+    "Starts {weekday}": "Starter {weekday}",
+    "Selection": "Utvalg",
+    "People by filter": "Personer etter filter",
+    "New colleagues": "Nye kolleger",
+    "Started in the last (days, 1–90)": "Startet i løpet av de siste (dager, 1–90)",
+    "Starts within (days, 0–30)": "Starter i løpet av de neste (dager, 0–30)",
+    "Must be between {min} and {max}": "Må være mellom {min} og {max}"
   }
 }

@@ -16,6 +16,13 @@
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
+	gap: calc(2 * var(--default-grid-baseline));
+}
+
+/* The default look's footer note, after the page info or alone. */
+.cn-pagination__note {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9rem;
 }
 
 .cn-pagination__page-info {

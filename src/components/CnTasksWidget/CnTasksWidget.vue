@@ -134,6 +134,13 @@
 								{{ handlerName(task) }}
 							</span>
 							<span v-else class="cn-tasks-widget__meta">{{ tr('Unassigned') }}</span>
+							<!-- A delegated task names the one its handler acts for. -->
+							<span
+								v-if="task.onBehalfOf"
+								class="cn-tasks-widget__meta cn-tasks-widget__on-behalf-of"
+								:data-testid="`cn-tasks-widget-on-behalf-of-${task.uuid}`">
+								{{ onBehalfOfLabel(task) }}
+							</span>
 						</td>
 						<td
 							class="cn-tasks-widget__cell-due"
@@ -177,7 +184,7 @@
 								{{ tr('Cancel') }}
 							</NcButton>
 							<NcActions
-								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || (canCancelRow(task) && content.cancelInline !== true)"
+								v-if="(canCompleteRow(task) && outcomesOf(task).length > 1) || (canCancelRow(task) && content.cancelInline !== true) || canDelegate(task)"
 								:forceMenu="true"
 								:aria-label="tr('Task actions')">
 								<template v-if="canCompleteRow(task) && outcomesOf(task).length > 1">
@@ -189,6 +196,13 @@
 										{{ completeLabel(outcome) }}
 									</NcActionButton>
 								</template>
+								<NcActionButton
+									v-if="canDelegate(task)"
+									:closeAfterClick="true"
+									:data-testid="`cn-tasks-widget-delegate-${task.uuid}`"
+									@click="openDelegate(task)">
+									{{ tr('Hand to a colleague') }}
+								</NcActionButton>
 								<NcActionButton
 									v-if="canCancelRow(task) && content.cancelInline !== true"
 									:closeAfterClick="true"
@@ -363,7 +377,7 @@
 					     its own words. Stopped clicks: the menu must not also
 					     open the row. -->
 					<NcActions
-						v-if="(canClaim(task) || canComplete(task)) && !(isList && canCheck(task))"
+						v-if="((canClaim(task) || canComplete(task)) && !(isList && canCheck(task))) || canDelegate(task)"
 						class="cn-tasks-widget__actions"
 						:forceMenu="true"
 						:aria-label="tr('Task actions')"
@@ -374,7 +388,7 @@
 							@click="claim(task)">
 							{{ tr('Claim') }}
 						</NcActionButton>
-						<template v-if="canComplete(task)">
+						<template v-if="canComplete(task) && !(isList && canCheck(task))">
 							<NcActionButton
 								v-for="outcome in outcomesOf(task)"
 								:key="outcomeId(outcome)"
@@ -383,6 +397,13 @@
 								{{ completeLabel(outcome) }}
 							</NcActionButton>
 						</template>
+						<NcActionButton
+							v-if="canDelegate(task)"
+							:closeAfterClick="true"
+							:data-testid="`cn-tasks-widget-delegate-${task.uuid}`"
+							@click="openDelegate(task)">
+							{{ tr('Hand to a colleague') }}
+						</NcActionButton>
 					</NcActions>
 				</li>
 			</ul>
@@ -399,6 +420,13 @@
 			:completeUrl="content.completeUrl || ''"
 			@completed="onFormCompleted"
 			@close="formTask = null" />
+		<!-- `content.delegate`: hand the viewer's own open task to a colleague. -->
+		<CnTaskDelegateDialog
+			v-if="delegateTask"
+			:task="delegateTask"
+			:title="titleOf(delegateTask)"
+			@delegated="onDelegated"
+			@close="delegateTask = null" />
 	</div>
 </template>
 
@@ -417,6 +445,7 @@ import CircleOutline from 'vue-material-design-icons/CircleOutline.vue'
 import FilterOutline from 'vue-material-design-icons/FilterOutline.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnTaskFormDialog from '../CnTaskFormDialog/CnTaskFormDialog.vue'
+import CnTaskDelegateDialog from './CnTaskDelegateDialog.vue'
 import CnTaskWorkCard from './CnTaskWorkCard.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
@@ -498,6 +527,7 @@ export default {
 		ChevronUp,
 		CircleOutline,
 		CnStatusBadge,
+		CnTaskDelegateDialog,
 		CnTaskFormDialog,
 		CnTaskWorkCard,
 		FilterOutline,
@@ -570,6 +600,10 @@ export default {
 		 * - `claimCapabilityUrl` — a URL answering `{ claim: true|false }`;
 		 *   Claim is offered only when it answers true. Without it Claim is
 		 *   offered on every pooled task.
+		 * - `delegate` — offer "Hand to a colleague" on the viewer's own open
+		 *   task: a colleague and the mandate relied on, posted to the
+		 *   engine's `delegate` verb. A delegated task's handler is shown
+		 *   with "on behalf of" the original performer (table).
 		 * - Table only: `dueFormat: "date"` shows the deadline as a short date
 		 *   (an overdue one still says so to a screen reader and in its
 		 *   weight); `stateLabels` (`{ <state>: label }`) and `stateColors`
@@ -580,8 +614,8 @@ export default {
 		 * A task that carries a form is completed through CnTaskFormDialog, or
 		 * with its form inline in the focus and opened-row cards.
 		 *
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
-		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, stateVariants?: {[state: string]: string}}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, delegate?: boolean, dueFormat?: string, stateLabels?: object, stateColors?: object, viewAllPlacement?: string}}
+		 * @type {{scope?: string, limit?: number, pollSeconds?: number, rowRoute?: string, emptyText?: string, variant?: string, viewAllRoute?: (string|object), viewAllLabel?: string, objectUuid?: string, includeDone?: boolean, create?: (boolean|{appId?: string, label?: string}), completeAny?: boolean, cancel?: boolean, expandRows?: boolean, completeUrl?: string, cancelUrl?: string, claimCapabilityUrl?: string, delegate?: boolean, stateVariants?: {[state: string]: string}}}
 		 */
 		content: {
 			type: Object,
@@ -687,6 +721,8 @@ export default {
 			busy: false,
 			/** The task whose form dialog is open, and the outcome it completes with. */
 			formTask: null,
+			/** The task the delegate dialog hands over (`content.delegate`), or null. */
+			delegateTask: null,
 			formOutcome: 'done',
 		}
 	},
@@ -1642,6 +1678,55 @@ export default {
 		 *
 		 * @return {void}
 		 */
+		/**
+		 * Whether a row offers "Hand to a colleague": `content.delegate` is
+		 * set and the task is the viewer's own open one (the engine delegates
+		 * only an active task, on its performer's word).
+		 *
+		 * @param {object} task The task row.
+		 * @return {boolean}
+		 * @spec openspec/changes/task-widget-delegate/specs/task-widget-delegate/spec.md#requirement-the-tasks-widget-offers-delegation-on-the-viewers-own-open-task
+		 */
+		canDelegate(task) {
+			return this.content.delegate === true && this.canComplete(task)
+		},
+
+		/**
+		 * Open the delegate dialog for a row.
+		 *
+		 * @param {object} task The task row.
+		 * @return {void}
+		 */
+		openDelegate(task) {
+			this.delegateTask = task
+		},
+
+		/**
+		 * The task went to a colleague: say so and refetch, so the row shows
+		 * its new handler and "on behalf of".
+		 *
+		 * @param {{delegate?: {label?: string}}} event The dialog's answer.
+		 * @return {void}
+		 */
+		onDelegated(event) {
+			const title = this.delegateTask ? this.titleOf(this.delegateTask) : ''
+			const name = event?.delegate?.label || ''
+			this.delegateTask = null
+			showSuccess(this.tr('Task {title} handed to {name}').replace('{title}', title).replace('{name}', name))
+			this.refetch(true)
+		},
+
+		/**
+		 * "on behalf of <name>" for a delegated task.
+		 *
+		 * @param {object} task The task row.
+		 * @return {string}
+		 */
+		onBehalfOfLabel(task) {
+			const who = String(task.onBehalfOf || '')
+			return this.tr('on behalf of {name}').replace('{name}', userDisplayName(who) || who)
+		},
+
 		onFormCompleted() {
 			const title = this.formTask ? this.titleOf(this.formTask) : ''
 			this.formTask = null

@@ -283,6 +283,7 @@
 							<span class="cn-setup-summary__mark">{{ item.done ? '✓' : '○' }}</span>
 							<span class="cn-setup-summary__label">{{ item.title }}</span>
 							<span v-if="item.value" class="cn-setup-summary__value">{{ item.value }}</span>
+							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 							<NcButton v-if="step.summaryEditable === true && item.editable"
 								variant="tertiary"
 								class="cn-setup-summary__change"
@@ -291,9 +292,16 @@
 								@click="openStep(item.id)">
 								{{ t('nextcloud-vue', 'Change') }}
 							</NcButton>
-							<span v-if="item.hint" class="cn-setup-summary__hint" data-testid="cn-setup-summary-hint">{{ item.hint }}</span>
 						</li>
 					</ul>
+					<p v-if="healthLine(step)"
+						class="cn-setup-health"
+						:class="healthLine(step).ok ? 'cn-setup-health--ok' : 'cn-setup-health--problem'"
+						role="status"
+						data-testid="cn-setup-health">
+						<span class="cn-setup-health__mark" aria-hidden="true">{{ healthLine(step).ok ? '✓' : '!' }}</span>
+						<span class="cn-setup-health__text">{{ healthLine(step).text }}</span>
+					</p>
 					<NcNoteCard v-if="stepNote(step)"
 						type="info"
 						class="cn-setup-step__note-card"
@@ -491,6 +499,19 @@ export default {
 		},
 
 		/**
+		 * The id of a step to open on, for a link that asks for one step
+		 * (`?setup=<stepId>`, e.g. "Connect a catalogue" opening at `store`).
+		 * Wins over resuming; ignored when no step has that id.
+		 *
+		 * @type {string}
+		 * @spec openspec/changes/setup-wizard-opens-at-a-step/specs/setup-wizard/spec.md#requirement-the-address-can-open-the-setup-wizard-at-a-step
+		 */
+		startStep: {
+			type: String,
+			default: '',
+		},
+
+		/**
 		 * The app's dependencies, in the manifest's own shape (app-id strings
 		 * or `{ id, name?, required? }`). Falls back to the injected manifest's
 		 * `dependencies`. A missing REQUIRED one replaces every step with the
@@ -527,15 +548,16 @@ export default {
 	 * host's own status fetch (CnAppRoot's setup gate) is the one that runs —
 	 * this reads the same refs rather than asking again.
 	 *
-	 * Only called when a step actually declares `optionsSource`: a wizard with
-	 * none must not start making requests it never made before.
+	 * Only called when a step actually declares `optionsSource`, `visibleWhen`
+	 * or `healthCheck`: a wizard with none must not start making requests it
+	 * never made before.
 	 *
 	 * @param {object} props The component props.
 	 * @return {object} `setupStatus` / `setupStatusLoading` for the option resolver.
 	 */
 	setup(props) {
 		const { isBoard } = useLook()
-		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen))
+		const wantsSource = (props.steps || []).some((s) => s && (s.optionsSource || s.visibleWhen || s.healthCheck === true))
 		if (!wantsSource) {
 			return { isBoard }
 		}
@@ -818,6 +840,10 @@ export default {
 		 * @return {string}
 		 */
 		initialStepId() {
+			// A link that names a step opens on it.
+			if (this.startStep && this.setupSteps.some((s) => s && s.id === this.startStep)) {
+				return this.startStep
+			}
 			// Fresh setup — nothing done anywhere yet, so there is nothing to
 			// resume past. Start at step one so a leading `info`/welcome step is
 			// actually seen; resuming is only for returning sessions.
@@ -1146,6 +1172,38 @@ export default {
 				return node === when.equals
 			}
 			return Boolean(node)
+		},
+
+		/**
+		 * The health line under a `summary` step that sets `healthCheck`: the
+		 * `health` block of the app's setup status, `{ ok, checks: [{ label, ok }] }`.
+		 * When every check passes it names them all; otherwise it names only the
+		 * checks that failed. Labels go through the app's translate. Without a
+		 * `health` block the step draws no line, so an app that does not report
+		 * health keeps the recap it had.
+		 *
+		 * @param {object} step The summary step.
+		 * @return {{ ok: boolean, text: string }|null} The line, or null when none is drawn.
+		 * @spec openspec/changes/setup-summary-health-line/specs/setup-summary-health-line/spec.md#requirement-the-closing-step-says-whether-the-installation-checks-passed
+		 */
+		healthLine(step) {
+			if (!step || step.healthCheck !== true) {
+				return null
+			}
+			const health = this.setupStatus && this.setupStatus.health
+			if (!health || typeof health !== 'object') {
+				return null
+			}
+			const checks = Array.isArray(health.checks)
+				? health.checks.filter((c) => c && typeof c.label === 'string' && c.label !== '')
+				: []
+			const failing = checks.filter((c) => c.ok !== true)
+			const ok = typeof health.ok === 'boolean' ? health.ok && failing.length === 0 : failing.length === 0
+			const named = (ok ? checks : failing).map((c) => this.cnTranslate(c.label)).join(', ')
+			if (ok) {
+				return { ok, text: named !== '' ? t('nextcloud-vue', 'Check passed: {checks}.', { checks: named }, undefined, { escape: false }) : t('nextcloud-vue', 'Check passed.') }
+			}
+			return { ok, text: named !== '' ? t('nextcloud-vue', 'Check found a problem: {checks}.', { checks: named }, undefined, { escape: false }) : t('nextcloud-vue', 'Check found a problem.') }
 		},
 
 		/**
@@ -1801,16 +1859,24 @@ export default {
 	flex-direction: column;
 }
 
+/* The recap is a table of aligned columns, as the boards draw it (humaniq
+   HuInrichten): mark, step, answer, explanation, Change. Every row takes the
+   list's columns through subgrid, so answers line up and an answer wraps at
+   a word, never inside one ("Niet ingestel d" when each row sized itself). */
 .cn-setup-summary {
 	list-style: none;
 	padding: 0;
 	margin: 0;
+	display: grid;
+	grid-template-columns: auto max-content fit-content(16em) minmax(0, 1fr) auto;
+	column-gap: 12px;
 }
 
 .cn-setup-summary__item {
-	display: flex;
+	display: grid;
+	grid-column: 1 / -1;
+	grid-template-columns: subgrid;
 	align-items: center;
-	gap: 8px;
 	padding: 4px 0;
 	color: var(--color-text-maxcontrast);
 }
@@ -1820,17 +1886,17 @@ export default {
 }
 
 .cn-setup-summary__mark {
+	grid-column: 1;
 	font-weight: bold;
 	color: var(--color-success);
 }
 
 .cn-setup-summary__label {
-	flex: 0 0 auto;
+	grid-column: 2;
 }
 
 .cn-setup-summary__hint {
-	flex-basis: 100%;
-	margin-inline-start: 24px;
+	grid-column: 4;
 	color: var(--color-text-maxcontrast);
 	font-size: var(--font-size-small, 13px);
 }
@@ -1857,9 +1923,61 @@ export default {
 }
 
 .cn-setup-summary__value {
-	margin-inline-start: auto;
+	grid-column: 3;
+	min-width: 0;
 	font-weight: 600;
 	color: var(--color-main-text);
+	overflow-wrap: break-word;
+}
+
+/* The Change button keeps its full label in the last column
+   (humaniq HuInrichten rendered "Wi…" for Wijzigen). */
+.cn-setup-summary__change {
+	grid-column: 5;
+	justify-self: end;
+}
+
+/* Narrow dialog: three columns (mark, step, Change); the answer and then the
+   explanation take their own lines under the step. */
+@media (width <= 600px) {
+	.cn-setup-summary {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+	}
+
+	.cn-setup-summary__value {
+		grid-column: 2 / -1;
+		grid-row: 2;
+	}
+
+	.cn-setup-summary__hint {
+		grid-column: 2 / -1;
+		grid-row: 3;
+	}
+
+	.cn-setup-summary__change {
+		grid-column: 3;
+		grid-row: 1;
+	}
+}
+
+.cn-setup-health {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin: 12px 0 0;
+}
+
+.cn-setup-health__mark {
+	flex: none;
+	font-weight: bold;
+}
+
+.cn-setup-health--ok .cn-setup-health__mark {
+	color: var(--color-success-text, var(--color-success));
+}
+
+.cn-setup-health--problem .cn-setup-health__mark {
+	color: var(--color-warning-text, var(--color-warning));
 }
 
 /* The closing step under the board look: one bordered row per item, with a

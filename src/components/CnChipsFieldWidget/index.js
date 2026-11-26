@@ -7,11 +7,13 @@
  * chips, saved on each change) into the shared dashboardWidgetRegistry.
  */
 
-import CnChipsFieldWidget from './CnChipsFieldWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnChipsFieldWidget = lazyComponent(() => import('./CnChipsFieldWidget.vue'), 'CnChipsFieldWidget')
+
 registerDashboardWidget('chips-field', {
-	renderer: CnChipsFieldWidget,
+	renderer: LazyCnChipsFieldWidget,
 	form: null,
 	defaultContent: {
 		field: '',
@@ -21,5 +23,5 @@ registerDashboardWidget('chips-field', {
 	surfaces: ['detail-page'],
 })
 
-export { CnChipsFieldWidget }
-export default CnChipsFieldWidget
+export { default as CnChipsFieldWidget } from './CnChipsFieldWidget.vue'
+export { default } from './CnChipsFieldWidget.vue'

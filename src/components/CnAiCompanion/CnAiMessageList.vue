@@ -97,6 +97,36 @@
 					</li>
 				</ul>
 
+				<!--
+				  The sources the answer cites, in citation order: marker [n] is
+				  the n-th entry. A file source opens the file; any other source
+				  shows its name only.
+				-->
+				<div
+					v-if="hasSources(message)"
+					class="cn-ai-message-list__sources"
+					data-testid="cn-ai-message-sources">
+					<span class="cn-ai-message-list__sources-head">{{ cnTranslate('Sources') }}</span>
+					<ol class="cn-ai-message-list__source-list">
+						<li
+							v-for="(source, sIdx) in message.sources"
+							:key="'source-' + sIdx"
+							class="cn-ai-message-list__source">
+							<span class="cn-ai-message-list__source-number">[{{ sIdx + 1 }}]</span>
+							<a
+								v-if="sourceHref(source)"
+								class="cn-ai-message-list__source-name"
+								:href="sourceHref(source)"
+								target="_blank"
+								rel="noopener noreferrer">{{ sourceName(source) }}</a>
+							<span v-else class="cn-ai-message-list__source-name">{{ sourceName(source) }}</span>
+							<span
+								v-if="sourcePage(source)"
+								class="cn-ai-message-list__source-page">{{ cnTranslate('page {page}').replace('{page}', sourcePage(source)) }}</span>
+						</li>
+					</ol>
+				</div>
+
 				<!-- Tool calls / results -->
 				<div
 					v-for="(tool, tIdx) in (message.toolCalls || [])"
@@ -158,6 +188,7 @@
 import { generateUrl } from '@nextcloud/router'
 import { NcRichText } from '@nextcloud/vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
+import { sourceFileId, sourceName, sourcePage } from '../../utils/aiChatScope.js'
 import { libraryTranslate } from '../../utils/libraryTranslate.js'
 
 export default {
@@ -174,7 +205,7 @@ export default {
 
 	props: {
 		/**
-		 * Array of message objects: { role, content, toolCalls?, attachments?, attachmentNotices? }. `attachments` are `{ name, fileId?, mimeType?, size? }`; `attachmentNotices` are strings shown above an answer.
+		 * Array of message objects: { role, content, toolCalls?, attachments?, attachmentNotices?, sources? }. `attachments` are `{ name, fileId?, mimeType?, size? }`; `attachmentNotices` are strings shown above an answer; `sources` are the answer's citations in order, `{ type, name, id?, file_id?, page? }`.
 		 */
 		messages: {
 			type: Array,
@@ -236,6 +267,30 @@ export default {
 	},
 
 	methods: {
+		sourceName,
+		sourcePage,
+
+		/**
+		 * Whether a message carries a non-empty source list.
+		 *
+		 * @param {object} message The message.
+		 * @return {boolean} True when it has sources to show.
+		 */
+		hasSources(message) {
+			return Array.isArray(message.sources) && message.sources.length > 0
+		},
+
+		/**
+		 * The link that opens a file source in Files, or '' for any other source.
+		 *
+		 * @param {object} source One source of an answer.
+		 * @return {string} The URL.
+		 */
+		sourceHref(source) {
+			const fileId = sourceFileId(source)
+			return fileId === null ? '' : generateUrl('/f/{id}', { id: fileId })
+		},
+
 		/**
 		 * Whether a message carries a non-empty attachment list.
 		 *
@@ -423,6 +478,50 @@ export default {
 	max-width: 100%;
 	max-height: 160px;
 	border-radius: var(--border-radius);
+}
+
+.cn-ai-message-list__sources {
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--color-border, #dbdbdb);
+	font-size: 13px;
+}
+
+.cn-ai-message-list__sources-head {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--color-text-maxcontrast, #6b6b6b);
+	font-weight: 600;
+}
+
+.cn-ai-message-list__source-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cn-ai-message-list__source {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: baseline;
+}
+
+.cn-ai-message-list__source-number,
+.cn-ai-message-list__source-page {
+	color: var(--color-text-maxcontrast, #6b6b6b);
+}
+
+.cn-ai-message-list__source-name {
+	overflow-wrap: anywhere;
+}
+
+a.cn-ai-message-list__source-name {
+	color: var(--color-primary-element, #00679e);
+	text-decoration: underline;
 }
 
 .cn-ai-message-list__notice {

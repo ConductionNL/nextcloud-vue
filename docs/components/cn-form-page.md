@@ -40,6 +40,9 @@ Use `type: "form"` when the entire route is "render this list of fields, send th
 | `steps` | Array | `[]` | Multi-step wizard groups: `{ id, title, description?, fields: string[] }[]`. `fields[]` entries are KEY REFERENCES into the `fields` prop. Empty (the default) renders today's single-step form unchanged — no step indicator, no Next/Back |
 | `submitHandler` | String | `''` | Registered handler name resolved against the customComponents registry |
 | `submitEndpoint` | String | `''` | URL the form data is dispatched to. `:paramName` segments resolve from `$route.params` |
+| `register` | String | `''` | Register slug the form writes to (manifest `config.register`). With `schema`, an offline form queues for this register and schema, and a form without `submitEndpoint` or `submitHandler` posts to their object URL (`PUT` to the route's record in `mode: "edit"`). |
+| `schema` | String | `''` | Schema slug the form writes to (manifest `config.schema`). See `register`. |
+| `offline` | Boolean | `false` | An offline form (listed in the manifest's `offline.forms`; `CnPageRenderer` sets it). Without a connection, or when the send gets no answer at all, the visible-field payload is queued on the device, "Saved on this device. It will be sent when you are back online." is shown and `queued` is emitted with the queue id; file fields are disabled with "Files cannot be sent offline.". `CnAppRoot` sends the queue when the connection returns. See [Offline manifest](../integrations/offline-manifest.md). |
 | `submitMethod` | String | `'POST'` | HTTP method for endpoint mode. Must be `POST | PUT | PATCH` |
 | `mode` | String | `'public'` | `edit | create | public`. `public` shows the success banner and hides the form on submit |
 | `submitLabel` | String | `'Submit'` | Submit button label (i18n key) |
@@ -138,6 +141,7 @@ The page calls `axios.post('/api/contact', formData)` on submit. Use the `:param
 | `@step` | `{ from, to }` | Wizard step navigation (Next/Back) — manifest-form-logic |
 | `@submit` | the effective payload | Submit succeeded. Hidden-by-condition field keys are removed (see "Conditional fields") |
 | `@error` | `error` | Submit failed (the component already displays the error message in the form's error block) |
+| `@queued` | the queue operation id | An offline form saved its submission on the device instead of sending it (see `offline`) |
 
 ## Multi-step wizards
 

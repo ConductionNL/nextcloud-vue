@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Champ da data per la perioda",
+    "None: the widget does not follow the period": "Nagin: il widget na suonda betg la perioda",
     "Report a bug": "Annunziar in sbagl",
     "View": "Mussar",
     "Edit": "Modifitgar",
     "Copy": "Copiar",
-    "Delete": "Stizzar"
+    "Delete": "Stizzar",
+    "The administrator has not set a start date field.": "L'administratur n'ha betg definì in champ per la data d'entrada.",
+    "Starts {weekday}": "Cumenza {weekday}",
+    "Selection": "Selecziun",
+    "People by filter": "Persunas tenor filter",
+    "New colleagues": "Novs collegas",
+    "Started in the last (days, 1–90)": "Cumenzà en ils ultims (dis, 1–90)",
+    "Starts within (days, 0–30)": "Cumenzan en ils proxims (dis, 0–30)",
+    "Must be between {min} and {max}": "Sto esser tranter {min} e {max}"
   }
 }

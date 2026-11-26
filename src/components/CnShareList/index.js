@@ -7,11 +7,13 @@
  * dashboardWidgetRegistry at module load.
  */
 
-import CnShareList from './CnShareList.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnShareList = lazyComponent(() => import('./CnShareList.vue'), 'CnShareList')
+
 registerDashboardWidget('share-list', {
-	renderer: CnShareList,
+	renderer: LazyCnShareList,
 	form: null,
 	defaultContent: { url: '', revoke: { url: '' } },
 	displayName: 'Shares',
@@ -19,5 +21,5 @@ registerDashboardWidget('share-list', {
 	surfaces: ['detail-page', 'app-dashboard'],
 })
 
-export { CnShareList }
-export default CnShareList
+export { default as CnShareList } from './CnShareList.vue'
+export { default } from './CnShareList.vue'

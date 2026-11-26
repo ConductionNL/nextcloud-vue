@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Datové pole pro období",
+    "None: the widget does not follow the period": "Žádné: widget nesleduje období",
     "Report a bug": "Nahlásit chybu",
     "View": "Zobrazit",
     "Edit": "Upravit",
     "Copy": "Kopírovat",
-    "Delete": "Smazat"
+    "Delete": "Smazat",
+    "The administrator has not set a start date field.": "Správce nenastavil pole s datem nástupu.",
+    "Starts {weekday}": "Nastupuje {weekday}",
+    "Selection": "Výběr",
+    "People by filter": "Lidé podle filtru",
+    "New colleagues": "Noví kolegové",
+    "Started in the last (days, 1–90)": "Nastoupili za posledních (dní, 1–90)",
+    "Starts within (days, 0–30)": "Nastoupí během příštích (dní, 0–30)",
+    "Must be between {min} and {max}": "Musí být mezi {min} a {max}"
   }
 }

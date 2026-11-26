@@ -64,9 +64,10 @@ export function dashboardLayoutKey(pageId) {
 /**
  * The geometry fields a stored record keeps.
  *
- * Only these five travel. A record that carried the whole layout item would
- * carry the widget's title, its style and its config, and the next manifest
- * change would be silently overridden by a copy the user never edited.
+ * Only these five travel, plus `hidden` when the user hid the widget. A
+ * record that carried the whole layout item would carry the widget's title,
+ * its style and its config, and the next manifest change would be silently
+ * overridden by a copy the user never edited.
  *
  * @type {Array<string>}
  */
@@ -77,6 +78,7 @@ export const LAYOUT_GEOMETRY_FIELDS = ['gridX', 'gridY', 'gridWidth', 'gridHeigh
  *
  * @param {object} item The layout item.
  * @return {object} The stored entry.
+ * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
  */
 function geometryOf(item) {
 	const entry = { widgetId: String(item?.widgetId ?? '') }
@@ -84,6 +86,13 @@ function geometryOf(item) {
 		if (item?.[field] !== undefined) {
 			entry[field] = item[field]
 		}
+	}
+	if (item?.hidden === true) {
+		entry.hidden = true
+	}
+	// A collapsible widget the user folded (widget-collapsible-section).
+	if (item?.collapsed === true) {
+		entry.collapsed = true
 	}
 
 	return entry
@@ -101,6 +110,8 @@ function geometryOf(item) {
  *    gains a widget shows it rather than hiding it until the user next edits.
  * 4. The user's own order is kept for the widgets they arranged, and widgets
  *    the admin added since are appended after them.
+ * 5. A widget the user hid (`hidden: true`) stays in the layout with that flag:
+ *    hiding is the user's view of a widget, not its removal from the page.
  *
  * Pure on purpose: this is the rule the whole change turns on, and a rule that
  * can only be exercised by mounting a grid is a rule nobody tests at the edges.
@@ -108,6 +119,7 @@ function geometryOf(item) {
  * @param {Array<object>} manifestLayout The layout the manifest ships.
  * @param {object|Array<object>|null} record The user's stored record, or its items.
  * @return {Array<object>} The merged layout.
+ * @spec openspec/changes/widget-collapsible-section/specs/dashboard-page/spec.md#requirement-a-folded-widget-stays-folded-for-that-user
  */
 export function mergeUserLayout(manifestLayout, record) {
 	const base = Array.isArray(manifestLayout) ? manifestLayout : []
@@ -143,6 +155,12 @@ export function mergeUserLayout(manifestLayout, record) {
 			if (entry[field] !== undefined) {
 				merged[field] = entry[field]
 			}
+		}
+		if (entry.hidden === true) {
+			merged.hidden = true
+		}
+		if (entry.collapsed === true) {
+			merged.collapsed = true
 		}
 		arranged.push(merged)
 	}

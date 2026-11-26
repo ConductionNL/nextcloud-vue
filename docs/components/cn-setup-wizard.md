@@ -204,6 +204,21 @@ Every step can carry a `summaryHint`, a muted line under its row in the
 again, without validating the step the reader is on. In the board look the
 same button sits on a readiness row that names a `step` and has no `link`.
 
+A `summary` step with `healthCheck: true` draws one line under the recap from
+the `health` block of the app's setup status:
+
+```json
+{ "health": { "ok": true, "checks": [
+  { "id": "register", "label": "register imported with 54 schemas", "ok": true },
+  { "id": "jobs", "label": "background jobs running", "ok": true }
+] } }
+```
+
+When every check passes the line reads "Check passed:" and names them all.
+Otherwise it reads "Check found a problem:" and names only the failing checks.
+Labels go through the app's translations. Without a `health` block no line is
+drawn.
+
 ## Try it
 
 ```vue
@@ -238,6 +253,7 @@ same button sits on a readiness row that names a `step` and has no `link`.
 | `loadLabel` | `string` | `"Load"` | Load button label on a dataset card. |
 | `reloadLabel` | `string` | `"Load again"` | Load button label once that dataset loaded in this session. |
 | `completedStepIds` | `Array<string>` | `[]` | Ids of steps the server already reports done (e.g. from `useSetupStatus(...).steps`). Lets a freshly (re)mounted wizard resume at the first actually-unmet step and show correct done-markers, instead of restarting from the top — this component's own local state only tracks the current session. |
+| `startStep` | `string` | `''` | The id of a step to open on, for a link that names one. Wins over resuming; ignored when no step has that id. `CnAppRoot` passes it from the address: `?setup=open` opens the wizard, `?setup=<stepId>` opens it at that step (setup-wizard-opens-at-a-step). |
 
 ## Resuming vs. starting fresh
 

@@ -7,11 +7,13 @@
  * object, and optional extra columns) into the shared dashboardWidgetRegistry.
  */
 
-import CnToggleTableWidget from './CnToggleTableWidget.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
 import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry.js'
 
+const LazyCnToggleTableWidget = lazyComponent(() => import('./CnToggleTableWidget.vue'), 'CnToggleTableWidget')
+
 registerDashboardWidget('toggle-table', {
-	renderer: CnToggleTableWidget,
+	renderer: LazyCnToggleTableWidget,
 	form: null,
 	defaultContent: {
 		bind: { mode: 'flag' },
@@ -22,5 +24,5 @@ registerDashboardWidget('toggle-table', {
 	surfaces: ['detail-page'],
 })
 
-export { CnToggleTableWidget }
-export default CnToggleTableWidget
+export { default as CnToggleTableWidget } from './CnToggleTableWidget.vue'
+export { default } from './CnToggleTableWidget.vue'

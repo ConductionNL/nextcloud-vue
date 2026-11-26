@@ -91,8 +91,14 @@
 		</div>
 
 		<!-- Success banner -->
-		<div v-if="submitted" class="cn-form-page__success">
-			{{ resolveLabel(successMessage) }}
+		<div
+			v-if="submitted"
+			ref="successBanner"
+			class="cn-form-page__success"
+			role="status"
+			tabindex="-1"
+			:data-testid="queuedId ? 'cn-form-page-queued' : null">
+			{{ queuedId ? t('nextcloud-vue', 'Saved on this device. It will be sent when you are back online.') : resolveLabel(successMessage) }}
 		</div>
 
 		<!-- A draft this form was left in: offered, never applied. -->
@@ -271,6 +277,12 @@
 					{{ resolveLabel(field.help) }}
 				</small>
 				<small
+					v-if="offlineForm && deviceOffline && field.type === 'file'"
+					class="cn-form-page__field-help"
+					data-testid="cn-form-page-file-offline">
+					{{ t('nextcloud-vue', 'Files cannot be sent offline.') }}
+				</small>
+				<small
 					v-if="assignedFrom[field.key]"
 					class="cn-form-page__field-assigned"
 					aria-live="polite"
@@ -408,6 +420,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon, NcNoteCard } from '@nextcloud/vue'
 import ChevronLeft from 'vue-material-design-icons/ChevronLeft.vue'
 import ChevronRight from 'vue-material-design-icons/ChevronRight.vue'
@@ -649,6 +662,34 @@ export default {
 		},
 
 		/**
+		 * Register slug the form writes to (manifest `config.register`).
+		 * With `schema`, an offline form queues its submission for this
+		 * register and schema, and a form without `submitEndpoint` or
+		 * `submitHandler` posts to their object URL.
+		 */
+		register: {
+			type: String,
+			default: '',
+		},
+
+		/** Schema slug the form writes to (manifest `config.schema`). See `register`. */
+		schema: {
+			type: String,
+			default: '',
+		},
+
+		/**
+		 * Whether this is an offline form (listed in the manifest's
+		 * `offline.forms`; CnPageRenderer sets it). Without a connection
+		 * its submission is queued on the device and sent by CnAppRoot
+		 * once the connection returns. Needs `register` and `schema`.
+		 */
+		offline: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
 		 * Form mode. `public` shows the success banner and hides the
 		 * form on submit; `edit` and `create` keep the form mounted so
 		 * the consumer can route away.
@@ -745,7 +786,7 @@ export default {
 	 * @event step
 	 * @description Fired on Next/Back step navigation; payload is `{ from, to }` (step indices).
 	 */
-	emits: ['submit', 'error', 'input', 'step', 'cancel'],
+	emits: ['submit', 'error', 'input', 'step', 'cancel', 'queued'],
 
 	data() {
 		return {
@@ -773,6 +814,10 @@ export default {
 			submitting: false,
 			submitted: false,
 			lastError: null,
+			/** Whether the device has no connection (tracked for an offline form only). */
+			deviceOffline: false,
+			/** Queue id of the submission this offline form saved on the device, or null. */
+			queuedId: null,
 			/** Current wizard step index (unused when `steps` is empty). */
 			currentStepIndex: 0,
 			/** Keys of the fields the last failed validation flagged, in form order (the error summary). */
@@ -963,6 +1008,17 @@ export default {
 		 *
 		 * @return {object}
 		 */
+		/**
+		 * Whether this form queues its submission while offline: listed as an
+		 * offline form and writing to a register and schema.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it
+		 * @return {boolean}
+		 */
+		offlineForm() {
+			return this.offline && this.register !== '' && this.schema !== ''
+		},
+
 		effectivePayload() {
 			const payload = { ...this.formData }
 			this.fields.forEach((field) => {
@@ -1055,10 +1111,17 @@ export default {
 		this.resolveSmartPaste()
 		this.runAssignments(null)
 		this.loadProfileDefaults()
+		if (this.offlineForm) {
+			this.deviceOffline = typeof navigator !== 'undefined' && navigator.onLine === false
+			window.addEventListener('online', this.onConnectionChange)
+			window.addEventListener('offline', this.onConnectionChange)
+		}
 	},
 
 	beforeUnmount() {
 		Object.values(this.calcTimers).forEach((timer) => clearTimeout(timer))
+		window.removeEventListener('online', this.onConnectionChange)
+		window.removeEventListener('offline', this.onConnectionChange)
 	},
 
 	methods: {
@@ -1436,6 +1499,10 @@ export default {
 			// A calculated field is the host's to set: shown, not editable.
 			if (rendered && field.calculate && Array.isArray(field.calculate.inputs)) {
 				rendered.props = { ...rendered.props, readonly: true, disabled: rendered.kind === 'enum' || rendered.kind === 'boolean' }
+			}
+			// A file cannot travel through the offline queue.
+			if (rendered && field.type === 'file' && this.offlineForm && this.deviceOffline) {
+				rendered.props = { ...rendered.props, disabled: true }
 			}
 			return rendered
 		},
@@ -1830,16 +1897,21 @@ export default {
 			}
 			this.submitting = true
 			try {
-				if (this.submitEndpoint) {
-					await this.submitViaEndpoint()
-				} else if (this.submitHandler) {
-					await this.submitViaHandler()
-				} else {
-					throw new Error('CnFormPage: no submit destination configured (set submitHandler or submitEndpoint)')
-				}
+				const queued = await this.dispatchSubmit()
 				this.submitted = true
-				// Once it is on the server, the local copy protects nothing.
+				// Once it is on the server, or in the device's queue, the local copy protects nothing.
 				this.forgetDraft(this.formDraftKey)
+				if (queued) {
+					/**
+					 * An offline form's submission was saved on the device; CnAppRoot sends it once the connection returns.
+					 *
+					 * @event queued
+					 * @type {string} The queue operation id.
+					 */
+					this.$emit('queued', this.queuedId)
+					this.$nextTick(() => this.$refs.successBanner?.focus?.())
+					return
+				}
 				/**
 				 * Successful submit event. Payload is the effective payload
 				 * (visible fields only).
@@ -1905,6 +1977,99 @@ export default {
 				}
 			}
 			this.focusFirstError(this.summaryKeys[0])
+		},
+
+		/**
+		 * Send the submission where the form is configured to, or, for an
+		 * offline form without a connection, queue it on the device. A send
+		 * that fails without any answer (status 0) counts as offline too.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it
+		 * @return {Promise<boolean>} True when the submission was queued.
+		 */
+		async dispatchSubmit() {
+			this.queuedId = null
+			if (this.offlineForm && (this.deviceOffline || (typeof navigator !== 'undefined' && navigator.onLine === false))) {
+				await this.queueSubmission()
+				return true
+			}
+			try {
+				if (this.submitEndpoint) {
+					await this.submitViaEndpoint()
+				} else if (this.submitHandler) {
+					await this.submitViaHandler()
+				} else if (this.register !== '' && this.schema !== '') {
+					await this.submitToObjectApi()
+				} else {
+					throw new Error('CnFormPage: no submit destination configured (set submitHandler or submitEndpoint)')
+				}
+			} catch (err) {
+				if (this.offlineForm && err && !err.response && (err.isAxiosError || err.code === 'ERR_NETWORK' || err.message === 'Network Error')) {
+					this.deviceOffline = true
+					await this.queueSubmission()
+					return true
+				}
+				throw err
+			}
+			return false
+		},
+
+		/**
+		 * The record id an edit-mode form saves to, from the route, or ''.
+		 *
+		 * @return {string} The id.
+		 */
+		editTargetId() {
+			const params = this.$route?.params || {}
+			const id = params.id ?? params.objectId ?? ''
+			return this.mode === 'edit' && id !== '' && id !== null ? String(id) : ''
+		},
+
+		/**
+		 * Queue the visible-field payload on the device for the declared
+		 * register and schema: `create`, or `update` of the route's record in
+		 * edit mode.
+		 *
+		 * @spec openspec/changes/manifest-offline-block/specs/manifest-offline/spec.md#requirement-an-offline-form-queues-its-submission-and-the-root-sends-it
+		 * @return {Promise<void>}
+		 */
+		async queueSubmission() {
+			const { enqueueMutation, resolveDeviceId } = await import('../../integrations/offline/offlineDb.js')
+			const targetId = this.editTargetId()
+			this.queuedId = await enqueueMutation({
+				deviceId: resolveDeviceId(),
+				operationType: targetId !== '' ? 'update' : 'create',
+				register: this.register,
+				schema: this.schema,
+				targetId: targetId !== '' ? targetId : null,
+				payload: this.effectivePayload,
+				label: this.title ? this.resolveLabel(this.title) : '',
+			})
+		},
+
+		/**
+		 * Online submit of a form that names only its register and schema:
+		 * create through the object API, or update the route's record in edit mode.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async submitToObjectApi() {
+			const base = generateUrl(`/apps/openregister/api/objects/${this.register}/${this.schema}`)
+			const targetId = this.editTargetId()
+			if (targetId !== '') {
+				await axios.put(`${base}/${targetId}`, this.effectivePayload)
+				return
+			}
+			await axios.post(base, this.effectivePayload)
+		},
+
+		/**
+		 * Track the connection of an offline form.
+		 *
+		 * @return {void}
+		 */
+		onConnectionChange() {
+			this.deviceOffline = typeof navigator !== 'undefined' && navigator.onLine === false
 		},
 
 		async submitViaEndpoint() {

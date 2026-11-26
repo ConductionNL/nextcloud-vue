@@ -8,6 +8,9 @@
  *   the tour and the host recorded it as seen, so the tour was gone for good.
  * - The dim strips sat above the dialog (z-index 10000), so a click in the
  *   dialog landed on the dim and dismissed the tour.
+ * - A closed NcModal can leave its mask in the DOM with display:none; it
+ *   counted as an open dialog, so the welcome step docked instead of
+ *   centring.
  * - A step's target (`index-add`) exists on every list page. A step left on
  *   Products kept a live cutout over the Clients page's New button.
  */
@@ -106,6 +109,26 @@ describe('CnWalkthrough and app dialogs', () => {
 		w.unmount()
 	})
 
+	it('ignores a modal mask that is hidden, and notices when it shows', async () => {
+		const mask = openAppModal()
+		mask.style.display = 'none'
+		const wrapper = document.createElement('div')
+		wrapper.style.display = 'none'
+		wrapper.appendChild(Object.assign(document.createElement('div'), { className: 'modal-mask' }))
+		document.body.appendChild(wrapper)
+		const w = mountTour()
+		await flush()
+		expect(w.vm.appModalOpen).toBe(false)
+		expect(w.find('.cn-walkthrough__card--centered').exists()).toBe(true)
+		mask.style.display = ''
+		await flush()
+		expect(w.vm.appModalOpen).toBe(true)
+		mask.style.display = 'none'
+		await flush()
+		expect(w.vm.appModalOpen).toBe(false)
+		w.unmount()
+	})
+
 	it('advances when the product is saved in the dialog', async () => {
 		addButton()
 		const w = mountTour()
@@ -146,6 +169,19 @@ describe('CnWalkthrough and app dialogs', () => {
 		w.vm.wt.next()
 		await flush()
 		expect(w.emitted('progress').pop()).toEqual([{ tourId: 'gs', stepId: 'create-product', index: 1 }])
+		w.unmount()
+	})
+})
+
+describe('CnWalkthrough without a tour on screen', () => {
+	it('stops following the page for dialogs once the tour ends', async () => {
+		const w = mountTour()
+		await flush()
+		expect(w.vm._modalObs).toBeTruthy()
+		w.vm.wt.dismiss()
+		await flush()
+		expect(w.vm.active).toBe(false)
+		expect(w.vm._modalObs).toBeNull()
 		w.unmount()
 	})
 })

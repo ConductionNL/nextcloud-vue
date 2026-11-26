@@ -1,0 +1,4 @@
+- [x] T01 `aiChatConfig.js`: `sessionLinksUrl(appId, uuid)`; `normalizeConversation()` keeps `links`
+- [x] T02 `CnAiChatPanel`: fetch the sessions about the page's file or record; lead the sessions menu with them under "Sessions about {label}", fall back to the recent list without context or results
+- [x] T03 `CnAiChatPanel`: a "Session settings" titlebar entry listing the open session's links, each removable; a removed link drops the session from the scoped list
+- [x] T04 Unit tests for the scoped menu, the fallback, the link list and the removal

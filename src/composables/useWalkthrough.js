@@ -4,6 +4,7 @@
  */
 
 import axios from '@nextcloud/axios'
+import { loadState } from '@nextcloud/initial-state'
 import { generateUrl } from '@nextcloud/router'
 import { computed, ref } from 'vue'
 
@@ -130,6 +131,32 @@ function isPlainObject(value) {
 }
 
 /**
+ * The two walkthrough preferences the page already carries in its initial
+ * state, under `walkthrough_preferences` of the app: `{ seen, progress }`,
+ * each the stored value `GET /api/preferences/{key}` answers (a string, or
+ * null when unset). Each comes back in that endpoint's `{ value }` shape, to
+ * hand to {@link loadWalkthroughSeenVersion} / {@link loadWalkthroughProgress}
+ * as `options.preloaded`; a part the page does not carry is null, so its
+ * loader asks the endpoint as before.
+ *
+ * @param {string} appId The Nextcloud app id.
+ * @return {{seen: ({value: (string|null)}|null), progress: ({value: (string|null)}|null)}} The carried preferences.
+ * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-walkthrough/spec.md#requirement-a-page-may-carry-the-walkthrough-preferences
+ */
+export function readPreloadedWalkthroughPreferences(appId) {
+	let carried
+	try {
+		carried = loadState(appId, 'walkthrough_preferences', null)
+	} catch {
+		carried = null
+	}
+	const part = (name) => (isPlainObject(carried) && Object.hasOwn(carried, name)
+		? { value: carried[name] }
+		: null)
+	return { seen: part('seen'), progress: part('progress') }
+}
+
+/**
  * Load the user's last-seen walkthrough version (ADR-043, REQ-WALK-NV-004).
  *
  * The per-USER server preference addressed by `completionConfigKey` is
@@ -140,8 +167,11 @@ function isPlainObject(value) {
  *
  * @param {string} appId The Nextcloud app id.
  * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
- * @param {object} [options] `{ http, storage }` injection points for tests.
+ * @param {object} [options] `{ http, storage }` injection points for tests, and
+ *   `preloaded`: the endpoint's `{ value }` answer the page already carries
+ *   (see {@link readPreloadedWalkthroughPreferences}); when given, no request is made.
  * @return {Promise<string>} The last-seen version, or `''` for a fresh user.
+ * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-walkthrough/spec.md#requirement-a-page-may-carry-the-walkthrough-preferences
  */
 export async function loadWalkthroughSeenVersion(appId, configKey, options = {}) {
 	const local = readLocalWalkthroughSeenVersion(appId, options.storage)
@@ -150,7 +180,9 @@ export async function loadWalkthroughSeenVersion(appId, configKey, options = {})
 	}
 	const http = options.http || axios
 	try {
-		const { data } = await http.get(walkthroughPreferenceUrl(appId, configKey))
+		const data = isPlainObject(options.preloaded)
+			? options.preloaded
+			: (await http.get(walkthroughPreferenceUrl(appId, configKey))).data
 		// Only a real preferences payload counts. An HTML string (SPA fallback
 		// from an app that doesn't serve the route) is NOT a "never seen"
 		// signal — fall back to the local mirror instead.
@@ -280,8 +312,11 @@ export function readLocalWalkthroughProgress(appId, storage) {
  * @spec openspec/changes/walkthrough-advance-pause-resume/specs/cn-walkthrough/spec.md
  * @param {string} appId The Nextcloud app id.
  * @param {string} configKey `manifest.walkthrough.completionConfigKey` (may be empty).
- * @param {object} [options] `{ http, storage }` injection points for tests.
+ * @param {object} [options] `{ http, storage }` injection points for tests, and
+ *   `preloaded`: the endpoint's `{ value }` answer the page already carries
+ *   (see {@link readPreloadedWalkthroughPreferences}); when given, no request is made.
  * @return {Promise<object|null>} The progress, or null.
+ * @spec openspec/changes/setup-and-walkthrough-from-initial-state/specs/cn-walkthrough/spec.md#requirement-a-page-may-carry-the-walkthrough-preferences
  */
 export async function loadWalkthroughProgress(appId, configKey, options = {}) {
 	const local = readLocalWalkthroughProgress(appId, options.storage)
@@ -291,7 +326,9 @@ export async function loadWalkthroughProgress(appId, configKey, options = {}) {
 	}
 	const http = options.http || axios
 	try {
-		const { data } = await http.get(walkthroughPreferenceUrl(appId, key))
+		const data = isPlainObject(options.preloaded)
+			? options.preloaded
+			: (await http.get(walkthroughPreferenceUrl(appId, key))).data
 		if (!isPlainObject(data) || !('value' in data)) {
 			return local
 		}

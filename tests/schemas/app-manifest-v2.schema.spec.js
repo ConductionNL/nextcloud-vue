@@ -1312,7 +1312,7 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		expect(validateManifestV2({ ...MINIMAL_V2, setup: { dismissAction: '../config', steps } }).valid).toBe(false)
 	})
 
-	it('the manifest schema version reads 2.186.0', () => {
+	it('the manifest schema version reads 2.196.0', () => {
 		// A consumer reads this to tell a manifest key it does not know from
 		// one it got wrong, so a vocabulary change bumps it. 2.40.0 REMOVED
 		// `savedViewPlaces`; 2.41.0 is the bump `ncDashboard` should have
@@ -1460,7 +1460,39 @@ describe('app-manifest-v2 — navCardEntry + nav-card-grid widget (ADR-044 §4 c
 		// 2.184.0 lets an action stay drawn but disabled with the reason why (disabledWhen, disabledReason; action-disabled-when).
 		// 2.185.0 lets an app declare feature toggles and gate pages, widgets and actions on them (features, visibleIf.feature, visibleWhen.feature; feature-toggles).
 		// 2.186.0 adds the object-action action type with action and inputs (object-actions)
-		expect(schema.version).toBe('2.186.0')
+		// 2.187.0 lets a stat tile say there is no earlier period to compare with (noPreviousText; stat-widget-no-previous-text).
+		// 2.188.0 lets an api-call or navigate action act on a looked-up record (action.resolve; screens-action-resolve).
+		// 2.189.0 adds config.layoutPanel on a dashboard, a side panel where the user arranges the page (dashboard-layout-panel).
+		// 2.190.0 adds the connections page type (CnConnectionRegistry; connection-registry-page).
+		// 2.191.0 lets a bulk action sit under More in the band (action.menu; bulk-actions-more-menu).
+		// 2.192.0 lets a page name the menu entry it marks (page.menuEntry; page-names-its-menu-entry).
+		// 2.193.0 lets a dashboard offer its figures as CSV (config.download, config.downloadName; dashboard-download-csv).
+		// 2.194.0 lets a stats-block entry read an endpoint (entries[].endpointSource, valueField; stats-block-entry-endpoint).
+		// 2.195.0 lets a grid widget mount on page open rather than near the screen (widgetEntry.eager).
+		// 2.196.0 lets a store say where an install can go (store.installTarget; store-install-target).
+		// 2.197.0 lets a detail page read its primary action from the record (primaryActionFrom) and its quick actions from more than one path (detail-header-row-from-record).
+		// 2.198.0 lets a header pill read its value from an endpoint (headerPill.endpointSource; detail-pill-from-endpoint).
+		// 2.199.0 lets an index header note read a value from an endpoint (headerMetaSource; index-header-meta-from-endpoint).
+		// 2.200.0 lets a page view carry a visibleWhen, so a view shows only to the readers it is for (view-visible-when).
+		// 2.201.0 lets a dashboard keep sections the layout panel may not hide (layoutPanelLocked; dashboard-layout-panel-locked).
+		// 2.202.0 lets a dashboard read its widgets again on a timer (autoRefresh; dashboard-auto-refresh).
+		// 2.203.0 lets a dashboard header count the user's unread notifications of an app (notificationsBadge; dashboard-notifications-badge).
+		// 2.204.0 adds the top-level offline block: what an app takes along and which forms work offline (manifest-offline-block).
+		expect(schema.version).toBe('2.204.0')
+	})
+
+	it('accepts menuEntry on a page as a non-empty id (2.192.0)', () => {
+		const page = (extra) => ({ ...MINIMAL_V2, pages: [{ id: 'Postvak', route: '/postvak', type: 'index', title: 'Mailbox', config: { register: 'r', schema: 's' }, ...extra }] })
+		expect(validateManifestV2(page({ menuEntry: 'Queue' })).valid).toBe(true)
+		expect(validateManifestV2(page({ menuEntry: '' })).valid).toBe(false)
+		expect(validateManifestV2(page({ menuEntry: 3 })).valid).toBe(false)
+	})
+
+	it('accepts menu on a bulk action, as a yes or no (2.191.0)', () => {
+		const index = (bulkActions) => ({ ...MINIMAL_V2, pages: [{ id: 'list', route: '/list', type: 'index', title: 'List', config: { register: 'r', schema: 's', bulkActions } }] })
+		expect(validateManifestV2(index([{ id: 'export', label: 'Export', handler: 'exportSelection', menu: true }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ id: 'export', label: 'Export', handler: 'exportSelection', menu: false }])).valid).toBe(true)
+		expect(validateManifestV2(index([{ id: 'export', label: 'Export', handler: 'exportSelection', menu: 'yes' }])).valid).toBe(false)
 	})
 
 	it('accepts a header action gated on the reader\'s groups (readerGroups, 2.173.0)', () => {
@@ -2901,5 +2933,80 @@ describe('app-manifest-v2: a link card that opens the user settings (link-cards-
 		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'admin-settings' }])).valid).toBe(false)
 		expect(validateManifestV2(linksPage([{ id: 'Personal', label: 'Personal', action: 'user-settings', route: 'Personal' }])).valid).toBe(false)
 		expect(validateManifestV2(linksPage([{ id: 'Store', label: 'Store', route: 'Store' }], { panel: { badge: { label: 'Admins', tone: 'red' } } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: an action that looks a record up (screens-action-resolve, 2.188.0)', () => {
+	const withAction = (action) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Project', route: '/projects/:id', type: 'detail', title: 'Project', config: { register: 'pipelinq', schema: 'project' }, actions: [action] }],
+	})
+
+	it('accepts resolve on an api-call', () => {
+		const action = {
+			id: 'close-cycle',
+			label: 'Close cycle',
+			type: 'api-call',
+			url: '/apps/pipelinq/api/cycles/@resolved.id/close',
+			resolve: { register: 'pipelinq', schema: 'cycle', filter: { programme: '@objectId', status: 'open' }, unresolved: 'disable', reason: 'No open cycle' },
+		}
+		expect(validateManifestV2(withAction(action)).valid).toBe(true)
+	})
+
+	it('refuses a resolve without a schema or with an unknown key', () => {
+		expect(validateManifestV2(withAction({ id: 'a', label: 'A', type: 'api-call', url: '/x', resolve: { register: 'r' } })).valid).toBe(false)
+		expect(validateManifestV2(withAction({ id: 'a', label: 'A', type: 'api-call', url: '/x', resolve: { register: 'r', schema: 's', pick: 'last' } })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: the connections page type (connection-registry-page, 2.190.0)', () => {
+	const connectionsPage = (config = {}) => ({
+		...MINIMAL_V2,
+		pages: [{ id: 'Connections', route: '/connections', type: 'connections', title: 'Connections', config }],
+	})
+
+	it('accepts a connections page with and without config', () => {
+		expect(validateManifestV2(connectionsPage()).valid).toBe(true)
+		expect(validateManifestV2(connectionsPage({ app: 'pipelinq', addUrl: '/apps/integriq', integriqUrl: '' })).valid).toBe(true)
+	})
+
+	it('refuses an empty app or add URL', () => {
+		expect(validateManifestV2(connectionsPage({ app: '' })).valid).toBe(false)
+		expect(validateManifestV2(connectionsPage({ addUrl: '' })).valid).toBe(false)
+	})
+})
+
+describe('app-manifest-v2: the dashboard layout panel (dashboard-layout-panel, 2.189.0)', () => {
+	const page = (config) => ({ ...MINIMAL_V2, pages: [{ id: 'mywork', route: '/', type: 'dashboard', title: 'My work', config }] })
+
+	it('declares config.layoutPanelLocked as a list of widget ids (2.201.0)', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		const locked = schema.$defs.page.properties.config.properties.layoutPanelLocked
+		expect(locked.type).toBe('array')
+		expect(locked.items.type).toBe('string')
+		expect(validateManifestV2(page({ layoutPanel: true, layoutPanelLocked: ['my-work-list'] })).valid).toBe(true)
+		expect(validateManifestV2(page({ layoutPanel: true, layoutPanelLocked: [3] })).valid).toBe(false)
+	})
+
+	// @spec openspec/changes/dashboard-auto-refresh/specs/dashboard-page/spec.md#requirement-a-dashboard-reads-its-widgets-again-on-a-timer
+	it('declares config.autoRefresh as true or its three settings (2.202.0)', () => {
+		expect(validateManifestV2(page({ autoRefresh: true })).valid).toBe(true)
+		expect(validateManifestV2(page({ autoRefresh: { intervalSeconds: 300, staleAfterSeconds: 600, button: true } })).valid).toBe(true)
+		expect(validateManifestV2(page({ autoRefresh: { intervalSeconds: 0 } })).valid).toBe(false)
+		expect(validateManifestV2(page({ autoRefresh: { every: 5 } })).valid).toBe(false)
+	})
+
+	// @spec openspec/changes/dashboard-notifications-badge/specs/dashboard-page/spec.md#requirement-a-dashboard-header-counts-the-users-unread-notifications-of-the-app
+	it('declares config.notificationsBadge as true or an app id (2.203.0)', () => {
+		expect(validateManifestV2(page({ notificationsBadge: true })).valid).toBe(true)
+		expect(validateManifestV2(page({ notificationsBadge: 'pipelinq' })).valid).toBe(true)
+		expect(validateManifestV2(page({ notificationsBadge: '' })).valid).toBe(false)
+		expect(validateManifestV2(page({ notificationsBadge: 3 })).valid).toBe(false)
+	})
+
+	it('declares config.layoutPanel as a boolean', () => {
+		const schema = require('../../src/schemas/app-manifest-v2.schema.json')
+		expect(schema.$defs.page.properties.config.properties.layoutPanel.type).toBe('boolean')
+		expect(validateManifestV2(page({ layoutPanel: true, userLayout: true })).valid).toBe(true)
 	})
 })

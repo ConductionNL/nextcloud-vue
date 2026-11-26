@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Datumfält för perioden",
+    "None: the widget does not follow the period": "Inget: widgeten följer inte perioden",
     "Report a bug": "Rapportera ett fel",
     "View": "Visa",
     "Edit": "Redigera",
     "Copy": "Kopiera",
-    "Delete": "Ta bort"
+    "Delete": "Ta bort",
+    "The administrator has not set a start date field.": "Administratören har inte angett något fält för startdatum.",
+    "Starts {weekday}": "Börjar {weekday}",
+    "Selection": "Urval",
+    "People by filter": "Personer efter filter",
+    "New colleagues": "Nya kollegor",
+    "Started in the last (days, 1–90)": "Började under de senaste (dagar, 1–90)",
+    "Starts within (days, 0–30)": "Börjar under de kommande (dagar, 0–30)",
+    "Must be between {min} and {max}": "Måste vara mellan {min} och {max}"
   }
 }

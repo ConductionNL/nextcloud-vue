@@ -80,6 +80,10 @@
 					class="cn-rich-submit__file"
 					:aria-required="isBoardLook && filesRequired ? 'true' : undefined"
 					@change="onFilesChange">
+				<!-- Another source of files (rich-submit-file-sources): the consumer
+				     places its own picker here, such as "Choose from my files",
+				     and hands the files it fetched to addFiles. -->
+				<slot name="file-sources" v-bind="{ addFiles }" />
 				<small v-if="filesHint" class="cn-rich-submit__hint">{{ filesHint }}</small>
 				<ul v-if="formData.files.length > 0" class="cn-rich-submit__file-list">
 					<li v-for="(f, idx) in formData.files" :key="idx">
@@ -126,7 +130,8 @@ import { dialogBoardMixin } from '../../mixins/dialogBoard.js'
  *   1. A reason picked from a closed taxonomy (`reasons[]` prop).
  *   2. Optional or required free-text notes.
  *   3. Optional or required file attachments (with accept / max-files
- *      / max-size constraints).
+ *      / max-size constraints), from the device or from another source
+ *      the consumer places in the `file-sources` slot (`addFiles`).
  *   4. An optional late-submission warning banner (set via
  *      `lateWarning`).
  *
@@ -314,23 +319,56 @@ export default {
 		 * @return {void}
 		 */
 		onFilesChange(event) {
-			this.validationError = ''
 			const incoming = Array.from(event.target.files || [])
-			if (this.maxFiles > 0 && incoming.length > this.maxFiles) {
-				this.validationError = `At most ${this.maxFiles} file${this.maxFiles === 1 ? '' : 's'} allowed.`
+			if (this.filesRefusal(incoming) !== '') {
 				event.target.value = ''
 				return
 			}
+			this.formData.files = incoming
+		},
+
+		/**
+		 * Add files from another source (the `file-sources` slot): the same
+		 * max-files and max-size-mb checks as the file input, over the files
+		 * already chosen plus these. A single-file dialog replaces its file.
+		 *
+		 * @param {File[]} files The files to add.
+		 * @return {boolean} True when they were added, false when refused (the banner says why).
+		 * @spec openspec/changes/rich-submit-file-sources/specs/rich-submit-dialog/spec.md#requirement-the-submit-dialog-takes-files-from-another-source
+		 */
+		addFiles(files) {
+			const incoming = Array.from(files || [])
+			const next = this.maxFiles === 1 ? incoming : [...this.formData.files, ...incoming]
+			if (incoming.length === 0 || this.filesRefusal(next) !== '') {
+				return false
+			}
+			this.formData.files = next
+			return true
+		},
+
+		/**
+		 * Why a set of files cannot be the attachment, also shown as the
+		 * banner; '' when it can.
+		 *
+		 * @param {File[]} files The files.
+		 * @return {string} The reason, or ''.
+		 * @spec openspec/changes/rich-submit-file-sources/specs/rich-submit-dialog/spec.md#requirement-the-submit-dialog-takes-files-from-another-source
+		 */
+		filesRefusal(files) {
+			this.validationError = ''
+			if (this.maxFiles > 0 && files.length > this.maxFiles) {
+				this.validationError = `At most ${this.maxFiles} file${this.maxFiles === 1 ? '' : 's'} allowed.`
+				return this.validationError
+			}
 			if (this.maxSizeMb > 0) {
 				const limit = this.maxSizeMb * 1024 * 1024
-				const oversized = incoming.find((f) => f.size > limit)
+				const oversized = files.find((f) => f.size > limit)
 				if (oversized) {
 					this.validationError = `File "${oversized.name}" exceeds the ${this.maxSizeMb} MB per-file limit.`
-					event.target.value = ''
-					return
+					return this.validationError
 				}
 			}
-			this.formData.files = incoming
+			return ''
 		},
 
 		/**

@@ -26,6 +26,7 @@ import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline
 import BellIcon from 'vue-material-design-icons/Bell.vue'
 import BookOpenVariantIcon from 'vue-material-design-icons/BookOpenVariant.vue'
 import BriefcaseIcon from 'vue-material-design-icons/Briefcase.vue'
+import BullhornIcon from 'vue-material-design-icons/Bullhorn.vue'
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
 import CashIcon from 'vue-material-design-icons/Cash.vue'
 import CashMultipleIcon from 'vue-material-design-icons/CashMultiple.vue'
@@ -46,9 +47,11 @@ import FileDocumentIcon from 'vue-material-design-icons/FileDocument.vue'
 import FileSignIcon from 'vue-material-design-icons/FileSign.vue'
 import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
 import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
+import ForumOutlineIcon from 'vue-material-design-icons/ForumOutline.vue'
 import GaugeIcon from 'vue-material-design-icons/Gauge.vue'
 import GavelIcon from 'vue-material-design-icons/Gavel.vue'
 import HandshakeOutlineIcon from 'vue-material-design-icons/HandshakeOutline.vue'
+import HeadsetIcon from 'vue-material-design-icons/Headset.vue'
 import HeartIcon from 'vue-material-design-icons/Heart.vue'
 import HistoryIcon from 'vue-material-design-icons/History.vue'
 import HomeIcon from 'vue-material-design-icons/Home.vue'
@@ -105,6 +108,7 @@ export const DASHBOARD_ICONS = Object.freeze({
 	RocketLaunch: RocketLaunchIcon,
 	Earth: EarthIcon,
 	Briefcase: BriefcaseIcon,
+	Bullhorn: BullhornIcon,
 	Cash: CashIcon,
 	CashMultiple: CashMultipleIcon,
 	CurrencyEur: CurrencyEurIcon,
@@ -130,7 +134,9 @@ export const DASHBOARD_ICONS = Object.freeze({
 	Phone: PhoneIcon,
 	School: SchoolIcon,
 	MapMarker: MapMarkerIcon,
+	ForumOutline: ForumOutlineIcon,
 	Gavel: GavelIcon,
+	Headset: HeadsetIcon,
 	FileSign: FileSignIcon,
 	Truck: TruckIcon,
 	Package: PackageIcon,

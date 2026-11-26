@@ -1,9 +1,19 @@
 {
   "translations": {
+    "Date field for the period": "Dátummező az időszakhoz",
+    "None: the widget does not follow the period": "Nincs: a widget nem követi az időszakot",
     "Report a bug": "Hiba bejelentése",
     "View": "Megtekintés",
     "Edit": "Szerkesztés",
     "Copy": "Másolás",
-    "Delete": "Törlés"
+    "Delete": "Törlés",
+    "The administrator has not set a start date field.": "A rendszergazda nem állított be kezdési dátum mezőt.",
+    "Starts {weekday}": "Kezd: {weekday}",
+    "Selection": "Kiválasztás",
+    "People by filter": "Személyek szűrő szerint",
+    "New colleagues": "Új kollégák",
+    "Started in the last (days, 1–90)": "Az elmúlt (nap, 1–90) során kezdtek",
+    "Starts within (days, 0–30)": "A következő (nap, 0–30) során kezdenek",
+    "Must be between {min} and {max}": "{min} és {max} között kell lennie"
   }
 }

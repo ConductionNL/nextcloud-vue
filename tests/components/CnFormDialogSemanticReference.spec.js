@@ -45,6 +45,7 @@ jest.mock('@nextcloud/router', () => ({
 
 // Import AFTER the mocks are registered.
 import CnFormDialog from '../../src/components/CnFormDialog/CnFormDialog.vue'
+import { clearSemanticResolutions } from '../../src/utils/semanticResolve.js'
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -86,6 +87,7 @@ beforeEach(() => {
 	mockStore.fetchCollectionForOptions.mockClear()
 	mockStore.fetchObject.mockClear()
 	mockAxiosGet = jest.fn()
+	clearSemanticResolutions()
 })
 
 describe('CnFormDialog — cross-app semantic references (ADR-048)', () => {
@@ -112,6 +114,29 @@ describe('CnFormDialog — cross-app semantic references (ADR-048)', () => {
 			'/apps/openregister/api/schemas/resolve-by-implements',
 			{ params: { uri: ORG_URI } },
 		)
+	})
+
+	it('asks once per page: a second form for the same URI reuses the answer', async () => {
+		mockAxiosGet.mockResolvedValue({ data: { resolved: true, registerSlug: 'shillinq', schemaSlug: 'organisation', appId: 'shillinq' } })
+		mount(CnFormDialog, { propsData: { schema: semanticSchema, item: null }, stubs })
+		await flushPromises()
+		const second = mount(CnFormDialog, { propsData: { schema: semanticSchema, item: null }, stubs })
+		await flushPromises()
+		expect(mockAxiosGet).toHaveBeenCalledTimes(1)
+		const field = second.vm.visibleFields.find((f) => f.key === 'supplier')
+		expect(second.vm.isSemanticResolved(field)).toBe(true)
+	})
+
+	it('asks again after a failed request, so a failure is not kept', async () => {
+		const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+		mockAxiosGet.mockRejectedValueOnce(new Error('offline'))
+		mockAxiosGet.mockResolvedValue({ data: { resolved: false } })
+		mount(CnFormDialog, { propsData: { schema: semanticSchema, item: null }, stubs })
+		await flushPromises()
+		mount(CnFormDialog, { propsData: { schema: semanticSchema, item: null }, stubs })
+		await flushPromises()
+		expect(mockAxiosGet).toHaveBeenCalledTimes(2)
+		spy.mockRestore()
 	})
 
 	describe('unresolved (no installed provider)', () => {

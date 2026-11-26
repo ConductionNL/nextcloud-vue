@@ -26,6 +26,7 @@ import {
 	__setDexie,
 	applyConflictResolution,
 	CONFLICT_RECORD_PREFIX,
+	conflictFieldsOf,
 	enqueueMutation,
 	getCachedObject,
 	getDb,
@@ -84,6 +85,27 @@ describe('a conflict written to the register', () => {
 		expect(record.payload.conflictType).toBe('concurrent_edit')
 		expect(record.payload.clientVersion.note).toBe('I wrote this in the cellar')
 		expect(record.payload.serverVersion.note).toBe('the colleague wrote this')
+	})
+
+	// The register's conflict schema names the queue row as `syncQueueRef` and
+	// the colliding fields as `conflictFields`; a record without them is refused
+	// by a schema that requires the reference, and a resolver has no field to
+	// write back.
+	it('names the queue row as syncQueueRef and the fields both sides hold differently', async () => {
+		const operation = await conflicting()
+
+		await recordConflict({
+			operation,
+			conflictType: 'concurrent_edit',
+			serverObject: SERVER_VERSION,
+			register: 'dossiq',
+			conflictSchema: 'conflictRecord',
+		})
+
+		const record = await getDb().mutationQueue.get(`${CONFLICT_RECORD_PREFIX}${operation.id}`)
+
+		expect(record.payload.syncQueueRef).toBe(operation.id)
+		expect(record.payload.conflictFields).toEqual(['note', 'status'])
 	})
 
 	// 🔴 ONE COLLISION, ONE RECORD. The record id is derived from the
@@ -269,5 +291,23 @@ describe('settling a conflict from the queue', () => {
 		const operation = await conflicting({ status: 'pending' })
 
 		expect(await applyConflictResolution({ operationId: operation.id, resolution: 'client_wins' })).toBe(false)
+	})
+})
+
+describe('conflictFieldsOf', () => {
+	it('lists only sent fields whose value differs from the server', () => {
+		expect(conflictFieldsOf(
+			{ note: 'mine', status: 'open', tags: ['a'] },
+			{ note: 'theirs', status: 'open', tags: ['a'], '@self': { id: 'x' }, extra: 1 },
+		)).toEqual(['note'])
+	})
+
+	it('counts every sent field when the server sent no version', () => {
+		expect(conflictFieldsOf({ status: 'open', note: 'mine' }, null)).toEqual(['note', 'status'])
+	})
+
+	it('ignores identity and metadata fields and survives an empty payload', () => {
+		expect(conflictFieldsOf({ id: 'obj-9', '@self': {}, note: 'x' }, { id: 'obj-8' })).toEqual(['note'])
+		expect(conflictFieldsOf(null, SERVER_VERSION)).toEqual([])
 	})
 })

@@ -7,7 +7,7 @@
  *
  * @spec openspec/changes/mail-widget-card/specs/mail-widget-card/spec.md
  */
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import CnDetailWidgetHost from '../../src/components/CnDetailWidgetHost/CnDetailWidgetHost.vue'
 import { getWidgetTypeEntry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 
@@ -29,8 +29,9 @@ describe('the mail widget on a card surface', () => {
 		expect(getWidgetTypeEntry('mail')).toMatchObject({ ownsTitle: true, chrome: 'card' })
 	})
 
-	it('stands in an untitled card', () => {
+	it('stands in an untitled card', async () => {
 		const card = mountHost().find('[data-testid="cn-detail-widget-self-titled-card"]')
+		await flushPromises()
 		expect(card.exists()).toBe(true)
 		expect(card.find('.cn-widget-wrapper__title').exists()).toBe(false)
 		expect(card.find('.cn-mail-tab').exists()).toBe(true)

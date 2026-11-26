@@ -345,8 +345,7 @@ export default {
 				? link.openInNewTab
 				: isExternal
 
-			// An empty icon falls back to a default link icon via CnWidgetIcon.
-			const iconName = icon === '' ? 'Link' : icon
+			const iconName = icon === '' ? 'LinkVariant' : icon
 
 			const showSolid = this.tileBackgroundStyle === 'solid'
 			const tileColor = showSolid && color !== '' ? color : ''
@@ -366,7 +365,7 @@ export default {
 				opensNewTab,
 				isExternal,
 				iconWrapperStyle: this.computeIconWrapperStyle(tileColor),
-				tileStyle: {},
+				tileStyle: color !== '' ? { '--cn-quicklinks-link-color': color } : {},
 			}
 		},
 
@@ -553,13 +552,15 @@ export default {
 	box-sizing: border-box;
 	margin: 0 auto;
 	max-width: calc(var(--cn-quicklinks-icon-size) * 2);
-	color: var(--color-main-text);
-	text-decoration: none;
 	border-radius: var(--border-radius, 4px);
 	transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.15s ease,
 		outline 0.1s ease;
 	position: relative;
 	cursor: pointer;
+	/* Kept against a theme that underlines and colours every link with
+	   !important. */
+	color: var(--color-main-text) !important;
+	text-decoration: none !important;
 }
 
 .cn-quicklinks-widget__link:focus-visible {
@@ -636,7 +637,7 @@ export default {
 }
 
 .cn-quicklinks-widget--hover-border .cn-quicklinks-widget__link:hover {
-	outline: 2px solid var(--color-primary);
+	outline: 2px solid var(--cn-quicklinks-link-color, var(--color-primary));
 	outline-offset: 1px;
 }
 

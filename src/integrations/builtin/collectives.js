@@ -25,8 +25,10 @@
  */
 
 import { translate as t } from '@nextcloud/l10n'
-import CnCollectivesCard from './collectives/CnCollectivesCard.vue'
-import CnCollectivesTab from './collectives/CnCollectivesTab.vue'
+import { lazyComponent } from '../../utils/lazyComponent.js'
+
+const CnCollectivesCard = lazyComponent(() => import('./collectives/CnCollectivesCard.vue'), 'CnCollectivesCard')
+const CnCollectivesTab = lazyComponent(() => import('./collectives/CnCollectivesTab.vue'), 'CnCollectivesTab')
 
 /**
  * `collectives` integration descriptor.
