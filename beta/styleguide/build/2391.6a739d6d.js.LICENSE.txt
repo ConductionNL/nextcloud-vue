@@ -1,0 +1,9 @@
+/**
+* vue-codemirror6
+*
+* @description CodeMirror6 Component for vue2 and vue3.
+* @author Logue <logue@hotmail.co.jp>
+* @license MIT
+* @version 1.6.2
+* @see {@link https://github.com/logue/vue-codemirror6}
+*/
