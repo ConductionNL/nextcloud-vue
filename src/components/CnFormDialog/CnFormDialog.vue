@@ -2133,6 +2133,7 @@ export default {
 						include: this.includeFields,
 						overrides: this.fieldOverrides,
 						hideTenant: true,
+						form: true,
 						translate: this.cnTranslate,
 						language: getLanguage(),
 					}).concat(this.dynamicFields)

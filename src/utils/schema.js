@@ -887,6 +887,7 @@ function viewerIsAdmin() {
  * @param {string[]} [options.exclude] Property keys to exclude
  * @param {string[]} [options.include] Property keys to include (whitelist mode)
  * @param {object} [options.overrides] Per-key field overrides, e.g. `{ status: { widget: 'select' } }`. Recognised keys: `hidden` (true → drop the field), `order` (number → wins over the schema property's `order` for sorting), `readOnly` (false on a schema-readOnly key un-skips it), plus any field props to merge (`label`, `widget`, `enum`, …). A single overrides map therefore controls visibility, ordering and rendering on every surface that consumes this pipeline (data widget + form dialog).
+ * @param {boolean} [options.form] Whether the fields are for a form; a form leaves out properties marked `hideOnForm: true`
  * @param {boolean} [options.includeReadOnly] Whether to include readOnly properties
  * @param {boolean} [options.hideTenant] Drop properties that hold the record's tenant (see `isTenantProperty`). Off by default, so a detail page still shows the tenant; CnFormDialog turns it on because nobody should be asked for it. `overrides[key].hidden === false` keeps one visible.
  * @param {boolean} [options.isAdmin] Whether the viewer is an instance administrator, which keeps `x-admin-only` properties. Defaults to the signed-in Nextcloud user's `isAdmin`.
@@ -896,7 +897,7 @@ function viewerIsAdmin() {
  * @return {Array<{key: string, label: string, description: string, descriptionLong: string, help: string, type: string, format: string|null, widget: string, required: boolean, readOnly: boolean, default: unknown, enum: Array|null, enumLabels: object|null, items: object|null, referenceType: string|null, referenceSemanticType: string|null, referenceSemanticApp: string|null, reference: {schema: string|number, multiple: boolean, register?: string, labelField?: string}|null, allowCreate: boolean, userPicker: {multiple: boolean}|null, groupPicker: {multiple: boolean}|null, defaultToken: string|null, propertySource: {provider: string, mode: string, config: object}|null, fillFrom: object|null, validation: object, order: number}>} `description` is the inline helper text (see `splitDescription`); `help` is the property's `x-help` explanation in the user's language ('' when absent or malformed); `descriptionLong` carries it too when present, else the full description when it was too long to render inline, else ''. `enumLabels` maps each raw enum value to its English display label (from the property's `x-enum-labels`), or null.
  */
 export function fieldsFromSchema(schema, options = {}) {
-	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, translate, language = '' } = options
+	const { exclude = [], include = null, overrides = {}, includeReadOnly = false, hideTenant = false, form = false, translate, language = '' } = options
 	const isAdmin = typeof options.isAdmin === 'boolean' ? options.isAdmin : viewerIsAdmin()
 	const tr = typeof translate === 'function' ? translate : (text) => text
 
@@ -923,6 +924,13 @@ export function fieldsFromSchema(schema, options = {}) {
 			// field. It hides a control and nothing more; the server still
 			// decides who may change the value.
 			if (prop['x-admin-only'] === true && !isAdmin) {
+				return false
+			}
+			// `hideOnForm: true`: the property is shown where the record is read
+			// but never asked on a form (a status only a workflow moves, say).
+			// Only a form surface passes `form: true`; an explicit
+			// `overrides[key].hidden === false` brings the field back.
+			if (form && prop.hideOnForm === true && overrides[key]?.hidden !== false) {
 				return false
 			}
 			// Per-key override visibility: `overrides[key].hidden === true` hides
