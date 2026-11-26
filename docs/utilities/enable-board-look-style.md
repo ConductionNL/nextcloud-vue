@@ -35,4 +35,8 @@ export default {
 }
 ```
 
-An app that bundles the library source, or imports `@conduction/nextcloud-vue/css/index.css`, gets every rule in one sheet, as before; there the call only sets the flag.
+## In an app bundle
+
+Webpack drops the published entry's bare `import './library-style.js'`, so in an app the library rules come from its own `import '@conduction/nextcloud-vue/css/index.css'`. That file is the library sheet **without** the board-look block (`dist/nextcloud-vue.base.css`); `dist/nextcloud-vue.css` stays complete. When no board sheet is on the page, the first call adds `<style data-cn-library-board>` with the board-look rules (carried as text in the library's JS) directly after the library sheet, so they keep their place before the app's own stylesheets.
+
+An app that bundles the library source gets every rule in one sheet, as before; there the call only sets the flag.
