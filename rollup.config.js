@@ -98,17 +98,30 @@ function libraryStyleModule() {
 	return {
 		name: 'library-style-module',
 		generateBundle(options, bundle) {
-			if (options.format !== 'es') {
-				return
-			}
 			const sheet = Object.values(bundle).find((file) => file.type === 'asset' && file.fileName === 'nextcloud-vue.css')
 			if (!sheet) {
+				if (options.format !== 'es') {
+					return
+				}
 				this.error('library-style-module: nextcloud-vue.css was not extracted, so there is nothing to install')
 			}
 			const css = typeof sheet.source === 'string' ? sheet.source : Buffer.from(sheet.source).toString('utf8')
 			const parts = splitBoardLook(css)
 			if (parts === null) {
 				this.error('library-style-module: the board-look markers (css/look-board-sheet-start.css, -end.css) are missing from nextcloud-vue.css')
+			}
+			// What css/index.css hands the apps: the sheet without the board-look
+			// block. Webpack drops the entry's bare library-style.js import, so an
+			// app's own css/index.css import is where its library rules come from;
+			// enableBoardLookStyle() adds the block from boardLookSheet.js only
+			// where the board look is used.
+			this.emitFile({ type: 'asset', fileName: 'nextcloud-vue.base.css', source: parts.base })
+			const filled = fillBoardLookSheet(bundle, parts.board, BUILT_AT)
+			if (options.format !== 'es') {
+				return
+			}
+			if (!filled) {
+				this.error('library-style-module: utils/boardLookSheet.js was not found to carry the board-look rules')
 			}
 			this.emitFile({
 				type: 'asset',
@@ -119,6 +132,29 @@ function libraryStyleModule() {
 			})
 		},
 	}
+}
+
+/**
+ * Put the board-look rules into the emitted boardLookSheet module, in place of
+ * its empty source values (`''.trim()`, src/utils/boardLookSheet.js).
+ *
+ * @param {object} bundle The rollup output bundle.
+ * @param {string} board The board-look rules.
+ * @param {string} built The build time.
+ * @return {boolean} True when the module was found and filled.
+ */
+function fillBoardLookSheet(bundle, board, built) {
+	let filled = false
+	for (const file of Object.values(bundle)) {
+		if (file.type !== 'chunk' || !/const BOARD_LOOK_CSS\$?\d* = ''\.trim\(\);/.test(file.code)) {
+			continue
+		}
+		file.code = file.code
+			.replace(/(const BOARD_LOOK_CSS\$?\d* = )''\.trim\(\);/, (all, head) => head + JSON.stringify(board) + ';')
+			.replace(/(const BOARD_LOOK_BUILT\$?\d* = )''\.trim\(\);/, (all, head) => head + JSON.stringify(built) + ';')
+		filled = true
+	}
+	return filled
 }
 
 function copyLeafletImages() {
