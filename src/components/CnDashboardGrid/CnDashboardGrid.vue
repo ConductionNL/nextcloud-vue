@@ -715,6 +715,7 @@ export default {
 			deep: true,
 			handler(newLayout) {
 				if (this.grid) {
+					this.syncMinRow()
 					this.syncGridItems(newLayout)
 				}
 			},
@@ -1048,6 +1049,9 @@ export default {
 			if (this.columnOpts) {
 				this.grid.updateOptions({ columnOpts: this.columnOpts })
 			}
+			// A rebuilt grid can have another cell height: read the CSS minimum again.
+			this.cssMinRows = undefined
+			this.syncMinRow()
 			this.keepOrderOnGrowth()
 			this.matchRowHeights()
 			this.placeClearRows()
@@ -1094,6 +1098,11 @@ export default {
 			const resize = grid.resizeToContent.bind(grid)
 			const growing = new Set()
 			grid.resizeToContent = (el) => {
+				// GridStack measures every card `update()` moves; a card this grid
+				// only moves down keeps its content height, so it is not measured.
+				if (this.movingCardsOnly) {
+					return
+				}
 				if (this.pendingSizes) {
 					if (!this.pendingSizes.includes(el)) {
 						this.pendingSizes.push(el)
@@ -1130,6 +1139,53 @@ export default {
 		},
 
 		/**
+		 * Run position-only moves without GridStack measuring each moved card
+		 * to its content again: `update()` does that for every card it moves,
+		 * and each measure forced a style recalculation (a growing cell moved
+		 * the cards under it, which were measured, which moved the cards under
+		 * them). A moved card's height does not change with its row; a change
+		 * of its content still reaches the content observer.
+		 *
+		 * @param {function(): void} moves The moves.
+		 * @return {void}
+		 */
+		moveCardsOnly(moves) {
+			const before = this.movingCardsOnly
+			this.movingCardsOnly = true
+			try {
+				moves()
+			} finally {
+				this.movingCardsOnly = before
+			}
+		},
+
+		/**
+		 * Give GridStack a `minRow` while the grid holds cards, so it stops
+		 * reading the grid's CSS min-height (`getComputedStyle`) after every
+		 * move: each read forced a full style recalculation, ~20 per dossiq
+		 * Dashboard load. The value is what that read would give (the CSS
+		 * min-height in rows, read once here) and at least 1, which a grid
+		 * with cards always has, so the grid's height is unchanged. An empty
+		 * grid keeps GridStack's own check.
+		 *
+		 * @return {void}
+		 */
+		syncMinRow() {
+			const grid = this.grid ? toRaw(this.grid) : null
+			if (!grid || !grid.opts || !grid.el) {
+				return
+			}
+			if (this.cssMinRows === undefined) {
+				const minHeight = typeof getComputedStyle === 'function' ? getComputedStyle(grid.el).minHeight : ''
+				const px = parseFloat(minHeight)
+				const unit = grid.opts.cellHeightUnit || 'px'
+				const cell = Number(grid.opts.cellHeight)
+				this.cssMinRows = px > 0 && cell > 0 && String(minHeight).endsWith(unit) ? Math.floor(px / cell) : 0
+			}
+			grid.opts.minRow = this.layout.length > 0 ? Math.max(1, this.cssMinRows) : 0
+		},
+
+		/**
 		 * One `resizeToContent` with the cards under a growing cell moved down
 		 * first (`keepOrderOnGrowth`).
 		 *
@@ -1159,9 +1215,11 @@ export default {
 				if (!batching) {
 					grid.batchUpdate()
 				}
-				for (const step of plan) {
-					grid.update(step.node.el, { y: step.y })
-				}
+				this.moveCardsOnly(() => {
+					for (const step of plan) {
+						grid.update(step.node.el, { y: step.y })
+					}
+				})
 				resize(el)
 				if (!batching) {
 					grid.batchUpdate(false)
@@ -1263,9 +1321,11 @@ export default {
 				if (!batching && typeof grid.batchUpdate === 'function') {
 					grid.batchUpdate()
 				}
-				for (const step of plan) {
-					grid.update(step.node.node.el, { y: step.y })
-				}
+				this.moveCardsOnly(() => {
+					for (const step of plan) {
+						grid.update(step.node.node.el, { y: step.y })
+					}
+				})
 				if (!batching && typeof grid.batchUpdate === 'function') {
 					grid.batchUpdate(false)
 				}
