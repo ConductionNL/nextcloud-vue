@@ -2087,7 +2087,13 @@ export default {
 							// compaction into the authored layout).
 							this.applyingLayout = true
 							try {
-								grid.update(el, { x, y, w, h })
+								// GridStack measures every size-to-content cell it updates; at
+								// the same width its content keeps its height, so a move is not measured.
+								if (w === node.w) {
+									this.moveCardsOnly(() => grid.update(el, { x, y, w, h }))
+								} else {
+									grid.update(el, { x, y, w, h })
+								}
 							} finally {
 								this.applyingLayout = false
 							}
