@@ -19,72 +19,74 @@
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
 
-import AccountIcon from 'vue-material-design-icons/Account.vue'
-import AccountBoxOutlineIcon from 'vue-material-design-icons/AccountBoxOutline.vue'
-import AccountGroupIcon from 'vue-material-design-icons/AccountGroup.vue'
-import AlertCircleOutlineIcon from 'vue-material-design-icons/AlertCircleOutline.vue'
-import BellIcon from 'vue-material-design-icons/Bell.vue'
-import BookOpenVariantIcon from 'vue-material-design-icons/BookOpenVariant.vue'
-import BriefcaseIcon from 'vue-material-design-icons/Briefcase.vue'
-import BullhornIcon from 'vue-material-design-icons/Bullhorn.vue'
-import CalendarIcon from 'vue-material-design-icons/Calendar.vue'
-import CashIcon from 'vue-material-design-icons/Cash.vue'
-import CashMultipleIcon from 'vue-material-design-icons/CashMultiple.vue'
-import ChartBarIcon from 'vue-material-design-icons/ChartBar.vue'
-import ChartLineIcon from 'vue-material-design-icons/ChartLine.vue'
-import CheckCircleOutlineIcon from 'vue-material-design-icons/CheckCircleOutline.vue'
-import ClipboardCheckOutlineIcon from 'vue-material-design-icons/ClipboardCheckOutline.vue'
-import ClipboardListIcon from 'vue-material-design-icons/ClipboardListOutline.vue'
-import CogIcon from 'vue-material-design-icons/Cog.vue'
-import CurrencyEurIcon from 'vue-material-design-icons/CurrencyEur.vue'
-import DatabaseOutlineIcon from 'vue-material-design-icons/DatabaseOutline.vue'
-import EarthIcon from 'vue-material-design-icons/Earth.vue'
+import { mdiIcon } from '../CnIcon/mdiIcon.js'
+
+const AccountIcon = mdiIcon('Account')
+const AccountBoxOutlineIcon = mdiIcon('AccountBoxOutline')
+const AccountGroupIcon = mdiIcon('AccountGroup')
+const AlertCircleOutlineIcon = mdiIcon('AlertCircleOutline')
+const BellIcon = mdiIcon('Bell')
+const BookOpenVariantIcon = mdiIcon('BookOpenVariant')
+const BriefcaseIcon = mdiIcon('Briefcase')
+const BullhornIcon = mdiIcon('Bullhorn')
+const CalendarIcon = mdiIcon('Calendar')
+const CashIcon = mdiIcon('Cash')
+const CashMultipleIcon = mdiIcon('CashMultiple')
+const ChartBarIcon = mdiIcon('ChartBar')
+const ChartLineIcon = mdiIcon('ChartLine')
+const CheckCircleOutlineIcon = mdiIcon('CheckCircleOutline')
+const ClipboardCheckOutlineIcon = mdiIcon('ClipboardCheckOutline')
+const ClipboardListIcon = mdiIcon('ClipboardListOutline')
+const CogIcon = mdiIcon('Cog')
+const CurrencyEurIcon = mdiIcon('CurrencyEur')
+const DatabaseOutlineIcon = mdiIcon('DatabaseOutline')
+const EarthIcon = mdiIcon('Earth')
 // ADR-062 fleet expansion (2026-07-08): detail-page widget headers need a
 // broader domain vocabulary (cases, contacts, comms, logistics, ops). One
 // shared list — hydra gate-32's ICON_REGISTRY mirrors it; keep them in sync.
-import EmailIcon from 'vue-material-design-icons/Email.vue'
-import FileDocumentIcon from 'vue-material-design-icons/FileDocument.vue'
-import FileSignIcon from 'vue-material-design-icons/FileSign.vue'
-import FilterVariantIcon from 'vue-material-design-icons/FilterVariant.vue'
-import FolderOutlineIcon from 'vue-material-design-icons/FolderOutline.vue'
-import ForumOutlineIcon from 'vue-material-design-icons/ForumOutline.vue'
-import GaugeIcon from 'vue-material-design-icons/Gauge.vue'
-import GavelIcon from 'vue-material-design-icons/Gavel.vue'
-import HandshakeOutlineIcon from 'vue-material-design-icons/HandshakeOutline.vue'
-import HeadsetIcon from 'vue-material-design-icons/Headset.vue'
-import HeartIcon from 'vue-material-design-icons/Heart.vue'
-import HistoryIcon from 'vue-material-design-icons/History.vue'
-import HomeIcon from 'vue-material-design-icons/Home.vue'
-import LightbulbIcon from 'vue-material-design-icons/Lightbulb.vue'
-import LinkVariantIcon from 'vue-material-design-icons/LinkVariant.vue'
-import MapMarkerIcon from 'vue-material-design-icons/MapMarker.vue'
-import MapIcon from 'vue-material-design-icons/MapOutline.vue'
-import MessageTextOutlineIcon from 'vue-material-design-icons/MessageTextOutline.vue'
-import NoteTextOutlineIcon from 'vue-material-design-icons/NoteTextOutline.vue'
-import OfficeBuildingIcon from 'vue-material-design-icons/OfficeBuilding.vue'
-import PackageIcon from 'vue-material-design-icons/Package.vue'
-import PercentIcon from 'vue-material-design-icons/Percent.vue'
-import PhoneIcon from 'vue-material-design-icons/Phone.vue'
+const EmailIcon = mdiIcon('Email')
+const FileDocumentIcon = mdiIcon('FileDocument')
+const FileSignIcon = mdiIcon('FileSign')
+const FilterVariantIcon = mdiIcon('FilterVariant')
+const FolderOutlineIcon = mdiIcon('FolderOutline')
+const ForumOutlineIcon = mdiIcon('ForumOutline')
+const GaugeIcon = mdiIcon('Gauge')
+const GavelIcon = mdiIcon('Gavel')
+const HandshakeOutlineIcon = mdiIcon('HandshakeOutline')
+const HeadsetIcon = mdiIcon('Headset')
+const HeartIcon = mdiIcon('Heart')
+const HistoryIcon = mdiIcon('History')
+const HomeIcon = mdiIcon('Home')
+const LightbulbIcon = mdiIcon('Lightbulb')
+const LinkVariantIcon = mdiIcon('LinkVariant')
+const MapMarkerIcon = mdiIcon('MapMarker')
+const MapIcon = mdiIcon('MapOutline')
+const MessageTextOutlineIcon = mdiIcon('MessageTextOutline')
+const NoteTextOutlineIcon = mdiIcon('NoteTextOutline')
+const OfficeBuildingIcon = mdiIcon('OfficeBuilding')
+const PackageIcon = mdiIcon('Package')
+const PercentIcon = mdiIcon('Percent')
+const PhoneIcon = mdiIcon('Phone')
 // Agents. `Agent.icon` documents "RobotOutline" as its own example and is
 // picked with CnIconPicker, which offers exactly this registry — so its absence
 // meant the schema's documented example resolved to the default dashboard glyph.
-import RobotOutlineIcon from 'vue-material-design-icons/RobotOutline.vue'
-import RocketLaunchIcon from 'vue-material-design-icons/RocketLaunch.vue'
-import ScaleBalanceIcon from 'vue-material-design-icons/ScaleBalance.vue'
-import SchoolIcon from 'vue-material-design-icons/School.vue'
-import ShieldCheckOutlineIcon from 'vue-material-design-icons/ShieldCheckOutline.vue'
-import SitemapIcon from 'vue-material-design-icons/Sitemap.vue'
-import SourceBranchIcon from 'vue-material-design-icons/SourceBranch.vue'
-import StarIcon from 'vue-material-design-icons/Star.vue'
-import TableColumnIcon from 'vue-material-design-icons/TableColumn.vue'
-import TagOutlineIcon from 'vue-material-design-icons/TagOutline.vue'
-import TimelineIcon from 'vue-material-design-icons/Timeline.vue'
-import TrendingDownIcon from 'vue-material-design-icons/TrendingDown.vue'
-import TrendingUpIcon from 'vue-material-design-icons/TrendingUp.vue'
-import TrophyIcon from 'vue-material-design-icons/Trophy.vue'
-import TruckIcon from 'vue-material-design-icons/Truck.vue'
-import ViewDashboardIcon from 'vue-material-design-icons/ViewDashboard.vue'
-import WebIcon from 'vue-material-design-icons/Web.vue'
+const RobotOutlineIcon = mdiIcon('RobotOutline')
+const RocketLaunchIcon = mdiIcon('RocketLaunch')
+const ScaleBalanceIcon = mdiIcon('ScaleBalance')
+const SchoolIcon = mdiIcon('School')
+const ShieldCheckOutlineIcon = mdiIcon('ShieldCheckOutline')
+const SitemapIcon = mdiIcon('Sitemap')
+const SourceBranchIcon = mdiIcon('SourceBranch')
+const StarIcon = mdiIcon('Star')
+const TableColumnIcon = mdiIcon('TableColumn')
+const TagOutlineIcon = mdiIcon('TagOutline')
+const TimelineIcon = mdiIcon('Timeline')
+const TrendingDownIcon = mdiIcon('TrendingDown')
+const TrendingUpIcon = mdiIcon('TrendingUp')
+const TrophyIcon = mdiIcon('Trophy')
+const TruckIcon = mdiIcon('Truck')
+const ViewDashboardIcon = mdiIcon('ViewDashboard')
+const WebIcon = mdiIcon('Web')
 
 /**
  * Map of icon registry name → Vue component reference. Iteration order is the
