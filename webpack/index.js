@@ -252,6 +252,19 @@ const NEXTCLOUD_VUE_BODY_STYLE_RULE = Object.freeze({
 })
 
 /**
+ * Wrap a `splitChunks` `chunks` function so it also requires an initial
+ * chunk: the app's own filter stays, async chunks are never taken.
+ *
+ * @param {function(object): boolean} select The app's chunk filter.
+ * @return {function(object): boolean} The narrowed filter.
+ */
+function initialOnly(select) {
+	const narrowed = (chunk) => Boolean(chunk && typeof chunk.canBeInitial === 'function' && chunk.canBeInitial()) && Boolean(select(chunk))
+	narrowed.cnInitialOnly = true
+	return select.cnInitialOnly ? select : narrowed
+}
+
+/**
  * Return a copy of a webpack config that keeps the library's lazy chunks lazy
  * and stops css-loader writing source maps into the JavaScript.
  *
@@ -274,8 +287,11 @@ const NEXTCLOUD_VUE_BODY_STYLE_RULE = Object.freeze({
  * - every css-loader gets `sourceMap: false` (JavaScript maps are untouched);
  * - every cache group that would take async chunks (`chunks: 'all'`, set or
  *   inherited) gets `chunks: 'initial'`, so modules only an `import()` needs
- *   stay in their own chunk. A group that sets `chunks: 'async'` or a
- *   function is left alone.
+ *   stay in their own chunk. A `chunks` FUNCTION (e.g. "every entry but
+ *   one") keeps its filter and also requires an initial chunk: portaliq's
+ *   filter of that kind put the library's async chunks into its shared chunk
+ *   (14.95 -> 3.03 MB once narrowed, 27 Nov 2026). A group that sets
+ *   `chunks: 'async'` is left alone.
  * - `@nextcloud/vue`'s index module is marked free of side effects. That
  *   package declares no `sideEffects`, so one `import { NcButton } from
  *   '@nextcloud/vue'` kept every component it lists, with emoji-mart, the date
@@ -322,13 +338,21 @@ function withLeanBundles(config) {
 		const narrowed = { ...splitChunks }
 		if (topAll) {
 			narrowed.chunks = 'initial'
+		} else if (typeof splitChunks.chunks === 'function') {
+			narrowed.chunks = initialOnly(splitChunks.chunks)
 		}
 		if (splitChunks.cacheGroups && typeof splitChunks.cacheGroups === 'object') {
 			narrowed.cacheGroups = {}
 			for (const [key, group] of Object.entries(splitChunks.cacheGroups)) {
 				const isGroup = group !== null && typeof group === 'object' && !(group instanceof RegExp)
 				const takesAll = isGroup && (group.chunks === 'all' || (group.chunks === undefined && topAll))
-				narrowed.cacheGroups[key] = takesAll ? { ...group, chunks: 'initial' } : group
+				if (takesAll) {
+					narrowed.cacheGroups[key] = { ...group, chunks: 'initial' }
+				} else if (isGroup && typeof group.chunks === 'function') {
+					narrowed.cacheGroups[key] = { ...group, chunks: initialOnly(group.chunks) }
+				} else {
+					narrowed.cacheGroups[key] = group
+				}
 			}
 		}
 		out.optimization = { ...config.optimization, splitChunks: narrowed }
