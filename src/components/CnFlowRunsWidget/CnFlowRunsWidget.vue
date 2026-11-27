@@ -126,6 +126,7 @@ import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { flowRunOutcome } from '../../utils/flowRunStatus.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { resolveDeepTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { samplePayload } from '../../utils/samplePayload.js'
 import { CnStatusBadge } from '../CnStatusBadge/index.js'
 
 /**
@@ -294,6 +295,17 @@ export default {
 			type: Function,
 			default: null,
 		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it draws
+		 * `content.sampleRows` and sends no request and starts no polling.
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['header'],
@@ -342,6 +354,10 @@ export default {
 		})
 
 		const source = () => {
+			// A miniature reads nothing.
+			if (props.preview) {
+				return null
+			}
 			const params = { limit: normaliseLimit(props.content && props.content.limit) }
 			const subject = configuredSubject()
 			if (subject !== '') {
@@ -359,7 +375,7 @@ export default {
 		// single-request surface, bit-identical to before.
 		const completedSource = () => {
 			const subject = configuredSubject()
-			if (subject === '') {
+			if (subject === '' || props.preview) {
 				return null
 			}
 			return {
@@ -382,10 +398,12 @@ export default {
 		// identically to the Options `inject` block (CnStatWidget precedent).
 		const injectedTranslate = inject('cnTranslate', null)
 
+		// A miniature draws its sample rows in place of the read.
+		const sample = computed(() => samplePayload(props.content && props.content.sampleRows))
 		return {
-			payload: data,
-			loading,
-			error,
+			payload: computed(() => (props.preview ? sample.value : data.value)),
+			loading: computed(() => (props.preview ? false : loading.value)),
+			error: computed(() => (props.preview ? '' : error.value)),
 			refetch,
 			completedPayload: completedData,
 			completedLoading,
@@ -579,6 +597,10 @@ export default {
 
 	mounted() {
 		this.emitHeader()
+		// A miniature neither polls nor listens.
+		if (this.preview) {
+			return
+		}
 		this.startPolling()
 		document.addEventListener('visibilitychange', this.onVisibilityChange)
 	},

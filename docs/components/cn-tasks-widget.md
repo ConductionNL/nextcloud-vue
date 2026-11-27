@@ -27,6 +27,7 @@ Every Conduction app runs its human tasks on OpenRegister's one task store (ADR-
 | `widgetId` | `string` | `''` | Placement id, so the per-widget Refresh action (`cn:widget:refresh`) reaches this instance. |
 | `objectId` | `string \| number` | `''` | The page's record id, for `objectUuid: "@objectId"` in the content. |
 | `translate` | `Function` | `null` | Translate function. Falls back to the injected `cnTranslate`. |
+| `preview` | `boolean` | `false` | A miniature in a widget picker: draws `content.sampleRows` (with `dueInDays` for the deadline), sends no request, starts no poll, asks no claim capability. |
 
 ## List variant
 

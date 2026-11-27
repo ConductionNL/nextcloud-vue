@@ -28,6 +28,16 @@ registerDashboardWidget('flow-runs', {
 		subject: '',
 		emptyText: '',
 	},
+	// What a widget picker's miniature draws with `preview` set: no read, no poll.
+	sampleContent: {
+		limit: 3,
+		pollSeconds: 0,
+		sampleRows: [
+			{ uuid: 'sample-run-1', flowId: 'sample-flow-1', flowName: 'Permit intake', status: 'running', trigger: 'object.created', startedBy: 'anna', step: 'check-documents', ageMinutes: 4 },
+			{ uuid: 'sample-run-2', flowId: 'sample-flow-2', flowName: 'Subsidy decision', status: 'suspended', trigger: 'object.updated', startedBy: 'mark', step: 'await-approval', ageMinutes: 47 },
+			{ uuid: 'sample-run-3', flowId: 'sample-flow-3', flowName: 'Invoice reminder', status: 'queued', trigger: 'schedule', startedBy: '', step: '', ageMinutes: 1 },
+		],
+	},
 	displayName: 'Running flows',
 	icon: 'Sitemap',
 	// Names the sibling-app read this widget depends on: OpenRegister's
