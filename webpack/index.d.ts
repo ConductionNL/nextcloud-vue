@@ -65,3 +65,23 @@ export const NEXTCLOUD_VUE_INDEX_RULE: { readonly test: RegExp, readonly sideEff
 export const NEXTCLOUD_VUE_BODY_STYLE_RULE: { readonly test: RegExp, readonly use: readonly string[] }
 
 export function withLeanBundles<T extends object | object[]>(config: T): T
+
+export interface CnLibraryStylesheetCopyOptions {
+	/** Where to write, relative to the webpack `context` (the app root). Defaults to `css/nextcloud-vue.css`. */
+	to?: string
+	/** The stylesheet to copy. Defaults to the file `css/index.css` imports. */
+	from?: string
+}
+
+/** The absolute path of the library stylesheet a webpack app should link. */
+export function libraryStylesheetSource(resolve?: (request: string) => string, read?: (file: string) => string): string
+
+/**
+ * A webpack plugin that copies the library stylesheet to `css/nextcloud-vue.css`
+ * after emit, so the app links it (`Util::addStyle('<appid>', 'nextcloud-vue')`)
+ * instead of a bundle inserting ~1.1 MB of CSS text on every page load.
+ */
+export class LibraryStylesheetCopy {
+	constructor(options?: CnLibraryStylesheetCopyOptions)
+	apply(compiler: { context?: string, hooks: { afterEmit: { tap(name: string, fn: () => void): void } } }): void
+}

@@ -336,11 +336,80 @@ function withLeanBundles(config) {
 	return out
 }
 
+/**
+ * The library stylesheet file a webpack app should link: the file
+ * `css/index.css` `@import`s (the sheet without the board-look block), or
+ * `css/index.css` itself when it imports nothing.
+ *
+ * @param {function(string): string} [resolve] Resolves a module path (default: `require.resolve`).
+ * @param {function(string): string} [read] Reads a file as UTF-8 (default: `fs.readFileSync`).
+ * @return {string} The absolute path of the stylesheet.
+ */
+function libraryStylesheetSource(resolve = require.resolve, read = (file) => require('fs').readFileSync(file, 'utf8')) {
+	const entry = resolve('@conduction/nextcloud-vue/css/index.css')
+	const imported = /@import\s+(?:url\()?['"]([^'"]+)['"]/.exec(read(entry))
+	return imported ? path.resolve(path.dirname(entry), imported[1]) : entry
+}
+
+/**
+ * A webpack plugin that copies the library stylesheet next to the app's own
+ * CSS, so the page LINKS it instead of a bundle inserting it as text.
+ *
+ * THE PROBLEM
+ * -----------
+ * `import '@conduction/nextcloud-vue/css/index.css'` in an entry makes
+ * style-loader carry the ~1.1 MB sheet as a string in the JavaScript and
+ * insert it on every page load: the bundle is that much bigger, and the browser
+ * parses the CSS again on each load. A linked stylesheet stays parsed in the
+ * browser's cache between loads. Measured on the sandbox reference stack
+ * (27 Nov 2026): launchpad Workspace 884/848/854 -> 828/831/829 ms,
+ * opencatalogi Search 1355/1478 -> 1260/1243 ms, pipelinq Sales
+ * ~-150 ms, OpenRegister Registers first content 1420/1400 -> 1288/1296 ms.
+ *
+ * THE FIX
+ * -------
+ * 1. Add this plugin; it writes `css/nextcloud-vue.css` (git-ignore it).
+ * 2. Link it on every page whose entry used to import the sheet, BEFORE the
+ *    app's own style: `Util::addStyle('<appid>', 'nextcloud-vue')`.
+ * 3. Drop `import '@conduction/nextcloud-vue/css/index.css'` from those entries.
+ *
+ * USAGE
+ * -----
+ * ```js
+ * const { LibraryStylesheetCopy } = require('@conduction/nextcloud-vue/webpack')
+ * webpackConfig.plugins.push(new LibraryStylesheetCopy())
+ * ```
+ *
+ * @param {object} [options] Options.
+ * @param {string} [options.to] Where to write, relative to the webpack
+ *   `context` (the app root). Defaults to `css/nextcloud-vue.css`.
+ * @param {string} [options.from] The stylesheet to copy. Defaults to
+ *   {@link libraryStylesheetSource}().
+ */
+class LibraryStylesheetCopy {
+	constructor(options = {}) {
+		this.to = options.to || path.join('css', 'nextcloud-vue.css')
+		this.from = options.from || null
+	}
+
+	apply(compiler) {
+		compiler.hooks.afterEmit.tap('LibraryStylesheetCopy', () => {
+			const fs = require('fs')
+			const source = this.from || libraryStylesheetSource()
+			const target = path.resolve(compiler.context || process.cwd(), this.to)
+			fs.mkdirSync(path.dirname(target), { recursive: true })
+			fs.copyFileSync(source, target)
+		})
+	}
+}
+
 module.exports = {
 	AUTO_PUBLIC_PATH,
+	LibraryStylesheetCopy,
 	NEXTCLOUD_VUE_BODY_STYLE_RULE,
 	NEXTCLOUD_VUE_INDEX_RULE,
 	appVersionDefine,
+	libraryStylesheetSource,
 	withLeanBundles,
 	withPublicPath,
 }
