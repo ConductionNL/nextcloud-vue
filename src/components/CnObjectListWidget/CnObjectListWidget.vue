@@ -410,6 +410,7 @@ import { endpointErrorMessage, fetchEndpointSource, getByPath, resolveEndpointRe
 import { createRefLabelResolver } from '../../composables/useRefLabels.js'
 import { useWriteFeedback } from '../../composables/useWriteFeedback.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { useObjectStore } from '../../store/index.js'
 import { actionLink, dispatchAction, hasActionTargetTokens } from '../../utils/actionsDispatcher.js'
 import { createConfirmationFor } from '../../utils/createConfirmation.js'
@@ -475,7 +476,7 @@ export default {
 
 	components: { CnDataTable, CnFormDialog, CnIcon, CnPagination, CnWidgetEmptyState, CnRowActions, CnFkResolveCell, NcButton, Plus },
 
-	mixins: [innerHeading],
+	mixins: [widgetLoaded, innerHeading],
 
 	inject: {
 		/**

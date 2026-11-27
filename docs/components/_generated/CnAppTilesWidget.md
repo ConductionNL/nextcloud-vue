@@ -12,3 +12,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ----------- | -------- | -------- | ------- | ------------------------------------------------------- |
 | `content`   | `object` |          | `\{\}`  | The widget's content (see the component description).   |
 | `placement` | `object` |          | `null`  | The placement, reserved to match the renderer contract. |
+
+### Events
+
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |

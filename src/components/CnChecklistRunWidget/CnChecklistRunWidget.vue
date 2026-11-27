@@ -217,6 +217,7 @@ import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import CameraOutline from 'vue-material-design-icons/CameraOutline.vue'
 import { uploadHeldFiles } from '../../composables/useHeldFileUpload.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
 import { captureLocation } from '../../utils/captureLocation.js'
@@ -385,6 +386,8 @@ export default {
 	name: 'CnChecklistRunWidget',
 
 	components: { CameraOutline, CnGeoCaptureField, NcButton, NcLoadingIcon },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/** The detail page's object context (`{ objectId, object }`), for tokens. */

@@ -142,6 +142,7 @@ import Refresh from 'vue-material-design-icons/Refresh.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRetentionRecomputeDialog from './CnRetentionRecomputeDialog.vue'
 import innerHeading from '../../mixins/innerHeading.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { parseDuration } from '../../utils/isoDuration.js'
 import { readPath } from '../../utils/readPath.js'
 import { hasUnresolvedTokens, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
@@ -188,7 +189,7 @@ export default {
 
 	components: { CnRetentionRecomputeDialog, CnStatusBadge, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Refresh },
 
-	mixins: [innerHeading],
+	mixins: [widgetLoaded, innerHeading],
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */

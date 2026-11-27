@@ -47,6 +47,7 @@
 import { getCurrentUser } from '@nextcloud/auth'
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { fetchStatuses } from '../../utils/nextcloudDirectory.js'
 import { readPath } from '../../utils/readPath.js'
 import { userLocale } from '../../utils/userLocale.js'
@@ -80,6 +81,8 @@ const HOT_PERCENT = 90
  */
 export default {
 	name: 'CnTeamWorkloadWidget',
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },

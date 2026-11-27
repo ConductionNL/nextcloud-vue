@@ -736,6 +736,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import CnRecordNoteRows from './CnRecordNoteRows.vue'
 import { interpolateUrlTokens, useEndpointSource } from '../../composables/useEndpointSource.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { actionLink, dispatchAction, interpolateActionTarget } from '../../utils/actionsDispatcher.js'
 import { isAppInstalled } from '../../utils/appInstalled.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
@@ -848,6 +849,8 @@ export default {
 	name: 'CnRecordListWidget',
 
 	components: { Check, ChevronDown, ChevronRight, ChevronUp, CnIcon, CnRecordNoteRows, CnStatusBadge, FilterOutline, NcActionButton, NcActionCheckbox, NcActionLink, NcActions, NcButton, NcLoadingIcon },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/** Detail-page object context (`{ objectId, object, register, schema }`). */
@@ -977,7 +980,10 @@ export default {
 
 	emits: ['header'],
 
-	/** @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer */
+	/**
+	 * @param {object} props The component props.
+	 * @spec openspec/changes/record-list-checklist-sources-and-next-step/specs/record-list/spec.md#requirement-a-record-lists-header-can-carry-a-pill-from-the-answer
+	 */
 	setup(props) {
 		const objectCtxRaw = inject('cnObjectContext', null)
 		const workspaceRaw = inject('cnWorkspaceContext', null)

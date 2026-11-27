@@ -160,6 +160,7 @@ import CnWidgetHeaderActionButtons from '../CnWidgetWrapper/CnWidgetHeaderAction
 import CnTimelineManage from './CnTimelineManage.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { useRefLabels } from '../../composables/useRefLabels.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { auditExclusionParams, keepAuditEntries } from '../../utils/auditEntries.js'
 import { auditLabel } from '../../utils/auditLabels.js'
 import { auditValueName } from '../../utils/auditValueName.js'
@@ -247,6 +248,8 @@ export default {
 		NcLoadingIcon,
 		NcNoteCard,
 	},
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/** Detail-page object context from CnDetailPage (a ref or a raw bag). */

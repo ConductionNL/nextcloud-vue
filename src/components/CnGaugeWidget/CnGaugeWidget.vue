@@ -33,6 +33,7 @@
 <script>
 import { NcLoadingIcon } from '@nextcloud/vue'
 import widgetLink from '../../mixins/widgetLink.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
@@ -71,7 +72,7 @@ export default {
 		NcLoadingIcon,
 	},
 
-	mixins: [widgetLink],
+	mixins: [widgetLoaded, widgetLink],
 
 	inject: {
 		/**

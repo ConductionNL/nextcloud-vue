@@ -131,6 +131,7 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { safeCurrencyCode } from '../../utils/formatMetric.js'
 
 const VIEW_MODES = ['summary', 'trend', 'top-vendors', 'top-categories']
@@ -161,6 +162,8 @@ const DEBOUNCE_MS = 200
  */
 export default {
 	name: 'CnSpendAnalyticsWidget',
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnSpendAnalyticsSource: {

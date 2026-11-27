@@ -113,6 +113,7 @@ import ContentSaveOutline from 'vue-material-design-icons/ContentSaveOutline.vue
 import DeleteOutline from 'vue-material-design-icons/DeleteOutline.vue'
 import { fetchEndpointSource } from '../../composables/useEndpointSource.js'
 import { useSavedViewsApi } from '../../composables/useSavedViewsApi.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { fetchListTotal } from '../../utils/fetchFilterCounts.js'
 import { buildRouteQueryFromViewState, buildWorkspaceViewPayload, extractViewState, extractViewWorkspace, isOwnView, viewMatchesScope, workspaceViewKeys } from '../../utils/savedViewHelpers.js'
 
@@ -152,6 +153,8 @@ export default {
 	name: 'CnSavedViewsWidget',
 
 	components: { NcButton, NcLoadingIcon, NcTextField, ContentSaveOutline, DeleteOutline },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/** The host app's translate function. */

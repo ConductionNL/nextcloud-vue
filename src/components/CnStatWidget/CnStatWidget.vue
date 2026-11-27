@@ -189,6 +189,7 @@ import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { fetchSharedResponse, getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { daysUntil } from '../../utils/dateVariant.js'
@@ -438,7 +439,7 @@ export default {
 		TrendingNeutral,
 	},
 
-	mixins: [widgetLink],
+	mixins: [widgetLoaded, widgetLink],
 
 	inject: {
 		/**

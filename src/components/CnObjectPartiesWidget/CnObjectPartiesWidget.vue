@@ -252,6 +252,7 @@ import CnPartyAddDialog from '../../dialogs/CnPartyAddDialog.vue'
 import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { normalizeLook } from '../../composables/useLook.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { conditionalLine } from '../../utils/conditionalLine.js'
 import { initialsOf } from '../../utils/initials.js'
 import {
@@ -364,7 +365,7 @@ export default {
 
 	components: { CnConfirmDialog, CnPartyAddDialog, EmailOutline, NcButton, NcEmptyContent, NcLoadingIcon, NcNoteCard, Plus, TrashCanOutline },
 
-	mixins: [innerHeading],
+	mixins: [widgetLoaded, innerHeading],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
