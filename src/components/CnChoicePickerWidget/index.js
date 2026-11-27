@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnChoicePickerWidget = lazyComponent(() => import('./CnChoicePickerWidget.vue'), 'CnChoicePickerWidget')
 
 registerDashboardWidget('choice-picker', {
+	placeholder: 'block',
 	renderer: LazyCnChoicePickerWidget,
 	form: null,
 	defaultContent: {

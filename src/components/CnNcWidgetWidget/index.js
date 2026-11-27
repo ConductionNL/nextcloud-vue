@@ -17,6 +17,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnNcWidgetWidget = lazyComponent(() => import('./CnNcWidgetWidget.vue'), 'CnNcWidgetWidget')
 
 registerDashboardWidget('nc-widget', {
+	placeholder: 'rows',
 	renderer: LazyCnNcWidgetWidget,
 	form: null,
 	defaultContent: {

@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnRowMarkList = lazyComponent(() => import('./CnRowMarkList.vue'), 'CnRowMarkList')
 
 registerDashboardWidget('row-mark-list', {
+	placeholder: 'rows',
 	renderer: LazyCnRowMarkList,
 	form: null,
 	defaultContent: {

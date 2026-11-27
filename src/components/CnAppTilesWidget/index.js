@@ -14,6 +14,7 @@ const LazyCnAppTilesWidgetForm = lazyComponent(() => import('../CnAppTilesWidget
 const LazyCnAppTilesWidget = lazyComponent(() => import('./CnAppTilesWidget.vue'), 'CnAppTilesWidget')
 
 registerDashboardWidget('app-tiles', {
+	placeholder: 'tiles',
 	renderer: LazyCnAppTilesWidget,
 	form: LazyCnAppTilesWidgetForm,
 	defaultContent: {

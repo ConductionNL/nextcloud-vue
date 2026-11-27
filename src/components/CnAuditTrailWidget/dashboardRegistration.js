@@ -17,6 +17,7 @@ const LazyCnAuditTrailWidgetForm = lazyComponent(() => import('../CnAuditTrailWi
 const LazyCnAuditTrailWidget = lazyComponent(() => import('./CnAuditTrailWidget.vue'), 'CnAuditTrailWidget')
 
 registerDashboardWidget('audit-trail', {
+	placeholder: 'rows',
 	renderer: LazyCnAuditTrailWidget,
 	form: LazyCnAuditTrailWidgetForm,
 	defaultContent: {

@@ -13,6 +13,7 @@ const LazyCnVideoWidgetForm = lazyComponent(() => import('../CnVideoWidgetForm/C
 const LazyCnVideoWidget = lazyComponent(() => import('./CnVideoWidget.vue'), 'CnVideoWidget')
 
 registerDashboardWidget('video', {
+	placeholder: 'block',
 	renderer: LazyCnVideoWidget,
 	form: LazyCnVideoWidgetForm,
 	defaultContent: {

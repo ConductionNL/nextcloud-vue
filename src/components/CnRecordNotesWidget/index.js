@@ -15,6 +15,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnRecordNotesWidget = lazyComponent(() => import('./CnRecordNotesWidget.vue'), 'CnRecordNotesWidget')
 
 registerDashboardWidget('record-notes', {
+	placeholder: 'rows',
 	renderer: LazyCnRecordNotesWidget,
 	form: null,
 	defaultContent: {

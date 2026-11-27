@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnStatGridWidget = lazyComponent(() => import('./CnStatGridWidget.vue'), 'CnStatGridWidget')
 
 registerDashboardWidget('stat-grid', {
+	placeholder: 'counter',
 	renderer: LazyCnStatGridWidget,
 	form: null,
 	defaultContent: {

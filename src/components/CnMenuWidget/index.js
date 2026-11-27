@@ -13,6 +13,7 @@ const LazyCnMenuWidgetForm = lazyComponent(() => import('../CnMenuWidgetForm/CnM
 const LazyCnMenuWidget = lazyComponent(() => import('./CnMenuWidget.vue'), 'CnMenuWidget')
 
 registerDashboardWidget('menu', {
+	placeholder: 'rows',
 	renderer: LazyCnMenuWidget,
 	form: LazyCnMenuWidgetForm,
 	defaultContent: {

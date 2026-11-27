@@ -13,6 +13,7 @@ const LazyCnNotepadWidgetForm = lazyComponent(() => import('../CnNotepadWidgetFo
 const LazyCnNotepadWidget = lazyComponent(() => import('./CnNotepadWidget.vue'), 'CnNotepadWidget')
 
 registerDashboardWidget('notepad', {
+	placeholder: 'lines',
 	renderer: LazyCnNotepadWidget,
 	form: LazyCnNotepadWidgetForm,
 	// The note is NOT in the placement: it is stored in the reader's preferences.

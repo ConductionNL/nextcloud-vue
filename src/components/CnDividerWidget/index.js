@@ -5,6 +5,7 @@ const LazyCnDividerWidgetForm = lazyComponent(() => import('../CnDividerWidgetFo
 const LazyCnDividerWidget = lazyComponent(() => import('./CnDividerWidget.vue'), 'CnDividerWidget')
 
 registerDashboardWidget('divider', {
+	placeholder: 'heading',
 	renderer: LazyCnDividerWidget,
 	form: LazyCnDividerWidgetForm,
 	defaultContent: {

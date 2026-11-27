@@ -15,6 +15,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnWorkspaceFilterWidget = lazyComponent(() => import('./CnWorkspaceFilterWidget.vue'), 'CnWorkspaceFilterWidget')
 
 registerDashboardWidget('workspace-filter', {
+	placeholder: 'block',
 	renderer: LazyCnWorkspaceFilterWidget,
 	defaultContent: {
 		label: '',

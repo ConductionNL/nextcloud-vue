@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnFieldGroupsWidget = lazyComponent(() => import('./CnFieldGroupsWidget.vue'), 'CnFieldGroupsWidget')
 
 registerDashboardWidget('field-groups', {
+	placeholder: 'lines',
 	renderer: LazyCnFieldGroupsWidget,
 	form: null,
 	defaultContent: {

@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnSlotGrid = lazyComponent(() => import('./CnSlotGrid.vue'), 'CnSlotGrid')
 
 registerDashboardWidget('slot-grid', {
+	placeholder: 'block',
 	renderer: LazyCnSlotGrid,
 	form: null,
 	defaultContent: {

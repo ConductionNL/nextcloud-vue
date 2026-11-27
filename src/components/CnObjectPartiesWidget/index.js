@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnObjectPartiesWidget = lazyComponent(() => import('./CnObjectPartiesWidget.vue'), 'CnObjectPartiesWidget')
 
 registerDashboardWidget('parties', {
+	placeholder: 'rows',
 	renderer: LazyCnObjectPartiesWidget,
 	form: null,
 	defaultContent: {},

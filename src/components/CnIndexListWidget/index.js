@@ -12,6 +12,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnIndexListWidget = lazyComponent(() => import('./CnIndexListWidget.vue'), 'CnIndexListWidget')
 
 registerDashboardWidget('index-list', {
+	placeholder: 'rows',
 	renderer: LazyCnIndexListWidget,
 	form: null,
 	defaultContent: {

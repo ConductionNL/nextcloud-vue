@@ -16,6 +16,7 @@ const LazyCnDeltaWidgetForm = lazyComponent(() => import('../CnDeltaWidgetForm/C
 const LazyCnDeltaWidget = lazyComponent(() => import('./CnDeltaWidget.vue'), 'CnDeltaWidget')
 
 registerDashboardWidget('delta', {
+	placeholder: 'counter',
 	renderer: LazyCnDeltaWidget,
 	form: LazyCnDeltaWidgetForm,
 	defaultContent: {

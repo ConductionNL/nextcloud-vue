@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnCreateFormWidget = lazyComponent(() => import('./CnCreateFormWidget.vue'), 'CnCreateFormWidget')
 
 registerDashboardWidget('create-form', {
+	placeholder: 'block',
 	renderer: LazyCnCreateFormWidget,
 	defaultContent: {
 		register: '',

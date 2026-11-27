@@ -5,6 +5,7 @@ const LazyCnLabelWidgetForm = lazyComponent(() => import('../CnLabelWidgetForm/C
 const LazyCnLabelWidget = lazyComponent(() => import('./CnLabelWidget.vue'), 'CnLabelWidget')
 
 registerDashboardWidget('label', {
+	placeholder: 'heading',
 	renderer: LazyCnLabelWidget,
 	form: LazyCnLabelWidgetForm,
 	defaultContent: {

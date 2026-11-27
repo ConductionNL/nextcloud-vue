@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnDeviceFramesWidget = lazyComponent(() => import('./CnDeviceFramesWidget.vue'), 'CnDeviceFramesWidget')
 
 registerDashboardWidget('device-frames', {
+	placeholder: 'block',
 	renderer: LazyCnDeviceFramesWidget,
 	form: null,
 	defaultContent: {

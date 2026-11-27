@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnConflictResolveCard = lazyComponent(() => import('./CnConflictResolveCard.vue'), 'CnConflictResolveCard')
 
 registerDashboardWidget('conflict-resolve', {
+	placeholder: 'block',
 	renderer: LazyCnConflictResolveCard,
 	form: null,
 	defaultContent: {

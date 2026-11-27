@@ -17,6 +17,7 @@ const LazyCnBannerWidgetForm = lazyComponent(() => import('../CnBannerWidgetForm
 const LazyCnBannerWidget = lazyComponent(() => import('./CnBannerWidget.vue'), 'CnBannerWidget')
 
 registerDashboardWidget('banner', {
+	placeholder: 'lines',
 	renderer: LazyCnBannerWidget,
 	form: LazyCnBannerWidgetForm,
 	defaultContent: {

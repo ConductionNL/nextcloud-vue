@@ -30,6 +30,8 @@
  * @spec openspec/changes/cn-widget-library/specs/cn-widget-library/spec.md
  */
 
+import { isValidWidgetPlaceholder } from '../../utils/resolveWidgetPlaceholder.js'
+
 /**
  * @typedef {object} DashboardWidgetEntry
  * @property {object} renderer Vue component reference for the dashboard grid (may be a lazy/async component definition).
@@ -42,6 +44,7 @@
  * @property {number} [minWidth] The fewest grid columns a placement of this type may take, below the grid's own minimum (an app tile: 1). A host copies it onto the layout item as `minWidth`.
  * @property {string[]} [surfaces] Surfaces this type may be added on (e.g. `['app-dashboard']`, `['detail-page']`). Omitted means the default dashboard surfaces. A detail-only widget (like `data`) sets `['detail-page']` so it never appears in the dashboard Add-widget picker.
  * @property {boolean} [public] Whether a PUBLIC host (an anonymous visitor at a public origin, such as the portal) may mount this widget. Default `false`, and `registerDashboardWidget()` records it: a widget author opts in deliberately. A non-boolean value is refused.
+ * @property {string|{shape: string, count?: number}} [placeholder] The shape the widget waits in while its content loads: `rows`, `lines`, `block`, `tiles`, `counter` or `heading`, or `{ shape, count }` with `count` 1 to 24 (widget-placeholder-shape, design D1/D2). Covers every widget of the type unless a manifest widget declares its own. `registerDashboardWidget()` refuses an invalid value.
  * @property {{graphql?: string[]}} [requires] Soft runtime-source hint for cross-app widgets — names the sibling-app schemas the widget reads. NEVER a `manifest.dependencies` entry.
  */
 
@@ -75,6 +78,12 @@ export function registerDashboardWidget(type, entry) {
 	// "yes" must not quietly become true, or false.
 	if (entry && entry.public !== undefined && typeof entry.public !== 'boolean') {
 		throw new TypeError(`[dashboardWidgetRegistry] widget type "${type}": \`public\` must be a boolean, got ${typeof entry.public}.`)
+	}
+	// The placeholder shape is a closed enum (widget-placeholder-shape D1):
+	// refuse a typo at registration, where it is cheap to find, instead of
+	// letting the widget wait in the wrong shape on every dashboard.
+	if (entry && entry.placeholder !== undefined && !isValidWidgetPlaceholder(entry.placeholder)) {
+		throw new TypeError(`[dashboardWidgetRegistry] widget type "${type}": \`placeholder\` must be one of rows, lines, block, tiles, counter, heading, or { shape, count } with count 1 to 24.`)
 	}
 	if (entry && entry.public === undefined) {
 		if (Object.isExtensible(entry)) {

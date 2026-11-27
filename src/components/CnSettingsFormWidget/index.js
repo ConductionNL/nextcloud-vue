@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnSettingsFormWidget = lazyComponent(() => import('./CnSettingsFormWidget.vue'), 'CnSettingsFormWidget')
 
 registerDashboardWidget('settings-form', {
+	placeholder: 'block',
 	renderer: LazyCnSettingsFormWidget,
 	form: null,
 	defaultContent: {

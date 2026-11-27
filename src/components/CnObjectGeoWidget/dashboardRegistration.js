@@ -20,6 +20,7 @@ const LazyCnObjectGeoWidgetForm = lazyComponent(() => import('../CnObjectGeoWidg
 const LazyCnObjectGeoWidget = lazyComponent(() => import('./CnObjectGeoWidget.vue'), 'CnObjectGeoWidget')
 
 registerDashboardWidget('object-geo', {
+	placeholder: 'block',
 	renderer: LazyCnObjectGeoWidget,
 	form: LazyCnObjectGeoWidgetForm,
 	defaultContent: {

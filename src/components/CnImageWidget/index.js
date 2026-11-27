@@ -13,6 +13,7 @@ const LazyCnImageWidgetForm = lazyComponent(() => import('../CnImageWidgetForm/C
 const LazyCnImageWidget = lazyComponent(() => import('./CnImageWidget.vue'), 'CnImageWidget')
 
 registerDashboardWidget('image', {
+	placeholder: 'block',
 	renderer: LazyCnImageWidget,
 	form: LazyCnImageWidgetForm,
 	defaultContent: {

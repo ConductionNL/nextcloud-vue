@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnSectionsWidget = lazyComponent(() => import('./CnSectionsWidget.vue'), 'CnSectionsWidget')
 
 registerDashboardWidget('sections', {
+	placeholder: 'lines',
 	renderer: LazyCnSectionsWidget,
 	form: null,
 	defaultContent: {

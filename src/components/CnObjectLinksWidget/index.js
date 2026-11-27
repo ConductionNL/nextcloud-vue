@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnObjectLinksWidget = lazyComponent(() => import('./CnObjectLinksWidget.vue'), 'CnObjectLinksWidget')
 
 registerDashboardWidget('object-links', {
+	placeholder: 'rows',
 	renderer: LazyCnObjectLinksWidget,
 	form: null,
 	defaultContent: {

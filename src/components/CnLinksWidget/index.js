@@ -13,6 +13,7 @@ const LazyCnLinksWidgetForm = lazyComponent(() => import('../CnLinksWidgetForm/C
 const LazyCnLinksWidget = lazyComponent(() => import('./CnLinksWidget.vue'), 'CnLinksWidget')
 
 registerDashboardWidget('links', {
+	placeholder: 'rows',
 	renderer: LazyCnLinksWidget,
 	form: LazyCnLinksWidgetForm,
 	defaultContent: {

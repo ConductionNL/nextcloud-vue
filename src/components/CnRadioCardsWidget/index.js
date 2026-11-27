@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnRadioCardsWidget = lazyComponent(() => import('./CnRadioCardsWidget.vue'), 'CnRadioCardsWidget')
 
 registerDashboardWidget('radio-cards', {
+	placeholder: 'block',
 	renderer: LazyCnRadioCardsWidget,
 	form: null,
 	defaultContent: {

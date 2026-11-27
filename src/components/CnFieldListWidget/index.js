@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnFieldListWidget = lazyComponent(() => import('./CnFieldListWidget.vue'), 'CnFieldListWidget')
 
 registerDashboardWidget('field-list', {
+	placeholder: 'lines',
 	renderer: LazyCnFieldListWidget,
 	form: null,
 	defaultContent: {

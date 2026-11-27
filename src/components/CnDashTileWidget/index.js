@@ -14,6 +14,7 @@ const LazyCnDashTileWidgetForm = lazyComponent(() => import('../CnDashTileWidget
 const LazyCnDashTileWidget = lazyComponent(() => import('./CnDashTileWidget.vue'), 'CnDashTileWidget')
 
 registerDashboardWidget('tile', {
+	placeholder: 'tiles',
 	renderer: LazyCnDashTileWidget,
 	form: LazyCnDashTileWidgetForm,
 	defaultContent: {

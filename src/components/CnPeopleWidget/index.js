@@ -17,6 +17,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnPeopleWidget = lazyComponent(() => import('./CnPeopleWidget.vue'), 'CnPeopleWidget')
 
 registerDashboardWidget('people', {
+	placeholder: 'rows',
 	renderer: LazyCnPeopleWidget,
 	form: null,
 	defaultContent: {

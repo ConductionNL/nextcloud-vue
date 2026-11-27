@@ -17,6 +17,7 @@ const LazyCnFlowRunsWidgetForm = lazyComponent(() => import('../CnFlowRunsWidget
 const LazyCnFlowRunsWidget = lazyComponent(() => import('./CnFlowRunsWidget.vue'), 'CnFlowRunsWidget')
 
 registerDashboardWidget('flow-runs', {
+	placeholder: 'rows',
 	renderer: LazyCnFlowRunsWidget,
 	form: LazyCnFlowRunsWidgetForm,
 	defaultContent: {

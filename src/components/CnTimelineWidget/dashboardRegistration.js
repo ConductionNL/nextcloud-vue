@@ -18,6 +18,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnTimelineWidget = lazyComponent(() => import('./CnTimelineWidget.vue'), 'CnTimelineWidget')
 
 registerDashboardWidget('timeline', {
+	placeholder: 'rows',
 	renderer: LazyCnTimelineWidget,
 	form: null,
 	defaultContent: {

@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnKbSearchWidget = lazyComponent(() => import('./CnKbSearchWidget.vue'), 'CnKbSearchWidget')
 
 registerDashboardWidget('kb-search', {
+	placeholder: 'block',
 	renderer: LazyCnKbSearchWidget,
 	defaultContent: {
 		endpoint: '/apps/openregister/api/integrations/xwiki/search',

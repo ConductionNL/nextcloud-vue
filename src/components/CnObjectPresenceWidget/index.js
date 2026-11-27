@@ -12,6 +12,7 @@ const LazyCnObjectPresenceWidget = lazyComponent(() => import('./CnObjectPresenc
 // entry is excluded from the Add-widget picker by `listWidgetTypes()`, which is
 // right — it is placed by a manifest, not chosen from a menu.
 registerDashboardWidget('presence', {
+	placeholder: 'rows',
 	renderer: LazyCnObjectPresenceWidget,
 	form: null,
 	defaultContent: {},

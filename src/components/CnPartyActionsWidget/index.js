@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnPartyActionsWidget = lazyComponent(() => import('./CnPartyActionsWidget.vue'), 'CnPartyActionsWidget')
 
 registerDashboardWidget('party-actions', {
+	placeholder: 'block',
 	renderer: LazyCnPartyActionsWidget,
 	form: null,
 	defaultContent: {
