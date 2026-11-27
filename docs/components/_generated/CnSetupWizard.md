@@ -45,3 +45,4 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name             | Bindings                                  | Description                                                  |
 | ---------------- | ----------------------------------------- | ------------------------------------------------------------ |
 | `stepSlot(step)` | `name`, `step`, `runAction`, `saveConfig` | step-\{id\} Override a step's body (for `component` steps or |
+| `actions-start`  | —                                         |                                                              |

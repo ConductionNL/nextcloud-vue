@@ -82,6 +82,19 @@
 			     Dutch one, reporting a broken dialog rather than a missing
 			     string. -->
 			<template v-else>
+				<!-- @slot actions-start Extra footer actions before Skip, Cancel,
+				     Back and Next, for a host whose board draws more ways out of
+				     the wizard (e.g. "Skip, keep Nextcloud as it is", which ends
+				     the whole setup). Scope: { currentStep, stepIndex, totalSteps,
+				     isFirst, isLast, loading, close }. -->
+				<slot name="actions-start"
+					:currentStep="currentStep"
+					:stepIndex="currentIndex"
+					:totalSteps="steps.length"
+					:isFirst="isFirst"
+					:isLast="isLast"
+					:loading="loading"
+					:close="onClose" />
 				<!-- A step marked `skippable` moves on without validating or
 				     saving (PqInstellen "Deze stap overslaan"). -->
 				<NcButton v-if="currentStep && currentStep.skippable === true && !isLast"

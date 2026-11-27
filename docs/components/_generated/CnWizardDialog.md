@@ -42,7 +42,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Slots
 
-| Name                       | Bindings                                                                                                                             | Description                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
-| `result-extra`             | `result`                                                                                                                             | result-extra Optional extra content (e.g. batch |
-| `'step-' + currentStep.id` | `name`, `next`, `back`, `jumpTo`, `submit`, `currentStep`, `stepIndex`, `totalSteps`, `stepData`, `setStepData`, `isFirst`, `isLast` | step-\{id\} Per-step body. Scope: \{ next,      |
+| Name                       | Bindings                                                                                                                             | Description                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `result-extra`             | `result`                                                                                                                             | result-extra Optional extra content (e.g. batch         |
+| `'step-' + currentStep.id` | `name`, `next`, `back`, `jumpTo`, `submit`, `currentStep`, `stepIndex`, `totalSteps`, `stepData`, `setStepData`, `isFirst`, `isLast` | step-\{id\} Per-step body. Scope: \{ next,              |
+| `actions-start`            | `currentStep`, `stepIndex`, `totalSteps`, `isFirst`, `isLast`, `loading`, `close`                                                    | actions-start Extra footer actions before Skip, Cancel, |

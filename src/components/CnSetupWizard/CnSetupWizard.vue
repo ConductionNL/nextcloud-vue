@@ -312,6 +312,12 @@
 			</div>
 		</template>
 		<!-- eslint-enable vue/no-v-for-template-key-on-child -->
+		<!-- @slot actions-start Extra footer actions before the wizard's own
+		     buttons, passed through to CnWizardDialog. Scope: { currentStep,
+		     stepIndex, totalSteps, isFirst, isLast, loading, close }. -->
+		<template v-if="$slots['actions-start']" #actions-start="footer">
+			<slot name="actions-start" v-bind="footer" />
+		</template>
 	</CnWizardDialog>
 </template>
 

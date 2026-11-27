@@ -277,6 +277,7 @@ A server-done `choice` step also stops blocking `Next` when the user back-naviga
 ## Slots
 
 - `#step-{id}` — override a step's body (for `component` steps or any bespoke step). Scope: the `CnWizardDialog` step scope plus `{ step, runAction, saveConfig }`.
+- `#actions-start` — extra footer actions before the wizard's own buttons, passed through to `CnWizardDialog`'s `#actions-start`. Scope: `{ currentStep, stepIndex, totalSteps, isFirst, isLast, loading, close }`.
 
 ## See also
 
