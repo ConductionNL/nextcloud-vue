@@ -20,6 +20,7 @@
 			'cn-widget-wrapper--collapsed': isCollapsed,
 		}"
 		:data-cn-high-contrast="highContrast ? 'true' : undefined"
+		:aria-busy="loading ? 'true' : undefined"
 		:style="wrapperStyles">
 		<!-- Header.
 		     Rendered when a title earns it, or when controls that are actually
@@ -190,10 +191,21 @@
 			v-show="!isCollapsed"
 			:id="contentId"
 			class="cn-widget-wrapper__content"
+			:class="{ 'cn-widget-wrapper__content--loading': loading }"
 			tabindex="0"
 			role="region"
 			:aria-labelledby="titleVisible ? titleId : null"
 			:aria-label="titleVisible ? null : resolvedTitle">
+			<!-- While the widget loads its first content (`loading`), its declared
+			     placeholder lies over the content area. The slot stays mounted
+			     underneath under `visibility: hidden` (out of sight and out of
+			     the accessibility tree, still laid out), because the renderer in
+			     it is what fetches: an unmounted renderer never finishes loading
+			     (widget-placeholder-shape D6). No status of its own: the page
+			     announces loading once (D8). -->
+			<div v-if="loading" class="cn-widget-wrapper__placeholder" data-testid="cn-widget-wrapper-placeholder">
+				<CnWidgetPlaceholder :shape="resolvedPlaceholder.shape" :count="resolvedPlaceholder.count" />
+			</div>
 			<!-- @slot notice The card's state banners, above the body (R1).
 			     Defaults to the `notices` prop, else the notices the detail
 			     host provides for the widget. -->
@@ -230,11 +242,13 @@ import { translate as t } from '@nextcloud/l10n'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
 import CnCardNotices from '../CnCardNotices/CnCardNotices.vue'
+import CnWidgetPlaceholder from '../CnWidgetPlaceholder/CnWidgetPlaceholder.vue'
 import CnWidgetHeaderActionButtons from './CnWidgetHeaderActionButtons.vue'
 import { normalizeLook } from '../../composables/useLook.js'
 import { WIDGET_NOTICES } from '../../utils/cardNotices.js'
 import { headerLinkTarget } from '../../utils/contentHeaderLink.js'
 import { DEFAULT_HEADING_LEVEL, HEADING_LEVEL, headingTag, resolveHeadingLevel } from '../../utils/headingLevel.js'
+import { normalizeWidgetPlaceholder } from '../../utils/resolveWidgetPlaceholder.js'
 import { slotRenders } from '../../utils/slotContent.js'
 import { WIDGET_HEADER_ACTIONS } from '../../utils/widgetHeaderActions.js'
 import { CnActionsMenu } from '../CnActionsMenu/index.js'
@@ -286,6 +300,7 @@ export default {
 		CnActionsMenu,
 		CnCardNotices,
 		CnWidgetHeaderActionButtons,
+		CnWidgetPlaceholder,
 	},
 
 	/**
@@ -756,6 +771,34 @@ export default {
 		},
 
 		/**
+		 * Whether the widget is loading its first content. While true the
+		 * wrapper draws the `placeholder` shape over its content area, keeps
+		 * the slot mounted but hidden, and carries `aria-busy="true"`. A
+		 * refresh after the first load is not a load: use `refreshing`.
+		 *
+		 * @type {boolean}
+		 * @spec openspec/changes/widget-placeholder-shape/tasks.md#task-5
+		 */
+		loading: {
+			type: Boolean,
+			default: false,
+		},
+
+		/**
+		 * The shape to wait in while `loading`: `rows`, `lines`, `block`,
+		 * `tiles`, `counter` or `heading`, or `{ shape, count }`. A host passes
+		 * what `resolveWidgetPlaceholder()` returns; an invalid value waits in
+		 * rows.
+		 *
+		 * @type {string|object}
+		 * @spec openspec/changes/widget-placeholder-shape/tasks.md#task-5
+		 */
+		placeholder: {
+			type: [String, Object],
+			default: 'rows',
+		},
+
+		/**
 		 * Optional pre-translated label for the Refresh action. Defaults
 		 * to the lib's translation of "Refresh" so callers usually don't
 		 * need to set this.
@@ -841,6 +884,17 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The `placeholder` prop as `{ shape, count }`; an invalid value is rows.
+		 *
+		 * @return {{shape: string, count: (number|null)}}
+		 * @spec openspec/changes/widget-placeholder-shape/tasks.md#task-5
+		 */
+		resolvedPlaceholder() {
+			const declared = normalizeWidgetPlaceholder(this.placeholder) ?? { shape: 'rows' }
+			return { shape: declared.shape, count: declared.count ?? null }
+		},
+
 		/**
 		 * The provided header actions, unwrapped.
 		 *
@@ -1367,6 +1421,27 @@ export default {
 	overflow: auto;
 	min-height: 0;
 	padding: 16px;
+}
+
+/* Loading (widget-placeholder-shape D6): the placeholder lies over the content
+   area and the content keeps its place underneath, mounted but hidden, so the
+   frame does not change size when the content arrives. */
+.cn-widget-wrapper__content--loading {
+	position: relative;
+	overflow: hidden;
+}
+
+.cn-widget-wrapper__content--loading > :deep(:not(.cn-widget-wrapper__placeholder)) {
+	visibility: hidden;
+}
+
+.cn-widget-wrapper__placeholder {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	box-sizing: border-box;
+	padding: 16px;
+	background: inherit;
 }
 
 /* The state banners sit above the body; in a flush card they keep the

@@ -206,3 +206,13 @@ Subtitle: `subtitle` is a muted line under the title, the counterpart of `eyebro
 | `notices` | Array | `[]` | State banners drawn at the top of the card body; a detail host's provided notices come after these: each a `notice` content (`{ variant, role?, layout?, title?, text, actions?, dismissible?, visibleWhen? }`, see [CnCardNotices](../../../docs/components/cn-card-notices.md)). A notice shows only while its `visibleWhen` holds against the record. |
 
 The `#notice` slot replaces the drawn notices with your own markup. A notice's action button emits `notice-action` (`entry, notice`) and closing a dismissible notice emits `notice-dismiss` (`notice`).
+
+Loading, waiting in the widget's declared shape:
+
+```vue
+<div style="width: 320px; height: 220px; position: relative; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+  <CnWidgetWrapper title="My cases" :show-title="true" :loading="true" placeholder="rows">
+    <p style="margin: 0; padding: 0 16px;">Loaded content</p>
+  </CnWidgetWrapper>
+</div>
+```
