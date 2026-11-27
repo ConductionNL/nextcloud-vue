@@ -217,6 +217,43 @@ describe('measureFloor', () => {
 	})
 })
 
+describe('measureFloor across worker restarts', () => {
+	it('reuses the floor a previous worker of the run stored in the cache directory', async () => {
+		const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'perf-floor-'))
+		const env = { PERF_FLOOR_PATH: '/index.php/apps/floor-shared/' }
+		const stored = { path: env.PERF_FLOOR_PATH, medianMs: 612, loads: [600, 612, 640], firstContentMs: 280, source: 'measured', failure: null }
+		fs.writeFileSync(path.join(cacheDir, '.perf-floor-_index_php_apps_floor_shared_.json'), JSON.stringify(stored))
+		const page = {
+			goto: async () => {
+				throw new Error('must not measure')
+			},
+		}
+		expect(await measureFloor(page, { env, cacheDir })).toEqual(stored)
+	})
+
+	it('stores a measured floor for the next worker of the run', async () => {
+		const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'perf-floor-'))
+		let clockNow = 0
+		let readyAt = 0
+		const page = {
+			on: () => {},
+			off: () => {},
+			goto: async () => {
+				readyAt = clockNow + 300
+			},
+			evaluate: async () => ({ ready: clockNow >= readyAt, busy: false }),
+			waitForTimeout: async (ms) => {
+				clockNow += ms
+			},
+		}
+		const env = { PERF_FLOOR_PATH: '/index.php/apps/floor-store/' }
+		const floor = await measureFloor(page, { env, runs: 3, clock: () => clockNow, cacheDir })
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		const file = path.join(cacheDir, '.perf-floor-_index_php_apps_floor_store_.json')
+		expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual(floor)
+	})
+})
+
 describe('measureLoad paint times', () => {
 	it('reports the last LCP inside the main region as the first useful content', async () => {
 		const { page, clock } = scriptedPage({ 0: { ready: true } })

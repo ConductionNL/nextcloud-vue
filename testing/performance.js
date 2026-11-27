@@ -615,9 +615,23 @@ function formatFailure(result, limit) {
 const floors = new Map()
 
 /**
+ * Where a run keeps its floor, so a worker Playwright restarts after a failed
+ * test reuses it instead of measuring again. Null without a cache directory.
+ *
+ * @param {string|undefined} cacheDir Directory that lives for one run (the project's output dir).
+ * @param {string} floorPath Floor page.
+ * @return {string|null}
+ */
+function floorCacheFile(cacheDir, floorPath) {
+	return cacheDir ? path.join(cacheDir, '.perf-floor-' + floorPath.replace(/[^a-z0-9]+/gi, '_') + '.json') : null
+}
+
+/**
  * The Nextcloud floor for this run: `PERF_FLOOR_MS` when set, else the floor
  * page (`PERF_FLOOR_PATH`, default the Dashboard) primed and measured like an
- * app page, once per worker.
+ * app page, once per run. Within a worker the measurement is shared in
+ * memory; across workers (Playwright starts a new one after every failed
+ * test) through `options.cacheDir`, which must live for one run only.
  *
  * @param {object} page Playwright `Page`.
  * @param {object} [options] Options.
@@ -625,6 +639,7 @@ const floors = new Map()
  * @param {number} [options.runs] Warm loads.
  * @param {number} [options.timeoutMs] Per-load timeout.
  * @param {() => number} [options.clock] Millisecond clock.
+ * @param {string} [options.cacheDir] Run-scoped directory to share the floor through.
  * @return {Promise<{path: string, medianMs: number|null, loads: number[], firstContentMs: number|null, source: string, failure: string|null}>}
  */
 function measureFloor(page, options = {}) {
@@ -634,18 +649,41 @@ function measureFloor(page, options = {}) {
 	if (given > 0) {
 		return Promise.resolve({ path: floorPath, medianMs: given, loads: [], firstContentMs: null, source: 'PERF_FLOOR_MS', failure: null })
 	}
-	if (!floors.has(floorPath)) {
-		const pending = measurePage(page, { name: 'Nextcloud floor', path: floorPath }, { runs: options.runs, timeoutMs: options.timeoutMs, clock: options.clock })
-			.then((result) => ({ path: floorPath, medianMs: result.medianMs, loads: result.loads, firstContentMs: result.firstContentMs, source: 'measured', failure: result.failure }))
-		floors.set(floorPath, pending)
-		// A failed floor is not cached: the next page test tries again.
-		pending.then((floor) => {
-			if (floor.failure) {
-				floors.delete(floorPath)
-			}
-		}, () => floors.delete(floorPath))
+	if (floors.has(floorPath)) {
+		return floors.get(floorPath)
 	}
-	return floors.get(floorPath)
+	const file = floorCacheFile(options.cacheDir, floorPath)
+	if (file) {
+		try {
+			const stored = JSON.parse(fs.readFileSync(file, 'utf8'))
+			if (stored && Number.isFinite(stored.medianMs) && !stored.failure) {
+				const shared = Promise.resolve(stored)
+				floors.set(floorPath, shared)
+				return shared
+			}
+		} catch {
+			// Not measured yet in this run.
+		}
+	}
+	const pending = measurePage(page, { name: 'Nextcloud floor', path: floorPath }, { runs: options.runs, timeoutMs: options.timeoutMs, clock: options.clock })
+		.then((result) => ({ path: floorPath, medianMs: result.medianMs, loads: result.loads, firstContentMs: result.firstContentMs, source: 'measured', failure: result.failure }))
+	floors.set(floorPath, pending)
+	pending.then((floor) => {
+		if (floor.failure) {
+			// A failed floor is not kept: the next page test tries again.
+			floors.delete(floorPath)
+			return
+		}
+		if (file) {
+			try {
+				fs.mkdirSync(path.dirname(file), { recursive: true })
+				fs.writeFileSync(file, JSON.stringify(floor))
+			} catch {
+				// Sharing is an optimisation; the in-memory floor still holds.
+			}
+		}
+	}, () => floors.delete(floorPath))
+	return pending
 }
 
 /**
@@ -669,7 +707,7 @@ function definePerformanceSpec(test, options = {}) {
 				const timeoutMs = Math.max(10000, runLimit.limitMs * 10)
 				test.setTimeout(timeoutMs * (2 * runs + 4))
 				await seedFirstVisitOverlaysSeen(page, budget.app).catch(() => {})
-				const floor = await measureFloor(page, { env, runs, timeoutMs })
+				const floor = await measureFloor(page, { env, runs, timeoutMs, cacheDir: testInfo.project && testInfo.project.outputDir })
 				if (floor.failure || floor.medianMs === null) {
 					throw new Error('The Nextcloud floor page (' + floor.path + ') ' + (floor.failure || 'was not measured')
 						+ '; without it no page can be judged. Set PERF_FLOOR_PATH or PERF_FLOOR_MS.')
