@@ -24,6 +24,8 @@ registerDashboardWidget('delta', {
 		format: { style: 'number', currency: 'EUR', decimals: 0 },
 		source: { register: '', schema: '', metric: 'count', field: '', goodDirection: 'up', current: { filter: {} }, previous: { filter: {} } },
 	},
+	// What a widget picker's miniature draws with `preview` set.
+	sampleContent: { label: 'Requests this week', icon: 'TrendingUp', format: { style: 'number', decimals: 0 }, source: { goodDirection: 'up' }, sampleValue: 18, samplePrevious: 14 },
 	displayName: 'Comparison / delta',
 	icon: 'TrendingUp',
 	// Self-contained card surface — rendered flush and centred (no inner

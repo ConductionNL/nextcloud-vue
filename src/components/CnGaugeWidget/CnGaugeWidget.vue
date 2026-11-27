@@ -36,6 +36,7 @@ import widgetLink from '../../mixins/widgetLink.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { sampleNumber } from '../../utils/sampleNumber.js'
 import { STATUS_FILL_COLORS, STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 
 /**
@@ -101,6 +102,18 @@ export default {
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it draws its
+		 * `content.sampleValue` against `content.sampleTarget` and sends no request (no aggregate,
+		 * endpoint, caption, limit or reference lookup).
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -289,6 +302,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchAll() {
+			// A miniature draws its sample and reads nothing.
+			if (this.preview) {
+				this.value = sampleNumber(this.content.sampleValue)
+				this.target = sampleNumber(this.content.sampleTarget)
+				this.error = ''
+				return
+			}
 			const s = this.content.source || {}
 			if (!s.register || !s.schema) {
 				this.value = null

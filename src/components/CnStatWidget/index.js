@@ -27,6 +27,8 @@ registerDashboardWidget('stat', {
 		format: { style: 'number', currency: 'EUR', decimals: 0 },
 		source: { register: '', schema: '', metric: 'count', field: '', filter: {} },
 	},
+	// What a widget picker's miniature draws with `preview` set.
+	sampleContent: { label: 'Open cases', icon: 'TrendingUp', valueColor: '#0082c9', format: { style: 'number', decimals: 0 }, sampleValue: 42 },
 	displayName: 'Statistic / KPI',
 	icon: 'TrendingUp',
 	// Self-contained card surface — CnDashboardPage renders it flush and

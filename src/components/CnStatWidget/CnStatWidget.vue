@@ -198,6 +198,7 @@ import { fetchListTotal, needsListEndpoint } from '../../utils/fetchFilterCounts
 import { fillTemplate } from '../../utils/fillTemplate.js'
 import { formatMetricValue, metricLocale, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens } from '../../utils/resolveFilterTokens.js'
+import { sampleNumber } from '../../utils/sampleNumber.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 import { evaluateVisibleWhenLocal, readVisibleWhenPath } from '../../utils/visibleWhen.js'
 import { CnEndpointNotice } from '../CnEndpointNotice/index.js'
@@ -576,6 +577,18 @@ export default {
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it draws its
+		 * `content.sampleValue` and sends no request (no aggregate,
+		 * endpoint, caption, limit or reference lookup).
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -2284,6 +2297,12 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValue(refresh) {
+			// A miniature draws its sample and reads nothing.
+			if (this.preview) {
+				this.value = sampleNumber(this.content.sampleValue)
+				this.error = ''
+				return
+			}
 			// The caption's own count and the limit's are read beside the
 			// value, whatever the value's source is.
 			this.fetchCaptionValue()

@@ -226,6 +226,7 @@ The day count is taken when the tile renders. A tile left open across midnight k
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The KPI config blob (`label`, `icon`, `format`, `source` or `endpointSource` + `valueField`/`limitField`/`dateRange`/`previousField`/`deltaField`/`variantWhen`/`clickRoute`/`display`/`countdown`, …). |
+| `preview` | `boolean` | `false` | A miniature in a widget picker: draws `content.sampleValue` and sends no request. |
 | `translate` | `function` | `null` | Translate function for the `label` / `caption` source strings. Falls back to the injected `cnTranslate` (identity by default). |
 
 ## Notes
