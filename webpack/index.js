@@ -64,6 +64,8 @@
 
 'use strict'
 
+const path = require('path')
+
 /**
  * The value webpack understands as "derive the prefix at runtime".
  *
@@ -242,6 +244,13 @@ const NEXTCLOUD_VUE_INDEX_RULE = Object.freeze({
 	sideEffects: false,
 })
 
+// @nextcloud/vue's chunks that read the body's custom properties with
+// getComputedStyle() per component: read them once per page instead.
+const NEXTCLOUD_VUE_BODY_STYLE_RULE = Object.freeze({
+	test: /[\\/]node_modules[\\/]@nextcloud[\\/]vue[\\/]dist[\\/]chunks[\\/](NcSelect|NcSelectUsers|NcProgressBar)(-[\w-]+)?\.mjs$/,
+	use: Object.freeze([path.join(__dirname, 'body-style-once-loader.js')]),
+})
+
 /**
  * Return a copy of a webpack config that keeps the library's lazy chunks lazy
  * and stops css-loader writing source maps into the JavaScript.
@@ -273,6 +282,11 @@ const NEXTCLOUD_VUE_INDEX_RULE = Object.freeze({
  *   picker and the markdown stack: 2.2 MB minified for one button. The index
  *   only imports and re-exports, so webpack can link each name to its own
  *   module; each component's own modules and CSS keep their side effects.
+ * - `@nextcloud/vue`'s NcSelect, NcSelectUsers and NcProgressBar read the
+ *   body's `--default-clickable-area` / `--default-grid-baseline` once per
+ *   page (`body-style-once-loader.js`). NcSelect read both in every setup():
+ *   each read forces a full style recalculation during the first render,
+ *   ~73 ms on a page with five selects.
  *
  * USAGE
  * -----
@@ -300,7 +314,7 @@ function withLeanBundles(config) {
 
 	const out = { ...config }
 	const rules = config.module && Array.isArray(config.module.rules) ? config.module.rules.map(withoutCssMaps) : []
-	out.module = { ...(config.module || {}), rules: [...rules, { ...NEXTCLOUD_VUE_INDEX_RULE }] }
+	out.module = { ...(config.module || {}), rules: [...rules, { ...NEXTCLOUD_VUE_INDEX_RULE }, { ...NEXTCLOUD_VUE_BODY_STYLE_RULE, use: [...NEXTCLOUD_VUE_BODY_STYLE_RULE.use] }] }
 
 	const splitChunks = config.optimization && config.optimization.splitChunks
 	if (splitChunks && typeof splitChunks === 'object') {
@@ -324,6 +338,7 @@ function withLeanBundles(config) {
 
 module.exports = {
 	AUTO_PUBLIC_PATH,
+	NEXTCLOUD_VUE_BODY_STYLE_RULE,
 	NEXTCLOUD_VUE_INDEX_RULE,
 	appVersionDefine,
 	withLeanBundles,
