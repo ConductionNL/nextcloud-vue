@@ -106,3 +106,23 @@ without the expression passes through unchanged.
 
 Registers page, 2 interleaved rounds x 7 warm loads: total 1519 / 1466 ms ->
 1314 / 1253 ms, first useful content 1512 / 1424 ms -> 1160 / 1060 ms.
+
+## Link the library stylesheet: `LibraryStylesheetCopy`
+
+`import '@conduction/nextcloud-vue/css/index.css'` in an entry makes style-loader carry the ~1.1 MB sheet as text inside the bundle and insert it on every page load. A **linked** stylesheet stays parsed in the browser cache between loads. On the sandbox reference stack this took ~30-150 ms off warm loads (launchpad Workspace, opencatalogi Search, pipelinq Sales, OpenRegister Registers).
+
+```js
+// webpack.config.js
+const { LibraryStylesheetCopy } = require('@conduction/nextcloud-vue/webpack')
+webpackConfig.plugins.push(new LibraryStylesheetCopy()) // writes css/nextcloud-vue.css after emit
+```
+
+Then, on every page whose entry imported the sheet:
+
+1. link it before the app's own style: `Util::addStyle('<appid>', 'nextcloud-vue');`
+2. remove `import '@conduction/nextcloud-vue/css/index.css'` from that entry;
+3. add `/css/nextcloud-vue.css` to `.gitignore`.
+
+Options: `to` (default `css/nextcloud-vue.css`, relative to the app root) and `from` (default: the file `css/index.css` imports, i.e. the sheet without the board-look block; `enableBoardLookStyle()` still adds that block at runtime). `libraryStylesheetSource()` returns that default path.
+
+Check each page that loads a split shared chunk (admin settings, dashboard widgets): it must link the sheet too, or its library components render unstyled.
