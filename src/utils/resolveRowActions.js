@@ -54,7 +54,7 @@ function describe(action) {
  * @param {Array<object|string>} declared The declared entries: app action objects and placeholders.
  * @param {Array<{id: string}>} builtins The enabled built-in actions, in default order.
  * @param {object} [options] Options.
- * @param {(action: object) => object} [options.prepare] Maps an app action to the object rendered for it.
+ * @param {(action: object) => (object|null|undefined)} [options.prepare] Maps an app action to the object rendered for it. Returning null/undefined drops the entry — for an action a caller can determine will not work (e.g. a string handler that resolves to nothing).
  * @return {{actions: Array<object>, warnings: Array<{code: string, message: string}>, deleteNotLast: boolean}} The ordered actions, the warnings, and whether the built-in Delete is enabled but not last.
  */
 export function resolveRowActions(declared, builtins, { prepare = (action) => action } = {}) {
@@ -79,7 +79,10 @@ export function resolveRowActions(declared, builtins, { prepare = (action) => ac
 					message: `Action ${describe(entry)} sets "builtin", which only built-in actions carry; the key is ignored and the entry stays an app action.`,
 				})
 			}
-			actions.push(prepare(action))
+			const prepared = prepare(action)
+			if (prepared) {
+				actions.push(prepared)
+			}
 			continue
 		}
 		if (isBuiltinPlaceholder(entry)) {

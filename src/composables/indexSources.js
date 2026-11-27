@@ -14,6 +14,7 @@ import EmailOutline from 'vue-material-design-icons/EmailOutline.vue'
 import HandBackRight from 'vue-material-design-icons/HandBackRight.vue'
 import LightningBolt from 'vue-material-design-icons/LightningBolt.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Play from 'vue-material-design-icons/Play.vue'
 import Undo from 'vue-material-design-icons/Undo.vue'
 import { formatRelativeDate } from '../utils/boardDate.js'
 import { fetchReferenceObjects } from '../utils/boardReferenceColumns.js'
@@ -305,6 +306,15 @@ function flowsSource(config = {}) {
 		// render empty).
 		rowActions: [
 			{ id: 'edit', label: t('nextcloud-vue', 'Edit'), icon: Pencil, action: 'open' },
+			// `handler` is a REGISTRY NAME, not a function: a named source is
+			// shared across apps (Integriq, Hermiq, ...) and must not import one
+			// app's handler. An app enables this action by registering
+			// 'runFlowHandler', which is called with { actionId, item } (the
+			// clicked row) — same contract as any other app-registered row
+			// action. An app that registers nothing never sees the action: an
+			// unresolvable source handler is dropped rather than rendered dead
+			// (see CnIndexPage's mergedActions).
+			{ id: 'run', label: t('nextcloud-vue', 'Force run'), icon: Play, handler: 'runFlowHandler' },
 		],
 
 		/**
