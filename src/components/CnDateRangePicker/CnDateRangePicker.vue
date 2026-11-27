@@ -52,7 +52,13 @@
 
 <script>
 import { translate as t } from '@nextcloud/l10n'
-import { NcDateTimePicker, NcSelect } from '@nextcloud/vue'
+import { NcSelect } from '@nextcloud/vue'
+import { defineAsyncComponent } from 'vue'
+
+// The date picker (@vuepic/vue-datepicker and its styles) loads with the first
+// picker that is drawn, not with every page whose index sidebar or dashboard
+// can show a date range: imported statically it sat in the app's entry chunks.
+const NcDateTimePicker = defineAsyncComponent(() => import('@nextcloud/vue/components/NcDateTimePicker').then((m) => m.default))
 
 /**
  * Default preset list used when the consumer doesn't provide one.
