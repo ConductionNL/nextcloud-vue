@@ -1100,12 +1100,33 @@ export default {
 					}
 					return
 				}
-				this.matchRowHeights()
+				this.matchRowHeightsOncePerRun()
 				this.resizeKeepingOrder(grid, resize, growing, el)
 				if (growing.size === 0) {
 					this.placeClearRows()
 				}
 			}
+		},
+
+		/**
+		 * `matchRowHeights` once for a run of `resizeToContent` calls made in
+		 * one go (GridStack's own resize pass, the content observer's frame),
+		 * not once per cell: each match clears and re-sets every card's
+		 * min-height and so forces a full style recalculation, ~40 per
+		 * dossiq Dashboard load. A card whose height changes during the run
+		 * is caught by the content observer, which matches again a frame later.
+		 *
+		 * @return {void}
+		 */
+		matchRowHeightsOncePerRun() {
+			if (this.rowHeightsMatchedThisRun) {
+				return
+			}
+			this.matchRowHeights()
+			this.rowHeightsMatchedThisRun = true
+			Promise.resolve().then(() => {
+				this.rowHeightsMatchedThisRun = false
+			})
 		},
 
 		/**
