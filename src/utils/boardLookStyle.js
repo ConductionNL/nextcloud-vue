@@ -22,6 +22,10 @@
  * yet, {@link enableBoardLookStyle} adds one from the rules the build put in
  * boardLookSheet.js, right after the library sheet.
  *
+ * The build also rewrites every `:has()` outside a selector's subject into a
+ * flag class (utils/hasFlagsTransform.js); switching on starts the engine that
+ * sets those flags (utils/hasFlags.js).
+ *
  * The flag is kept on `<html>` (`data-cn-board-look`), so a newer build that
  * replaces the board sheet later installs it switched on. Consumers that
  * bundle the library source get every rule in one sheet, as before; there
@@ -30,7 +34,10 @@
  * @module utils/boardLookStyle
  */
 
-import { BOARD_LOOK_BUILT, BOARD_LOOK_CSS } from './boardLookSheet.js'
+import { BOARD_LOOK_BUILT, BOARD_LOOK_CSS, BOARD_LOOK_HAS, BOARD_LOOK_HAS_ATTRIBUTES } from './boardLookSheet.js'
+import { installHasFlags } from './hasFlags.js'
+
+let hasFlagsStarted = false
 
 /**
  * The attribute on `<html>` that says the board look is in use on this page.
@@ -52,6 +59,10 @@ export function enableBoardLookStyle(doc) {
 		return false
 	}
 	const root = target.documentElement
+	// This build's flags join the page's engine even when another build switched the look on first.
+	if (!hasFlagsStarted && Array.isArray(BOARD_LOOK_HAS) && BOARD_LOOK_HAS.length > 0) {
+		hasFlagsStarted = installHasFlags(BOARD_LOOK_HAS, BOARD_LOOK_HAS_ATTRIBUTES, target) !== null
+	}
 	if (root.hasAttribute(BOARD_LOOK_FLAG)) {
 		return false
 	}

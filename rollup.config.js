@@ -11,6 +11,7 @@ import { trimEnglishCatalogue } from './rollup.l10n.mjs'
 import { nextcloudVueDeepImports } from './rollup.nextcloud-vue-deep.mjs'
 import { isSingletonExternal } from './rollup.singleton-externals.mjs'
 import { installLibraryStyle, splitBoardLook } from './src/utils/libraryStyle.js'
+import { flagNonSubjectHas } from './src/utils/hasFlagsTransform.js'
 
 // Scope ids hash the component's path AND source (rollup-plugin-vue's production
 // mode reads BUILD, see its sfc.js). Path-only ids were the same in every
@@ -116,7 +117,12 @@ function libraryStyleModule() {
 			// enableBoardLookStyle() adds the block from boardLookSheet.js only
 			// where the board look is used.
 			this.emitFile({ type: 'asset', fileName: 'nextcloud-vue.base.css', source: parts.base })
-			const filled = fillBoardLookSheet(bundle, parts.board, BUILT_AT)
+			// Each :has() outside a selector's subject becomes a flag class the
+			// run time sets (src/utils/hasFlags.js): Blink re-styles such an
+			// anchor's whole subtree on every insertion below it.
+			const flagged = flagNonSubjectHas(parts.board)
+			parts.board = flagged.css
+			const filled = fillBoardLookSheet(bundle, parts.board, BUILT_AT, flagged)
 			if (options.format !== 'es') {
 				return
 			}
@@ -141,9 +147,10 @@ function libraryStyleModule() {
  * @param {object} bundle The rollup output bundle.
  * @param {string} board The board-look rules.
  * @param {string} built The build time.
+ * @param {{flags: Array, attributes: string[]}} [flagged] The `:has()` flags of the board rules (hasFlagsTransform.js).
  * @return {boolean} True when the module was found and filled.
  */
-function fillBoardLookSheet(bundle, board, built) {
+function fillBoardLookSheet(bundle, board, built, flagged) {
 	let filled = false
 	for (const file of Object.values(bundle)) {
 		if (file.type !== 'chunk' || !/const BOARD_LOOK_CSS\$?\d* = ''\.trim\(\);/.test(file.code)) {
@@ -152,6 +159,8 @@ function fillBoardLookSheet(bundle, board, built) {
 		file.code = file.code
 			.replace(/(const BOARD_LOOK_CSS\$?\d* = )''\.trim\(\);/, (all, head) => head + JSON.stringify(board) + ';')
 			.replace(/(const BOARD_LOOK_BUILT\$?\d* = )''\.trim\(\);/, (all, head) => head + JSON.stringify(built) + ';')
+			.replace(/(const BOARD_LOOK_HAS\$?\d* = )JSON\.parse\('\[\]'\);/, (all, head) => head + JSON.stringify(flagged ? flagged.flags : []) + ';')
+			.replace(/(const BOARD_LOOK_HAS_ATTRIBUTES\$?\d* = )JSON\.parse\('\[\]'\);/, (all, head) => head + JSON.stringify(flagged ? flagged.attributes : []) + ';')
 		filled = true
 	}
 	return filled

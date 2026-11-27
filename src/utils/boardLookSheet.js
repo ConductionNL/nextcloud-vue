@@ -29,3 +29,20 @@ export const BOARD_LOOK_CSS = ''.trim()
  * @type {string}
  */
 export const BOARD_LOOK_BUILT = ''.trim()
+
+/**
+ * The flags the build put in {@link BOARD_LOOK_CSS} in place of each `:has()`
+ * outside a selector's subject, as [flag, compound, key]; [] in the source.
+ * hasFlags.js sets them (see utils/hasFlagsTransform.js).
+ *
+ * @type {Array<Array<string>>}
+ */
+// JSON.parse keeps the bundler from treating the value as a known [].
+export const BOARD_LOOK_HAS = JSON.parse('[]')
+
+/**
+ * The attribute names the compounds of {@link BOARD_LOOK_HAS} read; [] in the source.
+ *
+ * @type {string[]}
+ */
+export const BOARD_LOOK_HAS_ATTRIBUTES = JSON.parse('[]')
