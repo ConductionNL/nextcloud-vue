@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnStatusExplainerWidget = lazyComponent(() => import('./CnStatusExplainerWidget.vue'), 'CnStatusExplainerWidget')
 
 registerDashboardWidget('status-explainer', {
+	placeholder: 'lines',
 	renderer: LazyCnStatusExplainerWidget,
 	form: null,
 	defaultContent: {

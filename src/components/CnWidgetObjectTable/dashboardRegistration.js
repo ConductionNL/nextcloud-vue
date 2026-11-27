@@ -107,6 +107,7 @@ const CnHostedObjectTable = {
 }
 
 registerDashboardWidget('object-table', {
+	placeholder: 'rows',
 	renderer: CnHostedObjectTable,
 	form: LazyCnObjectListWidgetForm,
 	defaultContent: {

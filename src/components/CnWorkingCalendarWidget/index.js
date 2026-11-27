@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnWorkingCalendarWidget = lazyComponent(() => import('./CnWorkingCalendarWidget.vue'), 'CnWorkingCalendarWidget')
 
 registerDashboardWidget('working-calendar', {
+	placeholder: 'block',
 	renderer: LazyCnWorkingCalendarWidget,
 	form: null,
 	defaultContent: {

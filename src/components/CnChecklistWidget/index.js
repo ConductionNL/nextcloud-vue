@@ -15,6 +15,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnChecklistWidget = lazyComponent(() => import('./CnChecklistWidget.vue'), 'CnChecklistWidget')
 
 registerDashboardWidget('checklist', {
+	placeholder: 'rows',
 	renderer: LazyCnChecklistWidget,
 	form: null,
 	defaultContent: {

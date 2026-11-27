@@ -16,6 +16,7 @@ const LazyCnStatWidgetForm = lazyComponent(() => import('../CnStatWidgetForm/CnS
 const LazyCnStatWidget = lazyComponent(() => import('./CnStatWidget.vue'), 'CnStatWidget')
 
 registerDashboardWidget('stat', {
+	placeholder: 'counter',
 	renderer: LazyCnStatWidget,
 	form: LazyCnStatWidgetForm,
 	defaultContent: {

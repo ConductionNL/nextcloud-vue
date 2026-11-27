@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnSavedViewsWidget = lazyComponent(() => import('./CnSavedViewsWidget.vue'), 'CnSavedViewsWidget')
 
 registerDashboardWidget('saved-views', {
+	placeholder: 'rows',
 	renderer: LazyCnSavedViewsWidget,
 	form: null,
 	defaultContent: {

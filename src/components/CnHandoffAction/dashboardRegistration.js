@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnHandoffAction = lazyComponent(() => import('./CnHandoffAction.vue'), 'CnHandoffAction')
 
 registerDashboardWidget('handoff', {
+	placeholder: 'lines',
 	renderer: LazyCnHandoffAction,
 	form: null,
 	defaultContent: {},

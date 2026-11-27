@@ -37,6 +37,7 @@
     "./testing": "./testing/index.js",
     "./testing/playwright": "./testing/playwright.js",
     "./testing/performance": "./testing/performance.js",
+    "./widget-placeholders.json": "./dist/widget-placeholders.json",
     "./webpack": "./webpack/index.js",
     "./dist/*": "./dist/*",
     "./src/*": "./src/*",
@@ -68,7 +69,7 @@
   },
   "scripts": {
     "prebuild": "npm run build:validators",
-    "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c",
+    "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && rollup -c && node scripts/build-widget-placeholders.js",
     "build:validators": "node scripts/build-validators.js",
     "build:vue3": "rollup -c rollup.config.vue3.mjs",
     "check:a11y": "jest --config jest.a11y.config.js",

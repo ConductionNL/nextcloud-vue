@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnGroupedCardsWidget = lazyComponent(() => import('./CnGroupedCardsWidget.vue'), 'CnGroupedCardsWidget')
 
 registerDashboardWidget('grouped-cards', {
+	placeholder: 'tiles',
 	renderer: LazyCnGroupedCardsWidget,
 	form: null,
 	defaultContent: {

@@ -22,6 +22,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnSpendAnalyticsWidget = lazyComponent(() => import('./CnSpendAnalyticsWidget.vue'), 'CnSpendAnalyticsWidget')
 
 registerDashboardWidget('spend-analytics', {
+	placeholder: 'block',
 	renderer: LazyCnSpendAnalyticsWidget,
 	form: null,
 	defaultContent: {

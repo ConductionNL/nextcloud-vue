@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`CnWidgetPlaceholder pins the markup contract of block 1`] = `"<div class="cn-widget-placeholder cn-widget-placeholder--block" aria-hidden="true" data-shape="block"><span class="cn-widget-placeholder__block"></span></div>"`;
+
+exports[`CnWidgetPlaceholder pins the markup contract of counter 1`] = `
+"<div class="cn-widget-placeholder cn-widget-placeholder--counter" aria-hidden="true" data-shape="counter">
+  <div class="cn-widget-placeholder__counter"><span class="cn-widget-placeholder__number"></span><span class="cn-widget-placeholder__line cn-widget-placeholder__line--short"></span></div>
+  <div class="cn-widget-placeholder__counter"><span class="cn-widget-placeholder__number"></span><span class="cn-widget-placeholder__line cn-widget-placeholder__line--short"></span></div>
+</div>"
+`;
+
+exports[`CnWidgetPlaceholder pins the markup contract of lines 1`] = `"<div class="cn-widget-placeholder cn-widget-placeholder--lines" aria-hidden="true" data-shape="lines"><span class="cn-widget-placeholder__line"></span><span class="cn-widget-placeholder__line"></span><span class="cn-widget-placeholder__line"></span><span class="cn-widget-placeholder__line cn-widget-placeholder__line--short"></span></div>"`;
+
+exports[`CnWidgetPlaceholder pins the markup contract of rows 1`] = `
+"<div class="cn-widget-placeholder cn-widget-placeholder--rows" aria-hidden="true" data-shape="rows">
+  <div class="cn-widget-placeholder__row"><span class="cn-widget-placeholder__icon"></span><span class="cn-widget-placeholder__line"></span><span class="cn-widget-placeholder__line cn-widget-placeholder__line--short"></span></div>
+  <div class="cn-widget-placeholder__row"><span class="cn-widget-placeholder__icon"></span><span class="cn-widget-placeholder__line"></span><span class="cn-widget-placeholder__line cn-widget-placeholder__line--short"></span></div>
+</div>"
+`;
+
+exports[`CnWidgetPlaceholder pins the markup contract of tiles 1`] = `"<div class="cn-widget-placeholder cn-widget-placeholder--tiles" aria-hidden="true" data-shape="tiles"><span class="cn-widget-placeholder__tile"></span><span class="cn-widget-placeholder__tile"></span><span class="cn-widget-placeholder__tile"></span></div>"`;

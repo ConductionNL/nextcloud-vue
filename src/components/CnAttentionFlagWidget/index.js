@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnAttentionFlagWidget = lazyComponent(() => import('./CnAttentionFlagWidget.vue'), 'CnAttentionFlagWidget')
 
 registerDashboardWidget('attention-flag', {
+	placeholder: 'lines',
 	renderer: LazyCnAttentionFlagWidget,
 	form: null,
 	defaultContent: {

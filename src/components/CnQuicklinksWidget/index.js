@@ -13,6 +13,7 @@ const LazyCnQuicklinksWidgetForm = lazyComponent(() => import('../CnQuicklinksWi
 const LazyCnQuicklinksWidget = lazyComponent(() => import('./CnQuicklinksWidget.vue'), 'CnQuicklinksWidget')
 
 registerDashboardWidget('quicklinks', {
+	placeholder: 'rows',
 	renderer: LazyCnQuicklinksWidget,
 	form: LazyCnQuicklinksWidgetForm,
 	defaultContent: {

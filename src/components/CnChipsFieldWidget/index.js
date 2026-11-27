@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnChipsFieldWidget = lazyComponent(() => import('./CnChipsFieldWidget.vue'), 'CnChipsFieldWidget')
 
 registerDashboardWidget('chips-field', {
+	placeholder: 'block',
 	renderer: LazyCnChipsFieldWidget,
 	form: null,
 	defaultContent: {

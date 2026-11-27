@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnActionTilesWidget = lazyComponent(() => import('./CnActionTilesWidget.vue'), 'CnActionTilesWidget')
 
 registerDashboardWidget('action-tiles', {
+	placeholder: 'tiles',
 	renderer: LazyCnActionTilesWidget,
 	form: null,
 	defaultContent: {

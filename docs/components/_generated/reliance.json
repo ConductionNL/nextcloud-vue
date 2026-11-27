@@ -6306,6 +6306,13 @@
 			],
 			"page": "cn-widget-object-table"
 		},
+		"CnWidgetPlaceholder": {
+			"direct": 0,
+			"transitive": 0,
+			"tier": "none",
+			"via": [],
+			"page": "cn-widget-placeholder"
+		},
 		"CnWidgetRefItem": {
 			"direct": 7,
 			"transitive": 1,

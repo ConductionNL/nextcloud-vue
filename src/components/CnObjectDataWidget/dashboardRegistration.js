@@ -20,6 +20,7 @@ const LazyCnObjectDataWidgetForm = lazyComponent(() => import('../CnObjectDataWi
 const LazyCnObjectDataWidget = lazyComponent(() => import('./CnObjectDataWidget.vue'), 'CnObjectDataWidget')
 
 registerDashboardWidget('data', {
+	placeholder: 'block',
 	renderer: LazyCnObjectDataWidget,
 	form: LazyCnObjectDataWidgetForm,
 	defaultContent: {

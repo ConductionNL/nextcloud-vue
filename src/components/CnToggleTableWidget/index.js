@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnToggleTableWidget = lazyComponent(() => import('./CnToggleTableWidget.vue'), 'CnToggleTableWidget')
 
 registerDashboardWidget('toggle-table', {
+	placeholder: 'block',
 	renderer: LazyCnToggleTableWidget,
 	form: null,
 	defaultContent: {

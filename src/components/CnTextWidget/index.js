@@ -13,6 +13,7 @@ const LazyCnTextWidgetForm = lazyComponent(() => import('../CnTextWidgetForm/CnT
 const LazyCnTextWidget = lazyComponent(() => import('./CnTextWidget.vue'), 'CnTextWidget')
 
 registerDashboardWidget('text', {
+	placeholder: 'lines',
 	renderer: LazyCnTextWidget,
 	form: LazyCnTextWidgetForm,
 	// New text widgets default to markdown mode; existing placements without

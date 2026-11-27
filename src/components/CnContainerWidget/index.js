@@ -13,6 +13,7 @@ const LazyCnContainerWidgetForm = lazyComponent(() => import('../CnContainerWidg
 const LazyCnContainerWidget = lazyComponent(() => import('./CnContainerWidget.vue'), 'CnContainerWidget')
 
 registerDashboardWidget('container', {
+	placeholder: 'block',
 	renderer: LazyCnContainerWidget,
 	form: LazyCnContainerWidgetForm,
 	defaultContent: {

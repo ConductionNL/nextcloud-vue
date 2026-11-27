@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnChecklistRunWidget = lazyComponent(() => import('./CnChecklistRunWidget.vue'), 'CnChecklistRunWidget')
 
 registerDashboardWidget('checklist-run', {
+	placeholder: 'rows',
 	renderer: LazyCnChecklistRunWidget,
 	form: null,
 	defaultContent: {

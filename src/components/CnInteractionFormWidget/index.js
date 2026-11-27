@@ -15,6 +15,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnInteractionFormWidget = lazyComponent(() => import('./CnInteractionFormWidget.vue'), 'CnInteractionFormWidget')
 
 registerDashboardWidget('interaction-form', {
+	placeholder: 'block',
 	renderer: LazyCnInteractionFormWidget,
 	defaultContent: {
 		register: 'pipelinq',

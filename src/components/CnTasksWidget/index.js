@@ -17,6 +17,7 @@ const LazyCnTasksWidgetForm = lazyComponent(() => import('../CnTasksWidgetForm/C
 const LazyCnTasksWidget = lazyComponent(() => import('./CnTasksWidget.vue'), 'CnTasksWidget')
 
 registerDashboardWidget('tasks', {
+	placeholder: 'rows',
 	renderer: LazyCnTasksWidget,
 	form: LazyCnTasksWidgetForm,
 	defaultContent: {

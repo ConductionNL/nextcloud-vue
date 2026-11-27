@@ -14,6 +14,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnLinkedWidget = lazyComponent(() => import('./CnLinkedWidget.vue'), 'CnLinkedWidget')
 
 registerDashboardWidget('linked', {
+	placeholder: 'rows',
 	renderer: LazyCnLinkedWidget,
 	form: null,
 	defaultContent: {

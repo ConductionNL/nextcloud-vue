@@ -12,6 +12,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnCodeWidget = lazyComponent(() => import('./CnCodeWidget.vue'), 'CnCodeWidget')
 
 registerDashboardWidget('code', {
+	placeholder: 'block',
 	renderer: LazyCnCodeWidget,
 	defaultContent: { format: 'qr', source: 'address' },
 	displayName: 'Code',

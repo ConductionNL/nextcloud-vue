@@ -16,6 +16,7 @@ const LazyCnGaugeWidgetForm = lazyComponent(() => import('../CnGaugeWidgetForm/C
 const LazyCnGaugeWidget = lazyComponent(() => import('./CnGaugeWidget.vue'), 'CnGaugeWidget')
 
 registerDashboardWidget('gauge', {
+	placeholder: 'block',
 	renderer: LazyCnGaugeWidget,
 	form: LazyCnGaugeWidgetForm,
 	defaultContent: {

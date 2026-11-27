@@ -13,6 +13,7 @@ const LazyCnFilesWidgetForm = lazyComponent(() => import('../CnFilesWidgetForm/C
 const LazyCnFilesWidget = lazyComponent(() => import('./CnFilesWidget.vue'), 'CnFilesWidget')
 
 registerDashboardWidget('files', {
+	placeholder: 'rows',
 	renderer: LazyCnFilesWidget,
 	form: LazyCnFilesWidgetForm,
 	defaultContent: {

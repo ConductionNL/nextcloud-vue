@@ -13,6 +13,7 @@ const LazyCnHeaderWidgetForm = lazyComponent(() => import('../CnHeaderWidgetForm
 const LazyCnHeaderWidget = lazyComponent(() => import('./CnHeaderWidget.vue'), 'CnHeaderWidget')
 
 registerDashboardWidget('header', {
+	placeholder: 'heading',
 	renderer: LazyCnHeaderWidget,
 	form: LazyCnHeaderWidgetForm,
 	defaultContent: {

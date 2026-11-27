@@ -26,6 +26,7 @@
 @import 'gridstack/dist/gridstack.min.css';
 
 @import './main.css';
+@import '../../css/widget-placeholder.css';
 @import './dialog.css';
 @import './form-field.css';
 @import './board.css';

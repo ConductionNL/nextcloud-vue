@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnSwitchRowsWidget = lazyComponent(() => import('./CnSwitchRowsWidget.vue'), 'CnSwitchRowsWidget')
 
 registerDashboardWidget('switch-rows', {
+	placeholder: 'block',
 	renderer: LazyCnSwitchRowsWidget,
 	form: null,
 	defaultContent: {

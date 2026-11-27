@@ -17,6 +17,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnMailTab = lazyComponent(() => import('./CnMailTab.vue'), 'CnMailTab')
 
 registerDashboardWidget('mail', {
+	placeholder: 'rows',
 	renderer: LazyCnMailTab,
 	form: null,
 	defaultContent: {

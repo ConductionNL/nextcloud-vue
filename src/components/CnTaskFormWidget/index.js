@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnTaskFormWidget = lazyComponent(() => import('./CnTaskFormWidget.vue'), 'CnTaskFormWidget')
 
 registerDashboardWidget('task-form', {
+	placeholder: 'block',
 	renderer: LazyCnTaskFormWidget,
 	form: null,
 	defaultContent: {},

@@ -13,6 +13,7 @@ import { registerDashboardWidget } from '../CnWidgetGrid/dashboardWidgetRegistry
 const LazyCnShareList = lazyComponent(() => import('./CnShareList.vue'), 'CnShareList')
 
 registerDashboardWidget('share-list', {
+	placeholder: 'rows',
 	renderer: LazyCnShareList,
 	form: null,
 	defaultContent: { url: '', revoke: { url: '' } },

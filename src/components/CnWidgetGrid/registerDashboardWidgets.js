@@ -136,6 +136,7 @@ const LazyCnWeekStripWidgetForm = lazyComponent(() => import('../CnWeekStripWidg
 const LazyCnWorkQueue = lazyComponent(() => import('../CnWorkQueue/CnWorkQueue.vue'), 'CnWorkQueue')
 
 registerDashboardWidget('chart', {
+	placeholder: 'block',
 	renderer: LazyCnChartWidget,
 	form: LazyCnChartWidgetForm,
 	defaultContent: {
@@ -147,6 +148,7 @@ registerDashboardWidget('chart', {
 })
 
 registerDashboardWidget('stats-block', {
+	placeholder: 'counter',
 	renderer: LazyCnStatsBlockWidget,
 	form: LazyCnStatsBlockWidgetForm,
 	defaultContent: {
@@ -169,6 +171,7 @@ registerDashboardWidget('stats-block', {
 // `object-table` is the one to add now. Rendering resolves through
 // getWidgetTypeEntry, which ignores `surfaces`, so hidden ≠ broken.
 registerDashboardWidget('table', {
+	placeholder: 'block',
 	renderer: LazyCnObjectListWidget2,
 	form: LazyCnObjectListWidgetForm2,
 	defaultContent: {
@@ -198,6 +201,7 @@ registerDashboardWidget('table', {
 // decided whether this legacy alias stayed hidden from the Add-widget picker.
 // The self-registration is gone; this entry is the one that already won.
 registerDashboardWidget('object-list', {
+	placeholder: 'rows',
 	renderer: LazyCnObjectListWidget2,
 	form: LazyCnObjectListWidgetForm2,
 	defaultContent: {
@@ -219,6 +223,7 @@ registerDashboardWidget('object-list', {
 // tree-shaking reason as `object-list` above.
 // @spec openspec/changes/a-saved-view-drives-a-widget/tasks.md#task-1.1
 registerDashboardWidget('saved-view', {
+	placeholder: 'rows',
 	renderer: LazyCnSavedViewWidget2,
 	form: LazyCnSavedViewWidgetForm2,
 	defaultContent: { viewId: '', limit: 10 },
@@ -232,6 +237,7 @@ registerDashboardWidget('saved-view', {
 // `public: false` until its author opts in deliberately.
 // @spec openspec/changes/widget-registry-public-flag/tasks.md#task-4
 registerDashboardWidget('markdown', {
+	placeholder: 'lines',
 	renderer: LazyCnMarkdownWidget2,
 	form: LazyCnMarkdownWidgetForm2,
 	defaultContent: { markdown: '' },
@@ -241,6 +247,7 @@ registerDashboardWidget('markdown', {
 })
 
 registerDashboardWidget('related', {
+	placeholder: 'rows',
 	renderer: LazyCnRelatedObjectsWidget,
 	form: LazyCnRelatedObjectsWidgetForm,
 	defaultContent: { title: '', groups: [], hideSingleTabTitle: true, showTotalCount: true },
@@ -257,6 +264,7 @@ registerDashboardWidget('related', {
 // byte-identical copy of this entry, which only produced a duplicate-registration
 // warning on every consumer's boot; it no longer registers.
 registerDashboardWidget('map', {
+	placeholder: 'block',
 	renderer: LazyCnMapWidget,
 	form: LazyCnMapWidgetForm,
 	defaultContent: {
@@ -292,6 +300,7 @@ registerDashboardWidget('map', {
 })
 
 registerDashboardWidget('countdown', {
+	placeholder: 'counter',
 	renderer: LazyCnCountdownWidget,
 	form: LazyCnCountdownWidgetForm,
 	defaultContent: {
@@ -315,6 +324,7 @@ registerDashboardWidget('countdown', {
 // from the manifest. Registered inline for the same tree-shaking reason as
 // `map` above.
 registerDashboardWidget('next-step', {
+	placeholder: 'lines',
 	renderer: LazyCnNextStepWidget,
 	form: null,
 	defaultContent: { field: 'status', stages: {} },
@@ -325,6 +335,7 @@ registerDashboardWidget('next-step', {
 })
 
 registerDashboardWidget('retention', {
+	placeholder: 'rows',
 	renderer: LazyCnRetentionWidget,
 	form: null,
 	defaultContent: { statusField: '', archivedValues: [], archivistGroups: ['archivaris'] },
@@ -336,6 +347,7 @@ registerDashboardWidget('retention', {
 })
 
 registerDashboardWidget('schema-rules', {
+	placeholder: 'lines',
 	renderer: LazyCnSchemaRulesWidget,
 	form: null,
 	defaultContent: { register: '', schema: '', objectId: '' },
@@ -345,6 +357,7 @@ registerDashboardWidget('schema-rules', {
 })
 
 registerDashboardWidget('plan', {
+	placeholder: 'lines',
 	renderer: LazyCnPlanWidget,
 	form: null,
 	defaultContent: { emptyText: '' },
@@ -354,6 +367,7 @@ registerDashboardWidget('plan', {
 })
 
 registerDashboardWidget('work-queue', {
+	placeholder: 'rows',
 	renderer: LazyCnWorkQueue,
 	form: null,
 	defaultContent: { source: null },
@@ -362,6 +376,7 @@ registerDashboardWidget('work-queue', {
 })
 
 registerDashboardWidget('document-review', {
+	placeholder: 'rows',
 	renderer: LazyCnDocumentReviewWidget,
 	form: null,
 	defaultContent: { field: 'documents', statusField: 'reviewStatus', statuses: [] },
@@ -374,6 +389,7 @@ registerDashboardWidget('document-review', {
 // The AI Chat Companion embedded in the page: the assistant as a tab or card
 // rather than the launcher's floating window (DqZaakAssistent).
 registerDashboardWidget('ai-chat', {
+	placeholder: 'block',
 	renderer: LazyCnAiChatWidget,
 	form: null,
 	defaultContent: { chatAppId: '' },
@@ -386,6 +402,7 @@ registerDashboardWidget('ai-chat', {
 // The macros the record's schema declares, each run by a button
 // (DqZaakAssistent "Macro's").
 registerDashboardWidget('macros', {
+	placeholder: 'rows',
 	renderer: LazyCnMacrosWidget,
 	form: null,
 	defaultContent: { description: '', emptyText: '' },
@@ -397,6 +414,7 @@ registerDashboardWidget('macros', {
 // The appointments booked on a record that is not an object (a flow task),
 // read from a source or an endpoint.
 registerDashboardWidget('events', {
+	placeholder: 'rows',
 	renderer: LazyCnEventsCard,
 	form: null,
 	defaultContent: { source: null, endpoint: '', emptyText: '' },
@@ -406,6 +424,7 @@ registerDashboardWidget('events', {
 })
 
 registerDashboardWidget('conversation', {
+	placeholder: 'rows',
 	renderer: LazyCnConversationWidget,
 	form: null,
 	defaultContent: { field: 'messages', endpoint: '' },
@@ -418,6 +437,7 @@ registerDashboardWidget('conversation', {
 // The record's stages, where clicking a stage moves the record there.
 // Registered inline for the same tree-shaking reason as `map` above.
 registerDashboardWidget('stages', {
+	placeholder: 'block',
 	renderer: LazyCnStagesWidget,
 	form: LazyCnStagesWidgetForm,
 	defaultContent: {
@@ -439,6 +459,7 @@ registerDashboardWidget('stages', {
 })
 
 registerDashboardWidget('tabs', {
+	placeholder: 'block',
 	renderer: LazyCnTabsWidget,
 	form: LazyCnTabsWidgetForm,
 	defaultContent: {
@@ -459,6 +480,7 @@ registerDashboardWidget('tabs', {
 // The current week as day columns, with the dated items under each day.
 // Registered inline for the same tree-shaking reason as `map` above.
 registerDashboardWidget('week-strip', {
+	placeholder: 'block',
 	renderer: LazyCnWeekStripWidget,
 	form: LazyCnWeekStripWidgetForm,
 	defaultContent: {
@@ -476,6 +498,7 @@ registerDashboardWidget('week-strip', {
 
 // One segmented bar with a legend that carries the numbers.
 registerDashboardWidget('stacked-bar', {
+	placeholder: 'block',
 	renderer: LazyCnStackedBarWidget,
 	form: LazyCnStackedBarWidgetForm,
 	defaultContent: {
@@ -492,6 +515,7 @@ registerDashboardWidget('stacked-bar', {
 // person's open count from the app (DqTeamwachtrij "Team vandaag"). Placed
 // from the manifest: there is no config form yet.
 registerDashboardWidget('team-workload', {
+	placeholder: 'rows',
 	renderer: LazyCnTeamWorkloadWidget,
 	form: null,
 	defaultContent: { source: { url: '', responsePath: '', userField: 'userId', nameField: 'displayName', countField: 'count' } },
