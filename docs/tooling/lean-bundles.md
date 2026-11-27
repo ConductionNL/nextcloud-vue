@@ -24,6 +24,7 @@ multi-compiler array form.
 | `optimization.splitChunks.chunks` | `'all'` | `'initial'` |
 | each cache group with `chunks: 'all'`, set or inherited | takes async chunks too | `chunks: 'initial'` |
 | `@nextcloud/vue`'s `dist/index.mjs` | has side effects (the package declares none) | `sideEffects: false` (rule appended to `module.rules`) |
+| `@nextcloud/vue`'s `NcSelect`, `NcSelectUsers`, `NcProgressBar` chunks | read the body's style tokens per component | read once per page (loader rule appended to `module.rules`) |
 
 Cache groups with `chunks: 'async'`, a function, or `false` are left alone.
 The JavaScript `devtool` is not touched: JS source maps stay.
@@ -83,3 +84,25 @@ Eager chunk of a one-line app, minified, everything but `vue` bundled:
 | `CnIndexPage` | 3.78 MB | 2.21 MB |
 | `CnDetailPage` | 4.21 MB | 2.37 MB |
 | `CnDashboardPage` | 3.44 MB | 1.89 MB |
+
+## `NcSelect` reads the body style tokens once per page
+
+In `@nextcloud/vue` (9.x up to at least 9.14.1), `NcSelect` and `NcSelectUsers`
+compute an avatar size in every `setup()` by calling
+`window.getComputedStyle(document.body).getPropertyValue(...)` twice: once
+for `--default-clickable-area` and once for `--default-grid-baseline`.
+`NcProgressBar` makes the same reads once, at module level. While the page is
+still being built, each of these reads forces a style recalculation of the
+whole document. Five selects on one page cost ten forced recalculations. On
+the OpenRegister Registers page that was 73-85 ms of the warm load by CPU
+profile (reference stack, 27 Nov 2026).
+
+`withLeanBundles` appends `NEXTCLOUD_VUE_BODY_STYLE_RULE`, which sends exactly
+those three chunks through `webpack/body-style-once-loader.js`. The loader
+rewrites that one expression to a per-page memo (a `Map` on `globalThis`,
+shared by every chunk). The values are theme size tokens that do not change
+while a page is open, so every select renders the same avatar size. A chunk
+without the expression passes through unchanged.
+
+Registers page, 2 interleaved rounds x 7 warm loads: total 1519 / 1466 ms ->
+1314 / 1253 ms, first useful content 1512 / 1424 ms -> 1160 / 1060 ms.

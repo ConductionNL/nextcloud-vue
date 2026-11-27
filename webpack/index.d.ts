@@ -51,7 +51,8 @@ export function appVersionDefine(appId: string, fallback?: string, options?: CnA
  * every `splitChunks` cache group that takes all chunks to `chunks: 'initial'`
  * (so the library's lazy chunks stay lazy), and appends a rule marking
  * `@nextcloud/vue`'s index module free of side effects (so one Nc* import
- * does not bundle every component). Apply it last.
+ * does not bundle every component), and a rule that makes NcSelect read the
+ * body's style tokens once per page instead of twice per select. Apply it last.
  *
  * Does not mutate the input. Accepts the multi-compiler array form.
  *
@@ -59,5 +60,8 @@ export function appVersionDefine(appId: string, fallback?: string, options?: CnA
  */
 /** The rule withLeanBundles appends: `@nextcloud/vue`'s index has no side effects. */
 export const NEXTCLOUD_VUE_INDEX_RULE: { readonly test: RegExp, readonly sideEffects: false }
+
+/** The rule withLeanBundles appends: `@nextcloud/vue`'s NcSelect, NcSelectUsers and NcProgressBar read the body style tokens once per page. */
+export const NEXTCLOUD_VUE_BODY_STYLE_RULE: { readonly test: RegExp, readonly use: readonly string[] }
 
 export function withLeanBundles<T extends object | object[]>(config: T): T
