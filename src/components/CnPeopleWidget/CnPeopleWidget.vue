@@ -120,6 +120,7 @@
 
 <script>
 import { getLanguage, translate as t } from '@nextcloud/l10n'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { clearPeoplePages, readPeoplePage, storePeoplePage } from './peopleCache.js'
 
 const ALLOWED_LAYOUTS = ['card', 'grid', 'list']
@@ -182,6 +183,8 @@ function clampDays(value, fallback, min, max) {
  */
 export default {
 	name: 'CnPeopleWidget',
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnPeopleSource: {

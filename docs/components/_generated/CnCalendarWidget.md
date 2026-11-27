@@ -12,3 +12,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------------ | -------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content`    | `object` |          | `\{\}`  | Persisted widget content `{viewMode, daysAhead, colorByCalendar, showTitle, showViewModes}`. `showTitle: false` drops the "Calendar" sub-heading and `showViewModes: false` the Month / Week / Agenda buttons (both shown by default). |
 | `dataSource` | `union`  |          | `null`  | Consumer-supplied data source overriding the `cnCalendarSource` injection. Must expose `fetchEvents({from, to}) =&gt; Promise&lt;{events, failures}&gt;`. When `null` the injection (then the empty state) is used.                    |
+
+### Events
+
+| Name     | Payload | Description |
+| -------- | ------- | ----------- |
+| `loaded` | —       |             |

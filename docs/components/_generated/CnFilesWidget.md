@@ -21,3 +21,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `register`      | `string`  |          | `''`                       | Object-bound mode: the OpenRegister register slug of the bound object. See the `objectId` prop.                                                                                                                                                                                                                                                                                                                                                      |
 | `schema`        | `union`   |          | `''`                       | Object-bound mode: the OpenRegister schema of the bound object. Accepts either a slug string or the resolved schema object (as merged by `CnWidgetGrid`); the slug is derived by the `schemaSlug` computed. See the `objectId` prop.                                                                                                                                                                                                                 |
 | `objectApiBase` | `string`  |          | `'/apps/openregister/api'` | App base for the OpenRegister object-file endpoints used in object-bound mode (`{objectApiBase}/objects/{register}/{schema}/{id}/...`). Defaults to `/apps/openregister/api`.                                                                                                                                                                                                                                                                        |
+
+### Events
+
+| Name     | Payload | Description |
+| -------- | ------- | ----------- |
+| `loaded` | —       |             |
