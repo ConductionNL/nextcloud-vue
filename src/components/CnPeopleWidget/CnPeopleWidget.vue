@@ -5,7 +5,7 @@
 
 <template>
 	<div class="cn-people-widget" :class="layoutClass">
-		<header class="cn-people-widget__header">
+		<header v-if="showSearch" class="cn-people-widget__header">
 			<input
 				v-model="search"
 				type="search"
@@ -50,6 +50,7 @@
 		<div
 			v-else
 			class="cn-people-widget__items"
+			:class="{ 'cn-board-ruled-rows': layout === 'list' }"
 			:style="gridStyle"
 			role="list">
 			<div
@@ -191,7 +192,7 @@ export default {
 	props: {
 		/**
 		 * Persisted widget content `{layout, filters, excludeDisabled,
-		 * showBirthdays, sortBy, columns, showFields}`.
+		 * showBirthdays, sortBy, columns, showFields, showSearch}`.
 		 *
 		 * @type {object}
 		 */
@@ -349,6 +350,18 @@ export default {
 		 */
 		showAvatar() {
 			return !(this.showFields && this.showFields.avatar === false)
+		},
+
+		/**
+		 * Whether the search box (and its refresh button) shows: unless
+		 * `content.showSearch` is `false`. A list of new colleagues or of
+		 * birthdays is read, not searched (board LpVandaag).
+		 *
+		 * @spec openspec/specs/people-widget/spec.md#requirement-a-people-widget-can-leave-out-its-search-box
+		 * @return {boolean}
+		 */
+		showSearch() {
+			return !(this.content && this.content.showSearch === false)
 		},
 
 		/**
