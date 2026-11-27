@@ -1029,6 +1029,11 @@ export default {
 				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
 			}
 			const el = this.$refs.gridContainer.querySelector('.grid-stack')
+			// GridStack sizes each size-to-content cell while it adds it: one forced
+			// style recalculation per cell. Added unsized, they are measured together below.
+			const fitCells = Array.from(el.querySelectorAll(':scope > .grid-stack-item[gs-size-to-content]'))
+				.map((item) => [item, item.getAttribute('gs-size-to-content')])
+			fitCells.forEach(([item]) => item.removeAttribute('gs-size-to-content'))
 			this.grid = GridStack.init({
 				column: this.columns,
 				cellHeight: this.cellHeight / this.rowSplit,
@@ -1053,6 +1058,7 @@ export default {
 			this.cssMinRows = undefined
 			this.syncMinRow()
 			this.keepOrderOnGrowth()
+			this.sizeAddedFitCells(fitCells)
 			this.matchRowHeights()
 			this.placeClearRows()
 
@@ -1064,6 +1070,28 @@ export default {
 			// it, so the handles have to be judged here and not only on a later
 			// change.
 			this.syncInteractivity()
+		},
+
+		/**
+		 * Give the size-to-content cells that were added to GridStack unsized their
+		 * mark back and size them to their content, every measure before any write
+		 * (`resizeCellsMeasuredFirst`), top to bottom so a growing cell moves the
+		 * cards under it down in their order.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @param {Array<[HTMLElement, string]>} fitCells Each cell with its `gs-size-to-content` value.
+		 * @return {void}
+		 */
+		sizeAddedFitCells(fitCells) {
+			for (const [item, value] of fitCells) {
+				item.setAttribute('gs-size-to-content', value)
+				if (item.gridstackNode) {
+					item.gridstackNode.sizeToContent = value === 'true' ? true : parseInt(value, 10)
+				}
+			}
+			if (fitCells.length > 0 && typeof toRaw(this.grid).resizeToContent === 'function') {
+				this.resizeCellsMeasuredFirst(fitCells.map(([item]) => item))
+			}
 		},
 
 		/**

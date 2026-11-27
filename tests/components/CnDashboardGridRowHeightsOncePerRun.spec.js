@@ -25,9 +25,12 @@ function setup() {
 }
 
 describe('CnDashboardGrid: same-height rows are matched once per resize run', () => {
-	it('matches once for several cells resized in one go', () => {
+	it('matches once for several cells resized in one go', async () => {
 		const { grid, match, a, b } = setup()
+		// Mounting sizes the cells in a run of its own; let it end first.
+		await Promise.resolve()
 		match.mockClear()
+		grid._resizeToContent.mockClear()
 		grid.resizeToContent(a)
 		grid.resizeToContent(b)
 		grid.resizeToContent(a)
@@ -37,6 +40,7 @@ describe('CnDashboardGrid: same-height rows are matched once per resize run', ()
 
 	it('matches again on the next run', async () => {
 		const { grid, match, a, b } = setup()
+		await Promise.resolve()
 		match.mockClear()
 		grid.resizeToContent(a)
 		await Promise.resolve()
