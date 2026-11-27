@@ -59,6 +59,7 @@ import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { dropOptionalUnresolved, resolveFilterTokens, resolveFilterValue } from '../../utils/resolveFilterTokens.js'
+import { sampleNumber } from '../../utils/sampleNumber.js'
 import { STATUS_TEXT_COLORS } from '../../utils/statusColors.js'
 
 // The canonical KPI card, shared with CnStatWidget and CnStatsBlock.
@@ -186,6 +187,18 @@ export default {
 		content: {
 			type: Object,
 			default: () => ({}),
+		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it draws its
+		 * `content.sampleValue` (and `content.samplePrevious`) and sends no request (no aggregate,
+		 * endpoint, caption, limit or reference lookup).
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
 		},
 
 		/**
@@ -520,6 +533,13 @@ export default {
 		 * @return {Promise<void>}
 		 */
 		async fetchValues() {
+			// A miniature draws its sample and reads nothing.
+			if (this.preview) {
+				this.current = sampleNumber(this.content.sampleValue)
+				this.previous = sampleNumber(this.content.samplePrevious)
+				this.error = ''
+				return
+			}
 			// Endpoint-bound tiles are fetched by the shared useEndpointSource
 			// engine (see setup) — the two-leg OpenRegister path must not fire.
 			if (this.endpointMode) {

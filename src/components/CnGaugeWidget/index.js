@@ -25,6 +25,8 @@ registerDashboardWidget('gauge', {
 		target: { kind: 'static', value: 100, metric: 'count', field: '', filter: {} },
 		thresholds: { warn: 80, danger: 100, invert: false },
 	},
+	// What a widget picker's miniature draws with `preview` set.
+	sampleContent: { label: 'Handled on time', format: { style: 'number', decimals: 0 }, thresholds: { warn: 80, danger: 100, invert: false }, sampleValue: 82, sampleTarget: 100 },
 	displayName: 'Gauge / utilization',
 	icon: 'Gauge',
 	// Self-contained card surface — rendered flush and centred (no inner
