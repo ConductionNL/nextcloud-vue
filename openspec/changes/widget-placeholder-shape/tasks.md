@@ -70,7 +70,7 @@
   - `loaded` emitted once when the first fetch settles (items, empty, error); no spinner for the first fetch
   - A refresh keeps the current items and does not emit `loaded` again
   - Every library renderer that fetches on mount emits `loaded` the same way (the event launchpad `first-paint-skeleton` task 6 consumes)
-- [ ] Implement
+- [ ] Implement (CnWidgetRenderer done in its own PR: `loaded` once, no first-fetch spinner, refresh keeps items; the other library renderers that fetch on mount still open)
 - [ ] Test
 
 ### Task 7: CnDashboardPage waits in shape and announces once

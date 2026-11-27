@@ -12,3 +12,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------ | ----------------------------------------------- |
 | `widget`          | `{ id: string, title: string, iconClass: string, iconUrl: string, widgetUrl: string, itemIconsRound: boolean, itemApiVersions: number[], reloadInterval: number, buttons: Array }` | ✓        | —                        | Nextcloud widget object from the Dashboard API. |
 | `unavailableText` | `string`                                                                                                                                                                           |          | `'Widget not available'` | Text shown when widget is not available         |
+
+### Events
+
+| Name     | Payload | Description                                                             |
+| -------- | ------- | ----------------------------------------------------------------------- |
+| `loaded` | —       | The first load has settled, with items, none or an error. Emitted once. |

@@ -53,6 +53,10 @@ const widget = {
 | `1` | Fetches from `/apps/dashboard/api/v1/widget-items` |
 | neither | Shows the unavailable fallback |
 
+## Loading (`loaded`)
+
+The renderer draws no spinner for its first fetch. It emits `loaded` once, when that fetch settles with items, none or an error; until then its host's `CnWidgetWrapper` draws the widget's placeholder (`:loading="!loaded"`). A later fetch (the widget's reload interval) keeps the items on screen until the new ones arrive and does not emit `loaded` again.
+
 ## Reference (auto-generated)
 
 The tables below are generated from the SFC source via `vue-docgen-cli`. They reflect what's actually in [`CnWidgetRenderer.vue`](https://github.com/ConductionNL/nextcloud-vue/blob/beta/src/components/CnWidgetRenderer/CnWidgetRenderer.vue) and update automatically whenever the component changes.
