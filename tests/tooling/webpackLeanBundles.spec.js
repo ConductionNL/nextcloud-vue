@@ -265,3 +265,40 @@ describe('the body style loader', () => {
 		expect(readBodyStyleOnce(chunk)).toContain('__cnBodyStyleValue("--default-clickable-area")')
 	})
 })
+
+describe('withLeanBundles: chunks functions', () => {
+	const initial = { name: 'main', canBeInitial: () => true }
+	const lazy = { name: 'icons', canBeInitial: () => false }
+	const leaves = { name: 'leaves', canBeInitial: () => true }
+	const config = () => ({
+		module: { rules: [] },
+		optimization: {
+			splitChunks: {
+				chunks: (chunk) => chunk.name !== 'leaves',
+				cacheGroups: {
+					ncVue: { name: 'app-shared-nc-vue', test: /nextcloud-vue/ },
+					own: { test: /x/, chunks: (chunk) => chunk.name !== 'leaves' },
+					lazyOnly: { test: /y/, chunks: 'async' },
+				},
+			},
+		},
+	})
+
+	it('keeps the app filter and refuses async chunks, at the top level and per group', () => {
+		const split = withLeanBundles(config()).optimization.splitChunks
+		for (const select of [split.chunks, split.cacheGroups.own.chunks]) {
+			expect(select(initial)).toBe(true)
+			expect(select(lazy)).toBe(false)
+			expect(select(leaves)).toBe(false)
+		}
+		expect(split.cacheGroups.lazyOnly.chunks).toBe('async')
+		expect(split.cacheGroups.ncVue.chunks).toBeUndefined()
+	})
+
+	it('wraps a function once, when applied twice', () => {
+		const once = withLeanBundles(config()).optimization.splitChunks.chunks
+		const twice = withLeanBundles(withLeanBundles(config())).optimization.splitChunks.chunks
+		expect(twice.cnInitialOnly).toBe(true)
+		expect(twice.toString()).toBe(once.toString())
+	})
+})

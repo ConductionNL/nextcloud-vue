@@ -26,7 +26,7 @@ multi-compiler array form.
 | `@nextcloud/vue`'s `dist/index.mjs` | has side effects (the package declares none) | `sideEffects: false` (rule appended to `module.rules`) |
 | `@nextcloud/vue`'s `NcSelect`, `NcSelectUsers`, `NcProgressBar` chunks | read the body's style tokens per component | read once per page (loader rule appended to `module.rules`) |
 
-Cache groups with `chunks: 'async'`, a function, or `false` are left alone.
+A `chunks` **function** (top level or per group, e.g. "every entry but `leaves`") keeps its own filter and additionally requires an initial chunk (`chunk.canBeInitial()`). Cache groups with `chunks: 'async'` or `false` are left alone.
 The JavaScript `devtool` is not touched: JS source maps stay.
 
 ## Why

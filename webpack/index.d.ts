@@ -49,6 +49,7 @@ export function appVersionDefine(appId: string, fallback?: string, options?: CnA
  * Return a copy of a webpack config that turns css-loader source maps off
  * (they embed every stylesheet a second time in the JavaScript) and narrows
  * every `splitChunks` cache group that takes all chunks to `chunks: 'initial'`
+ * and wraps every `chunks` function so it also requires an initial chunk
  * (so the library's lazy chunks stay lazy), and appends a rule marking
  * `@nextcloud/vue`'s index module free of side effects (so one Nc* import
  * does not bundle every component), and a rule that makes NcSelect read the
