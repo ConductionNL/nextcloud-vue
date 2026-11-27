@@ -10,7 +10,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name        | Type                                  | Required | Default | Description                                                                                                                                                                                 |
-| ----------- | ------------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`   | `union`                               |          | `\{\}`  | The widget's persisted configuration blob. An optional `route` (vue-router location) or `link` (external href) turns the whole tile into a click-through target (see the widgetLink mixin). |
-| `translate` | `((key: string) => string)&#124;null` |          | `null`  | Translate function. Falls back to the injected `cnTranslate` (itself an identity function by default). Provide explicitly when mounting CnGaugeWidget outside a CnAppRoot ancestor.         |
+| Name        | Type                                  | Required | Default | Description                                                                                                                                                                                        |
+| ----------- | ------------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`   | `union`                               |          | `\{\}`  | The widget's persisted configuration blob. An optional `route` (vue-router location) or `link` (external href) turns the whole tile into a click-through target (see the widgetLink mixin).        |
+| `preview`   | `boolean`                             |          | `false` | The widget is a miniature in a widget picker: it draws its `content.sampleValue` against `content.sampleTarget` and sends no request (no aggregate, endpoint, caption, limit or reference lookup). |
+| `translate` | `((key: string) => string)&#124;null` |          | `null`  | Translate function. Falls back to the injected `cnTranslate` (itself an identity function by default). Provide explicitly when mounting CnGaugeWidget outside a CnAppRoot ancestor.                |
