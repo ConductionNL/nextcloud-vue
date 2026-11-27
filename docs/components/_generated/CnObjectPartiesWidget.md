@@ -19,6 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description                                                        |
-| -------- | ------- | ------------------------------------------------------------------ |
-| `header` | —       | The card's title-row actions, `{ actions }`, for the host to draw. |
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `header` | —       | The card's title-row actions, `{ actions }`, for the host to draw.                                                               |

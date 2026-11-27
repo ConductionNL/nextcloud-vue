@@ -55,6 +55,7 @@ import TrendingUp from 'vue-material-design-icons/TrendingUp.vue'
 import CnWidgetIcon from '../CnWidgetGrid/CnWidgetIcon.vue'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetLink from '../../mixins/widgetLink.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
 import { fetchAggregateValue } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, unwrapAppConfig } from '../../utils/formatMetric.js'
@@ -128,7 +129,7 @@ export default {
 		TrendingNeutral,
 	},
 
-	mixins: [widgetLink],
+	mixins: [widgetLoaded, widgetLink],
 
 	inject: {
 		/**

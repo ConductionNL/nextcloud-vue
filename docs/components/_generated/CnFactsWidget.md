@@ -18,7 +18,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description                                                      |
-| -------- | ------- | ---------------------------------------------------------------- |
-| `header` | —       | Emitted with the card header's parts: the header action, if any. |
-| `reveal` | —       | Emitted when the reader shows a masked value.                    |
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `header` | —       | Emitted with the card header's parts: the header action, if any.                                                                 |
+| `reveal` | —       | Emitted when the reader shows a masked value.                                                                                    |

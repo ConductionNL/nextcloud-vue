@@ -92,6 +92,7 @@ import { translatePlural as n, translate as t } from '@nextcloud/l10n'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Pin from 'vue-material-design-icons/Pin.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { navigationApps } from '../../utils/nextcloudApps.js'
 
 let domIdCounter = 0
@@ -132,6 +133,8 @@ export default {
 		Pin,
 		ViewGridOutline,
 	},
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },

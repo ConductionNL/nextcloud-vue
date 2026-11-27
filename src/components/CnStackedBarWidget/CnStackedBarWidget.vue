@@ -62,6 +62,7 @@ import { NcLoadingIcon } from '@nextcloud/vue'
 import { inject, isRef } from 'vue'
 import CnWidgetEmptyState from '../CnWidgetEmptyState/CnWidgetEmptyState.vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { fetchGroupedCounts } from '../../utils/fetchAggregate.js'
 
 /** The colour of a group's tone (`content.colors`); any other value is used as a CSS colour. */
@@ -150,6 +151,8 @@ export default {
 	name: 'CnStackedBarWidget',
 
 	components: { CnWidgetEmptyState, NcLoadingIcon },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/**

@@ -20,3 +20,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `headerActions` | `array`  |          | `[]`                       | The manifest `headerActions`, resolved by the detail host (`[{ key, label, icon, variant, run }]`), drawn beside the title. |
 | `content`       | `object` |          | `\{\}`                     | Stored widget content: `{ title, fields, related, auditTrail, timeline, order, manage, entryActions, ... }`.                |
 | `apiBase`       | `string` |          | `'/apps/openregister/api'` | OpenRegister API base.                                                                                                      |
+
+### Events
+
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |

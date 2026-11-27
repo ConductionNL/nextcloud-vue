@@ -48,14 +48,15 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name               | Payload | Description                                                                                                     |
-| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------- |
-| `add`              | —       | An Add-footer entry without a built-in flow was activated; the host routes it (e.g. open a link-object dialog). |
-| `group-action`     | —       | A group's heading action was pressed. Payload: `{ group, action }`, the group key and the declared action.      |
-| `file-uploaded`    | —       | Files were uploaded via the Add footer.                                                                         |
-| `note-added`       | —       | A note was created via the Add footer.                                                                          |
-| `open-integration` | —       | A "Linked apps" row or a tab's "open in sidebar" affordance was activated.                                      |
-| `select-extra`     | —       | A row in a host-supplied `extraSections` group was clicked, on either the list or the tabbed path.              |
-| `select-file`      | —       | A file row was clicked.                                                                                         |
-| `select-object`    | —       | A related-object row was clicked.                                                                               |
-| `select-related`   | —       | A leaf-group row (mails, events, …) was clicked and no owning-app deep link could be resolved.                  |
+| Name               | Payload | Description                                                                                                                      |
+| ------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded`           | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `add`              | —       | An Add-footer entry without a built-in flow was activated; the host routes it (e.g. open a link-object dialog).                  |
+| `group-action`     | —       | A group's heading action was pressed. Payload: `{ group, action }`, the group key and the declared action.                       |
+| `file-uploaded`    | —       | Files were uploaded via the Add footer.                                                                                          |
+| `note-added`       | —       | A note was created via the Add footer.                                                                                           |
+| `open-integration` | —       | A "Linked apps" row or a tab's "open in sidebar" affordance was activated.                                                       |
+| `select-extra`     | —       | A row in a host-supplied `extraSections` group was clicked, on either the list or the tabbed path.                               |
+| `select-file`      | —       | A file row was clicked.                                                                                                          |
+| `select-object`    | —       | A related-object row was clicked.                                                                                                |
+| `select-related`   | —       | A leaf-group row (mails, events, …) was clicked and no owning-app deep link could be resolved.                                   |

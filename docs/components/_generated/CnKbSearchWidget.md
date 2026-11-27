@@ -11,3 +11,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | Name      | Type                                                                                           | Required | Default | Description                   |
 | --------- | ---------------------------------------------------------------------------------------------- | -------- | ------- | ----------------------------- |
 | `content` | `{endpoint?: string, queryParam?: string, bindTo?: string, minChars?: number, limit?: number}` |          | `\{\}`  | Persisted configuration blob. |
+
+### Events
+
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |

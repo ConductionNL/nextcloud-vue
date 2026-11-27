@@ -17,3 +17,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | `register`   | `string&#124;number` |          | `''`    | The record's register (else the bound record's `@self.register`).                             |
 | `schema`     | `union`              |          | `''`    | The record's schema (else the bound record's `@self.schema`); a schema object gives its slug. |
 | `objectId`   | `string&#124;number` |          | `''`    | The record's id (else the bound record's).                                                    |
+
+### Events
+
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |

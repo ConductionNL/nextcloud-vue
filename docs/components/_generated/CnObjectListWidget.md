@@ -19,6 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 | Name            | Payload     | Description                                                                                                                                                                                            |
 | --------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `loaded`        | —           | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once.                                                                       |
 | `created`       | —           | Emitted after a successful create with the sent payload.                                                                                                                                               |
 | `updated`       | —           | Emitted after a row was edited, with the keys that changed.                                                                                                                                            |
 | `row-click`     | `undefined` | Emitted with the clicked object (for hosts that want to handle navigation themselves). Payload: `(row, event)`, the second being the native click event. A middle click emits `row-aux-click` instead. |
