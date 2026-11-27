@@ -63,6 +63,8 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `buttons` | Array | `[]` | Footer button links: `[{ text, link }]` |
 | `styleConfig` | Object | `{}` | Runtime style overrides: `{ backgroundColor?, borderStyle?, borderWidth?, borderColor?, borderRadius?, padding?: { top, right, bottom, left }, headerStyle?: { backgroundColor?, textColor? } }`. The optional `headerStyle` colours the header bar per-widget. |
 | `refreshing` | Boolean | `false` | When bound (e.g. `:refreshing="loading"` around the host's refetch), the Refresh item is disabled and shows a loading spinner for exactly as long as this stays `true` — so the spinner reflects the real refresh time. |
+| `loading` | Boolean | `false` | The widget is loading its first content: the `placeholder` shape lies over the content area, the slot stays mounted but hidden, and the root carries `aria-busy="true"`. A refresh after the first load is `refreshing`, not `loading`. |
+| `placeholder` | String \| Object | `'rows'` | The shape to wait in while `loading`: `rows`, `lines`, `block`, `tiles`, `counter`, `heading`, or `{ shape, count }`. Pass what [`resolveWidgetPlaceholder`](../utilities/resolve-widget-placeholder.md) returns. |
 
 ### Slots
 
@@ -72,6 +74,16 @@ Container shell around a dashboard widget. Provides a header with icon and title
 | `actions` | Buttons or controls placed in the right side of the header |
 | `title-icon` | Extra icon element rendered in the header at the position controlled by `titleIconPosition` (left of title or right of actions) |
 | `footer` | Custom footer content (replaces the `buttons` prop rendering) |
+
+## Waiting in shape (`loading`, `placeholder`)
+
+While a widget loads its first content, its host sets `loading` and passes the widget's declared shape. The wrapper draws [`CnWidgetPlaceholder`](./cn-widget-placeholder.md) over the content area instead of a spinner, keeps the slot mounted underneath (`visibility: hidden`, so a renderer that fetches on mount still fetches), and sets `aria-busy="true"`. When `loading` turns false the content shows in the same frame, without a size change. The wrapper speaks no status of its own: the page announces loading once.
+
+```vue
+<CnWidgetWrapper :title="widget.title" :loading="!loaded" :placeholder="resolveWidgetPlaceholder(widget, getWidgetTypeEntry(widget.type))">
+  <MyRenderer @loaded="loaded = true" />
+</CnWidgetWrapper>
+```
 
 ## Built-in Actions menu
 

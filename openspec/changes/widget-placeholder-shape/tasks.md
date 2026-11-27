@@ -60,8 +60,8 @@
   - Props `loading` (default `false`) and `placeholder` (default `rows`); while loading: placeholder over the content area, slot mounted under `visibility: hidden`, `aria-busy="true"` on the root, no status message
   - Turning `loading` off removes the placeholder and shows the content in the same frame with no size change
   - `refreshing` on a loaded wrapper keeps the content; a wrapper without `loading` renders exactly as before
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 6: CnWidgetRenderer reports loaded
 - **spec_ref**: `openspec/changes/widget-placeholder-shape/specs/widget-renderer/spec.md#requirement-the-renderer-reports-its-first-load`
