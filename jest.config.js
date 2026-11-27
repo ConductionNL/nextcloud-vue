@@ -104,6 +104,8 @@ module.exports = {
 		'^@codemirror/lang-xml$': '<rootDir>/tests/__mocks__/codemirror-lang-xml.js',
 		'^@codemirror/lang-html$': '<rootDir>/tests/__mocks__/codemirror-lang-html.js',
 		'^@nextcloud/vue$': '<rootDir>/tests/__mocks__/nextcloud-vue.js',
+		// Components loaded on demand by their own path (only the date picker so far).
+		'^@nextcloud/vue/components/NcDateTimePicker$': '<rootDir>/tests/__mocks__/nextcloud-vue-component.js',
 		'^@nextcloud/axios$': '<rootDir>/tests/__mocks__/nextcloud-axios.js',
 		// `@nextcloud/files` 4.x ships ESM only, with an `import` condition and
 		// no `require`, so jest's CommonJS resolver cannot load it. The mock
