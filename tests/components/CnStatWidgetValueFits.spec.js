@@ -59,4 +59,36 @@ describe('CnStatWidget fitValue', () => {
 		expect(style(14)).toEqual({ fontSize: '14px', whiteSpace: 'normal', overflowWrap: 'anywhere' })
 		expect(style(null)).toEqual({})
 	})
+
+	it('with no size applied, a number that fits is read without touching its style', () => {
+		const ctx = context({ rowScroll: 122, rowClient: 122, valueWidth: 30 })
+		ctx.fitFontSize = null
+		ctx.$refs.value.style.fontSize = ''
+		const spy = jest.spyOn(window, 'getComputedStyle')
+		expect(fit(ctx)).toBeNull()
+		expect(spy).not.toHaveBeenCalled()
+		expect(ctx.$refs.value.getAttribute('style')).toBe('')
+		spy.mockRestore()
+	})
+
+	it('with no size applied, an overflowing number still steps down', () => {
+		const ctx = context({ rowScroll: 170, rowClient: 122, valueWidth: 170 })
+		ctx.fitFontSize = null
+		ctx.$refs.value.style.fontSize = ''
+		expect(fit(ctx)).toBe(20)
+	})
+
+	it('fits once per frame however often the value changes', () => {
+		const frames = []
+		const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => frames.push(cb))
+		const ctx = { fitValue: jest.fn(), _fitFrame: null, $nextTick: (cb) => cb() }
+		CnStatWidget.methods.scheduleFit.call(ctx)
+		CnStatWidget.methods.scheduleFit.call(ctx)
+		expect(frames).toHaveLength(1)
+		frames[0]()
+		expect(ctx.fitValue).toHaveBeenCalledTimes(1)
+		CnStatWidget.methods.scheduleFit.call(ctx)
+		expect(frames).toHaveLength(2)
+		raf.mockRestore()
+	})
 })
