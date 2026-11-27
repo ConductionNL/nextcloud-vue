@@ -292,6 +292,7 @@ import CnIcon from '../CnIcon/CnIcon.vue'
 import CnStatusBadge from '../CnStatusBadge/CnStatusBadge.vue'
 import { fetchEndpointSource, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import { useRefLabels } from '../../composables/useRefLabels.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { formatBoardDate, formatTimeOfDay } from '../../utils/boardDate.js'
@@ -480,6 +481,8 @@ export default {
 	name: 'CnFactsWidget',
 
 	components: { Check, CnActionButtons, CnIcon, CnStatusBadge, ContentCopy, EyeOutline, NcLoadingIcon, NcNoteCard },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },

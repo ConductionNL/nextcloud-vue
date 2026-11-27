@@ -46,6 +46,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcButton, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import CnPlanWidgetRow from './CnPlanWidgetRow.vue'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { planTree } from '../../utils/planTree.js'
 
 /** The page refresh channel the built-in widgets listen on. */
@@ -71,6 +72,8 @@ export default {
 	name: 'CnPlanWidget',
 
 	components: { CnPlanWidgetRow, NcButton, NcEmptyContent, NcLoadingIcon },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/** The host app's translate (CnAppRoot `cnTranslate`). */

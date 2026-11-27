@@ -12,3 +12,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `content`    | `object` |          | `\{\}`  | Persisted widget content `{period, viewMode, filters, aiInsights}`.                                                                                                                                                                                                                                                                        |
 | `dataSource` | `union`  |          | `null`  | Consumer-supplied data source overriding the `cnSpendAnalyticsSource` injection. Must expose `fetchSummary`, `fetchVendorCommitments`, and `fetchNarrative`; may expose `resolveDeepLink`, which must be pure and synchronous, since it is called for every row on every render. When `null` the injection (then the empty state) is used. |
+
+### Events
+
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |

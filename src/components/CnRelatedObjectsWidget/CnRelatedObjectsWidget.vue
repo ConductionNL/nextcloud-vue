@@ -443,6 +443,7 @@ import { interpolateUrlTokens } from '../../composables/useEndpointSource.js'
 import { useIntegrationRegistry } from '../../composables/useIntegrationRegistry.js'
 import { registerIntegrationIcons } from '../../integrations/icons.js'
 import innerHeading from '../../mixins/innerHeading.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { useObjectStore } from '../../store/index.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { fillTemplate, firstFilled } from '../../utils/fillTemplate.js'
@@ -588,7 +589,7 @@ export default {
 		CnEmptyContent,
 	},
 
-	mixins: [innerHeading],
+	mixins: [widgetLoaded, innerHeading],
 
 	inject: {
 		/**

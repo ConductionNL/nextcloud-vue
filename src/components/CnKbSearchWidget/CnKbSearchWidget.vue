@@ -84,6 +84,7 @@ import { NcTextField } from '@nextcloud/vue'
 import BookOpenVariant from 'vue-material-design-icons/BookOpenVariant.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import { normalizeLook } from '../../composables/useLook.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { filterQueryParams } from '../../utils/filterQueryParams.js'
 import { BUILT_IN_KB_PROVIDERS, normaliseKbResults, resolveKbProvider } from '../../utils/kbSearchProviders.js'
 import { readPath } from '../../utils/readPath.js'
@@ -136,6 +137,8 @@ export default {
 	name: 'CnKbSearchWidget',
 
 	components: { BookOpenVariant, Magnify, NcTextField },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/**

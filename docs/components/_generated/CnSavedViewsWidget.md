@@ -15,6 +15,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name    | Payload | Description                                             |
-| ------- | ------- | ------------------------------------------------------- |
-| `apply` | —       | A saved view was applied. Payload: the View API object. |
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `apply`  | —       | A saved view was applied. Payload: the View API object.                                                                          |

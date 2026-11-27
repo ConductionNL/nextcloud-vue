@@ -14,6 +14,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description                                                                                   |
-| -------- | ------- | --------------------------------------------------------------------------------------------- |
-| `header` | —       | The card header's parts: `{ link, note, action, pill }`, the note being how many are present. |
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `header` | —       | The card header's parts: `{ link, note, action, pill }`, the note being how many are present.                                    |

@@ -77,6 +77,7 @@
 <script>
 import { getCanonicalLocale, translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { dayKey, daysUntil, parseDateValue } from '../../utils/dateVariant.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
 import { objectDisplayName, objectFieldValue } from '../../utils/objectName.js'
@@ -119,6 +120,8 @@ export default {
 	name: 'CnWeekStripWidget',
 
 	components: { NcLoadingIcon },
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/**
