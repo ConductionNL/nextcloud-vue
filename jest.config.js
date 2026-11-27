@@ -6,9 +6,8 @@
  *   A worker process has failed to exit gracefully and has been force exited.
  *   This is likely caused by tests leaking due to improper teardown.
  *
- * It is NOT a leaking test, and `maxWorkers` is deliberately not set below to
- * silence it. Measured on a 14-core machine over `tests/components` (352
- * suites), each run repeated:
+ * It is NOT a leaking test. Measured on a 14-core machine over
+ * `tests/components` (352 suites), each run repeated:
  *
  *   --maxWorkers=1,2,4,6,8   no warning
  *   --maxWorkers=10,12       warning, every run
@@ -20,9 +19,10 @@
  * jest's exit grace period and is force-killed after its tests have already
  * passed.
  *
- * CI never sees it. The `Frontend Tests (unit)` job runs 627 suites green with
- * ZERO occurrences, because a GitHub runner has too few cores to reach the
- * threshold.
+ * CI sees it rarely, not never: the uncapped `Frontend Tests (unit)` job, with
+ * 3 workers on a 4-vCPU runner, printed it once on nextcloud-vue#2405. So the
+ * threshold is where it becomes the rule, not a line below which it cannot
+ * happen.
  *
  * `--detectOpenHandles` cannot help here and will mislead you: it implies
  * `--runInBand`, so it removes the workers whose exit is the entire symptom.
@@ -45,11 +45,21 @@
  * Uncapped, a full run on 16 cores starts 15 workers of ~200 files each, about
  * 40 GB together: on a 28 GB machine it swaps and the desktop freezes. So a
  * worker is restarted once it passes `workerIdleMemoryLimit` after a file, and
- * a run takes half the cores, which on 16 also stays at the 8 concurrent
- * workers the warning above needs to stay away.
+ * a local run takes half the cores but never more than 8 workers, the
+ * concurrency the warning above stays away under, whatever the core count.
+ *
+ * CI is not capped. When `CI` is set (GitHub Actions always sets it, a desktop
+ * does not), `maxWorkers` is left to Jest's default of cores - 1. A runner has
+ * 4 vCPU, and capping it at 2 workers instead of 3 made the unit job ~17%
+ * slower (285.6 s to 334.5 s). `CI=true npx jest` runs uncapped locally too.
  */
+const os = require('os')
+
+const onCi = Boolean(process.env.CI) && process.env.CI !== 'false'
+const cores = os.availableParallelism ? os.availableParallelism() : os.cpus().length
+
 module.exports = {
-	maxWorkers: '50%',
+	...(onCi ? {} : { maxWorkers: Math.max(1, Math.min(8, Math.floor(cores / 2))) }),
 	workerIdleMemoryLimit: '1GB',
 	// Rebuilds the gitignored compiled manifest validator when it is missing or
 	// stale. `pretest` already does this for `npm test`, but not for `npx jest`,
