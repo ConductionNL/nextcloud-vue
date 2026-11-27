@@ -10,8 +10,8 @@
  */
 
 import { mount } from '@vue/test-utils'
-import CnIndexSidebar from '../../src/components/CnIndexSidebar/CnIndexSidebar.vue'
 import CnDateRangePicker from '../../src/components/CnDateRangePicker/CnDateRangePicker.vue'
+import CnIndexSidebar from '../../src/components/CnIndexSidebar/CnIndexSidebar.vue'
 
 const fields = {
 	state: { type: 'string', title: 'State', facetable: true, order: 1, inputControl: 'select', enum: ['a', 'b'] },
