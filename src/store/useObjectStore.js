@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, getActivePinia } from 'pinia'
 import { toRaw } from 'vue'
 import { reportDiagnosticOnce, trackedFetch } from '../utils/diagnostics.js'
 import { discardResponseBody } from '../utils/discardResponseBody.js'
@@ -48,6 +48,34 @@ const DEFAULT_BASE_URL = '/apps/openregister/api/objects'
 // cache then never gets written — leaving that store's `objects[type][id]`
 // empty. Keying by (store, type, id) dedupes only truly-identical operations.
 const _inflightObjectFetches = new Map()
+
+// Schema reads shared across store instances for a few seconds. An app's own
+// store and the library's list view both read the page's schema at boot, one
+// right after the other; the second takes the first's answer. Each store
+// still writes its own `schemas[type]`. Short-lived on purpose: re-registering
+// a type clears `schemas[type]` to read the schema afresh after an edit.
+// Scoped to the pinia instance: the stores of one app share, nothing else.
+const SCHEMA_SHARE_MS = 5000
+const _sharedSchemaReads = new WeakMap()
+const _sharedSchemaReadsWithoutPinia = new Map()
+
+/**
+ * The shared schema reads of the active pinia.
+ *
+ * @return {Map<string, {promise: Promise<object|null>, settledAt: number|null}>}
+ */
+function sharedSchemaReads() {
+	const pinia = getActivePinia()
+	if (!pinia) {
+		return _sharedSchemaReadsWithoutPinia
+	}
+	let reads = _sharedSchemaReads.get(pinia)
+	if (!reads) {
+		reads = new Map()
+		_sharedSchemaReads.set(pinia, reads)
+	}
+	return reads
+}
 
 // ── Base state ──────────────────────────────────────────────────────────
 
@@ -629,6 +657,42 @@ const baseActions = {
 			return this.schemas[type]
 		}
 
+		const reads = sharedSchemaReads()
+		const key = `${config.schema}|${config.register || ''}|${config.schemaFallback || ''}`
+		const shared = reads.get(key)
+		let read
+		if (shared && (shared.settledAt === null || Date.now() - shared.settledAt < SCHEMA_SHARE_MS)) {
+			read = shared.promise
+		} else {
+			const entry = { promise: null, settledAt: null }
+			entry.promise = this._readSchema(type, config).then((schema) => {
+				entry.settledAt = Date.now()
+				// A failed read is not shared: the next caller asks again.
+				if (!schema && reads.get(key) === entry) {
+					reads.delete(key)
+				}
+				return schema
+			})
+			reads.set(key, entry)
+			read = entry.promise
+		}
+
+		const schema = await read
+		if (schema) {
+			this.schemas = { ...this.schemas, [type]: schema }
+		}
+		return schema
+	},
+
+	/**
+	 * Read a type's schema from the API; null on any failure.
+	 *
+	 * @spec openspec/changes/zuiddrecht-pixel-gaps-2/specs/zuiddrecht-pixel-gaps-2/spec.md#requirement-a-schema-title-falls-back-to-its-written-form
+	 * @param {string} type The registered type slug
+	 * @param {object} config The type's registry entry
+	 * @return {Promise<object|null>} The schema object or null
+	 */
+	async _readSchema(type, config) {
 		try {
 			// A slug is NOT a namespace: the same schema slug can exist in
 			// several registers on one instance, and the bare endpoint resolves
@@ -660,9 +724,7 @@ const baseActions = {
 				return null
 			}
 
-			const schema = await response.json()
-			this.schemas = { ...this.schemas, [type]: schema }
-			return schema
+			return await response.json()
 		} catch {
 			return null
 		}
