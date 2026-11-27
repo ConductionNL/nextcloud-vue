@@ -36,7 +36,8 @@
  *  - the document has loaded, so every bundle has run;
  *  - the page's ready selector (default: its `main` landmark) is visible;
  *  - no fetch or XHR request is in flight;
- *  - no loading indicator is visible.
+ *  - no loading indicator is visible in the viewport (one below the fold, such
+ *    as a lazy widget waiting to mount on scroll or idle, does not count).
  *
  * Like `testing/playwright`, this module imports nothing from Playwright and
  * is CommonJS, so it loads from `node_modules` in the runner it targets.
@@ -428,8 +429,15 @@ async function measureLoad(page, url, options = {}) {
 					const box = el.getBoundingClientRect()
 					return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden'
 				}
+				// A loading indicator counts only while it is on screen: content below the fold
+				// may load on scroll or idle (lazy widgets show a waiting state until then)
+				// without holding up what the user sees.
+				const onScreen = (el) => {
+					const box = el.getBoundingClientRect()
+					return box.bottom > 0 && box.right > 0 && box.top < window.innerHeight && box.left < window.innerWidth
+				}
 				const root = Array.from(document.querySelectorAll(readySelector)).find(visible)
-				const busy = Array.from(document.querySelectorAll(busySelector)).some(visible)
+				const busy = Array.from(document.querySelectorAll(busySelector)).some((el) => visible(el) && onScreen(el))
 				// Before `load` the bundles are still parsing: nothing has had a chance to fetch yet.
 				return { ready: Boolean(root) && document.readyState === 'complete', busy }
 			}, [ready, BUSY_SELECTOR]).catch(() => ({ ready: false, busy: true }))

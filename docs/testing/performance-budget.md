@@ -65,7 +65,7 @@ The clock starts at navigation. It stops when all of these hold for 100 ms:
 - the document has loaded, so every bundle has run;
 - the ready selector is visible;
 - no fetch or XHR request is in flight;
-- no loading indicator (`aria-busy="true"`, `.loading-icon`, `.icon-loading`) is visible.
+- no loading indicator (`aria-busy="true"`, `.loading-icon`, `.icon-loading`) is visible in the viewport. An indicator below the fold, such as a lazy widget that waits to mount on scroll or idle, does not hold the page up (speed rule of 27 November 2026: widgets show a loading state at once and load asynchronously).
 
 Presence heartbeats and push channels do not count as pending. This is the page's **total**.
 
