@@ -1029,19 +1029,36 @@ export default {
 				document.documentElement.style.setProperty(this.cellHeightCssVar, `${this.cellHeight}px`)
 			}
 			const el = this.$refs.gridContainer.querySelector('.grid-stack')
-			this.grid = GridStack.init({
-				column: this.columns,
-				cellHeight: this.cellHeight / this.rowSplit,
-				margin: this.margin,
-				...(this.marginBottom !== null ? { marginBottom: this.marginBottom } : {}),
-				// GridStack 14 replaced `float` with `mode`; 12 and 13 read `float`.
-				float: this.float,
-				mode: this.float ? 'float' : 'top',
-				animate: true,
-				disableDrag: !this.editable,
-				disableResize: !this.editable,
-				removable: false,
-			}, el)
+			// GridStack sizes each size-to-content cell as it adds it, reading
+			// it right after the previous one was written; collect them instead
+			// and size them together below. An app's own hook is left alone.
+			const queued = []
+			const hook = !GridStack.resizeToContentCB
+			if (hook) {
+				GridStack.resizeToContentCB = (cell) => {
+					queued.push(cell)
+				}
+			}
+			try {
+				this.grid = GridStack.init({
+					column: this.columns,
+					cellHeight: this.cellHeight / this.rowSplit,
+					margin: this.margin,
+					...(this.marginBottom !== null ? { marginBottom: this.marginBottom } : {}),
+					// GridStack 14 replaced `float` with `mode`; 12 and 13 read `float`.
+					float: this.float,
+					mode: this.float ? 'float' : 'top',
+					animate: true,
+					disableDrag: !this.editable,
+					disableResize: !this.editable,
+					removable: false,
+				}, el)
+			} finally {
+				if (hook) {
+					GridStack.resizeToContentCB = undefined
+				}
+			}
+			this.sizeAddedCells(queued)
 			// The breakpoints go in once the items are on the grid: GridStack
 			// applies a breakpoint's layout only to items it already holds, so a
 			// grid that mounts narrow would otherwise clamp each item into the
@@ -1257,6 +1274,69 @@ export default {
 			this.placeClearRows()
 			for (const el of rest) {
 				grid.resizeToContent(el)
+			}
+		},
+
+		/**
+		 * Size the cells GridStack added at init to their content, as its
+		 * `resizeToContent` would one by one (same rows, same `moveNode`, same
+		 * order, in one batch), but with every measure before any write, so the
+		 * measures share one forced style recalculation instead of one each.
+		 * A sub-grid cell goes to GridStack's own `resizeToContent`.
+		 *
+		 * @param {Array<HTMLElement>} cells The cells GridStack asked to size.
+		 * @return {void}
+		 */
+		sizeAddedCells(cells) {
+			const grid = this.grid ? toRaw(this.grid) : null
+			if (!grid || cells.length === 0) {
+				return
+			}
+			if (typeof grid.moveNode !== 'function' || !grid.engine) {
+				for (const cell of cells) {
+					grid.resizeToContent(cell)
+				}
+				return
+			}
+			const measured = []
+			const rest = []
+			for (const cell of cells) {
+				const node = cell.gridstackNode
+				if (!node || node.subGrid || node.subGridOpts?.children?.length || cell.parentElement !== grid.el) {
+					rest.push(cell)
+					continue
+				}
+				cell.classList.remove('size-to-content-max')
+				measured.push({ cell, node })
+			}
+			for (const entry of measured) {
+				entry.fit = this.contentFit(entry.cell, entry.node)
+			}
+			const batch = !grid.engine.batchMode && typeof grid.batchUpdate === 'function'
+			if (batch) {
+				grid.batchUpdate()
+			}
+			try {
+				for (const { cell, node, fit } of measured) {
+					if (!fit) {
+						continue
+					}
+					if (fit.capped) {
+						cell.classList.add('size-to-content-max')
+					}
+					if (fit.rows !== node.h) {
+						grid._ignoreLayoutsNodeChange = true
+						grid.moveNode(node, { h: fit.rows })
+						delete grid._ignoreLayoutsNodeChange
+					}
+				}
+			} finally {
+				if (batch) {
+					grid.batchUpdate(false)
+				}
+			}
+			for (const cell of rest) {
+				grid.resizeToContent(cell)
 			}
 		},
 
