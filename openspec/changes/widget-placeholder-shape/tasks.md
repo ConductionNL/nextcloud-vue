@@ -13,8 +13,8 @@
   - `registerDashboardWidget` accepts `placeholder` for library and app-registered types alike, and throws a `TypeError` naming the type for an invalid value; the `DashboardWidgetEntry` typedef documents it
   - `resolveWidgetPlaceholder(widgetDef, registryEntry, ncDescriptor)` returns `{ shape, count }` in the order manifest, registry, NC descriptor, `rows` (design D2)
   - JSDoc on every exported function
-- [ ] Implement
-- [ ] Test (schema valid and invalid cases, registry refusal, resolution order including the `rows` default)
+- [x] Implement
+- [x] Test (schema valid and invalid cases, registry refusal, resolution order including the `rows` default)
 
 ### Task 2: Every library widget type declares a shape
 - **spec_ref**: `openspec/changes/widget-placeholder-shape/specs/widget-placeholder/spec.md#requirement-a-widget-declares-its-placeholder-shape`
@@ -28,8 +28,8 @@
     - `counter`: countdown, delta, stat, stat-grid, stats-block
     - `heading`: divider, header, label
   - A test fails when any registered type has no valid `placeholder`
-- [ ] Declare the shapes
-- [ ] Test
+- [x] Declare the shapes
+- [x] Test
 
 ### Task 3: CnWidgetPlaceholder and its standalone CSS
 - **spec_ref**: `openspec/changes/widget-placeholder-shape/specs/widget-placeholder/spec.md#requirement-cnwidgetplaceholder-draws-one-shape`
@@ -40,18 +40,18 @@
   - Nextcloud colour variables only; shimmer 1.8 s, none under `prefers-reduced-motion: reduce`
   - `css/widget-placeholder.css` holds only the placeholder rules, under 2 KB minified; a snapshot test pins the markup per shape
   - Component reference docs updated
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 4: The declarations for a server
 - **spec_ref**: `openspec/changes/widget-placeholder-shape/specs/widget-placeholder/spec.md#requirement-the-declarations-and-the-look-are-available-to-a-server`
-- **files**: `scripts/build-widget-placeholders.mjs`, `rollup.config.js`, `package.json` (`exports`, `files`), `tests/build/widgetPlaceholders.spec.js`
+- **files**: `scripts/build-widget-placeholders.js` (CommonJS like the other build scripts; run after rollup by `npm run build`), `package.json` (`exports`, `files`), `tests/build/widgetPlaceholders.spec.js`
 - **acceptance_criteria**:
   - The build writes `dist/widget-placeholders.json` from the registry after every widget type has registered
   - `@conduction/nextcloud-vue/widget-placeholders.json` and `@conduction/nextcloud-vue/css/widget-placeholder.css` resolve from a consumer
   - A test compares the JSON with the registry, so they cannot drift
-- [ ] Implement
-- [ ] Test
+- [x] Implement
+- [x] Test
 
 ### Task 5: CnWidgetWrapper draws the placeholder while loading
 - **spec_ref**: `openspec/changes/widget-placeholder-shape/specs/widget-wrapper/spec.md#requirement-the-wrapper-draws-the-shaped-placeholder-while-the-widget-loads`
