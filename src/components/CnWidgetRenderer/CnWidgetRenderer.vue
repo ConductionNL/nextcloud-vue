@@ -12,7 +12,7 @@
 			v-if="isApiWidget"
 			:items="widgetItems"
 			:showMoreUrl="widget.widgetUrl"
-			:loading="loading"
+			:loading="false"
 			:itemMenu="false"
 			:roundIcons="widget.itemIconsRound">
 			<template #empty-content>
@@ -25,11 +25,6 @@
 				</NcEmptyContent>
 			</template>
 		</NcDashboardWidget>
-
-		<!-- Loading state -->
-		<div v-else-if="loading" class="cn-widget-renderer__loading">
-			<NcLoadingIcon :size="32" />
-		</div>
 
 		<!-- Fallback for unknown widget types -->
 		<NcEmptyContent
@@ -45,7 +40,7 @@
 <script>
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
-import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDashboardWidget, NcEmptyContent } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 
 /**
@@ -54,9 +49,18 @@ import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue
  * Fetches widget items from the OCS Dashboard API and displays them
  * using the standard NcDashboardWidget component.
  *
+ * It draws no spinner for its first fetch: it emits `loaded` once that
+ * fetch settles (items, empty or error), and its host's `CnWidgetWrapper`
+ * draws the widget's placeholder until then. A refresh keeps the items it
+ * shows and does not emit `loaded` again.
+ *
  * ```vue
- * <CnWidgetRenderer :widget="ncWidget" />
+ * <CnWidgetWrapper :loading="!loaded" :placeholder="shape">
+ *   <CnWidgetRenderer :widget="ncWidget" @loaded="loaded = true" />
+ * </CnWidgetWrapper>
  * ```
+ *
+ * @spec openspec/changes/widget-placeholder-shape/tasks.md#task-6
  */
 export default {
 	name: 'CnWidgetRenderer',
@@ -64,7 +68,6 @@ export default {
 	components: {
 		NcDashboardWidget,
 		NcEmptyContent,
-		NcLoadingIcon,
 		AlertCircleOutline,
 	},
 
@@ -86,12 +89,15 @@ export default {
 		},
 	},
 
+	emits: ['loaded'],
+
 	data() {
 		return {
 			loading: false,
 			items: [],
 			emptyMessage: '',
 			refreshInterval: null,
+			hasLoaded: false,
 		}
 	},
 
@@ -122,15 +128,18 @@ export default {
 	},
 
 	async mounted() {
-		if (this.isApiWidget) {
-			await this.loadItems()
+		if (!this.isApiWidget) {
+			// Nothing to fetch: the content is there with the first render.
+			this.markLoaded()
+			return
+		}
+		await this.loadItems()
 
-			if (this.widget.reloadInterval && this.widget.reloadInterval > 0) {
-				this.refreshInterval = setInterval(
-					() => this.loadItems(),
-					this.widget.reloadInterval * 1000,
-				)
-			}
+		if (this.widget.reloadInterval && this.widget.reloadInterval > 0) {
+			this.refreshInterval = setInterval(
+				() => this.loadItems(),
+				this.widget.reloadInterval * 1000,
+			)
 		}
 	},
 
@@ -161,7 +170,27 @@ export default {
 				console.error(`[CnWidgetRenderer] Failed to load items for ${this.widget.id}:`, error)
 			} finally {
 				this.loading = false
+				this.markLoaded()
 			}
+		},
+
+		/**
+		 * Emit `loaded` once, when the first load has settled. A later
+		 * fetch (auto-refresh) keeps the items it shows and stays silent.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/widget-placeholder-shape/tasks.md#task-6
+		 */
+		markLoaded() {
+			if (this.hasLoaded) {
+				return
+			}
+			this.hasLoaded = true
+			/**
+			 * The first load has settled, with items, none or an error.
+			 * Emitted once.
+			 */
+			this.$emit('loaded')
 		},
 	},
 }
@@ -171,12 +200,5 @@ export default {
 .cn-widget-renderer {
 	height: 100%;
 	padding: 8px;
-}
-
-.cn-widget-renderer__loading {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
 }
 </style>
