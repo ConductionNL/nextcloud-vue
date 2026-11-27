@@ -78,7 +78,7 @@ The main list page component. Combines a data table (or card grid), filter bar, 
 | `columns` | Array | `[]` | Manual column definitions (overrides schema) |
 | `excludeColumns` | Array | `[]` | Schema columns to hide |
 | `includeColumns` | Array | `null` | Schema columns to show (whitelist) |
-| `columnOverrides` | Object | `\{\}` | Per-column overrides |
+| `columnOverrides` | Object | `\{\}` | Per-column overrides, keyed by column key. Also applied to a schema column the person turns on in the sidebar's Columns tab, and to its label in both column pickers |
 | `actions` | Array | `[]` | Custom row action definitions. Each entry accepts the runtime `{label, icon, handler, …}` shape (function-typed `handler` fires directly) AND the manifest shape with a string `handler` resolved through the v2 `registry` first, then `customComponents` — see "Action handlers" below. An entry may also be a `"builtin:view"` / `"builtin:edit"` / `"builtin:copy"` / `"builtin:delete"` placeholder that puts that built-in at its position — see [Placing built-in row actions](#placing-built-in-row-actions). |
 | `customComponents` | Object | `null` | Custom-component / handler registry. When set takes precedence over the injected `cnCustomComponents` from a CnAppRoot ancestor. Used to resolve `actions[].handler` registry names (manifest-actions-dispatch). Named handlers resolve out of the v2 `registry` (a `kind: "handler"` entry) FIRST and fall back to this map. |
 | `emptyText` | String | `'No items found'` | Empty state message |

@@ -356,7 +356,7 @@ export default {
 | `activeOrganisation` | Object \| null | `null` | Optional multi-tenant binding. When the bound organisation entity changes, the page calls `store.setActiveTenantOrganisation(uuid)` so the next `fetchCollection()` stamps `X-OpenRegister-Organisation: <uuid>` and the in-memory list caches are cleared. Wire this from a tenant-switcher higher in the tree; leave `null` for single-tenant pages. |
 | `excludeColumns` | Array | `[]` | Column keys to hide in schema mode |
 | `includeColumns` | Array | `null` | Column keys to show (whitelist); `null` means all |
-| `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode |
+| `columnOverrides` | Object | `{}` | Per-column config overrides in schema mode, keyed by column key. Also applied to a schema column the person turns on in the sidebar's Columns tab, and to its label in both column pickers |
 | `emptyText` | String | `'No items found'` | Text shown in the empty state |
 | `lenses` | Object \| null | `null` | The personal-lens report of the list on screen (`@self.lenses` of the response) for a host that fetches itself. In self-fetch mode the page reads it from the store. See [When a lens cannot answer](#when-a-lens-cannot-answer). |
 | `lensReasonTexts` | Object \| null | `null` | App wording for an unavailable lens, keyed `<lens>.<reason>` or `<reason>`. |

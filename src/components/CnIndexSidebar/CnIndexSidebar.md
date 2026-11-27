@@ -203,6 +203,7 @@ With admin-only filter control:
 | `currentSortValue` | String | `''` | The Sort option chosen by its value, for an order that is not a list of sort keys: an option with `fixed: true`, such as one whose rows an endpoint ranks (`sortSelectOptions[].source`). Wins over matching `currentSort`. |
 | `facetData` | Object | `{}` | Live facet data from the API: `{ fieldName: { values: [{ value, count }] } }` |
 | `columnGroups` | Array | `[]` | Extra column groups beyond schema properties and built-in Metadata. Each: `{ id, label, columns: [{ key, label }], expanded? }` |
+| `columnOverrides` | Object | `{}` | The index page's per-column overrides, keyed by column key. Applied to the schema columns in the Columns tab, so a column's label matches the table |
 | `showMetadata` | Boolean | `true` | Whether to include the built-in Metadata column group |
 | `searchPlaceholder` | String | `'Type to search...'` | Placeholder text for the search input |
 | `searchTabLabel` | String | `'Search'` | Label for the Search tab |
