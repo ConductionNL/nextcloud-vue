@@ -26,3 +26,4 @@ The textarea is labelled by the card title (`content.title`, "Notepad" when empt
 | --- | --- | --- | --- | --- |
 | `widgetId` | `string` or `number` | | `'notepad'` | The widget's stable id within its dashboard; part of the storage key. Dashboard widgets receive it from the grid. |
 | `content` | `{title?: string, height?: string or number, dashboardId?: string, appId?: string}` | | `\{\}` | Placement content: `title` labels the textarea, `height` (a CSS length or pixels) sets its minimum height, `dashboardId` overrides the dashboard id in the storage key, `appId` names the app whose preferences hold the note when no `CnAppRoot` provides one. |
+| `preview` | `boolean` | | `false` | A miniature in a widget picker: shows `content.sampleText` and never reads or writes the reader's note. |

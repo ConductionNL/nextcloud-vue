@@ -98,4 +98,23 @@ describe('CnNotepadWidget', () => {
 		await flush()
 		expect(w.find('[data-testid="cn-notepad-status"]').attributes('aria-live')).toBe('polite')
 	})
+
+	it('as a miniature (preview) shows its sample note and never reads or writes the reader\'s note', async () => {
+		const prefs = fakePrefs({ text: 'My own note', updatedAt: 5 })
+		const w = mount(CnNotepadWidget, {
+			propsData: { widgetId: 'w1', preview: true, content: getWidgetTypeEntry('notepad').sampleContent },
+			provide: { cnUserPreferences: prefs, cnDashboardPageId: () => 'start', cnTranslate: (k) => k },
+		})
+		await flush()
+
+		expect(prefs.read).not.toHaveBeenCalled()
+		expect(w.find('[data-testid="cn-notepad-rendered"]').text()).toContain('Call Anna about the permit')
+		await w.find('[data-testid="cn-notepad-textarea"]').trigger('focus')
+		await w.find('[data-testid="cn-notepad-textarea"]').setValue('typed')
+		jest.advanceTimersByTime(2000)
+		await w.find('[data-testid="cn-notepad-textarea"]').trigger('blur')
+		await flush()
+		expect(prefs.read).not.toHaveBeenCalled()
+		expect(prefs.write).not.toHaveBeenCalled()
+	})
 })

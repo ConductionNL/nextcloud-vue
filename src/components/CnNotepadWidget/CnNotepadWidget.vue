@@ -99,6 +99,17 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it shows
+		 * `content.sampleText` and never reads or writes the reader's note.
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -169,6 +180,11 @@ export default {
 	},
 
 	async mounted() {
+		// A miniature draws its sample note and reads nothing.
+		if (this.preview) {
+			this.applyStored({ text: typeof this.content?.sampleText === 'string' ? this.content.sampleText : '', updatedAt: 0 })
+			return
+		}
 		const stored = await this.readStored()
 		if (stored) {
 			this.applyStored(stored)
@@ -217,6 +233,9 @@ export default {
 		 */
 		async onFocus() {
 			this.editing = true
+			if (this.preview) {
+				return
+			}
 			const stored = await this.readStored()
 			if (stored && (Number(stored.updatedAt) || 0) > this.updatedAt && this.text === this.savedText) {
 				this.applyStored(stored)
@@ -274,6 +293,9 @@ export default {
 		 */
 		async save() {
 			this.saveTimer = null
+			if (this.preview) {
+				return
+			}
 			const text = this.text
 			const updatedAt = Date.now()
 			this.status = 'saving'
