@@ -1186,6 +1186,81 @@ export default {
 		},
 
 		/**
+		 * Size the cells of one content-observer frame to their content with
+		 * every measure before any write. GridStack's `resizeToContent` reads a
+		 * cell right after the previous cell was resized, so each cell cost a
+		 * forced style recalculation; here the reads share one. The rows and
+		 * the `size-to-content-max` mark are GridStack's own arithmetic
+		 * (`contentFit`), applied with its `moveNode`, and a growing cell still
+		 * moves the cards under it down first (`planGrowth`). A single cell,
+		 * a sub-grid, or a cell outside the grid goes to `resizeToContent`.
+		 *
+		 * @spec openspec/changes/dashboard-growth-keeps-order/specs/dashboard-grid/spec.md#requirement-a-growing-cell-keeps-the-order-of-the-cards-under-it
+		 * @param {Iterable<HTMLElement>} cells The cells.
+		 * @return {void}
+		 */
+		resizeCellsMeasuredFirst(cells) {
+			const grid = toRaw(this.grid)
+			const list = Array.from(cells)
+			const nodes = grid.engine && Array.isArray(grid.engine.nodes) ? grid.engine.nodes : null
+			if (list.length < 2 || !nodes || this.pendingSizes || typeof grid.moveNode !== 'function' || typeof grid.update !== 'function') {
+				for (const cell of list) {
+					grid.resizeToContent(cell)
+				}
+				return
+			}
+			this.matchRowHeightsOncePerRun()
+			const measured = []
+			const rest = []
+			for (const el of list) {
+				const node = el.gridstackNode
+				if (!node || node.subGrid || node.subGridOpts?.children?.length || el.parentElement !== grid.el) {
+					rest.push(el)
+					continue
+				}
+				el.classList.remove('size-to-content-max')
+				measured.push({ el, node })
+			}
+			for (const entry of measured) {
+				entry.fit = this.contentFit(entry.el, entry.node)
+			}
+			for (const { el, node, fit } of measured) {
+				if (!fit) {
+					continue
+				}
+				if (fit.capped) {
+					el.classList.add('size-to-content-max')
+				}
+				if (fit.rows === node.h) {
+					continue
+				}
+				const plan = planGrowth(nodes, node, fit.rows)
+				const batching = Boolean(grid.engine.batchMode)
+				this.moveCardsOnly(() => {
+					if (plan.length > 0 && !batching) {
+						grid.batchUpdate()
+					}
+					try {
+						for (const step of plan) {
+							grid.update(step.node.el, { y: step.y })
+						}
+						grid._ignoreLayoutsNodeChange = true
+						grid.moveNode(node, { h: fit.rows })
+					} finally {
+						delete grid._ignoreLayoutsNodeChange
+						if (plan.length > 0 && !batching) {
+							grid.batchUpdate(false)
+						}
+					}
+				})
+			}
+			this.placeClearRows()
+			for (const el of rest) {
+				grid.resizeToContent(el)
+			}
+		},
+
+		/**
 		 * One `resizeToContent` with the cards under a growing cell moved down
 		 * first (`keepOrderOnGrowth`).
 		 *
@@ -1346,6 +1421,19 @@ export default {
 		 * @return {number|null} The rows, or null when it cannot be measured.
 		 */
 		contentRows(el, node) {
+			const fit = this.contentFit(el, node)
+			return fit ? fit.rows : null
+		},
+
+		/**
+		 * `contentRows`, and whether the size-to-content row maximum capped it
+		 * (GridStack then marks the cell `size-to-content-max` so it scrolls).
+		 *
+		 * @param {HTMLElement} el The cell.
+		 * @param {object} node Its GridStack node.
+		 * @return {{rows: number, capped: boolean}|null} The fit, or null when it cannot be measured.
+		 */
+		contentFit(el, node) {
 			const cell = this.grid.getCellHeight(true)
 			const item = el.querySelector('.grid-stack-item-content')
 			const child = item && item.firstElementChild
@@ -1356,7 +1444,8 @@ export default {
 			const itemHeight = node.h * cell - padding
 			const wanted = child.getBoundingClientRect().height || itemHeight
 			let rows = Math.ceil((node.h * cell + wanted - itemHeight) / cell)
-			if (Number.isInteger(node.sizeToContent) && rows > node.sizeToContent) {
+			const capped = Number.isInteger(node.sizeToContent) && node.sizeToContent > 0 && rows > node.sizeToContent
+			if (capped) {
 				rows = node.sizeToContent
 			}
 			if (node.minH && rows < node.minH) {
@@ -1364,7 +1453,7 @@ export default {
 			} else if (node.maxH && rows > node.maxH) {
 				rows = node.maxH
 			}
-			return rows
+			return { rows, capped }
 		},
 
 		/**
@@ -1807,9 +1896,7 @@ export default {
 					if (!this.contentObserver || !this.grid || typeof this.grid.resizeToContent !== 'function') {
 						return
 					}
-					for (const cell of cells) {
-						this.grid.resizeToContent(cell)
-					}
+					this.resizeCellsMeasuredFirst(cells)
 				})
 			})
 
