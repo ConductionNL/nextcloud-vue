@@ -142,6 +142,7 @@ The step indicator renders as numbered circles joined by connectors, with a chec
 
 - `#step-{id}` — body for each declared step (see scope table above).
 - `#result-extra` — extra content rendered below the result-phase banner. Scope: `{ result }`.
+- `#actions-start` — extra footer actions drawn before Skip, Cancel, Back and Next/Submit in the wizard phase (not in the result phase), for a host whose board has more ways out, such as a "Skip setup" that ends the whole flow. Scope: `{ currentStep, stepIndex, totalSteps, isFirst, isLast, loading, close }`; `close()` emits `close`.
 
 ## Board look
 
