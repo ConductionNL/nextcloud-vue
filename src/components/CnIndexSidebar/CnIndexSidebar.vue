@@ -152,15 +152,20 @@
 						<!-- A window, not a list of values: two bounds and a
 						     preset, emitted as the `{ from, to }` the range
 						     filters upstream are already spelled in. -->
-						<CnDateRangePicker
-							v-if="filter.type === 'date-range'"
-							class="cn-index-sidebar__date-range"
-							:modelValue="getRangeValue(filter)"
-							:presets="filter.presets || rangePresets"
-							:fromLabel="filter.fromLabel || fromLabel"
-							:toLabel="filter.toLabel || toLabel"
-							:presetLabel="filter.label"
-							@update:modelValue="onRangeChange(filter.key, $event)" />
+						<!-- Mounted once the sidebar has been open: each picker reads
+						     the page width on mount, a forced style recalculation,
+						     and a closed sidebar shows none of them. -->
+						<template v-if="filter.type === 'date-range'">
+							<CnDateRangePicker
+								v-if="hasBeenOpen"
+								class="cn-index-sidebar__date-range"
+								:modelValue="getRangeValue(filter)"
+								:presets="filter.presets || rangePresets"
+								:fromLabel="filter.fromLabel || fromLabel"
+								:toLabel="filter.toLabel || toLabel"
+								:presetLabel="filter.label"
+								@update:modelValue="onRangeChange(filter.key, $event)" />
+						</template>
 						<!-- One on/off question (`inputControl: "switch"`): DqZaken
 						     "Ook concepten van anderen tonen". -->
 						<NcCheckboxRadioSwitch
@@ -733,6 +738,8 @@ export default {
 	data() {
 		return {
 			internalOpen: this.open,
+			/** Whether the sidebar has been open; the date-range pickers mount from then on. */
+			hasBeenOpen: this.open !== false,
 			internalActiveTab: this.defaultTab,
 			/** Index of the column being dragged in the Order and pin list, or -1. */
 			dragFrom: -1,
@@ -1014,6 +1021,9 @@ export default {
 		},
 
 		internalOpen(val) {
+			if (val) {
+				this.hasBeenOpen = true
+			}
 			this.$emit('update:open', val)
 		},
 
