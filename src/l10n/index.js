@@ -36,6 +36,7 @@ import sr from '../../l10n/sr.json'
 import sv from '../../l10n/sv.json'
 import tr from '../../l10n/tr.json'
 import uk from '../../l10n/uk.json'
+import { applyAxiosDefaults } from '../utils/axiosDefaults.js'
 
 // One entry per locale the Conduction fleet targets (the keepiq locale set).
 // Only en and nl are anywhere near complete; the others carry what has been
@@ -124,6 +125,8 @@ export function registerTranslations() {
 	const bundle = BUNDLES[lang] ?? BUNDLES.en
 	register(APP_NAME, { ...bundle.translations, ...pluralEntries(bundle) })
 	registered = true
+	// The one bootstrap call every app makes: also spare its HTTP client axios 1.21's cookie wait.
+	applyAxiosDefaults()
 }
 
 /**
