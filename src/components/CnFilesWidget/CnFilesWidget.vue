@@ -253,6 +253,7 @@ import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import CnFilesWidgetDeleteDialog from '../../dialogs/CnFilesWidgetDeleteDialog.vue'
 import CnFilePreview from '../CnFilePreview/CnFilePreview.vue'
 import { useFileOpener } from '../../composables/useFileOpener.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { stripTrailingSlashes } from '../../utils/trailingSlashes.js'
 
 /** Milliseconds in a day. */
@@ -313,6 +314,8 @@ export default {
 		FileDocumentOutline,
 		FolderOutline,
 	},
+
+	mixins: [widgetLoaded],
 
 	props: {
 		/**

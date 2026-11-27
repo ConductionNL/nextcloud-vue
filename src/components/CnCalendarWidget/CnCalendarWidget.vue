@@ -186,6 +186,7 @@
 
 <script>
 import { translatePlural as n, translate as t } from '@nextcloud/l10n'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { userLocale } from '../../utils/userLocale.js'
 
 const VIEW_MODES = ['month', 'week', 'agenda']
@@ -214,6 +215,8 @@ const SLOW_AFTER_MS = 30000
  */
 export default {
 	name: 'CnCalendarWidget',
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnCalendarSource: {

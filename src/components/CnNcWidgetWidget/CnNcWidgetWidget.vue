@@ -92,6 +92,7 @@
 import axios from '@nextcloud/axios'
 import { translate as t } from '@nextcloud/l10n'
 import { generateOcsUrl } from '@nextcloud/router'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 
 /** The tones `content.itemTones` may give an item. */
 const ITEM_TONES = ['success', 'info', 'neutral', 'warning', 'error']
@@ -136,6 +137,8 @@ function getDashboardGlobal() {
  */
 export default {
 	name: 'CnNcWidgetWidget',
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/** Whether the hosting card draws a title row (CnWidgetWrapper). */

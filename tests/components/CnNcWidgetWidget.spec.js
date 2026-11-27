@@ -118,6 +118,17 @@ describe('CnNcWidgetWidget renderer', () => {
 })
 
 describe('nc-widget registry registration', () => {
+	it('emits loaded once its items request settles, and at once with nothing to fetch (widget-placeholder-shape task 6)', async () => {
+		const empty = mount(CnNcWidgetWidget, { propsData: { content: {} } })
+		await flushPromises()
+		expect(empty.emitted('loaded')).toHaveLength(1)
+
+		axios.get.mockResolvedValueOnce({ status: 200, data: { ocs: { data: { 'pipelinq-calls': [] } } } })
+		const wrapper = mount(CnNcWidgetWidget, { propsData: { content: { widgetId: 'pipelinq-calls' } } })
+		await flushPromises()
+		expect(wrapper.emitted('loaded')).toHaveLength(1)
+	})
+
 	it('registers the nc-widget type after importing the renderer index', () => {
 		let mod
 		jest.isolateModules(() => {

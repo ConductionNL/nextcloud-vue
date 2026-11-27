@@ -12,3 +12,9 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 | ------------ | -------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content`    | `object` |          | `\{\}`  | Persisted widget content `{layout, filters, excludeDisabled, showBirthdays, sortBy, columns, showFields, showSearch}`.                                                                                  |
 | `dataSource` | `union`  |          | `null`  | Consumer-supplied data source overriding the `cnPeopleSource` injection. Must expose `fetchPeople(args)` and may expose `searchPeople(args)`. When `null` the injection (then the empty state) is used. |
+
+### Events
+
+| Name     | Payload | Description |
+| -------- | ------- | ----------- |
+| `loaded` | —       |             |
