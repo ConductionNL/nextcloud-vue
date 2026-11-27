@@ -10,7 +10,7 @@
 - **files**: `src/schemas/app-manifest.schema.json`, `src/components/CnWidgetGrid/dashboardWidgetRegistry.js`, `src/utils/resolveWidgetPlaceholder.js`, `src/utils/__tests__/resolveWidgetPlaceholder.spec.js`, `src/components/CnWidgetGrid/__tests__/dashboardWidgetRegistry.spec.js`
 - **acceptance_criteria**:
   - `widgetDef.placeholder`: a shape name from the closed enum `rows | lines | block | tiles | counter | heading`, or `{ shape, count }` with `count` an integer 1 to 24; schema version 1.9.0, changelog entry
-  - `registerDashboardWidget` accepts `placeholder` and throws a `TypeError` naming the type for an invalid value; the `DashboardWidgetEntry` typedef documents it
+  - `registerDashboardWidget` accepts `placeholder` for library and app-registered types alike, and throws a `TypeError` naming the type for an invalid value; the `DashboardWidgetEntry` typedef documents it
   - `resolveWidgetPlaceholder(widgetDef, registryEntry, ncDescriptor)` returns `{ shape, count }` in the order manifest, registry, NC descriptor, `rows` (design D2)
   - JSDoc on every exported function
 - [ ] Implement
@@ -20,7 +20,7 @@
 - **spec_ref**: `openspec/changes/widget-placeholder-shape/specs/widget-placeholder/spec.md#requirement-a-widget-declares-its-placeholder-shape`
 - **files**: each `registerDashboardWidget(...)` call under `src/components/`, `src/components/CnWidgetGrid/__tests__/dashboardWidgetRegistry.placeholder.spec.js`
 - **acceptance_criteria**:
-  - Proposed shapes, checked against each widget's board before they land:
+  - Proposed shapes. The build lane that builds or touches a widget checks its shape against that widget's board and corrects it in the same PR:
     - `rows`: audit-trail, calendar, checklist, checklist-run, conversation, document-review, events, files, flow-runs, index-list, linked, links, macros, mail, menu, nc-widget, object-links, object-list, object-table, parties, people, presence, quicklinks, record-list, record-notes, related, retention, row-mark-list, saved-view, saved-views, share-list, tasks, team-workload, timeline, work-queue
     - `lines`: attention-flag, banner, facts, field-groups, field-list, handoff, markdown, next-step, notepad, plan, schema-rules, sections, status-explainer, text
     - `block`: ai-chat, chart, chips-field, choice-picker, code, conflict-resolve, container, create-form, data, device-frames, gauge, image, interaction-form, kb-search, map, object-geo, party-actions, radio-cards, settings-form, slot-grid, spend-analytics, stacked-bar, stages, switch-rows, table, tabs, task-form, toggle-table, video, week-strip, working-calendar, workspace-filter
@@ -79,7 +79,7 @@
 - **acceptance_criteria**:
   - Each wrapper gets the resolved placeholder and `loading` until `loaded` (or first render, or error)
   - The pending conditional cell draws the widget's shape instead of "Loading…" and has no `role="status"`
-  - One visually hidden `role="status"`: "Loading widgets", then "All widgets loaded" once, then empty; at most one change per 2 seconds; strings in every shipped locale (nl "Widgets worden geladen", "Alle widgets geladen")
-  - Docs: the developer note on declaring a widget's placeholder
+  - One visually hidden `role="status"`: "Widgets are loading", then "All widgets loaded" once, then empty; at most one change per 2 seconds; strings in every shipped locale (nl "Widgets worden geladen", "Alle widgets geladen")
+  - Docs: the developer note on declaring a widget's placeholder; for an app's own type, declare it once on the registration
 - [ ] Implement
 - [ ] Test (shapes per type, pending cell, one announcement, error ends the wait)

@@ -16,11 +16,13 @@ widget type is missing from it until somebody notices.
 ## What changes
 
 - New capability `widget-placeholder`:
-  - A widget declares `placeholder`: one of `rows`, `lines`, `block`, `tiles`, `counter`, `heading`, with an optional
-    count hint. It can be declared in two places: on the widget type in `dashboardWidgetRegistry`
-    (`registerDashboardWidget(type, { ..., placeholder })`), and on a widget declaration in the app manifest
-    (`widgetDef.placeholder`, schema 1.9.0). The manifest wins over the registry; a widget that declares nothing
-    draws `rows`.
+  - A widget declares `placeholder`: one of `rows`, `lines`, `block`, `tiles`, `counter`, `heading`, or
+    `{ shape, count }` with a count hint. It can be declared in two places: on the widget type in
+    `dashboardWidgetRegistry` (`registerDashboardWidget(type, { ..., placeholder })`), and on a widget declaration in
+    the app manifest (`widgetDef.placeholder`, schema 1.9.0). The manifest wins over the registry; a widget that
+    declares nothing draws `rows`.
+  - A type an app registers declares its shape once, on the registration. That covers every widget of the type, and
+    a single widget may override it in the manifest. This is the preferred route for an app's own widget types.
   - New component `CnWidgetPlaceholder` draws one shape, `aria-hidden`, in neutral Nextcloud tokens, with a shimmer
     that stops under `prefers-reduced-motion: reduce`. Its markup and classes are a published contract, so a server
     template (launchpad's first paint) can print the same markup.

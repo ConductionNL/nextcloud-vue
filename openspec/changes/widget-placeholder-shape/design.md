@@ -40,6 +40,10 @@ A widget's shape is resolved in this order, first hit wins:
 `resolveWidgetPlaceholder(widgetDef, registryEntry, ncDescriptor)`, returns `{ shape, count }` and is the only place
 that knows the order, so `CnDashboardPage`, launchpad's `WidgetWrapper` and the JSON export cannot disagree.
 
+A type an app registers itself (for example portaliq's traffic widgets) declares its shape once, on that
+registration. It then covers every widget of the type, and one widget may override it with `widgetDef.placeholder`.
+That is the preferred route for an app's own types: one declaration per type, not one key per widget.
+
 Every registry type in this library declares a shape (task 2). A unit test fails when a registered type has no
 `placeholder`, so a new widget type cannot land without one.
 
@@ -101,8 +105,9 @@ indicator.
 ### D8. One announcement per page
 
 The placeholder is `aria-hidden`; the waiting wrapper carries `aria-busy="true"`; no wrapper has a status of its own.
-`CnDashboardPage` renders one visually hidden `role="status"` line that says "Loading widgets" while any widget in the
-viewport is busy and "All widgets loaded" once, then empties. It changes its text at most once every 2 seconds. A host
+`CnDashboardPage` renders one visually hidden `role="status"` line that says "Widgets are loading" once while any widget in
+the viewport is busy and "All widgets loaded" once at the end, then empties. It behaves like launchpad's status line
+(REQ-FPS-005). It changes its text at most once every 2 seconds. A host
 with its own status line (launchpad REQ-FPS-005) uses `CnWidgetWrapper` directly and does not get a second one.
 
 ### D9. Tokens and motion

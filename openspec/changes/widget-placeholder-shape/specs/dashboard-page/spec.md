@@ -58,7 +58,7 @@ error state.
 
 ### Requirement: One status line announces the page's loading
 
-CnDashboardPage SHALL render one visually hidden element with `role="status"` that reads "Loading widgets" while any
+CnDashboardPage SHALL render one visually hidden element with `role="status"` that reads "Widgets are loading" while any
 widget in the viewport is loading, and "All widgets loaded" once when the last of them has loaded, and is then emptied.
 Its text SHALL change at most once every 2 seconds. No widget SHALL announce its own loading.
 
@@ -66,5 +66,5 @@ Its text SHALL change at most once every 2 seconds. No widget SHALL announce its
 
 - GIVEN Fatima uses a screen reader and opens a dashboard with six widgets that fetch
 - WHEN the widgets load
-- THEN she hears "Loading widgets" and later "All widgets loaded", once each
+- THEN she hears "Widgets are loading" and later "All widgets loaded", once each
 - AND no placeholder is read

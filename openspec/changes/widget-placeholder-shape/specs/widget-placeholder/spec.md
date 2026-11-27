@@ -19,7 +19,9 @@ A dashboard widget SHALL be able to declare `placeholder` as one of `rows`, `lin
 `heading`, or as an object `{ shape, count }` where `shape` is one of those values and `count` is an integer from 1 to
 24. The app manifest schema SHALL accept `placeholder` on `widgetDef` (schema version 1.9.0) and reject any other shape
 name. `registerDashboardWidget` SHALL accept `placeholder` on a registry entry and SHALL throw a `TypeError` naming the
-type when the value is not a valid shape. Every widget type this library registers SHALL declare a placeholder.
+type when the value is not a valid shape, whether the library or an app registers the type. A type's declaration SHALL
+cover every widget of that type unless the widget declares its own. Every widget type this library registers SHALL
+declare a placeholder.
 
 #### Scenario: A manifest widget declares its shape
 
@@ -51,6 +53,13 @@ widget, and otherwise `{ shape: 'rows' }`. Every host in this library SHALL use 
 - AND a manifest widget of type `chart` declares `counter`
 - WHEN the shape is resolved
 - THEN it is `counter`
+
+#### Scenario: An app-registered type covers every widget of the type
+
+- GIVEN an app registers the type `traffic-kpi` with placeholder `counter`
+- AND its manifest has four widgets of that type, one of which declares `block`
+- WHEN the shapes are resolved
+- THEN three widgets get `counter` and the one that declares `block` gets `block`
 
 #### Scenario: A widget of another vendor draws rows
 
