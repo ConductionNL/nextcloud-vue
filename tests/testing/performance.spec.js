@@ -16,13 +16,16 @@ import {
 	definePerformanceSpec,
 	findBudgetFile,
 	formatFailure,
+	formatSummary,
 	isTracked,
 	loadBudget,
+	measureFloor,
 	measureLoad,
 	measurePage,
 	median,
 	pageLimit,
 	validateBudget,
+	withinLimits,
 } from '../../testing/performance.js'
 
 const VALID = {
@@ -129,6 +132,113 @@ describe('pageLimit', () => {
 		const limit = pageLimit(VALID, 'Inbox', { env: {}, now: new Date('2027-01-01T00:00:00Z') })
 		expect(limit.limitMs).toBe(300)
 		expect(limit.expired.expires).toBe('2026-12-31')
+	})
+})
+
+describe('pageLimit with a floor (speed rule of 27 Nov 2026)', () => {
+	const now = new Date('2026-11-27T00:00:00Z')
+
+	it('allows a page the floor plus 150 ms and holds first content to 300 ms', () => {
+		const limit = pageLimit(VALID, 'Cases', { env: {}, now, floorMs: 566 })
+		expect(limit).toMatchObject({ floorMs: 566, allowanceMs: 150, limitMs: 716, firstContentLimitMs: 300 })
+	})
+
+	it('scales the allowance and the first-content target with the run budget, not the floor', () => {
+		const limit = pageLimit(VALID, 'Cases', { env: { PERF_PAGE_BUDGET_MS: '1000' }, now, floorMs: 900 })
+		expect(limit).toMatchObject({ allowanceMs: 500, limitMs: 1400, firstContentLimitMs: 1000 })
+	})
+
+	it('lets an exception replace the allowance over the floor', () => {
+		expect(pageLimit(VALID, 'Inbox', { env: {}, now, floorMs: 500 })).toMatchObject({ allowanceMs: 600, limitMs: 1100 })
+	})
+})
+
+describe('withinLimits, formatSummary and formatFailure with a floor', () => {
+	const limit = { floorMs: 566, allowanceMs: 150, limitMs: 716, firstContentLimitMs: 300, expired: null }
+	const result = (medianMs, firstContentMs) => ({
+		name: 'Workspace',
+		path: '/w',
+		loads: [medianMs],
+		medianMs,
+		firstContent: firstContentMs === null ? [] : [firstContentMs],
+		firstContentMs,
+		failure: null,
+		slowest: [],
+	})
+
+	it('passes only when the total and the first content are both inside their limits', () => {
+		expect(withinLimits(result(700, 280), limit)).toBe(true)
+		expect(withinLimits(result(790, 280), limit)).toBe(false)
+		expect(withinLimits(result(700, 420), limit)).toBe(false)
+	})
+
+	it('judges the total alone when the browser reports no paint', () => {
+		expect(withinLimits(result(700, null), limit)).toBe(true)
+	})
+
+	it('reports floor, total, total minus floor and first useful content', () => {
+		expect(formatSummary(result(790, 420), limit)).toBe('Workspace: floor 566 ms, total 790 ms, total - floor +224 ms (limit +150), first useful content 420 ms (limit 300)')
+	})
+
+	it('names each limit that failed', () => {
+		const text = formatFailure(result(790, 420), limit)
+		expect(text).toContain('loaded in 790 ms (median of 790 ms), 224 ms over the 566 ms Nextcloud floor; a page may add at most 150 ms')
+		expect(text).toContain('first useful content at 420 ms (median of 420 ms), over the 300 ms target')
+	})
+})
+
+describe('measureFloor', () => {
+	it('takes PERF_FLOOR_MS instead of measuring', async () => {
+		const floor = await measureFloor({}, { env: { PERF_FLOOR_MS: '540' } })
+		expect(floor).toMatchObject({ medianMs: 540, source: 'PERF_FLOOR_MS', path: '/index.php/apps/dashboard/' })
+	})
+
+	it('measures the floor page once per worker and shares the result', async () => {
+		let gotos = 0
+		let clockNow = 0
+		let readyAt = 0
+		const page = {
+			on: () => {},
+			off: () => {},
+			goto: async () => {
+				gotos++
+				readyAt = clockNow + 400
+			},
+			evaluate: async () => ({ ready: clockNow >= readyAt, busy: false }),
+			waitForTimeout: async (ms) => { clockNow += ms },
+		}
+		const env = { PERF_FLOOR_PATH: '/index.php/apps/floor-test/' }
+		const first = await measureFloor(page, { env, runs: 3, clock: () => clockNow })
+		const second = await measureFloor(page, { env, runs: 3, clock: () => clockNow })
+		expect(first).toMatchObject({ path: '/index.php/apps/floor-test/', source: 'measured', failure: null })
+		expect(first.medianMs).toBe(400)
+		expect(second).toBe(first)
+		expect(gotos).toBe(4)
+	})
+})
+
+describe('measureLoad paint times', () => {
+	it('reports the last LCP inside the main region as the first useful content', async () => {
+		const { page, clock } = scriptedPage({ 0: { ready: true } })
+		const scripts = []
+		page.addInitScript = async (script) => {
+			scripts.push(script)
+		}
+		const evaluate = page.evaluate
+		page.evaluate = async (fn, arg) => (typeof arg === 'string'
+			? { firstContentMs: 280, lcpMs: 310, fcpMs: 200 }
+			: evaluate(fn, arg))
+		const result = await measureLoad(page, '/x', { clock, quietMs: 100 })
+		expect(scripts).toHaveLength(1)
+		expect(result).toMatchObject({ usableMs: 0, firstContentMs: 280, lcpMs: 310, fcpMs: 200 })
+		await measureLoad(page, '/x', { clock, quietMs: 100 })
+		expect(scripts).toHaveLength(1)
+	})
+
+	it('reports no paint times on a page without addInitScript', async () => {
+		const { page, clock } = scriptedPage({ 0: { ready: true } })
+		const result = await measureLoad(page, '/x', { clock, quietMs: 100 })
+		expect(result.firstContentMs).toBeNull()
 	})
 })
 
