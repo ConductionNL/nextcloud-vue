@@ -90,6 +90,7 @@ When using `CnIndexPage`, the sidebar is managed internally — you do not need 
 | `currentSort` | Array | `[]` | The list's current order, `[{ key, order }]`: the Sort section shows its field, its direction and "Current order: ...". |
 | `currentSortValue` | String | `''` | The Sort option chosen by its value, for an order that is not a list of sort keys: an option with `fixed: true`, such as one whose rows an endpoint ranks (`sortSelectOptions[].source`). Wins over matching `currentSort`. |
 | `columnGroups` | Array | `[]` | Additional custom column groups to add to the Columns tab |
+| `columnOverrides` | Object | `\{\}` | The index page's per-column overrides, keyed by column key. Applied to the schema columns in the Columns tab, so a column's label matches the table |
 | `showMetadata` | Boolean | `true` | When `true`, includes a built-in "Metadata" group with `created`, `updated`, `uuid` columns |
 | `propertiesGroupLabel` | String | `''` | Override the label for the auto-generated properties column group |
 | `defaultTab` | String | `'search-tab'` | ID of the tab that is active when the sidebar opens. Built-in values: `'search-tab'`, `'columns-tab'`. Use your custom tab's `id` for custom tabs |

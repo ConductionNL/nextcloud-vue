@@ -1467,6 +1467,7 @@
 			:columnGroups="resolvedSidebar.columnGroups || []"
 			:filterFields="resolvedSidebar.fields || null"
 			:facetData="effectiveFacetData"
+			:columnOverrides="columnOverrides"
 			:showMetadata="resolvedSidebar.showMetadata !== false"
 			:personalColumns="personalColumns"
 			:pinnedCount="pinnedColumnCount"
@@ -3610,7 +3611,11 @@ export default {
 			default: null,
 		},
 
-		/** Per-column overrides in schema mode */
+		/**
+		 * Per-column overrides in schema mode, keyed by column key. Also applied
+		 * to a schema column the person turns on in the sidebar's Columns tab,
+		 * and to its label in both column pickers.
+		 */
 		columnOverrides: {
 			type: Object,
 			default: () => ({}),
@@ -8725,7 +8730,10 @@ export default {
 		 * and any external columnGroups. Mirrors CnIndexSidebar's column
 		 * universe, and doubles as the source of definitions for columns the
 		 * user enables that aren't in the configured `columns` list (metadata
-		 * fields, schema properties beyond the default set).
+		 * fields, schema properties beyond the default set). The page's
+		 * `columnOverrides` apply, so such a column renders like a declared one.
+		 *
+		 * @spec openspec/changes/sidebar-column-overrides/specs/index-page/spec.md#requirement-a-column-turned-on-in-the-sidebar-gets-the-pages-column-overrides
 		 */
 		governedColumns() {
 			const defs = []
@@ -8735,7 +8743,7 @@ export default {
 				// injection. Translating here too would double-translate. The
 				// column-picker menu that renders these labels directly applies
 				// `cnTranslate` at render instead.
-				defs.push(...columnsFromSchema(this.effectiveSchema, {}))
+				defs.push(...columnsFromSchema(this.effectiveSchema, { overrides: this.columnOverrides }))
 				if (this.resolvedSidebar.showMetadata !== false) {
 					defs.push(...METADATA_COLUMNS)
 				}
@@ -10149,6 +10157,8 @@ export default {
 		 * Snapshot of every prop the hoisted CnIndexSidebar needs.
 		 * Reactive — the sidebar in CnAppRoot re-renders whenever
 		 * any of these change.
+		 *
+		 * @spec openspec/changes/sidebar-column-overrides/specs/index-page/spec.md#requirement-both-column-pickers-show-a-columns-override-label
 		 */
 		hoistedSidebarProps() {
 			return {
@@ -10163,6 +10173,7 @@ export default {
 				columnGroups: this.resolvedSidebar.columnGroups || [],
 				filterFields: this.resolvedSidebar.fields || null,
 				facetData: this.effectiveFacetData,
+				columnOverrides: this.columnOverrides,
 				showMetadata: this.resolvedSidebar.showMetadata !== false,
 				personalColumns: this.personalColumns,
 				pinnedCount: this.pinnedColumnCount,

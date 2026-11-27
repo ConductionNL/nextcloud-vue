@@ -599,6 +599,15 @@ export default {
 			default: () => [],
 		},
 
+		/**
+		 * The index page's per-column overrides, keyed by column key. Applied to
+		 * the schema columns listed here, so a column's label matches the table.
+		 */
+		columnOverrides: {
+			type: Object,
+			default: () => ({}),
+		},
+
 		/** Whether to include the built-in Metadata column group */
 		showMetadata: {
 			type: Boolean,
@@ -907,12 +916,22 @@ export default {
 			return this.schema?.title || 'Properties'
 		},
 
-		/** All available columns from schema */
+		/**
+		 * All available columns from schema, with the page's column overrides.
+		 *
+		 * @spec openspec/changes/sidebar-column-overrides/specs/index-page/spec.md#requirement-both-column-pickers-show-a-columns-override-label
+		 */
 		allColumns() {
 			if (!this.schema) {
 				return []
 			}
-			return columnsFromSchema(this.schema, { translate: this.cnTranslate })
+			// columnsFromSchema assigns overrides after translating, so an
+			// override's label is translated here, as the page's header menu does.
+			const overrides = {}
+			for (const [key, override] of Object.entries(this.columnOverrides || {})) {
+				overrides[key] = typeof override?.label === 'string' ? { ...override, label: this.cnTranslate(override.label) } : override
+			}
+			return columnsFromSchema(this.schema, { translate: this.cnTranslate, overrides })
 		},
 
 		/** Filter definitions from schema (facetable properties, respecting RBAC) */
