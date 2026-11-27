@@ -26,9 +26,18 @@ describe('normalizeWidgetPlaceholder', () => {
 	})
 
 	it.each([
-		['spinner'], [''], [null], [undefined], [3], [[]], [{}],
-		[{ shape: 'grid' }], [{ shape: 'rows', count: 0 }], [{ shape: 'rows', count: 25 }],
-		[{ shape: 'rows', count: 2.5 }], [{ shape: 'rows', count: '5' }],
+		['spinner'],
+		[''],
+		[null],
+		[undefined],
+		[3],
+		[[]],
+		[{}],
+		[{ shape: 'grid' }],
+		[{ shape: 'rows', count: 0 }],
+		[{ shape: 'rows', count: 25 }],
+		[{ shape: 'rows', count: 2.5 }],
+		[{ shape: 'rows', count: '5' }],
 	])('refuses %p', (value) => {
 		expect(normalizeWidgetPlaceholder(value)).toBeNull()
 		expect(isValidWidgetPlaceholder(value)).toBe(false)

@@ -1,3 +1,4 @@
+import { mount } from '@vue/test-utils'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -6,7 +7,6 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { mount } from '@vue/test-utils'
 import CnWidgetPlaceholder, { placeholderCapacity } from '../CnWidgetPlaceholder.vue'
 
 /**

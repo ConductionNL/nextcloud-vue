@@ -6,7 +6,8 @@ SPDX-License-Identifier: EUPL-1.2
 	<div
 		v-if="normalizedShape !== 'heading'"
 		ref="root"
-		:class="['cn-widget-placeholder', `cn-widget-placeholder--${normalizedShape}`]"
+		class="cn-widget-placeholder"
+		:class="[`cn-widget-placeholder--${normalizedShape}`]"
 		aria-hidden="true"
 		:data-shape="normalizedShape">
 		<template v-if="normalizedShape === 'rows'">
@@ -20,7 +21,8 @@ SPDX-License-Identifier: EUPL-1.2
 			<span
 				v-for="n in items"
 				:key="n"
-				:class="['cn-widget-placeholder__line', { 'cn-widget-placeholder__line--short': n === items }]" />
+				class="cn-widget-placeholder__line"
+				:class="[{ 'cn-widget-placeholder__line--short': n === items }]" />
 		</template>
 		<span v-else-if="normalizedShape === 'block'" class="cn-widget-placeholder__block" />
 		<template v-else-if="normalizedShape === 'tiles'">
@@ -63,16 +65,16 @@ const UNMEASURED_ITEMS = 3
 export function placeholderCapacity(shape, width, height, tileSize = TILE_SIZE) {
 	const fit = (space, size) => Math.max(1, Math.floor((space + GAP) / (size + GAP)))
 	switch (shape) {
-	case 'rows':
-		return Math.max(1, Math.floor((height + GAP) / ROW_PITCH))
-	case 'lines':
-		return Math.max(1, Math.floor((height + GAP) / LINE_PITCH))
-	case 'tiles':
-		return fit(width, tileSize) * fit(height, tileSize)
-	case 'counter':
-		return fit(width, COUNTER_WIDTH)
-	default:
-		return 1
+		case 'rows':
+			return Math.max(1, Math.floor((height + GAP) / ROW_PITCH))
+		case 'lines':
+			return Math.max(1, Math.floor((height + GAP) / LINE_PITCH))
+		case 'tiles':
+			return fit(width, tileSize) * fit(height, tileSize)
+		case 'counter':
+			return fit(width, COUNTER_WIDTH)
+		default:
+			return 1
 	}
 }
 
@@ -96,6 +98,7 @@ export default {
 			type: String,
 			default: 'rows',
 		},
+
 		/** How many rows, lines, tiles or counters to draw, clipped to the container. Without it the container's size decides. */
 		count: {
 			type: Number,

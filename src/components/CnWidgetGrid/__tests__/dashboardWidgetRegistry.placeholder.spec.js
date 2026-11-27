@@ -1,3 +1,4 @@
+import { isValidWidgetPlaceholder, resolveWidgetPlaceholder } from '../../../utils/resolveWidgetPlaceholder.js'
 /**
  * SPDX-FileCopyrightText: 2026 Conduction B.V.
  * SPDX-License-Identifier: EUPL-1.2
@@ -6,7 +7,6 @@
  * @spec openspec/changes/widget-placeholder-shape/tasks.md#task-2
  */
 import { dashboardWidgetRegistry, registerDashboardWidget } from '../dashboardWidgetRegistry.js'
-import { isValidWidgetPlaceholder, resolveWidgetPlaceholder } from '../../../utils/resolveWidgetPlaceholder.js'
 
 import '../registerDashboardWidgets.js'
 // Registered by the barrel (src/index.js), outside the aggregator.

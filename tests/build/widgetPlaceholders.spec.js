@@ -7,15 +7,14 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import pkg from '../../package.json'
+const { collectWidgetPlaceholders, writeWidgetPlaceholders } = require('../../scripts/build-widget-placeholders.js')
 import { dashboardWidgetRegistry } from '../../src/components/CnWidgetGrid/dashboardWidgetRegistry.js'
 import { normalizeWidgetPlaceholder } from '../../src/utils/resolveWidgetPlaceholder.js'
-import pkg from '../../package.json'
 
 import '../../src/components/CnWidgetGrid/registerDashboardWidgets.js'
 // Registered by the barrel (src/index.js), outside the aggregator.
 import '../../src/components/CnObjectPresenceWidget/index.js'
-
-const { collectWidgetPlaceholders, writeWidgetPlaceholders } = require('../../scripts/build-widget-placeholders.js')
 
 describe('widget-placeholders.json', () => {
 	it('maps every registered library widget type to the placeholder its registration declares', () => {
