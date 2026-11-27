@@ -11,10 +11,11 @@
  *
  * The fix is display-only: `displayLayout` drops collapsed banners and
  * re-compacts the remaining items upward, while the authored `layout` prop
- * stays untouched and edit mode keeps every widget placeable. The grid's
- * FIRST paint waits for the predicates to settle, so a banner is present or
- * absent from the first frame — never popping in after load and reflowing
- * the page. The page hands its verdict (and the read value) to the banner,
+ * stays untouched and edit mode keeps every widget placeable. The grid does
+ * NOT wait for the predicates (decision 27 Nov 2026: no widget holds up the
+ * first render): a banner whose verdict is not in yet keeps its cell with a
+ * loading state, and shows or leaves once it arrives, while its neighbours
+ * render at once. The page hands its verdict (and the read value) to the banner,
  * which renders from it without a second request and interpolates `{value}`
  * into its text.
  */
@@ -84,19 +85,35 @@ describe('CnDashboardPage — hidden banners collapse their grid cell', () => {
 		expect(cells(wrapper)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
 	})
 
-	it('holds the grid\'s first paint until the predicates settle — no pop-in reflow', async () => {
+	it('renders the grid at once; a banner awaiting its verdict waits in its own cell', async () => {
 		let resolveFetch
 		readVisibleWhenValue.mockReturnValue(new Promise((resolve) => {
 			resolveFetch = resolve
 		}))
 		const wrapper = mountWith({ banner: { content: { text: 'T', visibleWhen: CONDITION } } })
-		// Predicate pending: loading icon instead of a grid that would reflow.
-		expect(wrapper.findAll('.cell')).toHaveLength(0)
-		expect(wrapper.find('.loading').exists()).toBe(true)
+		// Predicate pending: the grid is there, the neighbour renders, the
+		// banner's cell shows a loading state.
+		expect(cells(wrapper)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
+		const pending = wrapper.find('[data-wid="b"] [data-testid="cn-dashboard-widget-pending"]')
+		expect(pending.exists()).toBe(true)
+		expect(pending.attributes('aria-busy')).toBe('true')
+		expect(wrapper.find('[data-wid="w"] .rend').exists()).toBe(true)
 		resolveFetch('in_progress')
 		await flushPromises()
-		// First grid frame already contains the banner at its authored spot.
 		expect(cells(wrapper)).toEqual([{ wid: 'b', y: '0' }, { wid: 'w', y: '1' }])
+		expect(wrapper.find('[data-testid="cn-dashboard-widget-pending"]').exists()).toBe(false)
+	})
+
+	it('a banner whose verdict comes back unmet leaves its cell once it arrives', async () => {
+		let resolveFetch
+		readVisibleWhenValue.mockReturnValue(new Promise((resolve) => {
+			resolveFetch = resolve
+		}))
+		const wrapper = mountWith({ banner: { content: { text: 'T', visibleWhen: CONDITION } } })
+		expect(wrapper.find('[data-testid="cn-dashboard-widget-pending"]').exists()).toBe(true)
+		resolveFetch('none')
+		await flushPromises()
+		expect(cells(wrapper)).toEqual([{ wid: 'w', y: '0' }])
 	})
 
 	describe('an attention card with a title and a reason and no text', () => {

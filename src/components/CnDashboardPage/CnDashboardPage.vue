@@ -502,12 +502,10 @@
 		<!-- Loading state -->
 		<NcLoadingIcon v-if="loading" />
 
-		<!-- Widget predicates still settling: hold the grid's first paint
-		     so a conditional widget is present or absent from the first
-		     frame instead of popping in after load and reflowing the page.
-		     Edit mode skips the gate — it renders the authored layout with
-		     every widget regardless of conditions. -->
-		<NcLoadingIcon v-else-if="!widgetConditionsSettled && !gridEditable" />
+		<!-- Widget predicates still settling no longer hold the grid: every
+		     card renders at once and a conditional widget whose verdict is
+		     not in yet shows its own loading state in its cell
+		     (isPendingWidget), so no widget holds up the first render. -->
 
 		<!-- Empty state. Suppressed when the page renders declarative body
 		     sections (before-grid / after-grid / end): a page can legitimately
@@ -672,8 +670,27 @@
 				     fleet data lives in OpenRegister, an app can surface
 				     another app's data; this keeps the tile honest when the
 				     owning app is absent instead of showing an empty value. -->
+				<!-- A conditional widget whose verdict is not in yet keeps its
+				     cell with a loading state; it leaves (or shows) once the
+				     verdict arrives, without holding up the other widgets. -->
 				<CnWidgetWrapper
-					v-if="missingRequiredApp(item)"
+					v-if="isPendingWidget(item)"
+					:title="getWidgetTitle(item)"
+					:eyebrow="getWidgetEyebrow(item)"
+					:titleTone="getWidgetTitleTone(item)"
+					:subtitle="getWidgetSubtitle(item)"
+					:showTitle="widgetShowTitle(item)"
+					:showRefresh="false">
+					<div
+						class="cn-dashboard-page__pending"
+						role="status"
+						aria-busy="true"
+						data-testid="cn-dashboard-widget-pending">
+						<NcLoadingIcon :size="24" :name="t('nextcloud-vue', 'Loading…')" />
+					</div>
+				</CnWidgetWrapper>
+				<CnWidgetWrapper
+					v-else-if="missingRequiredApp(item)"
 					:title="getWidgetTitle(item)"
 					:eyebrow="getWidgetEyebrow(item)"
 					:titleTone="getWidgetTitleTone(item)"
@@ -3424,14 +3441,15 @@ export default {
 
 		/**
 		 * Whether the grid sections render at all: not while loading, not
-		 * while the widget predicates settle, not on the empty page and not
-		 * on a widget-ref content page.
+		 * on the empty page and not on a widget-ref content page. Widget
+		 * predicates that are still settling do not hold the grid; each such
+		 * widget shows its own loading state (isPendingWidget).
 		 *
 		 * @return {boolean}
 		 * @spec openspec/changes/view-switch-containers/specs/view-switch-containers/spec.md#requirement-a-page-declares-views-that-each-hold-a-widget-grid
 		 */
 		gridSectionsShown() {
-			if (this.loading || (!this.widgetConditionsSettled && !this.gridEditable)) {
+			if (this.loading) {
 				return false
 			}
 			if (!this.hasWidgets && !this.hasBodyWidgets && !this.hasViews) {
@@ -4941,10 +4959,40 @@ export default {
 				return !evaluateWorkspaceCondition(visibleWhen, this.workspaceContext)
 			}
 			const outcome = this.widgetConditionOutcome[item.widgetId]
+			if (!outcome && this.isPendingWidget(item)) {
+				return false
+			}
 			if (outcome && outcome.failed === true && layout === 'attention' && this.isBannerDef(def)) {
 				return false
 			}
 			return !outcome || outcome.met !== true
+		},
+
+		/**
+		 * Whether a layout item is a conditional widget whose first verdict
+		 * is not in yet. It keeps its cell with a loading state instead of
+		 * holding up the whole grid; once its verdict arrives it shows, or
+		 * leaves and the rest close up. Edit mode shows every widget, so
+		 * nothing is pending there. A workspace condition is answered at once
+		 * and is never pending.
+		 *
+		 * @param {object} item Layout item.
+		 * @return {boolean} true while the widget's verdict is awaited.
+		 * @spec openspec/specs/dashboard-page/spec.md#requirement-a-conditional-widget-waits-in-its-own-cell
+		 */
+		isPendingWidget(item) {
+			if (this.gridEditable || this.widgetConditionsSettled) {
+				return false
+			}
+			if (this.widgetConditionOutcome[item.widgetId]) {
+				return false
+			}
+			const def = this.getWidgetDef(item.widgetId)
+			if (!def || !def.type) {
+				return false
+			}
+			const { visibleWhen } = this.widgetDisplayConfig(def)
+			return Boolean(visibleWhen) && !isWorkspaceCondition(visibleWhen)
 		},
 
 		/**
@@ -6763,6 +6811,15 @@ export default {
 .cn-dashboard-page__card-fit :deep(.cn-delta-widget) {
 	min-width: 0;
 	max-width: 100%;
+}
+
+.cn-dashboard-page__pending {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	min-height: 24px;
 }
 
 .cn-dashboard-page__unknown {
