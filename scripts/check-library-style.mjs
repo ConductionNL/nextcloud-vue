@@ -39,13 +39,36 @@ if (!fs.existsSync(style)) {
 	} else {
 		const base = JSON.parse(call[1])
 		const board = JSON.parse(call[2])
-		if (base.includes('cn-look-board .') && base.includes('cn-board-look')) {
+		if (base.includes('cn-board-look-start')) {
 			problems.push('the library sheet still holds the board-look block')
 		}
 		if (!board.includes('.cn-look-board') || !board.includes(':has(')) {
 			problems.push('the board-look sheet does not hold the board-look :has() rules')
 		}
 	}
+}
+
+// What apps import (css/index.css): the sheet without the board-look block,
+// which enableBoardLookStyle() adds from utils/boardLookSheet.js on demand.
+const appSheet = path.join(root, 'dist/nextcloud-vue.base.css')
+if (!fs.readFileSync(path.join(root, 'css/index.css'), 'utf8').includes("@import '../dist/nextcloud-vue.base.css';")) {
+	problems.push('css/index.css does not import dist/nextcloud-vue.base.css')
+}
+if (!fs.existsSync(appSheet)) {
+	problems.push('dist/nextcloud-vue.base.css was not emitted')
+} else {
+	const base = fs.readFileSync(appSheet, 'utf8')
+	if (base.includes('cn-board-look-start') || !base.includes('/*! cn-board-look-slot */')) {
+		problems.push('dist/nextcloud-vue.base.css still holds the board-look block, or lacks the slot marker')
+	}
+}
+const boardModule = fs.readFileSync(path.join(root, 'dist/esm/utils/boardLookSheet.js'), 'utf8')
+const boardRules = boardModule.match(/const BOARD_LOOK_CSS = ("(?:[^"\\]|\\.)*");/)
+if (!boardRules || !JSON.parse(boardRules[1]).includes('.cn-look-board') || !JSON.parse(boardRules[1]).includes(':has(')) {
+	problems.push('dist/esm/utils/boardLookSheet.js does not carry the board-look :has() rules')
+}
+if (!fs.readFileSync(path.join(root, 'dist/esm/utils/boardLookStyle.js'), 'utf8').includes('addBoardSheet(target, BOARD_LOOK_CSS, BOARD_LOOK_BUILT)')) {
+	problems.push('dist/esm/utils/boardLookStyle.js no longer adds the board sheet from boardLookSheet.js')
 }
 
 // One component whose scope id is known: path + source, as rollup-plugin-vue's production mode hashes it.
@@ -65,4 +88,4 @@ if (problems.length > 0) {
 	console.error('check-library-style:\n  ' + problems.join('\n  '))
 	process.exit(1)
 }
-console.log('check-library-style: the entry installs the stylesheet once per page, the board-look rules as their own sheet; scope ids hash path and source.')
+console.log('check-library-style: the entry installs the stylesheet once per page, the board-look rules as their own sheet; css/index.css carries no board-look block, boardLookSheet.js does; scope ids hash path and source.')

@@ -184,7 +184,7 @@ See [Internationalisation (i18n)](./integrations/i18n.md) for details on overrid
 
 Importing anything from `@conduction/nextcloud-vue` also installs the library stylesheet. It is installed ONCE per page as `<style data-cn-library="<build time>">`, and when several apps' builds of the library meet on one page (the Nextcloud dashboard and launchpad load every app's widgets; some apps load a script on every page), the newest build's stylesheet is the one that stays. Component styles are scoped by each component's path and source, so an older build of a changed component cannot restyle a newer one.
 
-The explicit `import '@conduction/nextcloud-vue/css/index.css'` above still works on the app's own pages. It is no longer needed for the library's rules to be present.
+Keep the explicit `import '@conduction/nextcloud-vue/css/index.css'` above: webpack drops the entry's bare import of that installer (the file is not in the package's `sideEffects`), so in a webpack app this import is where the library's rules come from. It carries every rule except the board look's, which [`enableBoardLookStyle`](./utilities/enable-board-look-style.md) adds when a component uses the board look.
 
 ## Create the Object Store
 

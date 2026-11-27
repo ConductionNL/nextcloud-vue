@@ -29,7 +29,7 @@ describe('board-look sheet on demand', () => {
 
 	test('splitBoardLook cuts the marked block out of the extracted sheet', () => {
 		const css = '.a{color:red}/*! cn-board-look-start */' + BOARD + '/*! cn-board-look-end */.b{color:blue}'
-		expect(splitBoardLook(css)).toEqual({ base: '.a{color:red}.b{color:blue}', board: BOARD })
+		expect(splitBoardLook(css)).toEqual({ base: '.a{color:red}/*! cn-board-look-slot */.b{color:blue}', board: BOARD })
 		expect(splitBoardLook('.a{color:red}')).toBeNull()
 	})
 
@@ -68,6 +68,11 @@ describe('board-look sheet on demand', () => {
 		enableBoardLookStyle()
 		installLibraryStyle('.a{color:red}', OLD, undefined, BOARD)
 		expect(board()[0].hasAttribute('media')).toBe(false)
+	})
+
+	test('in the source build (no board rules bundled) switching on adds no sheet', () => {
+		expect(enableBoardLookStyle()).toBe(true)
+		expect(board()).toHaveLength(0)
 	})
 
 	test('a build without board rules leaves no board sheet', () => {

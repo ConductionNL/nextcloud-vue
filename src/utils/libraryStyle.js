@@ -90,7 +90,7 @@ export function installLibraryStyle(css, built, doc, boardCss) {
  * look-board files) out of the extracted stylesheet.
  *
  * @param {string} css The whole extracted stylesheet.
- * @return {{base: string, board: string}|null} The sheet without the block, and the block; null without the markers.
+ * @return {{base: string, board: string}|null} The sheet without the block (a `cn-board-look-slot` comment in its place), and the block; null without the markers.
  * @spec openspec/changes/board-look-sheet-on-demand/specs/library-stylesheet/spec.md#requirement-the-board-look-rules-are-active-only-where-the-board-look-is-used
  */
 export function splitBoardLook(css) {
@@ -98,5 +98,7 @@ export function splitBoardLook(css) {
 	if (!match) {
 		return null
 	}
-	return { base: css.slice(0, match.index) + css.slice(match.index + match[0].length), board: match[1].trim() }
+	// The base keeps a marker where the block was: enableBoardLookStyle() puts
+	// the board sheet right after the <style> that carries it.
+	return { base: css.slice(0, match.index) + '/*! cn-board-look-slot */' + css.slice(match.index + match[0].length), board: match[1].trim() }
 }

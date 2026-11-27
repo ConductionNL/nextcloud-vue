@@ -12,8 +12,15 @@
  * treats it as side-effect-free and skips the module (and its CSS import) whenever
  * a consumer imports named components rather than the namespace.
  *
+ * That same bare-import rule drops the entry's `import './library-style.js'`,
+ * so for a webpack app this file IS the library stylesheet. It carries the
+ * sheet WITHOUT the board-look block (~350 `:has()` rules that cost every page
+ * style invalidation work even where nothing uses the board look):
+ * enableBoardLookStyle() adds that block when a component resolves the board
+ * look. dist/nextcloud-vue.css stays the complete sheet.
+ *
  * Consumers resolving the library through a webpack alias to `../nextcloud-vue/src`
  * bypass this file entirely — the alias lands on src/css/index.css, and vue-loader
  * compiles their scoped styles in-app with matching scope hashes.
  */
-@import '../dist/nextcloud-vue.css';
+@import '../dist/nextcloud-vue.base.css';
