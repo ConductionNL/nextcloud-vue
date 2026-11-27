@@ -14,6 +14,7 @@ A dashboard widget driven by a saved view. Registered under the `saved-view` typ
 |------|------|---------|-------------|
 | `content` | `object` | `{}` | The widget config: `viewId` and `limit` (default 10). |
 | `api` | `object\|null` | `null` | Injected views API (`{ fetchViews }`) for tests; defaults to `useSavedViewsApi`. |
+| `preview` | `boolean` | `false` | A miniature in a widget picker: draws `content.sampleRows` under `content.sampleColumns` and reads no view and no object. |
 
 ## Notes
 
