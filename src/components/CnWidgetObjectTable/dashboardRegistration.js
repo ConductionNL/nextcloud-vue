@@ -84,6 +84,22 @@ export function objectTableContentToProps(content) {
 }
 
 /**
+ * The props of a miniature (`preview`): the sample columns and rows of the
+ * content blob, and nothing a read could start from (no `source`, no
+ * `endpointSource`, no register or schema).
+ *
+ * @param {object} content The sample content (`sampleColumns`, `sampleRows`).
+ * @return {object} A CnWidgetObjectTable props map (without `hideWrapper`).
+ */
+export function objectTablePreviewProps(content) {
+	const c = (content && typeof content === 'object') ? content : {}
+	return {
+		columns: Array.isArray(c.sampleColumns) ? c.sampleColumns : [],
+		rows: Array.isArray(c.sampleRows) ? c.sampleRows : [],
+	}
+}
+
+/**
  * Chrome-aware host adapter: mounts CnWidgetObjectTable content-only
  * (`hideWrapper: true`) inside CnDashboardPage's own widget chrome, mapping
  * the stored `content` blob (bound by the dashboard's registry branch as the
@@ -101,7 +117,12 @@ const CnHostedObjectTable = {
 		// Everything except `content` (mapped to props) passes through — this
 		// carries parent listeners (onXxx) too. Vue 3: props/attrs/listeners are
 		// one flat object; slots are the 3rd arg.
-		const { content: _content, ...rest } = attrs
+		const { content: _content, preview, ...rest } = attrs
+		// A miniature in a widget picker draws the sample rows under the sample
+		// columns. Rows handed in suppress every read, and no source is passed.
+		if (preview === true || preview === '') {
+			return h(LazyCnWidgetObjectTable, { ...rest, ...objectTablePreviewProps(content), hideWrapper: true }, this.$slots)
+		}
 		return h(LazyCnWidgetObjectTable, { ...rest, ...objectTableContentToProps(content), hideWrapper: true }, this.$slots)
 	},
 }
@@ -117,6 +138,20 @@ registerDashboardWidget('object-table', {
 		sort: { field: '', dir: 'asc' },
 		limit: 10,
 		columns: [],
+	},
+	// What a widget picker's miniature draws with `preview` set: rows handed in, nothing read.
+	sampleContent: {
+		limit: 3,
+		sampleColumns: [
+			{ key: 'title', label: 'Title' },
+			{ key: 'status', label: 'Status' },
+			{ key: 'owner', label: 'Owner' },
+		],
+		sampleRows: [
+			{ id: 'sample-row-1', title: 'Permit Dorpsstraat 12', status: 'In progress', owner: 'Anna de Vries' },
+			{ id: 'sample-row-2', title: 'Subsidy sports club', status: 'New', owner: 'Mark Jansen' },
+			{ id: 'sample-row-3', title: 'Objection parking fee', status: 'Waiting', owner: 'Fatima El Amrani' },
+		],
 	},
 	displayName: 'Object table',
 	icon: 'TableLarge',

@@ -437,7 +437,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActionCheckbox, NcActions, NcAvatar, NcButton, NcLoadingIcon, NcTextField } from '@nextcloud/vue'
-import { inject, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import CheckCircle from 'vue-material-design-icons/CheckCircle.vue'
 import ChevronDown from 'vue-material-design-icons/ChevronDown.vue'
 import ChevronUp from 'vue-material-design-icons/ChevronUp.vue'
@@ -454,6 +454,7 @@ import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { missingRequiredTaskField, taskForm } from '../../utils/flowTask.js'
 import { openRowTarget } from '../../utils/linkNavigation.js'
 import { isRowMiddleClick, preventMiddleClickAutoscroll } from '../../utils/rowAuxClick.js'
+import { samplePayload } from '../../utils/samplePayload.js'
 import { userDisplayName } from '../../utils/userDisplayName.js'
 import { userLocale } from '../../utils/userLocale.js'
 
@@ -647,6 +648,17 @@ export default {
 			type: Function,
 			default: null,
 		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it draws
+		 * `content.sampleRows` and sends no request and starts no polling.
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	emits: ['header'],
@@ -658,6 +670,10 @@ export default {
 		// this widget with everything else on the page.
 		const widgetIdRef = ref(props.widgetId)
 		const source = () => {
+			// A miniature reads nothing.
+			if (props.preview) {
+				return null
+			}
 			const content = props.content || {}
 			const objectUuid = recordUuid(content.objectUuid, props.objectId)
 			const params = {
@@ -686,10 +702,12 @@ export default {
 		// identically to the Options `inject` block (CnStatWidget precedent).
 		const injectedTranslate = inject('cnTranslate', null)
 
+		// A miniature draws its sample rows in place of the read.
+		const sample = computed(() => samplePayload(props.content && props.content.sampleRows))
 		return {
-			payload: data,
-			loading,
-			error,
+			payload: computed(() => (props.preview ? sample.value : data.value)),
+			loading: computed(() => (props.preview ? false : loading.value)),
+			error: computed(() => (props.preview ? '' : error.value)),
 			refetch,
 			injectedTranslate,
 		}
@@ -1055,6 +1073,10 @@ export default {
 	},
 
 	mounted() {
+		// A miniature asks nothing, neither polls nor listens.
+		if (this.preview) {
+			return
+		}
 		this.loadClaimCapability()
 		this.startPolling()
 		document.addEventListener('visibilitychange', this.onVisibilityChange)

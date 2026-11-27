@@ -10,6 +10,10 @@
 			variant="warning"
 			:name="refusal.name"
 			:description="refusal.description" />
+		<CnObjectListWidget
+			v-else-if="preview"
+			:content="previewContent"
+			:presetRows="previewRows" />
 		<p v-else-if="loading" class="cn-saved-view-widget__loading">
 			{{ t('nextcloud-vue', 'Loading the saved view') }}
 		</p>
@@ -67,6 +71,18 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		/**
+		 * The widget is a miniature in a widget picker: it draws
+		 * `content.sampleRows` under `content.sampleColumns` and reads no
+		 * saved view and no object.
+		 *
+		 * @type {boolean}
+		 */
+		preview: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -78,6 +94,29 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * The list content of a miniature: the sample columns and limit, and
+		 * no register or schema, so the list has nothing to read.
+		 *
+		 * @return {object} The list content.
+		 */
+		previewContent() {
+			const limit = Number(this.content?.limit)
+			return {
+				columns: Array.isArray(this.content?.sampleColumns) ? this.content.sampleColumns : [],
+				limit: limit > 0 ? limit : 10,
+			}
+		},
+
+		/**
+		 * The rows a miniature hands the list.
+		 *
+		 * @return {Array<object>} The sample rows.
+		 */
+		previewRows() {
+			return Array.isArray(this.content?.sampleRows) ? this.content.sampleRows : []
+		},
+
 		/**
 		 * The content blob handed to the list: everything but the limit comes
 		 * from the view.
@@ -104,10 +143,19 @@ export default {
 	},
 
 	watch: {
-		'content.viewId': 'load',
+		'content.viewId': function() {
+			if (!this.preview) {
+				this.load()
+			}
+		},
 	},
 
 	created() {
+		// A miniature draws its sample and reads no view.
+		if (this.preview) {
+			this.loading = false
+			return
+		}
 		this.load()
 	},
 

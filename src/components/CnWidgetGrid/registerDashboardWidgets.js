@@ -227,6 +227,20 @@ registerDashboardWidget('saved-view', {
 	renderer: LazyCnSavedViewWidget2,
 	form: LazyCnSavedViewWidgetForm2,
 	defaultContent: { viewId: '', limit: 10 },
+	// What a widget picker's miniature draws with `preview` set: no view, no rows read.
+	sampleContent: {
+		viewId: '',
+		limit: 3,
+		sampleColumns: [
+			{ key: 'title', label: 'Case', format: 'text' },
+			{ key: 'status', label: 'Status', format: 'text' },
+		],
+		sampleRows: [
+			{ id: 'sample-case-1', title: 'Permit Dorpsstraat 12', status: 'In progress' },
+			{ id: 'sample-case-2', title: 'Subsidy sports club', status: 'New' },
+			{ id: 'sample-case-3', title: 'Objection parking fee', status: 'Waiting' },
+		],
+	},
 	displayName: 'Saved view',
 	icon: 'ClipboardList',
 	userAddable: true,
