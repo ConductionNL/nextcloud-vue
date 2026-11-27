@@ -259,6 +259,21 @@ const DAY_MS = 86400000
 const MIN_FIT_FONT_SIZE = 14
 
 /**
+ * The font size that makes a number `overflow` px too wide fit, or null.
+ *
+ * @param {number} natural The number's own font size, in px.
+ * @param {number} width The number's width, in px.
+ * @param {number} overflow How far it runs over its row, in px.
+ * @return {number|null} The size, never under MIN_FIT_FONT_SIZE; null when it cannot be worked out.
+ */
+function fitSize(natural, width, overflow) {
+	if (!(width > 0) || !(natural > 0)) {
+		return null
+	}
+	return Math.max(MIN_FIT_FONT_SIZE, Math.floor(natural * ((width - overflow) / width) * 10) / 10)
+}
+
+/**
  * The local calendar day a value names, as a UTC midnight timestamp.
  *
  * WHY CALENDAR DAYS AND NOT ELAPSED MILLISECONDS. A deadline is a day on a
@@ -1773,7 +1788,7 @@ export default {
 		},
 
 		shownValue() {
-			this.$nextTick(() => this.fitValue())
+			this.scheduleFit()
 		},
 
 		objectFieldRaw: {
@@ -1797,15 +1812,20 @@ export default {
 		}
 		subscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 		if (typeof ResizeObserver === 'function' && this.$refs.valueRow) {
+			// Its first callback comes after the first layout, so it also does the first fit.
 			this._fitObserver = new ResizeObserver(() => this.fitValue())
 			this._fitObserver.observe(this.$refs.valueRow)
+		} else {
+			this.$nextTick(() => this.fitValue())
 		}
-		this.$nextTick(() => this.fitValue())
 	},
 
 	beforeUnmount() {
 		unsubscribe(PAGE_REFRESH_CHANNEL, this._onPageRefresh)
 		this._fitObserver?.disconnect()
+		if (this._fitFrame) {
+			cancelAnimationFrame(this._fitFrame)
+		}
 	},
 
 	methods: {
@@ -1824,6 +1844,14 @@ export default {
 				this.fitFontSize = null
 				return
 			}
+			if (this.fitFontSize === null) {
+				// Nothing applied: read as it is, so no write invalidates the style the browser just computed.
+				const overflow = row.scrollWidth - row.clientWidth
+				if (overflow > 0.5) {
+					this.fitFontSize = fitSize(parseFloat(getComputedStyle(el).fontSize), el.offsetWidth, overflow)
+				}
+				return
+			}
 			const applied = el.style.fontSize
 			const whiteSpace = el.style.whiteSpace
 			el.style.fontSize = ''
@@ -1833,11 +1861,27 @@ export default {
 			const width = el.offsetWidth
 			el.style.fontSize = applied
 			el.style.whiteSpace = whiteSpace
-			if (!(overflow > 0.5) || !(width > 0) || !(natural > 0)) {
-				this.fitFontSize = null
+			this.fitFontSize = overflow > 0.5 ? fitSize(natural, width, overflow) : null
+		},
+
+		/**
+		 * Fit the value once in the next frame, however often it changes before then.
+		 *
+		 * @return {void}
+		 * @spec openspec/changes/stat-value-fits/specs/stat-tile-board-look/spec.md#requirement-a-stat-value-shrinks-instead-of-clipping
+		 */
+		scheduleFit() {
+			if (typeof requestAnimationFrame !== 'function') {
+				this.$nextTick(() => this.fitValue())
 				return
 			}
-			this.fitFontSize = Math.max(MIN_FIT_FONT_SIZE, Math.floor(natural * ((width - overflow) / width) * 10) / 10)
+			if (this._fitFrame) {
+				return
+			}
+			this._fitFrame = requestAnimationFrame(() => {
+				this._fitFrame = null
+				this.fitValue()
+			})
 		},
 
 		/**
