@@ -92,4 +92,3 @@ describe('CnStatWidget fitValue', () => {
 		raf.mockRestore()
 	})
 })
-
