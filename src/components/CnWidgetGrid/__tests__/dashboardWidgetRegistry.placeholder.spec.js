@@ -9,6 +9,8 @@ import { dashboardWidgetRegistry, registerDashboardWidget } from '../dashboardWi
 import { isValidWidgetPlaceholder, resolveWidgetPlaceholder } from '../../../utils/resolveWidgetPlaceholder.js'
 
 import '../registerDashboardWidgets.js'
+// Registered by the barrel (src/index.js), outside the aggregator.
+import '../../CnObjectPresenceWidget/index.js'
 
 const Stub = { name: 'Stub', render: (h) => h('div') }
 

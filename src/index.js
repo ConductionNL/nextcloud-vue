@@ -428,6 +428,7 @@ export {
 	CnWidgetGrid,
 	CnWidgetMapViewer,
 	CnWidgetObjectTable,
+	CnWidgetPlaceholder,
 	CnWidgetRenderer,
 	CnWidgetStyleEditorModal,
 	CnWidgetVisibilityRulesModal,
@@ -652,6 +653,7 @@ export { conditionSentence, formatConditionValue, operatorLabel, operatorsForTyp
 export { humaniseKey } from './utils/humaniseKey.js'
 // A component that loads its definition on first render, for registries.
 export { lazyComponent, loadLazyComponent, resolveLazyComponent } from './utils/lazyComponent.js'
+export { DEFAULT_WIDGET_PLACEHOLDER_SHAPE, isValidWidgetPlaceholder, normalizeWidgetPlaceholder, resolveWidgetPlaceholder, WIDGET_PLACEHOLDER_COUNT, WIDGET_PLACEHOLDER_SHAPES } from './utils/resolveWidgetPlaceholder.js'
 
 // Shared field validators. These are UX affordances that run in the browser —
 // they do NOT replace server-side validation, which stays authoritative at the

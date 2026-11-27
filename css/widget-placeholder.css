@@ -1,0 +1,98 @@
+/* SPDX-FileCopyrightText: 2026 Conduction B.V.
+ * SPDX-License-Identifier: EUPL-1.2
+ *
+ * @conduction/nextcloud-vue/css/widget-placeholder.css: the placeholder a
+ * dashboard widget waits in (widget-placeholder-shape, design D4, D5, D9).
+ * Only these rules, small enough for a server template to inline; the same
+ * file styles CnWidgetPlaceholder, so the first paint and the mounted page
+ * draw the same pixels. Nextcloud colour variables only.
+ */
+.cn-widget-placeholder {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.cn-widget-placeholder__icon,
+.cn-widget-placeholder__line,
+.cn-widget-placeholder__block,
+.cn-widget-placeholder__tile,
+.cn-widget-placeholder__number {
+	display: block;
+	border-radius: var(--border-radius, 3px);
+	background-color: var(--color-background-dark);
+	animation: cn-widget-placeholder-shimmer 1.8s ease-in-out infinite alternate;
+}
+
+.cn-widget-placeholder__row {
+	display: grid;
+	flex: none;
+	grid-template-columns: 32px 1fr;
+	grid-template-rows: 12px 12px;
+	gap: 8px 12px;
+	align-content: center;
+	height: 32px;
+}
+
+.cn-widget-placeholder__icon {
+	grid-row: 1 / 3;
+	width: 32px;
+	height: 32px;
+}
+
+.cn-widget-placeholder__line {
+	flex: none;
+	height: 12px;
+}
+
+.cn-widget-placeholder__line--short {
+	width: 60%;
+}
+
+.cn-widget-placeholder__block {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.cn-widget-placeholder--tiles,
+.cn-widget-placeholder--counter {
+	flex-flow: row wrap;
+	align-content: flex-start;
+}
+
+.cn-widget-placeholder__tile {
+	width: var(--cn-placeholder-tile-size, 64px);
+	height: var(--cn-placeholder-tile-size, 64px);
+}
+
+.cn-widget-placeholder__counter {
+	display: flex;
+	flex: 0 0 96px;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.cn-widget-placeholder__number {
+	width: 72px;
+	height: 40px;
+}
+
+@keyframes cn-widget-placeholder-shimmer {
+	from {
+		background-color: var(--color-background-dark);
+	}
+
+	to {
+		background-color: var(--color-background-darker);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cn-widget-placeholder * {
+		animation: none;
+	}
+}
