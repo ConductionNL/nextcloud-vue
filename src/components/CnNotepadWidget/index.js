@@ -18,6 +18,8 @@ registerDashboardWidget('notepad', {
 	form: LazyCnNotepadWidgetForm,
 	// The note is NOT in the placement: it is stored in the reader's preferences.
 	defaultContent: { title: '', height: '' },
+	// What a widget picker's miniature draws with `preview` set.
+	sampleContent: { title: 'Notes', sampleText: '### Today\n\n- Call Anna about the permit\n- Plan the council meeting' },
 	displayName: 'Notepad',
 	icon: 'NoteEditOutline',
 	userAddable: true,
