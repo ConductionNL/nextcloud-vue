@@ -68,10 +68,19 @@ describe('useAppInstaller', () => {
 		generateUrl.mockClear()
 	})
 
-	it('registers the password-confirmation axios interceptors once at module load', () => {
-		// The interceptors must be wired onto the shared @nextcloud/axios
-		// instance so the strict `confirmPassword` request flag is honoured.
+	it('registers the password-confirmation axios interceptors once, on the first install, not at module load', async () => {
+		// Loaded on demand so it stays out of every app's first chunk; the
+		// interceptors must still be on the shared @nextcloud/axios instance
+		// before the strict `confirmPassword` request goes out.
+		expect(addPasswordConfirmationInterceptors).not.toHaveBeenCalled()
+		axios.post.mockResolvedValue({ status: 200, data: {} })
+		const { installAndEnable } = useAppInstaller()
+		await installAndEnable('openregister')
+		await installAndEnable('opencatalogi')
+		expect(addPasswordConfirmationInterceptors).toHaveBeenCalledTimes(1)
 		expect(addPasswordConfirmationInterceptors).toHaveBeenCalledWith(axios)
+		expect(addPasswordConfirmationInterceptors.mock.invocationCallOrder[0])
+			.toBeLessThan(axios.post.mock.invocationCallOrder[0])
 	})
 
 	it('POSTs the NC34+ OCS appstore endpoint with a singular appId and the STRICT confirm flag', async () => {
