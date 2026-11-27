@@ -75,6 +75,16 @@ describe('CnFlowRunsWidget', () => {
 		jest.useRealTimers()
 	})
 
+	it('is loaded with its first render when nothing is loading, and waits while its first load runs (widget-placeholder-shape task 6)', async () => {
+		const idle = mountWidget({ payload: { results: [], total: 0 } })
+		await idle.vm.$nextTick()
+		expect(idle.emitted('loaded')).toHaveLength(1)
+
+		const busy = mountWidget({ loading: true })
+		await busy.vm.$nextTick()
+		expect(busy.emitted('loaded')).toBeUndefined()
+	})
+
 	it('renders one row per live run with its flow name, status and step', () => {
 		const w = mountWidget({ payload: { results: [run()], total: 1 } })
 		const rows = w.findAll('.cn-flow-runs-widget__row')
