@@ -104,6 +104,11 @@ export default {
 		 *   a richer parse error (e.g. the exception message).
 		 */
 		errorText: { type: String, default: null },
+		/**
+		 * Accessible name of the editor's text area, read out by screen
+		 * readers. Name what the code is ("Raw data", "Request body").
+		 */
+		label: { type: String, default: 'Code' },
 	},
 
 	emits: ['update:value', 'format', 'detected-language'],
@@ -214,12 +219,31 @@ export default {
 		},
 
 		/**
+		 * Attributes of the editor's text area: an accessible name, and a tab
+		 * stop when read-only, so a keyboard user can reach and scroll the
+		 * code (axe `aria-input-field-name`, `scrollable-region-focusable`).
+		 *
+		 * @spec openspec/changes/detail-cells-code-and-pills-pass-axe/specs/detail-cells-code-and-pills-pass-axe/spec.md#requirement-code-scrolling-cells-and-lifecycle-pills-pass-axe
+		 * @return {object} Attribute name to value.
+		 */
+		contentAttributes() {
+			const attributes = { 'aria-label': this.label }
+			if (this.readOnly) {
+				attributes.tabindex = '0'
+			}
+			return attributes
+		},
+
+		/**
 		 * Combined CodeMirror extensions array.
 		 *
 		 * @return {Array} Extensions including theme and optional language
 		 */
 		editorExtensions() {
 			const exts = this.theme ? [this.theme] : []
+			if (this.kit && this.kit.EditorView) {
+				exts.push(this.kit.EditorView.contentAttributes.of(this.contentAttributes))
+			}
 			if (this.langExtension) {
 				exts.push(this.langExtension)
 			}

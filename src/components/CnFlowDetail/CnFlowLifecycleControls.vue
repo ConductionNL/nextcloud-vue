@@ -199,11 +199,12 @@ export default {
 
 .cn-flow-lifecycle__pill--published {
 	background-color: var(--color-success, var(--color-primary-element));
-	color: var(--color-primary-element-text, var(--color-main-background));
+	/* The success text colour is the one Nextcloud pairs with the success background for contrast. */
+	color: var(--color-success-text, var(--color-main-text));
 }
 
 .cn-flow-lifecycle__pill--deprecated {
 	background-color: var(--color-warning, var(--color-background-dark));
-	color: var(--color-main-text);
+	color: var(--color-warning-text, var(--color-main-text));
 }
 </style>

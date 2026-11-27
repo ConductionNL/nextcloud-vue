@@ -9,5 +9,6 @@
 export { html as htmlLang } from '@codemirror/lang-html'
 export { json as jsonLang, jsonParseLinter as jsonLinter } from '@codemirror/lang-json'
 export { xml as xmlLang } from '@codemirror/lang-xml'
+export { EditorView } from '@codemirror/view'
 export { githubDark, githubLight } from '@uiw/codemirror-theme-github'
 export { default as CodeMirror } from 'vue-codemirror6'

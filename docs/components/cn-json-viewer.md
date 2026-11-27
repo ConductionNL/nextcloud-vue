@@ -19,6 +19,7 @@ This component also backs the `json` and `code` widgets of [`CnFormDialog`](cn-f
 | `height` | String | `'300px'` | CSS height for the editor container (e.g. `'200px'`, `'50vh'`). |
 | `language` | String | `'auto'` | Content language for syntax highlighting. See [Language modes](#language-modes) below. |
 | `errorText` | String | `null` | Custom text for the error banner below the editor. `null` keeps the built-in behavior (renders "Invalid JSON format" when `language === 'json'` and content fails to parse). Any string lets the caller own the banner — rendered when non-empty, hidden when empty — useful for surfacing richer parse errors. |
+| `label` | String | `'Code'` | Accessible name of the editor's text area, read out by screen readers. Name what the code is ("Raw data", "Request body"). A read-only viewer's text area is also a tab stop, so a keyboard user can reach and scroll the code. |
 
 ## Language Modes
 

@@ -209,6 +209,32 @@ export function fillRowTracks(layout) {
  * interactive content rendered inside the `#widget` slot keeps its own
  * key handling untouched.
  */
+/** Elements a keyboard user can already reach inside a cell. */
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+
+/**
+ * Make a grid cell a tab stop while its content scrolls and holds nothing
+ * focusable, so a keyboard user can scroll it (WCAG 2.1.1, axe
+ * `scrollable-region-focusable`). The stop is removed again once the content
+ * fits, and a tabindex the cell did not get from here is left alone.
+ *
+ * @spec openspec/changes/detail-cells-code-and-pills-pass-axe/specs/detail-cells-code-and-pills-pass-axe/spec.md#requirement-code-scrolling-cells-and-lifecycle-pills-pass-axe
+ * @param {HTMLElement} content A `.grid-stack-item-content` element.
+ * @return {boolean} Whether the cell is now a scroll stop.
+ */
+export function markScrollableCell(content) {
+	const scrolls = content.scrollHeight > content.clientHeight + 1 || content.scrollWidth > content.clientWidth + 1
+	const needsStop = scrolls && !content.querySelector(FOCUSABLE)
+	if (needsStop && !content.hasAttribute('tabindex')) {
+		content.setAttribute('tabindex', '0')
+		content.setAttribute('data-cn-scroll-stop', '')
+	} else if (!needsStop && content.hasAttribute('data-cn-scroll-stop')) {
+		content.removeAttribute('tabindex')
+		content.removeAttribute('data-cn-scroll-stop')
+	}
+	return content.hasAttribute('data-cn-scroll-stop')
+}
+
 export default {
 	name: 'CnDashboardGrid',
 
@@ -439,6 +465,7 @@ export default {
 		return {
 			grid: null,
 			contentObserver: null,
+			scrollObserver: null,
 			/** True while the grid moves an item to where the layout put it. */
 			applyingLayout: false,
 			domId: `cn-dashboard-grid-${++domIdCounter}`,
@@ -696,6 +723,7 @@ export default {
 
 	mounted() {
 		this.observeContainerWidth()
+		this.$nextTick(() => this.observeScrollableCells())
 		if (this.filling) {
 			return
 		}
@@ -709,6 +737,10 @@ export default {
 			this.sizeObserver = null
 		}
 		this.disconnectContentObserver()
+		if (this.scrollObserver) {
+			this.scrollObserver.disconnect()
+			this.scrollObserver = null
+		}
 		if (this.grid) {
 			this.grid.destroy(false)
 		}
@@ -1668,6 +1700,7 @@ export default {
 		 * @return {void}
 		 */
 		observeContentSizes() {
+			this.observeScrollableCells()
 			this.disconnectContentObserver()
 			if (typeof ResizeObserver === 'undefined' || !this.$refs.gridContainer) {
 				return
@@ -1704,6 +1737,43 @@ export default {
 				const measured = cell.querySelector('.grid-stack-item-content')?.firstElementChild
 				if (measured) {
 					this.contentObserver.observe(measured)
+				}
+			}
+		},
+
+		/**
+		 * Watch each cell's content box and its widget, so a cell whose widget
+		 * outgrows it becomes reachable by keyboard (see markScrollableCell).
+		 *
+		 * @spec openspec/changes/detail-cells-code-and-pills-pass-axe/specs/detail-cells-code-and-pills-pass-axe/spec.md#requirement-code-scrolling-cells-and-lifecycle-pills-pass-axe
+		 * @return {void}
+		 */
+		observeScrollableCells() {
+			if (this.scrollObserver) {
+				this.scrollObserver.disconnect()
+				this.scrollObserver = null
+			}
+			const container = this.$refs.gridContainer
+			if (!container) {
+				return
+			}
+			const contents = Array.from(container.querySelectorAll('.grid-stack-item-content'))
+			contents.forEach((content) => markScrollableCell(content))
+			if (typeof ResizeObserver === 'undefined') {
+				return
+			}
+			this.scrollObserver = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					const content = entry.target.closest('.grid-stack-item-content')
+					if (content) {
+						markScrollableCell(content)
+					}
+				}
+			})
+			for (const content of contents) {
+				this.scrollObserver.observe(content)
+				if (content.firstElementChild) {
+					this.scrollObserver.observe(content.firstElementChild)
 				}
 			}
 		},
