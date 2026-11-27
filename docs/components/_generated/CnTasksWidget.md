@@ -19,6 +19,7 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description                                                                                                      |
-| -------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `header` | —       | Emitted with the card header's parts: the "View all" link, if any, and for the table its summary and "New task". |
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `header` | —       | Emitted with the card header's parts: the "View all" link, if any, and for the table its summary and "New task".                 |

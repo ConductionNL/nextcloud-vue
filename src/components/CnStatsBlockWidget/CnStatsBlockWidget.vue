@@ -124,6 +124,7 @@ import CnStatWidget from '../CnStatWidget/CnStatWidget.vue'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { fetchSharedResponse, getByPath, resolveEndpointRequest } from '../../composables/useEndpointSource.js'
 import widgetData from '../../mixins/widgetData.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { aggFilterParam } from '../../utils/fetchAggregate.js'
 import { formatMetricValue, normalizeMetricFormat, unwrapAppConfig } from '../../utils/formatMetric.js'
 import { followLinkClick, resolveHref } from '../../utils/linkNavigation.js'
@@ -205,7 +206,7 @@ export default {
 
 	components: { CnStatsBlock, CnStatWidget },
 
-	mixins: [widgetData],
+	mixins: [widgetLoaded, widgetData],
 
 	inject: {
 		/**

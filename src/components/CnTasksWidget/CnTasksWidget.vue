@@ -449,6 +449,7 @@ import CnTaskDelegateDialog from './CnTaskDelegateDialog.vue'
 import CnTaskWorkCard from './CnTaskWorkCard.vue'
 import { taskDeepLink, taskDueLabel } from '../../composables/indexSources.js'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { isBadgeVariant } from '../../utils/badgeVariants.js'
 import { contentHeaderLink } from '../../utils/contentHeaderLink.js'
 import { missingRequiredTaskField, taskForm } from '../../utils/flowTask.js'
@@ -540,6 +541,8 @@ export default {
 		NcLoadingIcon,
 		NcTextField,
 	},
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/**

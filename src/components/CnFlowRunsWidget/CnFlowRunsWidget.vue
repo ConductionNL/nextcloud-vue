@@ -119,6 +119,7 @@ import { translate as t } from '@nextcloud/l10n'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import { computed, inject, ref } from 'vue'
 import { useEndpointSource } from '../../composables/useEndpointSource.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { dispatchAction } from '../../utils/actionsDispatcher.js'
 import { formatBoardDate } from '../../utils/boardDate.js'
 import { resolveObjectTokenContext } from '../../utils/detailObjectContext.js'
@@ -218,6 +219,8 @@ export default {
 		CnStatusBadge,
 		NcLoadingIcon,
 	},
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		/**
