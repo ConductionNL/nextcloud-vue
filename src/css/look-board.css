@@ -2974,6 +2974,43 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	padding-bottom: 12px;
 }
 
+/* ---- People list rows (CnPeopleWidget, list layout) --------------------- */
+/* A people list in a card is the boards' list row: a hairline over every
+   row, the first too, 10px above and below, flush with the card's inset; the
+   name 15px bold over its 13px muted lines, both at the font's normal line
+   height (LpVandaag, LpIntranet "Nieuwe collega's", "Verjaardagen", "Vind
+   een collega op expertise"). Its rows mark the list `cn-board-ruled-rows`,
+   so the rule stands 6px under the card title.
+   @spec openspec/specs/people-widget/spec.md#requirement-a-board-people-list-is-ruled-rows */
+/* In a widget card the card's inset is the widget's: no padding of its own,
+   so the rows line up under the card title (19px from the card's edge). */
+.cn-look-board .cn-widget-wrapper__content:not(.cn-look-nextcloud *) .cn-people-widget {
+	padding: 0;
+}
+
+.cn-look-board .cn-people-widget--list:not(.cn-look-nextcloud *) .cn-people-widget__items {
+	gap: 0;
+}
+
+.cn-look-board .cn-people-widget--list:not(.cn-look-nextcloud *) .cn-people-widget__item {
+	padding: 10px 0;
+	border: none;
+	border-top: 1px solid var(--cn-board-hairline);
+	border-radius: 0;
+}
+
+.cn-look-board .cn-people-widget--list:not(.cn-look-nextcloud *) .cn-people-widget__name {
+	font-size: 15px;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.cn-look-board .cn-people-widget--list:not(.cn-look-nextcloud *) .cn-people-widget__sub {
+	font-size: 13px;
+	line-height: normal;
+	color: var(--color-text-maxcontrast);
+}
+
 /* ---- Macros rows (CnMacrosWidget) ---------------------------------------- */
 /* A macro reads as the boards draw a card's list row: the name 15px at
    weight 500 over its 13px line, both at the font's normal line height, 56px a row
