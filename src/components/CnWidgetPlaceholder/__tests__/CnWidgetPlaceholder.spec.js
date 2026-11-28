@@ -104,3 +104,88 @@ describe('css/widget-placeholder.css', () => {
 		expect(minified.length).toBeLessThan(2048)
 	})
 })
+
+describe('CnWidgetPlaceholder sizing through one ResizeObserver', () => {
+	let observers
+	let original
+
+	beforeEach(() => {
+		observers = []
+		original = global.ResizeObserver
+		global.ResizeObserver = class {
+			constructor(callback) {
+				this.callback = callback
+				this.targets = new Set()
+				observers.push(this)
+			}
+
+			observe(el) { this.targets.add(el) }
+			unobserve(el) { this.targets.delete(el) }
+			disconnect() { this.targets.clear() }
+		}
+	})
+
+	afterEach(() => {
+		global.ResizeObserver = original
+	})
+
+	/**
+	 * Mount a placeholder whose root throws when its size is read from the DOM.
+	 *
+	 * @param {object} props The props.
+	 * @return {object} The wrapper.
+	 */
+	function mountUnread(props) {
+		const reads = { count: 0 }
+		const proto = window.HTMLElement.prototype
+		const spy = jest.spyOn(proto, 'clientWidth', 'get').mockImplementation(() => {
+			reads.count++
+			return 0
+		})
+		const wrapper = mount(CnWidgetPlaceholder, { props })
+		spy.mockRestore()
+		return { wrapper, reads }
+	}
+
+	it('reads no layout on mount: two placeholders share one observer and are sized from its entries', async () => {
+		const a = mountUnread({ shape: 'rows' })
+		const b = mountUnread({ shape: 'lines' })
+		expect(a.reads.count + b.reads.count).toBe(0)
+		expect(observers).toHaveLength(1)
+		const [observer] = observers
+		expect(observer.targets.size).toBe(2)
+
+		observer.callback([
+			{ target: a.wrapper.vm.$refs.root, contentRect: { width: 300, height: 220 } },
+			{ target: b.wrapper.vm.$refs.root, contentRect: { width: 300, height: 95.6 } },
+		])
+		await a.wrapper.vm.$nextTick()
+		expect(a.wrapper.findAll('.cn-widget-placeholder__row')).toHaveLength(5)
+		expect(b.wrapper.findAll('.cn-widget-placeholder__line')).toHaveLength(4)
+
+		a.wrapper.unmount()
+		expect(observer.targets.size).toBe(1)
+		b.wrapper.unmount()
+		expect(observer.targets.size).toBe(0)
+	})
+
+	it('draws the unmeasured count until the first callback', () => {
+		const { wrapper } = mountUnread({ shape: 'rows', count: 12 })
+		expect(wrapper.findAll('.cn-widget-placeholder__row')).toHaveLength(12)
+		wrapper.unmount()
+	})
+
+	it('tiles read their tile size in the callback, not while rendering', async () => {
+		const style = jest.spyOn(window, 'getComputedStyle')
+		const { wrapper } = mountUnread({ shape: 'tiles' })
+		expect(style).not.toHaveBeenCalled()
+		const root = wrapper.vm.$refs.root
+		root.style.setProperty('--cn-placeholder-tile-size', '100px')
+		observers[0].callback([{ target: root, contentRect: { width: 224, height: 100 } }])
+		await wrapper.vm.$nextTick()
+		expect(style).toHaveBeenCalledTimes(1)
+		expect(wrapper.findAll('.cn-widget-placeholder__tile')).toHaveLength(2)
+		style.mockRestore()
+		wrapper.unmount()
+	})
+})
