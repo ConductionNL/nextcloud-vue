@@ -32,13 +32,14 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name            | Payload | Description                                                                        |
-| --------------- | ------- | ---------------------------------------------------------------------------------- |
-| `map-ready`     | —       | Map ready event. Fired once after Leaflet has loaded and the map is mounted.       |
-| `marker-click`  | —       | Marker click event. Fired when a marker is clicked.                                |
-| `bounds-change` | —       | Viewport bounds change event. Fired (debounced) after pan / zoom settles.          |
-| `click`         | —       | Map background click event. Fired when the user clicks the map outside any marker. |
-| `header`        | —       | The card header's note at the right of the title.                                  |
+| Name            | Payload | Description                                                                                                                      |
+| --------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded`        | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `map-ready`     | —       | Map ready event. Fired once after Leaflet has loaded and the map is mounted.                                                     |
+| `marker-click`  | —       | Marker click event. Fired when a marker is clicked.                                                                              |
+| `bounds-change` | —       | Viewport bounds change event. Fired (debounced) after pan / zoom settles.                                                        |
+| `click`         | —       | Map background click event. Fired when the user clicks the map outside any marker.                                               |
+| `header`        | —       | The card header's note at the right of the title.                                                                                |
 
 ### Slots
 

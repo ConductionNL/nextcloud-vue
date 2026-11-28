@@ -182,6 +182,7 @@ import { inject, markRaw, ref } from 'vue'
 import { useDataSource } from '../../composables/useDataSource.js'
 import { getByPath, useEndpointSource } from '../../composables/useEndpointSource.js'
 import widgetData, { seriesTotal } from '../../mixins/widgetData.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { useObjectStore } from '../../store/useObjectStore.js'
 import { resolveObjectOpType } from '../../utils/actionsDispatcher.js'
 import { fetchReferenceObjects } from '../../utils/boardReferenceColumns.js'
@@ -441,7 +442,7 @@ export default {
 
 	components: { CnEndpointNotice, NcNoteCard },
 
-	mixins: [widgetData],
+	mixins: [widgetData, widgetLoaded],
 
 	inject: {
 		/**
@@ -1033,7 +1034,7 @@ export default {
 			}
 			return ds
 		}
-		const { data, refetch } = useDataSource(dsForGraphql, { range })
+		const { data, loading: dsLoading, refetch } = useDataSource(dsForGraphql, { range })
 
 		// Endpoint binding (Wave 2, #91): the shared useEndpointSource engine
 		// resolves `params` tokens against the page-level workspace context
@@ -1065,7 +1066,7 @@ export default {
 			() => props.endpointSource,
 			{ ctx: chartTokenCtx },
 		)
-		return { dsData: data, dsRefetch: refetch, epData: ep.data, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epBlocked: ep.blocked, epAwaitingRequest: ep.awaitingRequest, epRequest: ep.request, epRefetch: ep.refetch, chartTokenCtx }
+		return { dsData: data, dsLoading, dsRefetch: refetch, epData: ep.data, epLoading: ep.loading, epBody: ep.body, epError: ep.error, epRefused: ep.refused, epTruncated: ep.truncated, epBlocked: ep.blocked, epAwaitingRequest: ep.awaitingRequest, epRequest: ep.request, epRefetch: ep.refetch, chartTokenCtx }
 	},
 
 	data() {
@@ -1091,6 +1092,9 @@ export default {
 			// The record a `cellSource` with `cellsPath` read its cells from, for
 			// `@source.<field>` in the notice.
 			cellRecord: null,
+			// The REST sources (group-by, time bucket, aggregate, cells) whose
+			// first fetch, started on mount, has not settled yet (`loading`).
+			restFirstPending: 0,
 			// Active `views[]` switcher key (null = the first view). Local
 			// UI state only — never persisted.
 			activeViewKey: null,
@@ -1112,6 +1116,21 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Whether the chart's first load is still open: a first REST fetch
+		 * started on mount, the GraphQL `dataSource` or the `endpointSource`.
+		 * The `widgetLoaded` mixin emits `loaded` once, the first time this
+		 * turns back to false, whatever the outcome (series, empty or error).
+		 * A chart with static `series` starts no load and is loaded with its
+		 * first render.
+		 *
+		 * @return {boolean}
+		 * @spec openspec/changes/widget-placeholder-shape/specs/widget-renderer/spec.md#requirement-the-renderer-reports-its-first-load
+		 */
+		loading() {
+			return this.restFirstPending > 0 || this.dsLoading === true || this.epLoading === true
+		},
+
 		/**
 		 * Whether `height` asks the chart to fit its container (a percentage)
 		 * rather than pin a pixel height. Switches the root to a flex column
@@ -2159,10 +2178,12 @@ export default {
 	},
 
 	mounted() {
-		this.fetchGroupBy()
-		this.fetchTimeBucket()
-		this.fetchAggregateSource()
-		this.fetchCells()
+		this.trackFirstLoad([
+			this.fetchGroupBy(),
+			this.fetchTimeBucket(),
+			this.fetchAggregateSource(),
+			this.fetchCells(),
+		])
 		// Subscribe to the widget Refresh bus (B3 event-bus opt-in mode)
 		// FIRST, before the ResizeObserver early-return — environments
 		// without ResizeObserver (jsdom) must still get the subscription.
@@ -2388,6 +2409,23 @@ export default {
 				this.fetchAggregateSource(),
 				this.fetchCells(),
 			])
+		},
+
+		/**
+		 * Hold `loading` until the first REST fetches started on mount have
+		 * settled. A fetch that has nothing to read returns at once; one that
+		 * fails settles too (its error is the content), so a failed chart
+		 * never stays in its placeholder.
+		 *
+		 * @param {Array<Promise<void>|void>} fetches The first fetches.
+		 * @return {Promise<void>} Resolves once all of them settled.
+		 * @spec openspec/changes/widget-placeholder-shape/specs/widget-renderer/spec.md#requirement-the-renderer-reports-its-first-load
+		 */
+		trackFirstLoad(fetches) {
+			this.restFirstPending += 1
+			return Promise.allSettled(fetches).then(() => {
+				this.restFirstPending -= 1
+			})
 		},
 
 		/**
