@@ -108,6 +108,7 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { translate as t } from '@nextcloud/l10n'
 import DOMPurify from 'dompurify'
 import { normalizeLook } from '../../composables/useLook.js'
+import { widgetLoaded } from '../../mixins/widgetLoaded.js'
 import { objectToGeoFeature } from '../../utils/geo.js'
 import { prefixUrl } from '../../utils/headers.js'
 import { objectDisplayName } from '../../utils/objectName.js'
@@ -274,6 +275,8 @@ function countLine(spec, vm) {
 
 export default {
 	name: 'CnMapWidget',
+
+	mixins: [widgetLoaded],
 
 	inject: {
 		cnTranslate: { default: () => (key) => key },
@@ -552,6 +555,9 @@ export default {
 			markerLabels: [],
 			// Whether the marker source could not be read (not: read and empty).
 			markersFailed: false,
+			// The first load is open: Leaflet and the first marker read. The
+			// `widgetLoaded` mixin emits `loaded` once this turns false.
+			loading: true,
 			// Set once the user has framed the view themselves; stops autoFit.
 			userFramedView: false,
 			// A raw gesture has been seen; the next real view change is theirs.
@@ -925,11 +931,19 @@ export default {
 			// eslint-disable-next-line no-console
 			console.warn('[CnMapWidget] Leaflet unavailable', err)
 			this.leafletAvailable = false
+			this.loading = false
 			return
 		}
-		// A picture from the record waits for the record (see `imageLayerKey`).
-		if (!this.imageLayerPending) {
-			this.initMap()
+		// The first load settles once the first marker read answered (markers,
+		// none or failed). A picture from the record waits for the record (see
+		// `imageLayerKey`), which the host loads: the frame is this map's content.
+		try {
+			if (!this.imageLayerPending) {
+				this.initMap()
+				await this._firstMarkers
+			}
+		} finally {
+			this.loading = false
 		}
 	},
 
@@ -969,6 +983,8 @@ export default {
 		/**
 		 * Mount the Leaflet map instance, attach event handlers, and
 		 * render the initial layer + marker set.
+		 *
+		 * @spec openspec/changes/widget-placeholder-shape/specs/widget-renderer/spec.md#requirement-the-renderer-reports-its-first-load
 		 */
 		initMap() {
 			const L = this.L
@@ -1047,7 +1063,9 @@ export default {
 			})
 
 			this.renderLayers()
-			this.renderMarkers()
+			const markers = this.renderMarkers()
+			// The first marker read is what the first load waits for (`mounted`).
+			this._firstMarkers = this._firstMarkers || markers
 			this.addControls()
 
 			// The container may grow (fill-height layouts) or start hidden behind a
