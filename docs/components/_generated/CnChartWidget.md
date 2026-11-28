@@ -50,10 +50,11 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Events
 
-| Name     | Payload | Description                                                                                                     |
-| -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| `data`   | —       | What the widget shows, as a plain summary.                                                                      |
-| `select` | —       | A reader picked a category (`selectable`): the field the chart groups by, the category's raw key and its label. |
+| Name     | Payload | Description                                                                                                                      |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `data`   | —       | What the widget shows, as a plain summary.                                                                                       |
+| `loaded` | —       | The widget's first load has settled (items, empty or error), so its host can swap the placeholder for the content. Emitted once. |
+| `select` | —       | A reader picked a category (`selectable`): the field the chart groups by, the category's raw key and its label.                  |
 
 ### Slots
 
