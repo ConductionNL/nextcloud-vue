@@ -29,7 +29,7 @@ function rulesFor(selector) {
 	return out.join('\n')
 }
 
-const popper = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper'
+const popper = ':root[data-cn-board-page] body .v-popper__popper.action-item__popper'
 
 describe('look-board.css: the board menu', () => {
 	it('draws the menu as a card: 6px in, a hairline, a 10px radius and a drop shadow', () => {
@@ -42,7 +42,8 @@ describe('look-board.css: the board menu', () => {
 
 	it('outweighs NcActions\' own popover rule (five classes)', () => {
 		const selector = `${popper} .v-popper__wrapper .v-popper__inner`
-		const classes = (selector.match(/\.[a-z_-]+/gi) || []).length
+		// class-level weight: classes, attribute selectors and :root
+		const classes = (selector.match(/\.[a-z_-]+|\[[^\]]+\]|:root/gi) || []).length
 		expect(classes).toBeGreaterThanOrEqual(5)
 	})
 
@@ -92,6 +93,6 @@ describe('look-board.css: the board menu', () => {
 		const selectors = css.match(/[^{}]+(?=\{)/g).join(',').split(/,(?![^(]*\))/).map((s) => s.trim())
 		const menu = selectors.filter((s) => s.includes('action-item__popper'))
 		expect(menu.length).toBeGreaterThan(0)
-		menu.forEach((s) => expect(s.startsWith('body:has(.cn-look-board):not(:has(.cn-look-nextcloud))')).toBe(true))
+		menu.forEach((s) => expect(s.startsWith(':root[data-cn-board-page] body')).toBe(true))
 	})
 })

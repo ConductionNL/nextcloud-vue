@@ -33,7 +33,7 @@ function ruleFor(selector) {
 	return null
 }
 
-const LIST = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option)'
+const LIST = ':root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-saved-view-share__option)'
 
 describe('look-board.css: share suggestions', () => {
 	it('edges the list with 1px and sets it 6px in, over NcSelect\'s own !important edge', () => {

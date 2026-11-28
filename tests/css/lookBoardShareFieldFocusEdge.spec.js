@@ -41,6 +41,6 @@ describe('look-board.css: share field focus edge', () => {
 	})
 
 	it('a control: the suggestion list keeps its own 1px edge', () => {
-		expect(selectors()).toContain('body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option)')
+		expect(selectors()).toContain(':root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-saved-view-share__option)')
 	})
 })

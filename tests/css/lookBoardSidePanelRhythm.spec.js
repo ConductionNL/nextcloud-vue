@@ -48,7 +48,7 @@ describe('board side panel rhythm', () => {
 	})
 
 	it('draws the manage menu 278px outside', () => {
-		expect(body(board, 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner')).toMatch(/width: 278px;/)
+		expect(body(board, ':root[data-cn-board-page] body .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner')).toMatch(/width: 278px;/)
 	})
 
 	it('draws a share row 56px tall, its rights select 36px, and the hint and caption at a normal line height', () => {
@@ -60,7 +60,7 @@ describe('board side panel rhythm', () => {
 	})
 
 	it('runs the manage menu labels at a normal line height, so an item is 44px', () => {
-		const sel = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] '
+		const sel = ':root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] '
 		expect(body(board, sel + '.action-button__text')).toMatch(/line-height: normal;/)
 		expect(body(board, sel + '.action-button__description')).toMatch(/line-height: normal;/)
 	})

@@ -32,7 +32,7 @@ function ruleFor(css, selector) {
 	return null
 }
 
-const MENU = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper'
+const MENU = ':root[data-cn-board-page] body .v-popper__popper.action-item__popper'
 
 describe('destructive row action ink', () => {
 	it('colours the button and the link inside the action, not only the list item', () => {

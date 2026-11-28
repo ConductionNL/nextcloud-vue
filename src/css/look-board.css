@@ -1273,21 +1273,21 @@
    capitals; separators 4px clear, 6px in. The theme's button tokens are
    handed the row's weight and radius, because nldesign forces both onto
    every button. */
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper .v-popper__wrapper .v-popper__inner {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper .v-popper__wrapper .v-popper__inner {
 	padding: 6px;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
 	box-shadow: 0 12px 32px color-mix(in srgb, var(--color-main-text) 18%, transparent);
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper ul[role="menu"] {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper ul[role="menu"] {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-button,
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-link {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action > .action-button,
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action > .action-link {
 	--font-weight-element: 400;
 	--nldesign-component-button-font-weight: 400;
 	--nldesign-component-button-border-radius: 6px;
@@ -1301,29 +1301,29 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	line-height: 20px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-button > .material-design-icon,
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action > .action-link > .material-design-icon {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action > .action-button > .material-design-icon,
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action > .action-link > .material-design-icon {
 	flex: none;
 	align-self: center;
 	width: 18px;
 	height: 18px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .material-design-icon__svg {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action .material-design-icon__svg {
 	width: 18px;
 	height: 18px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-button__longtext-wrapper,
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-button__longtext,
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-link__longtext-wrapper,
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action .action-link__longtext {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action .action-button__longtext-wrapper,
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action .action-button__longtext,
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action .action-link__longtext-wrapper,
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action .action-link__longtext {
 	max-width: none;
 	padding: 0;
 	line-height: 20px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.app-navigation-caption {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.app-navigation-caption {
 	height: auto;
 	margin: 0;
 	padding: 6px 10px 2px;
@@ -1335,7 +1335,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	text-transform: uppercase;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action-separator {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action-separator {
 	margin: 4px 6px;
 	border-bottom-color: var(--color-border);
 }
@@ -1343,7 +1343,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 /* A detail page's header menu is the board's wide menu, 344px, so a long
    action and its admin tag stay on one line. Its rows carry the page's
    `cn-detail-page-` test ids. */
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has([data-testid^="cn-detail-page-"]) .v-popper__wrapper .v-popper__inner {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper:has([data-testid^="cn-detail-page-"]) .v-popper__wrapper .v-popper__inner {
 	box-sizing: border-box;
 	width: 344px;
 	max-width: calc(100vw - 32px);
@@ -1356,7 +1356,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    12px muted text at 400; the separator in the soft line, and Delete in the
    error red. Its rows carry the panel's `cn-saved-views-` test ids.
    @spec openspec/changes/board-saved-view-manage-menu/specs/board-saved-view-manage-menu/spec.md#requirement-a-saved-views-manage-menu-is-the-boards-menu */
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) .v-popper__wrapper .v-popper__inner {
 	box-sizing: border-box;
 	width: 278px;
 	max-width: calc(100vw - 32px);
@@ -1365,7 +1365,7 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	margin-top: -7px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] > .action-button {
 	--font-weight-element: 600;
 	--nldesign-component-button-font-weight: 600;
 	--nldesign-component-button-border-radius: 8px;
@@ -1376,36 +1376,36 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
 	font-weight: 600;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__longtext-wrapper {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__longtext-wrapper {
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__description {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__description {
 	color: var(--color-text-maxcontrast);
 	font-size: 12px;
 	font-weight: 400;
 	line-height: normal;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__text {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action[data-testid^="cn-saved-views-"] .action-button__text {
 	line-height: normal;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper:has(li[data-testid^="cn-saved-views-"]) li.action-separator {
 	border-bottom-color: var(--color-background-hover);
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action[data-testid="cn-saved-views-delete"] > .action-button {
 	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text)));
 }
 
 /* A destructive row action (CnRowActions `destructive`) is the same red, the
    error tag's #a30000 (PtUitnodigingen "Uitnodiging intrekken", PtPortals
    "Verwijderen"); it outranks the menu-wide error colour in context-menu.css. */
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-button,
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-link {
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-button,
+:root[data-cn-board-page] body .v-popper__popper.action-item__popper li.action.cn-row-action--destructive > .action-link {
 	color: var(--nldesign-component-status-badge-error-color, var(--nl-color-red-text, var(--color-error-text))) !important;
 }
 
@@ -1419,37 +1419,37 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-
    name and 12px line (DqNieuweZaak "Aanvrager"); a row with an icon is 10px
    12px in (DqOverdragen "Nieuw team"). NcSelect's frame carries `!important`.
    @spec openspec/changes/board-search-select-list/specs/board-search-select-list/spec.md#requirement-a-board-search-selects-open-list-is-a-card-under-the-field */
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) {
 	margin-top: 4px;
 	border: 1px solid var(--color-border) !important;
 	border-radius: 8px !important;
 	box-shadow: 0 6px 16px color-mix(in srgb, var(--color-main-text) 12%, transparent) !important;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row).vs__dropdown-menu--floating-placement-top {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row).vs__dropdown-menu--floating-placement-top {
 	margin-top: 0;
 	margin-bottom: 4px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight {
 	background: var(--color-primary-element-light);
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead {
 	background: var(--color-background-hover);
 	color: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight .cn-search-select__lead {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option--highlight .cn-search-select__lead {
 	background: var(--color-main-background);
 	color: var(--color-primary-element-light-text);
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) {
 	padding: 8px 10px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead--avatar {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .cn-search-select__lead--avatar {
 	flex-basis: 28px;
 	width: 28px;
 	height: 28px;
@@ -1457,19 +1457,19 @@ body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.c
 	font-weight: 700;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__name {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__name {
 	font-size: 14px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__secondary {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead--avatar) .cn-search-select__secondary {
 	font-size: 12px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) {
 	padding: 10px 12px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) .cn-search-select__row {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-search-select__row) .vs__dropdown-option:has(.cn-search-select__lead:not(.cn-search-select__lead--avatar)) .cn-search-select__row {
 	gap: 12px;
 }
 
@@ -4801,16 +4801,16 @@ html :where(.cn-look-board) :is(h2, h3, h5, h6):where(.cn-inner-heading) {
    on the page holding the look and the soft ink is spelled out. NcSelect
    sets the list's edge and padding with !important.
    @spec openspec/changes/board-share-suggestions/specs/board-share-suggestions/spec.md */
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-saved-view-share__option) {
 	border-width: 0 1px 1px !important;
 	padding: 4px 6px !important;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) .vs__dropdown-option {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-saved-view-share__option) .vs__dropdown-option {
 	padding-inline: 14px;
 }
 
-body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .vs__dropdown-menu:has(.cn-saved-view-share__option) .cn-saved-view-share__pill {
+:root[data-cn-board-page] body .vs__dropdown-menu:has(.cn-saved-view-share__option) .cn-saved-view-share__pill {
 	line-height: normal;
 	color: color-mix(in srgb, var(--color-main-text) 45%, var(--color-text-maxcontrast));
 }

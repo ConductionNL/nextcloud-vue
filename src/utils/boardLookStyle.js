@@ -51,6 +51,7 @@ export function enableBoardLookStyle(doc) {
 	if (!target || !target.documentElement) {
 		return false
 	}
+	trackBoardPage(target)
 	const root = target.documentElement
 	if (root.hasAttribute(BOARD_LOOK_FLAG)) {
 		return false
@@ -60,6 +61,70 @@ export function enableBoardLookStyle(doc) {
 	boards.forEach((style) => style.removeAttribute('media'))
 	if (boards.length === 0 && BOARD_LOOK_CSS !== '') {
 		addBoardSheet(target, BOARD_LOOK_CSS, BOARD_LOOK_BUILT)
+	}
+	return true
+}
+
+/**
+ * The attribute on `<html>` that says the page shows a board-look region
+ * (`.cn-look-board`) and no Nextcloud-look region (`.cn-look-nextcloud`).
+ * Rules for surfaces teleported to `<body>` (menus, dropdowns, modal masks)
+ * key on `:root[data-cn-board-page] body`.
+ *
+ * Kept by an observer instead of `body:has(.cn-look-board):not(:has(.cn-look-nextcloud))`:
+ * a `:has()` anchored at `<body>` makes the browser restyle the whole page
+ * after most DOM insertions (~60-120 ms of style recalc per load on a board dashboard).
+ *
+ * @type {string}
+ */
+export const BOARD_PAGE_FLAG = 'data-cn-board-page'
+
+/** Marks a document whose flag is kept, shared by every library copy on the page. */
+const TRACKED = '__cnBoardPageTracked'
+
+/**
+ * Set or clear {@link BOARD_PAGE_FLAG} from what the page shows now.
+ *
+ * @param {Document} target The document.
+ * @param {HTMLCollection} boards Live `.cn-look-board` elements.
+ * @param {HTMLCollection} nextclouds Live `.cn-look-nextcloud` elements.
+ */
+function syncBoardPage(target, boards, nextclouds) {
+	const root = target.documentElement
+	const on = boards.length > 0 && nextclouds.length === 0
+	if (on !== root.hasAttribute(BOARD_PAGE_FLAG)) {
+		root.toggleAttribute(BOARD_PAGE_FLAG, on)
+	}
+}
+
+/**
+ * Keep {@link BOARD_PAGE_FLAG} in step with the page: checked once now and
+ * after every batch of inserted, removed or re-classed elements (a mutation
+ * observer runs before the next style pass, so no frame shows a stale flag).
+ * Idempotent per document.
+ *
+ * @param {Document} [doc] The document (defaults to the global one).
+ * @return {boolean} True when this call started keeping the flag.
+ * @spec openspec/changes/board-page-flag/specs/library-stylesheet/spec.md#requirement-teleported-board-surfaces-key-on-a-page-flag-not-on-body-has
+ */
+export function trackBoardPage(doc) {
+	const target = doc || (typeof document !== 'undefined' ? document : null)
+	if (!target || !target.documentElement || target[TRACKED]) {
+		return false
+	}
+	target[TRACKED] = true
+	const boards = target.getElementsByClassName('cn-look-board')
+	const nextclouds = target.getElementsByClassName('cn-look-nextcloud')
+	const sync = () => syncBoardPage(target, boards, nextclouds)
+	sync()
+	const Observer = (target.defaultView || globalThis).MutationObserver
+	if (typeof Observer === 'function') {
+		new Observer(sync).observe(target.documentElement, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['class'],
+		})
 	}
 	return true
 }

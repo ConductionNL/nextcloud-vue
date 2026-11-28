@@ -11,7 +11,7 @@ const fs = require('fs')
 const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/dialog.css'), 'utf8')
-const BOARD_BODY = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
+const BOARD_BODY = ':root[data-cn-board-page] body'
 const indexCss = fs.readFileSync(path.join(__dirname, '../../src/css/index.css'), 'utf8')
 
 describe('dialog.css', () => {

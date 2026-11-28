@@ -40,8 +40,8 @@ describe('look-board.css: scope', () => {
 	// NcActions poppers are teleported to <body>, outside every `.cn-look-board`
 	// root, so a rule for one cannot start there. It is rooted at a body that
 	// holds a board-look root instead, and only for a teleported popper.
-	const TELEPORTED_ROOT = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
-	const isTeleported = (selector) => selector.startsWith('body:has(.cn-look-board)')
+	const TELEPORTED_ROOT = ':root[data-cn-board-page] body'
+	const isTeleported = (selector) => selector.startsWith(':root[data-cn-board-page] body')
 
 	it('puts every selector under .cn-look-board, or a teleported popper or select list under a body holding one', () => {
 		const re = /([^{}]+)\{[^{}]*\}/g

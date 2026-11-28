@@ -11,7 +11,7 @@ const path = require('path')
 
 const css = fs.readFileSync(path.join(__dirname, '../../src/css/look-board.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 
-const BODY = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud))'
+const BODY = ':root[data-cn-board-page] body'
 const MENU = `${BODY} .vs__dropdown-menu:has(.cn-search-select__row)`
 
 /**

@@ -32,7 +32,7 @@ function ruleFor(selector) {
 	return null
 }
 
-const MENU = 'body:has(.cn-look-board):not(:has(.cn-look-nextcloud)) .v-popper__popper.action-item__popper'
+const MENU = ':root[data-cn-board-page] body .v-popper__popper.action-item__popper'
 
 describe('look-board.css: saved view manage menu', () => {
 	it('is 278px wide outside, the board\'s 264px of content, 6px in and a 1px line', () => {
