@@ -2036,6 +2036,50 @@ export default {
 			}
 		},
 
+		/**
+		 * An empty skyline: the first free row of every grid column.
+		 *
+		 * @param {object} grid The raw GridStack.
+		 * @return {number[]} One 0 per column.
+		 */
+		newSkyline(grid) {
+			const columns = typeof grid.getColumn === 'function' ? grid.getColumn() : this.columns
+			return new Array(Math.max(1, Number(columns) || this.columns || 12)).fill(0)
+		},
+
+		/**
+		 * The first row under every card the skyline holds over columns
+		 * `x` to `x + w`.
+		 *
+		 * @param {number[]} skyline The skyline.
+		 * @param {number} x First column.
+		 * @param {number} w Width in columns.
+		 * @return {number} The row.
+		 * @spec openspec/specs/dashboard-grid/spec.md#requirement-a-card-moved-up-by-the-layout-stops-under-the-cards-above-it
+		 */
+		skylineOver(skyline, x, w) {
+			let row = 0
+			for (let c = Math.max(0, x); c < Math.min(skyline.length, x + w); c++) {
+				row = Math.max(row, skyline[c])
+			}
+			return row
+		},
+
+		/**
+		 * Record a card ending at row `bottom` over columns `x` to `x + w`.
+		 *
+		 * @param {number[]} skyline The skyline.
+		 * @param {number} x First column.
+		 * @param {number} w Width in columns.
+		 * @param {number} bottom The first row under the card.
+		 * @return {void}
+		 */
+		raiseSkyline(skyline, x, w, bottom) {
+			for (let c = Math.max(0, x); c < Math.min(skyline.length, x + w); c++) {
+				skyline[c] = Math.max(skyline[c], bottom)
+			}
+		},
+
 		syncGridItems(newLayout) {
 			// Add new items, and re-adopt items whose backing DOM element was
 			// replaced. When a consumer's `itemKey` changes for an unchanged
@@ -2050,6 +2094,7 @@ export default {
 				}
 				const grid = toRaw(this.grid)
 				const added = []
+				const skyline = this.newSkyline(grid)
 				for (const item of this.itemsInRowOrder) {
 					const el = this.$refs.gridContainer.querySelector(`[gs-id="${item.id}"]`)
 					if (!el) {
@@ -2075,11 +2120,19 @@ export default {
 						// undo) is synced the same way. A size-to-content cell
 						// keeps the height its content gave it.
 						const x = item.gridX ?? node.x
-						const y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
 						const w = Number.isFinite(item.gridWidth) ? item.gridWidth : node.w
 						const h = Number.isFinite(item.gridHeight) && this.sizeToContentAttr(item) === undefined
 							? item.gridHeight * this.rowSplit
 							: node.h
+						let y = Number.isFinite(item.gridY) ? item.gridY * this.rowSplit : node.y
+						// The page compacts with the AUTHORED heights, but a
+						// size-to-content cell above may have grown past them;
+						// moving a card up into it made GridStack push that cell
+						// below everything (decidiq's greeting landed at the
+						// bottom). A card moving up stops under the cards above it.
+						if (y < node.y) {
+							y = Math.min(node.y, Math.max(y, this.skylineOver(skyline, x, w)))
+						}
 						if (x !== node.x || y !== node.y || w !== node.w || h !== node.h) {
 							// The layout said where it goes; GridStack's `change`
 							// for it is not a user's arrangement and is not
@@ -2098,6 +2151,7 @@ export default {
 								this.applyingLayout = false
 							}
 						}
+						this.raiseSkyline(skyline, x, w, y + h)
 					} else {
 						// Drop the stale node without touching its detached DOM,
 						// then adopt the new element so GridStack sizes/places it.
