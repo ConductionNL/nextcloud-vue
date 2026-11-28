@@ -53,6 +53,66 @@ const COUNTER_WIDTH = 96
 /** What a placeholder draws before it has measured its container (tests, a server-less first render). */
 const UNMEASURED_ITEMS = 3
 
+/** One observer for every placeholder, so a dashboard's placeholders are sized in one callback. */
+let sharedObserver = null
+/** Observed root element -> its placeholder component. */
+const observed = new Map()
+
+/**
+ * Size every resized placeholder from its observer entry. The entry carries the
+ * size the browser just laid out, so nothing is read from the DOM here and no
+ * layout is forced (a clientWidth read in mounted() forced one per widget).
+ *
+ * @param {ResizeObserverEntry[]} entries The resized roots.
+ * @return {void}
+ */
+function onPlaceholderResize(entries) {
+	const updates = []
+	for (const entry of entries) {
+		const vm = observed.get(entry.target)
+		if (vm) {
+			updates.push([vm, entry.contentRect, vm.normalizedShape === 'tiles' ? vm.tileSize() : vm.tile])
+		}
+	}
+	for (const [vm, rect, tile] of updates) {
+		vm.applySize(rect.width, rect.height, tile)
+	}
+}
+
+/**
+ * Start sizing a placeholder through the shared observer.
+ *
+ * @param {Element} el The placeholder root.
+ * @param {object} vm The placeholder component.
+ * @return {boolean} False when the browser has no ResizeObserver.
+ */
+function observePlaceholder(el, vm) {
+	if (typeof ResizeObserver === 'undefined') {
+		return false
+	}
+	sharedObserver = sharedObserver || new ResizeObserver(onPlaceholderResize)
+	observed.set(el, vm)
+	sharedObserver.observe(el)
+	return true
+}
+
+/**
+ * Stop sizing a placeholder.
+ *
+ * @param {Element} el The placeholder root.
+ * @return {void}
+ */
+function unobservePlaceholder(el) {
+	if (!observed.delete(el) || !sharedObserver) {
+		return
+	}
+	sharedObserver.unobserve(el)
+	if (observed.size === 0) {
+		sharedObserver.disconnect()
+		sharedObserver = null
+	}
+}
+
 /**
  * How many items of a shape fit a content area.
  *
@@ -110,6 +170,7 @@ export default {
 		return {
 			width: 0,
 			height: 0,
+			tile: TILE_SIZE,
 		}
 	},
 
@@ -134,22 +195,28 @@ export default {
 			if (this.height <= 0) {
 				return declared ?? UNMEASURED_ITEMS
 			}
-			const capacity = placeholderCapacity(this.normalizedShape, this.width, this.height, this.tileSize())
+			const capacity = placeholderCapacity(this.normalizedShape, this.width, this.height, this.tile)
 			return declared === null ? capacity : Math.min(declared, capacity)
 		},
 	},
 
 	mounted() {
-		this.measure()
-		if (typeof ResizeObserver !== 'undefined' && this.$refs.root) {
-			this._resizeObserver = new ResizeObserver(() => this.measure())
-			this._resizeObserver.observe(this.$refs.root)
+		const root = this.$refs.root
+		if (!root) {
+			return
+		}
+		// The observer's first callback sizes it after layout; without an observer, read once.
+		this._observedRoot = observePlaceholder(root, this) ? root : null
+		if (!this._observedRoot) {
+			this.measure()
 		}
 	},
 
 	beforeUnmount() {
-		this._resizeObserver?.disconnect()
-		this._resizeObserver = null
+		if (this._observedRoot) {
+			unobservePlaceholder(this._observedRoot)
+			this._observedRoot = null
+		}
 	},
 
 	methods: {
@@ -163,8 +230,21 @@ export default {
 			if (!root) {
 				return
 			}
-			this.width = root.clientWidth
-			this.height = root.clientHeight
+			this.applySize(root.clientWidth, root.clientHeight, this.normalizedShape === 'tiles' ? this.tileSize() : this.tile)
+		},
+
+		/**
+		 * Take a measured content size (whole pixels, as clientWidth gives them).
+		 *
+		 * @param {number} width Content width in px.
+		 * @param {number} height Content height in px.
+		 * @param {number} tile The tile size in px.
+		 * @return {void}
+		 */
+		applySize(width, height, tile) {
+			this.width = Math.round(width)
+			this.height = Math.round(height)
+			this.tile = tile
 		},
 
 		/**

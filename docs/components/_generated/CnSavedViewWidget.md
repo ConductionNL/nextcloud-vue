@@ -10,7 +10,8 @@ See the [reliance overview](./index.md#openregister-reliance) for the filterable
 
 ### Props
 
-| Name      | Type                               | Required | Default | Description                                                                                          |
-| --------- | ---------------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| `content` | `union`                            |          | `\{\}`  | The widget configuration: `viewId` (the saved view's id or uuid) and `limit` (row cap, default 10).  |
-| `api`     | `{fetchViews: Function}&#124;null` |          | `null`  | Injected API for tests and hosts that stub the transport. Defaults to the shared `useSavedViewsApi`. |
+| Name      | Type                               | Required | Default | Description                                                                                                                                      |
+| --------- | ---------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `content` | `union`                            |          | `\{\}`  | The widget configuration: `viewId` (the saved view's id or uuid) and `limit` (row cap, default 10).                                              |
+| `api`     | `{fetchViews: Function}&#124;null` |          | `null`  | Injected API for tests and hosts that stub the transport. Defaults to the shared `useSavedViewsApi`.                                             |
+| `preview` | `boolean`                          |          | `false` | The widget is a miniature in a widget picker: it draws `content.sampleRows` under `content.sampleColumns` and reads no saved view and no object. |
