@@ -10,6 +10,8 @@ export interface PerfBudgetPage {
 	name: string
 	path: string
 	ready?: string
+	/** The page's own floor page, measured in the same run (e.g. a core settings page for an admin settings page). */
+	floor?: string
 }
 
 /** A temporary exception: one page or one request, with a reason and an expiry. */
@@ -103,7 +105,7 @@ export function median(values: number[]): number
 export function isTracked(request: { url(): string, resourceType(): string }): boolean
 export function measureLoad(page: unknown, url: string, options?: { ready?: string, timeoutMs?: number, quietMs?: number, clock?: () => number }): Promise<PerfLoad>
 export function measurePage(page: unknown, target: PerfBudgetPage, options?: { runs?: number, timeoutMs?: number, quietMs?: number, clock?: () => number }): Promise<PerfPageResult>
-export function measureFloor(page: unknown, options?: { env?: Record<string, string | undefined>, runs?: number, timeoutMs?: number, clock?: () => number, cacheDir?: string }): Promise<PerfFloor>
+export function measureFloor(page: unknown, options?: { env?: Record<string, string | undefined>, runs?: number, timeoutMs?: number, clock?: () => number, cacheDir?: string, floorPath?: string }): Promise<PerfFloor>
 export function withinLimits(result: PerfPageResult, limit: Partial<PerfLimit> & Pick<PerfLimit, 'limitMs'>): boolean
 export function formatSummary(result: PerfPageResult, limit: Partial<PerfLimit> & Pick<PerfLimit, 'limitMs'>): string
 export function formatFailure(result: PerfPageResult, limit: Partial<PerfLimit> & Pick<PerfLimit, 'limitMs' | 'expired'>): string

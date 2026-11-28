@@ -31,6 +31,13 @@
  * `PERF_FLOOR_MS` supplies a floor measured elsewhere (for example on the
  * same stack with every Conduction app disabled) instead of measuring one.
  *
+ * A page may name its own floor page with `"floor"` in budget.json (Ruben,
+ * 28 Nov 2026): an app's admin settings page is held to a core Nextcloud
+ * settings page measured in the same run (`/index.php/settings/admin/sharing`),
+ * not the Dashboard, so it is judged on what the app adds to a settings page.
+ * That floor is always measured; `PERF_FLOOR_PATH` and `PERF_FLOOR_MS` keep
+ * standing for the Dashboard floor of every other page.
+ *
  * "Usable" is measured from the start of the navigation to the moment all of
  * these hold, and stay true for a quiet window:
  *  - the document has loaded, so every bundle has run;
@@ -179,6 +186,9 @@ function validateBudget(budget) {
 		}
 		if (page.ready !== undefined && (typeof page.ready !== 'string' || page.ready.trim() === '')) {
 			problems.push(where + ' ("' + page.name + '") has an empty "ready" selector')
+		}
+		if (page.floor !== undefined && (typeof page.floor !== 'string' || !page.floor.startsWith('/'))) {
+			problems.push(where + ' ("' + page.name + '") has a "floor" that is not a path starting with /')
 		}
 	})
 	const exceptions = budget.exceptions === undefined ? [] : budget.exceptions
@@ -648,12 +658,14 @@ function floorCacheFile(cacheDir, floorPath) {
  * @param {number} [options.timeoutMs] Per-load timeout.
  * @param {() => number} [options.clock] Millisecond clock.
  * @param {string} [options.cacheDir] Run-scoped directory to share the floor through.
+ * @param {string} [options.floorPath] A page's own floor page (budget.json `floor`); always measured.
  * @return {Promise<{path: string, medianMs: number|null, loads: number[], firstContentMs: number|null, source: string, failure: string|null}>}
  */
 function measureFloor(page, options = {}) {
 	const env = options.env || process.env
-	const given = envInt(env, 'PERF_FLOOR_MS', 0)
-	const floorPath = String(env.PERF_FLOOR_PATH || '').trim() || FLOOR_PATH
+	const own = typeof options.floorPath === 'string' && options.floorPath.trim() !== ''
+	const given = own ? 0 : envInt(env, 'PERF_FLOOR_MS', 0)
+	const floorPath = own ? options.floorPath.trim() : (String(env.PERF_FLOOR_PATH || '').trim() || FLOOR_PATH)
 	if (given > 0) {
 		return Promise.resolve({ path: floorPath, medianMs: given, loads: [], firstContentMs: null, source: 'PERF_FLOOR_MS', failure: null })
 	}
@@ -715,7 +727,7 @@ function definePerformanceSpec(test, options = {}) {
 				const timeoutMs = Math.max(10000, runLimit.limitMs * 10)
 				test.setTimeout(timeoutMs * (2 * runs + 4))
 				await seedFirstVisitOverlaysSeen(page, budget.app).catch(() => {})
-				const floor = await measureFloor(page, { env, runs, timeoutMs, cacheDir: testInfo.project && testInfo.project.outputDir })
+				const floor = await measureFloor(page, { env, runs, timeoutMs, cacheDir: testInfo.project && testInfo.project.outputDir, floorPath: target.floor })
 				if (floor.failure || floor.medianMs === null) {
 					throw new Error('The Nextcloud floor page (' + floor.path + ') ' + (floor.failure || 'was not measured')
 						+ '; without it no page can be judged. Set PERF_FLOOR_PATH or PERF_FLOOR_MS.')

@@ -217,6 +217,37 @@ describe('measureFloor', () => {
 	})
 })
 
+describe('a page with its own floor', () => {
+	it('accepts a floor path in budget.json and refuses one that is not a path', () => {
+		const ok = { app: 'x', pages: [{ name: 'Settings', path: '/index.php/settings/admin/x', floor: '/index.php/settings/admin/sharing' }] }
+		expect(validateBudget(ok)).toEqual([])
+		const bad = { app: 'x', pages: [{ name: 'Settings', path: '/index.php/settings/admin/x', floor: 'settings/admin/sharing' }] }
+		expect(validateBudget(bad)).toEqual(['pages[0] ("Settings") has a "floor" that is not a path starting with /'])
+	})
+
+	it('measures the page floor even when PERF_FLOOR_MS stands for the Dashboard', async () => {
+		const gotos = []
+		let clockNow = 0
+		let readyAt = 0
+		const page = {
+			on: () => {},
+			off: () => {},
+			goto: async (url) => {
+				gotos.push(url)
+				readyAt = clockNow + 500
+			},
+			evaluate: async () => ({ ready: clockNow >= readyAt, busy: false }),
+			waitForTimeout: async (ms) => { clockNow += ms },
+		}
+		const env = { PERF_FLOOR_MS: '540', PERF_FLOOR_PATH: '/index.php/apps/dashboard/' }
+		const floor = await measureFloor(page, { env, runs: 3, clock: () => clockNow, floorPath: '/index.php/settings/admin/sharing-own' })
+		expect(floor).toMatchObject({ path: '/index.php/settings/admin/sharing-own', source: 'measured', medianMs: 500, failure: null })
+		expect(gotos.every((url) => url.endsWith('/index.php/settings/admin/sharing-own'))).toBe(true)
+		const dashboard = await measureFloor(page, { env })
+		expect(dashboard).toMatchObject({ medianMs: 540, source: 'PERF_FLOOR_MS' })
+	})
+})
+
 describe('measureFloor across worker restarts', () => {
 	it('reuses the floor a previous worker of the run stored in the cache directory', async () => {
 		const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'perf-floor-'))
